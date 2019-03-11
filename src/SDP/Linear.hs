@@ -200,13 +200,13 @@ inits all@(es :< _) = all : inits es
 
 --------------------------------------------------------------------------------
 
-pattern Z :: (Linear l) => l e
+pattern   Z   :: (Linear l) => l e
 pattern Z <- (null -> True)                           where  Z   = lzero
 
 pattern  (:>) :: (Linear l) =>   e -> l e -> l e
 pattern x :> xs <- ((null ?: uncons) -> Just (x, xs)) where (:>) = toHead
 
-pattern   (:<) :: (Linear l) => l e ->   e -> l e
+pattern  (:<) :: (Linear l) => l e ->   e -> l e
 pattern xs :< x <- ((null ?: unsnoc) -> Just (xs, x)) where (:<) = toLast
 
 --------------------------------------------------------------------------------
