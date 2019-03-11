@@ -36,6 +36,8 @@ import Data.Bool
 import Data.Ord 
 import Data.Eq
 
+infixr 1 ? -- Lowest priority, compatible with infixr 0 $
+
 -- ternary operator
 (?)   :: Bool -> a -> a -> a
 (?) pred t e = if pred then t else e

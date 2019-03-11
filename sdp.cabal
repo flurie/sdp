@@ -23,11 +23,12 @@ Library
   
   exposed-modules:
     Control.Exception.SDP
-    
-    SDP.Estimate
-    SDP.Index
-    SDP.Linear
     SDP.SafePrelude
+    SDP.Estimate
+    
+    SDP.Linear
+    SDP.Index
+    
     SDP.Scan
     SDP.Zip
   other-modules:

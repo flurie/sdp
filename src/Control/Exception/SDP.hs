@@ -18,7 +18,7 @@ import Data.Typeable
     and has more neutral names in relation to other indexable structures.
   NOTE:
     If the index can overflow and underflow at the same time,
-    it is recommended to indicate this in the documentation.
+    it is recommended to indicate in the documentation.
 -}
 
 data IndexException = UndefinedValue  String

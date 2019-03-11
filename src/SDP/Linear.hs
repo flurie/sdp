@@ -36,7 +36,7 @@ infixl 5 :<
   Later several functions will be transferred and renamed.
 -}
 
-class (Foldable l) => Linear l
+class (Traversable l) => Linear l
   where
     {-# MINIMAL (fromList|fromListN), (head, tail|uncons), (init, last|unsnoc) #-}
     

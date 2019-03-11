@@ -16,7 +16,8 @@ import Data.Int
 
 {-
   Index is service class for Indexed, it is the result of combining Data.Ix and
-  Data.Array.Repa.Index, but adds several features of its own.
+  Data.Array.Repa.Index, but adds several features of its own, for example,
+  more polymorphic instances.
   
   The default definitions is correct for all (Ord, Enum) types with rank 1.
   
@@ -32,13 +33,12 @@ import Data.Int
   
   This is not a strict requirement, but recommended behavior (where appropriate).
   If the behavior of a particular implementation of a function is not explicitly
-  specified in the documentation (and is not self-evident for that particular type),
+  specified in the documentation (and is not self-evident for this type),
   then any other behavior should be considered as unplanned functionality.
   
   Generaly speaking, isOverflow and isUnderflow are not mutually exclusive:
     isOverflow  ((-3, 4), (2, 5)) (-4, 6) == True
     isUnderflow ((-3, 4), (2, 5)) (-4, 6) == True
-  
   And their conjunction is not interchangeable with inversion of inRange:
     offset ('z', 'a') 'a' == *** Exception: empty range in SDP.Index.offset (default)
   because
@@ -58,11 +58,11 @@ class (Ord i) => Index i
     next  :: (i, i) ->   i   -> i
     prev  :: (i, i) ->   i   -> i
     
+    isEmpty     :: (i, i) -> Bool
     inRange     :: (i, i) -> i -> Bool
     isOverflow  :: (i, i) -> i -> Bool
     isUnderflow :: (i, i) -> i -> Bool
     
-    isEmpty     :: (i, i) -> Bool
     safeElem    :: (i, i) -> i -> i
     ordBounds   :: (i, i) -> (i, i)
     offset      :: (i, i) -> i -> Int
@@ -94,13 +94,13 @@ class (Ord i) => Index i
       |     i <  l     = l
       |      True      = succ i
     
+    isEmpty     (l, u)   = u < l
     inRange     (l, u) i = l <= i && i <= u
     isOverflow  (l, u) i = i >  u && l <= u
     isUnderflow (l, u) i = i <  l && l <= u
     
-    isEmpty   (l, u)   = u < l
-    ordBounds (f, s)   = (f <= s) ? (f, s) $ (s, f)
-    safeElem  (l, u) i = min u (max l i)
+    ordBounds   (f, s)   = (f <= s) ? (f, s) $ (s, f)
+    safeElem    (l, u) i = min u (max l i)
     
     default offset  :: (Enum i) => (i, i) -> i -> Int
     offset (l, u) i =  checkBounds (l, u) i (i -. l) "offset (default)"
@@ -170,8 +170,8 @@ instance (Index i, Enum i) => Index (() :& i)
     isUnderflow (() :& l, () :& u) (() :& i) = isUnderflow (l, u) i
     safeElem    (() :& l, () :& u) (() :& i) = () :& safeElem (l, u) i
     
-    isEmpty   (() :& l, () :& u) = isEmpty (l, u)
-    ordBounds (() :& l, () :& u) = (() :& l', () :& u')
+    isEmpty     (() :& l, () :& u) = isEmpty (l, u)
+    ordBounds   (() :& l, () :& u) = (() :& l', () :& u')
       where
         (l', u') = ordBounds (l, u)
     
