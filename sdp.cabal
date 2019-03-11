@@ -25,9 +25,10 @@ Library
     Control.Exception.SDP
     SDP.SafePrelude
     SDP.Estimate
+    SDP.Index
     
     SDP.Linear
-    SDP.Index
+    SDP.Vector
     
     SDP.Scan
     SDP.Zip

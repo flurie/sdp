@@ -4,7 +4,8 @@
 module SDP.Vector
 (
   module SDP.Linear,
-  module SDP.Index
+  module SDP.Index,
+  write, (>/>)
 )
 where
 
@@ -28,6 +29,8 @@ class (Linear v, Index i, Enum i) => Vector (v) i | v -> i
     
     assoc           :: (i, i) -> [(i, e)] -> v e
     assoc bounds    =  assoc' bounds undefEx
+      where
+        undefEx = throw $ IndexOverflow "in SDP.Vector.assoc"
     
     assoc'          :: (i, i) -> e -> [(i, e)] -> v e
     
@@ -49,9 +52,10 @@ class (Linear v, Index i, Enum i) => Vector (v) i | v -> i
     
     {- Write functions -}
     
+    -- Writes elements to (immutable) vector.
     (//)         :: v e -> [(i, e)] -> v e
     
-    -- NOTE: (/>) uses (!) and may throw IndexException.
+    -- Update function. Uses (!) and may throw IndexException.
     (/>)         :: v e -> [i] -> (i -> e -> e) -> v e
     (/>) es is f = es // (assocOf <$> is)
       where
@@ -68,6 +72,13 @@ class (Linear v, Index i, Enum i) => Vector (v) i | v -> i
     -- searches the indices of all matching elements
     (*$) :: (e -> Bool) -> v e -> v i
     (*$) f = fsts . filter (f . snd) . enumerate
+      where
+        enumerate :: (Linear z, Index i, Enum i) => z e -> z (i, e)
+        enumerate = enum zero
+          where
+            zero = toEnum 0
+            enum  _     Z     = Z
+            enum !c (e :> es) = (c, e) :> enum (succ c) es
 
 write        :: (Vector v i) => v e -> i -> e -> v e
 write es i e = es // [(i, e)]
@@ -95,13 +106,13 @@ instance Vector [] Int
       LT -> Nothing
     
     -- [internal]: O (n ^ 2), obviously inefficient implementation. Rewrite after adding Set and Array to O(n * log n).
-    xs // es = merge xs (brush es) 0
+    xs // es = merge xs (clean es) 0
       where
-        merge [] ys _ = snds $ brush ys
+        merge [] ys _ = snds $ clean ys
         merge xs [] _ = xs
         merge (x : xs) ((i, y) : ys) n = i == n ? y : merge xs ys (n + 1) $ x : merge xs ((i, y) : ys) (n + 1)
         --   not EQ and not LT (neither underflow nor duplications) => GT ^
-        brush = sort' . nub' . filter (\ (i, _) -> i >= 0)
+        clean = sort' . nub' . filter (\ (i, _) -> i >= 0)
     
     (.$) = findIndex
     
@@ -137,16 +148,4 @@ instance Bordered [] Int
 
 --------------------------------------------------------------------------------
 
--- Shortcut for IndexException
 bndEx s = throw . UndefinedValue $ "SDP.Vector." ++ s
-
--- Exception for assoc default element definition
-undefEx = throw $ IndexOverflow "in SDP.Vector.assoc"
-
-enumerate :: (Linear z, Index i, Enum i) => z e -> z (i, e)
-enumerate = enum zero
-  where
-    zero = toEnum 0
-    enum  _     Z     = Z
-    enum !c (e :> es) = (c, e) :> enum (succ c) es
-
