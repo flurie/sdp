@@ -1,0 +1,15 @@
+NOTE:
+    This library is written for convenience only (primarily mine).
+    The difference between the simultaneous use of vector, containers and other
+  packages and the using SDP is the ability to work with different
+  data structures in the same namespace and process them syntactically similar
+  way through effective type classes, rather than heavy and/or too general.
+    At the same time, the SDP does not attempt to replace any of the listed or
+  implied packages.
+    It provides only simple and natural interfaces to improve the interaction
+  between different packages. And, of cource, some simple data structures,
+  otherwise it would be a completely mindless compatibility layer.
+
+version 0.0.0.1
+  Initial development phase, not recommended for use.
+

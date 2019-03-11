@@ -1,0 +1,34 @@
+name:          sdp
+version:       0.0.0.1
+category:      Data Structures
+
+synopsis:      Simple Data Processing
+description:   Data structures and shared interface for the simplest operations on them.
+
+license:       BSD3
+license-file:  LICENSE
+
+author:        Andrey Mulik
+maintainer:    work.a.mulik@gmail.com
+
+build-type:    Simple
+cabal-version: >=1.10
+
+Library
+  hs-source-dirs:   src
+  default-language: Haskell2010
+  build-depends:
+    base         >= 4.6  && < 5,
+    data-default >= 0.7  && < 0.8
+  
+  exposed-modules:
+    Control.Exception.SDP
+    
+    SDP.Estimate
+    SDP.Index
+    SDP.Linear
+    SDP.SafePrelude
+    SDP.Scan
+    SDP.Zip
+  other-modules:
+    SDP.Simple
