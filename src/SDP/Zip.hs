@@ -1,8 +1,4 @@
-module SDP.Zip
-(
-  Zip (..)
-)
-where
+module SDP.Zip where
 
 import Prelude ()
 import SDP.SafePrelude

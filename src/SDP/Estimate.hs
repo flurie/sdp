@@ -1,6 +1,6 @@
 module SDP.Estimate
 (
-  (<=>), (<==>), (>.), (<.), (>=.), (<=.) -- , emin, emax, eminimum, emaximum
+  (<=>), (<==>), (>.), (<.), (>=.), (<=.), emin, emax, eminimum, emaximum
 )
 where
 
