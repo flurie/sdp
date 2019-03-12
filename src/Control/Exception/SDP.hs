@@ -5,8 +5,7 @@ module Control.Exception.SDP
 )
 where
 
-import Prelude ((++))
-import SDP.SafePrelude
+import Prelude ( Eq (..), Show (..), String, (++) )
 
 import Control.Exception
 import Data.Typeable

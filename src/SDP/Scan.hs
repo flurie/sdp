@@ -1,4 +1,4 @@
-module SDP.Scan where
+module SDP.Scan ( Scan (..) ) where
 
 
 import Prelude ()

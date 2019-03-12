@@ -5,12 +5,17 @@ module SDP.Vector
 (
   module SDP.Linear,
   module SDP.Index,
+  
+  Bordered (..),
+  Vector   (..),
+  
   write, (>/>)
 )
 where
 
 import SDP.SafePrelude
 import Prelude ()
+
 import Data.List ( findIndex, findIndices )
 
 import SDP.Simple

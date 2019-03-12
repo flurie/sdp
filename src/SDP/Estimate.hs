@@ -1,18 +1,11 @@
-module SDP.Estimate
-(
-  (<=>), (<==>), (>.), (<.), (>=.), (<=.), emin, emax, eminimum, emaximum
-)
+module SDP.Estimate ( Estimate (..), (<=>), emin, emax, eminimum, emaximum )
 where
 
-import Prelude ()
+import Prelude ( Foldable ( length, foldl1 ) )
 
-import Data.Function
-import Data.Foldable
-import Data.Bool
-import Data.Ord
-import Data.Eq
+import Data.Functor.Classes ( Ord1 (..) )
 
-import Data.Functor.Classes
+import SDP.Simple
 
 --------------------------------------------------------------------------------
 
@@ -20,7 +13,7 @@ import Data.Functor.Classes
 (<=>) :: (Ord a) => a -> a -> Ordering
 (<=>) = compare
 
-class (Foldable e) => Estimate e
+class (Foldable e, Ord1 e) => Estimate e
   where
     (<==>) :: e o -> e o -> Ordering
     (<==>) = (<=>) `on` length

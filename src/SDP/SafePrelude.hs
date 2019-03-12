@@ -24,7 +24,7 @@ import Prelude hiding
   )
 
 import Control.Applicative
-import Data.Foldable hiding ( concat, concatMap )
 import Control.Monad
 
+import Data.Foldable hiding ( concat, concatMap )
 import SDP.Estimate

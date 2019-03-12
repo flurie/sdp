@@ -1,14 +1,24 @@
 {-# LANGUAGE DefaultSignatures, FlexibleInstances, FlexibleContexts #-}
 {-# LANGUAGE TypeOperators #-}
 
-module SDP.Index where
+module SDP.Index
+(
+  module Data.Word,
+  module Data.Int,
+  
+  Index (..), Bounds (..), (:&),
+  
+  I2  (..), I3  (..), I4  (..), I5  (..), I6  (..), I7  (..), I8  (..), I9 (..),
+  I10 (..), I11 (..), I12 (..), I13 (..), I14 (..), I15 (..), I16 (..),
+  ind2,  ind3,  ind4,  ind5,  ind6,  ind7,  ind8, ind9,
+  ind10, ind11, ind12, ind13, ind14, ind15, ind16
+)
+where
 
 import Prelude ( (++) )
 import SDP.SafePrelude
 
-
 import SDP.Simple
-
 import Data.Word
 import Data.Int
 

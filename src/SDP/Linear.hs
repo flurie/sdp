@@ -7,20 +7,20 @@ module SDP.Linear
   Linear (..),
   
   pattern (:>), pattern (:<), pattern  Z,
-  tails, inits, nub
+  
+  tails, inits
 )
-
 where
 
 --------------------------------------------------------------------------------
 
+import Prelude ()
 import SDP.SafePrelude
+
 import SDP.Simple
 import SDP.Zip
 
 import qualified Data.List as L hiding ( concat )
-import Control.Exception.SDP
-import Prelude ()
 
 --------------------------------------------------------------------------------
 
@@ -186,9 +186,6 @@ class (Traversable l) => Linear l
     
     nubBy         :: (e -> e -> Bool) -> l e -> l e
     nubBy       f = fromList . nubBy f . toList
-    
-nub   :: (Linear l, Eq e) => l e -> l e
-nub   = nubBy (==)
 
 tails :: (Linear l) => l e -> [l e]
 tails      Z        = Z
