@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
-{-# LANGUAGE DefaultSignatures, BangPatterns #-}
+{-# LANGUAGE DefaultSignatures #-}
 
 module SDP.Vector
 (
@@ -76,14 +76,10 @@ class (Linear v, Index i, Enum i) => Vector (v) i | v -> i
     
     -- searches the indices of all matching elements
     (*$) :: (e -> Bool) -> v e -> v i
-    (*$) f = fsts . filter (f . snd) . enumerate
+    f *$ es = fsts . filter (f . snd) $ enum es (unsafeIndex 0)
       where
-        enumerate :: (Linear z, Index i, Enum i) => z e -> z (i, e)
-        enumerate = enum zero
-          where
-            zero = toEnum 0
-            enum  _     Z     = Z
-            enum !c (e :> es) = (c, e) :> enum (succ c) es
+        enum     Z     _ = Z
+        enum (e :> es) c = (c, e) :> (enum es $! succ c)
 
 write        :: (Vector v i) => v e -> i -> e -> v e
 write es i e = es // [(i, e)]
@@ -96,11 +92,11 @@ instance Vector [] Int
     assoc  = undefined
     assoc' = undefined
     
-    (x : xs) .! (!n) = (n == 0) ? x $ xs .! (n - 1)
+    (x : xs) .! n = (n == 0) ? x $ xs .! (n - 1)
     
     (!) [] n = throw $ (n < 0 ? IndexUnderflow $ IndexOverflow) "in SDP.Vector.(!) (List)"
-    (!) (x : xs) !n = case n <=> 0 of
-      GT -> xs ! (n - 1)
+    (x : xs) ! n = case n <=> 0 of
+      GT -> xs .! (n - 1)
       EQ -> x
       LT -> throw $ IndexUnderflow "in SDP.Vector.(!) (List)"
     

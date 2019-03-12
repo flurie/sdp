@@ -1,5 +1,5 @@
-{-# LANGUAGE PatternSynonyms, ViewPatterns, BangPatterns #-}
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE PatternSynonyms, ViewPatterns #-}
+-- {-# LANGUAGE CPP #-} -- for future use
 
 module SDP.Linear
 (
