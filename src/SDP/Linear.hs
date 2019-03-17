@@ -1,26 +1,31 @@
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
 {-# LANGUAGE PatternSynonyms, ViewPatterns #-}
 -- {-# LANGUAGE CPP #-} -- for future use
 
 module SDP.Linear
 (
+  module SDP.Index,
   module SDP.Zip,
+  
+  Bordered (..),
   Linear (..),
   
   pattern (:>), pattern (:<), pattern  Z,
   
-  tails, inits
+  tails, inits, nub
 )
+
 where
 
 --------------------------------------------------------------------------------
 
 import Prelude ()
-import SDP.SafePrelude
-
-import SDP.Simple
-import SDP.Zip
-
 import qualified Data.List as L hiding ( concat )
+
+import SDP.SafePrelude
+import SDP.Simple
+import SDP.Index
+import SDP.Zip
 
 --------------------------------------------------------------------------------
 
@@ -181,19 +186,46 @@ class (Traversable l) => Linear l
     concatMap     :: (Foldable f) => (e -> l r) -> f e -> l r
     concatMap   f =  foldr' (\ x y -> f x ++ y) Z
     
+    subsequences  :: (Linear l) => l e -> [l e]
+    subsequences xs =  Z : subsequences' xs
+      where
+        subsequences'     Z     = Z
+        subsequences' (x :> xs) = single x : foldr f [] (subsequences' xs)
+          where
+            f ys rest = ys : (x :> ys) : rest
+    
     listR         :: l e -> [e]
     listR         =  reverse . toList
     
     nubBy         :: (e -> e -> Bool) -> l e -> l e
     nubBy       f = fromList . nubBy f . toList
 
-tails :: (Linear l) => l e -> [l e]
-tails      Z        = Z
-tails all@(_ :> es) = all : tails es
+--------------------------------------------------------------------------------
 
-inits :: (Linear l) => l e -> [l e]
-inits      Z        = Z
-inits all@(es :< _) = all : inits es
+class (Linear b, Index i) => Bordered (b) i | b -> i
+  where
+    {-# MINIMAL bounds|(lower, upper) #-}
+    
+    bounds    :: b e ->  (i, i)
+    bounds es =  (lower es, upper es)
+    assocs    :: b e -> [(i, e)]
+    assocs xs =  zip (indices xs) (toList xs)
+    indices   :: b e -> [i]
+    indices   =  range . bounds
+    lower     :: b e -> i
+    lower     =  fst  . bounds
+    upper     :: b e -> i
+    upper     =  snd  . bounds
+
+--------------------------------------------------------------------------------
+
+instance Bordered [] Int
+  where
+    bounds  es = (0,   length es - 1)
+    assocs  es = zip  [0 .. ] es
+    indices es = [0 .. length es - 1]
+    lower   es = 0
+    upper   es = length es - 1
 
 --------------------------------------------------------------------------------
 
@@ -255,11 +287,13 @@ instance Linear []
 
 --------------------------------------------------------------------------------
 
-subsequences    :: (Linear l) => l e -> [l e]
-subsequences xs =  Z : subsequences' xs
-  where
-    subsequences'     Z     = Z
-    subsequences' (x :> xs) = single x : foldr f [] (subsequences' xs)
-      where
-        f ys rest = ys : (x :> ys) : rest
+nub   :: (Linear l, Eq e) => l e -> l e
+nub   =  nubBy (==)
 
+tails :: (Linear l) => l e -> [l e]
+tails      Z        = Z
+tails all@(_ :> es) = all : tails es
+
+inits :: (Linear l) => l e -> [l e]
+inits      Z        = Z
+inits all@(es :< _) = all : inits es

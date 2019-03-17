@@ -1,15 +1,15 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
 {-# LANGUAGE DefaultSignatures #-}
 
-module SDP.Vector
+module SDP.Indexed
 (
   module SDP.Linear,
   module SDP.Index,
   
-  Bordered (..),
-  Vector   (..),
+  Indexed (..),
   
-  write, (>/>)
+  write,
+  (>/>)
 )
 where
 
@@ -24,9 +24,9 @@ import SDP.Index
 
 --------------------------------------------------------------------------------
 
-{- Class of one-indexed data structures. -}
+{- Class of indexed data structures. -}
 
-class (Linear v, Index i, Enum i) => Vector (v) i | v -> i
+class (Linear v, Index i) => Indexed (v) i | v -> i
   where
     {-# MINIMAL assoc', (//), ((!)|(!?)), ((.$) | (*$)) #-}
     
@@ -35,7 +35,7 @@ class (Linear v, Index i, Enum i) => Vector (v) i | v -> i
     assoc           :: (i, i) -> [(i, e)] -> v e
     assoc bounds    =  assoc' bounds undefEx
       where
-        undefEx = throw $ IndexOverflow "in SDP.Vector.assoc"
+        undefEx = throw $ IndexOverflow "in SDP.Indexed.assoc"
     
     assoc'          :: (i, i) -> e -> [(i, e)] -> v e
     
@@ -57,7 +57,7 @@ class (Linear v, Index i, Enum i) => Vector (v) i | v -> i
     
     {- Write functions -}
     
-    -- Writes elements to (immutable) vector.
+    -- Write elements to (immutable) structure.
     (//)         :: v e -> [(i, e)] -> v e
     
     -- Update function. Uses (!) and may throw IndexException.
@@ -81,24 +81,24 @@ class (Linear v, Index i, Enum i) => Vector (v) i | v -> i
         enum     Z     _ = Z
         enum (e :> es) c = (c, e) :> (enum es $! succ c)
 
-write        :: (Vector v i) => v e -> i -> e -> v e
+write        :: (Indexed v i) => v e -> i -> e -> v e
 write es i e = es // [(i, e)]
 
-(>/>)        :: (Vector v i) => v e -> [i] -> (e -> e) -> v e
+(>/>)        :: (Indexed v i) => v e -> [i] -> (e -> e) -> v e
 (>/>) es  is = (es /> is) . const
 
-instance Vector [] Int
+instance Indexed [] Int
   where
     assoc  = undefined
     assoc' = undefined
     
     (x : xs) .! n = (n == 0) ? x $ xs .! (n - 1)
     
-    (!) [] n = throw $ (n < 0 ? IndexUnderflow $ IndexOverflow) "in SDP.Vector.(!) (List)"
+    (!) [] n = throw $ (n < 0 ? IndexUnderflow $ IndexOverflow) "in SDP.Indexed.(!) (List)"
     (x : xs) ! n = case n <=> 0 of
       GT -> xs .! (n - 1)
       EQ -> x
-      LT -> throw $ IndexUnderflow "in SDP.Vector.(!) (List)"
+      LT -> throw $ IndexUnderflow "in SDP.Indexed.(!) (List)"
     
     [] !? _ = Nothing
     (x : xs) !? n = case n <=> 0 of
@@ -116,37 +116,9 @@ instance Vector [] Int
         clean = sort' . nub' . filter (\ (i, _) -> i >= 0)
     
     (.$) = findIndex
-    
     (*$) = findIndices
 
 --------------------------------------------------------------------------------
 
-class (Linear b, Index i) => Bordered (b) i | b -> i
-  where
-    {-# MINIMAL bounds|(lower, upper) #-}
-    
-    bounds    :: b e ->  (i, i)
-    assocs    :: b e -> [(i, e)]
-    indices   :: b e -> [i]
-    lower     :: b e -> i
-    upper     :: b e -> i
-    
-    bounds es =  (lower es, upper es)
-    assocs xs =  zip (indices xs) (toList xs)
-    indices   =  range . bounds
-    lower     =   fst  . bounds
-    upper     =   snd  . bounds
+bndEx s = throw . UndefinedValue $ "SDP.Indexed." ++ s
 
---------------------------------------------------------------------------------
-
-instance Bordered [] Int
-  where
-    bounds  es = (0,   length es - 1)
-    assocs  es = zip  [0 .. ] es
-    indices es = [0 .. length es - 1]
-    lower   es = 0
-    upper   es = length es - 1
-
---------------------------------------------------------------------------------
-
-bndEx s = throw . UndefinedValue $ "SDP.Vector." ++ s

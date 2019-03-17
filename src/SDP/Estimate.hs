@@ -1,11 +1,9 @@
 module SDP.Estimate ( Estimate (..), (<=>), emin, emax, eminimum, emaximum )
 where
 
-import Prelude ( Foldable ( length, foldl1 ) )
+import Prelude ( Bool (..), Eq (..), Ord (..), Ordering (..), Num (..), Foldable (..), Int, ($), (||), not, undefined )
 
 import Data.Functor.Classes ( Ord1 (..) )
-
-import SDP.Simple
 
 --------------------------------------------------------------------------------
 
@@ -16,7 +14,7 @@ import SDP.Simple
 class (Foldable e, Ord1 e) => Estimate e
   where
     (<==>) :: e o -> e o -> Ordering
-    (<==>) = (<=>) `on` length
+    xs <==> ys = length xs <=> length ys
     
     (>.), (<.), (<=.), (>=.) :: e o -> e o -> Bool
     
@@ -24,6 +22,16 @@ class (Foldable e, Ord1 e) => Estimate e
     xs <.  ys = case xs <==> ys of {LT ->  True; _ -> False}
     xs <=. ys = case xs <==> ys of {GT -> False; _ ->  True}
     xs >=. ys = case xs <==> ys of {LT -> False; _ ->  True}
+    
+    (.>.), (.<.), (.<=.), (.>=.), (.==.), (./=.) :: e o -> Int -> Bool
+    
+    xs .>.  n = length xs >  n
+    xs .<.  n = length xs <  n
+    xs .>=. n = length xs >= n
+    xs .<=. n = length xs <= n
+    
+    xs .==. n = length xs == n
+    xs ./=. n = length xs /= n
 
 emin, emax :: (Estimate e) => e o -> e o -> e o
 
@@ -47,4 +55,16 @@ instance Estimate []
     [] <==> _  = LT
     _  <==> [] = GT
     (_ : xs) <==> (_ : ys) = xs <==> ys
+    
+    []        .>. n = 0 >  n
+    (x : xs)  .>. n = 1 >  n || xs .>.  (n - 1)
+    
+    []        .<. n = 0 <  n
+    (x : xs)  .<. n = 1 >  n || xs .<.  (n - 1)
+    
+    []       .>=. n = 0 >= n
+    (x : xs) .>=. n = 1 >= n || xs .>=. (n - 1)
+    
+    []       .<=. n = 0 <= n
+    (x : xs) .<=. n = 1 <= n || xs .<=. (n - 1)
 

@@ -10,6 +10,6 @@ NOTE:
   between different packages. And, of cource, some simple data structures,
   otherwise it would be a completely mindless compatibility layer.
 
-version 0.0.0.1
+version 0.0.0.*:
   Initial development phase, not recommended for use.
 

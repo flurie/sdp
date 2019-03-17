@@ -1,2 +1,15 @@
 version 0.0.0.1
   First, unstable version of SDP (Simple Data Processing).
+  
+  Added Indexed class
+  Added Linear class
+  Added Set class
+  
+  Added IndexException type
+  Added Estimate class
+  Added Index class
+  Added Scan class
+  Added Zip class
+
+version 0.0.0.2
+  Unstable version.
