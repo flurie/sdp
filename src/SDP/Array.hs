@@ -5,6 +5,10 @@ module SDP.Array
 )
 where
 
+{-
+  Just reexport of SDP.Array.Immutable
+-}
+
 import Prelude ()
 import SDP.SafePrelude
 

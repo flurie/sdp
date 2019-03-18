@@ -14,10 +14,10 @@ import Data.Typeable
 
 {-
     Exception type IndexException replaces the less informative ArrayException
-    and has more neutral names in relation to other indexable structures.
-  NOTE:
-    If the index can overflow and underflow at the same time,
-    it is recommended to indicate in the documentation.
+  and has more neutral names in relation to other indexable structures.
+  
+    If the index can overflow and underflow at the same time, it is recommended
+  to indicate in the documentation.
 -}
 
 data IndexException = UndefinedValue  String

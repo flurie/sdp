@@ -4,9 +4,11 @@
 module SDP.Array.Immutable
 (
   module SDP.Array.Mutable,
+  
   module SDP.Indexed,
   module SDP.Linear,
   module SDP.Scan,
+  
   Array (..)
 )
 where
@@ -31,7 +33,7 @@ import SDP.Array.Mutable
 import SDP.Indexed
 import SDP.Linear
 import SDP.Scan
-import SDP.Set
+-- import SDP.Set
 
 import SDP.Simple
 
@@ -172,13 +174,13 @@ instance (Index i) => Foldable (Array i)
       where
         go i a = (arr ==. i) ? a $ go (i + 1) ((f $! a) $ arr !# i)
     
-    foldl1 f arr = null arr ? undEx "foldl1" $ go (length arr - 1)
-      where
-        go i = i == 0 ? (arr !# 0) $ f (go $ i - 1) (arr !# i)
-    
     foldr1 f arr = null arr ? undEx "foldr1" $ go 0
       where
         go i = arr ==. (i + 1) ? e $ f e (go $ i + 1) where e = arr !# i
+    
+    foldl1 f arr = null arr ? undEx "foldl1" $ go (length arr - 1)
+      where
+        go i = i == 0 ? (arr !# 0) $ f (go $ i - 1) (arr !# i)
     
     toList arr@(Array _ _ n _) = (arr !#) <$> [0 .. n - 1]
     
@@ -224,20 +226,16 @@ instance (Index i) => Linear (Array i)
     init es = fromListN (length es - 1) $ toList es
     
     -- O (n) take.
-    take n es = if n < 1 then Z  else fromListN (length es - n) $ toList es
+    take n es = n < 1 ? Z  $ fromListN (length es - n) $ toList es
     
     -- O (n) drop.
-    drop n es = if n < 1 then es else fromListN n [ es !# i | i <- [n .. length es - 1] ]
+    drop n es = n < 1 ? es $ fromListN n [ es !# i | i <- [n .. length es - 1] ]
     
     -- O(n) reverse
-    reverse es = fromListN n [ es !# i | i <- [ n - 1, n - 2 .. 0 ] ]
-      where
-        n = length es
+    reverse es = fromListN n $ listR es where n = length es
     
     -- O(n) right list view
-    listR   es = [es !# i | i <- [n - 1, n - 2 .. 0] ]
-      where
-        n = length es
+    listR   es = [es !# i | i <- [n - 1, n - 2 .. 0] ] where n = length es
     
     -- O(n * m) concatenation
     concatMap f = concat . map f . toList
@@ -245,23 +243,23 @@ instance (Index i) => Linear (Array i)
     -- No more than O(n) comparing.
     isPrefixOf xs ys = xs .<=. ys && and equals
       where
-        equals = [ xs !# i == ys !# i | i <- [0 .. ly] ]
+        equals = [ xs !# i == ys !# i | i <- [0 .. ly - 1] ]
         ly = length ys
     
     -- No more than O(n) comparing.
     isSuffixOf xs ys = xs .<=. ys && and equals
       where
-        equals = [ xs !# i == xs !# (i + offset) | i <- [0 .. ly] ]
+        equals = [ xs !# i == xs !# (i + offset) | i <- [0 .. ly - 1] ]
         offset = length xs - ly
         ly = length ys
     
     -- Default isInfixOf, no more than O(n) comparing.
     
-    takeWhile pred arr = take (pred `prefix` arr) arr
-    dropWhile pred arr = drop (pred `prefix` arr) arr
+    takeWhile pred es = take (pred `prefix` es) es
+    dropWhile pred es = drop (pred `prefix` es) es
     
-    takeEnd   pred arr = drop (pred `suffix` arr) arr
-    dropEnd   pred arr = take (pred `suffix` arr) arr
+    takeEnd   pred es = drop (pred `suffix` es) es
+    dropEnd   pred es = take (pred `suffix` es) es
     
     concat = fromList . toList'
       where
@@ -272,13 +270,11 @@ instance (Index i) => Linear (Array i)
 
 instance (Index i) => Indexed (Array i) i
   where
-    assoc' bnds def assocs = runST (ST $ st)
+    assoc' bnds def assocs = runST (ST $ \ s1# -> case newArray# n# def s1# of (# s2#, marr# #) -> writes marr# s2#)
       where
         writes marr# = foldr (fill marr#) (done bnds n marr#) ies
-          where ies = [ (offset bnds i, e) | (i, e) <- assocs ]
-        
-        st s1# = case newArray# n# def s1# of (# s2#, marr# #) -> writes marr# s2#
-        n@(I# n#) = size bnds
+          where ies  = [ (offset bnds i, e) | (i, e) <- assocs ]
+        n@(I# n#)    = size bnds
     
     arr@(Array l u n@(I# n#) arr#) // assocs = runST $ thaw >>= writes
       where
@@ -287,9 +283,7 @@ instance (Index i) => Indexed (Array i) i
         
         thaw = ST $ \s1# -> case newArray# n# (undEx "(//)") s1# of
           (# s2#, marr# #) ->
-            let copy i@(I# i#) s3#
-                  | i == n = s3#
-                  |  True  = copy (i + 1) (writeArray# marr# i# (arr !# i) s3#)
+            let copy i@(I# i#) s3# = if i == n then s3# else copy (i + 1) (writeArray# marr# i# (arr !# i) s3#)
             in case copy 0 s2# of s3# -> (# s3#, STArray l u n marr# #)
     
     (.!) arr@(Array l u _ _) i = arr !# offset (l, u) i
@@ -340,7 +334,6 @@ instance (Index i) => Scan (Array i)
     scanl' f w es = null es ? single w $ fromListN l (w : res w 0)
       where
         l = length es + 1
-        -- res generates infinite list, but fromList catches it.
         res !curr !n = next : res next (n + 1)
           where
             next = f curr (es !# n)
@@ -349,7 +342,6 @@ instance (Index i) => Scan (Array i)
       where
         l = length es
         w = head es
-        -- res generates infinite list, but fromListN catches it.
         res !curr !n = next : res next (n + 1)
           where
             next = f curr (es !# n)
@@ -363,7 +355,7 @@ instance (Index i) => Scan (Array i)
             prev = f (es !# n) curr
 
 
--- [internal]: write Set.
+-- [internal]: write Set instance.
 -- instance (Index i) => Set (Array i)
 
 --------------------------------------------------------------------------------

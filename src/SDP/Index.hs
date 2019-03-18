@@ -200,14 +200,14 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
     range (ls :& l, us :& u) = liftA2 (:&) (range (ls, us)) (range (l, u))
     
     prev bounds@(ls :& l, us :& u) index
-        | isEmpty bounds = throw $ EmptyRange "in SDP.Index.prev"
+        | isEmpty bounds = throw $ EmptyRange "in SDP.Index.prev (n-dimensional)"
         |     i /= l     = is :& pred i
         |    is /= ls    = prev (ls, us) is :& u
         |      True      = ls :& l
       where (is :& i) = safeElem bounds index
     
     next bounds@(ls :& l, us :& u) index
-        | isEmpty bounds = throw $ EmptyRange "in SDP.Index.next"
+        | isEmpty bounds = throw $ EmptyRange "in SDP.Index.next (n-dimensional)"
         |     i /= u     = is :& succ i
         |    is /= us    = prev (ls, us) is :& u
         |      True      = ls :& l

@@ -6,7 +6,7 @@ module SDP.Array.Mutable
 )
 where
 
-import GHC.Base hiding (foldr, (++))
+import GHC.Base hiding ( foldr, (++) )
 import SDP.SafePrelude
 import Prelude ()
 import GHC.Show

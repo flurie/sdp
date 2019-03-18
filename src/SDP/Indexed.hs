@@ -4,7 +4,6 @@
 module SDP.Indexed
 (
   module SDP.Linear,
-  module SDP.Index,
   
   Indexed (..),
   
@@ -18,9 +17,10 @@ import Prelude ()
 
 import Data.List ( findIndex, findIndices )
 
-import SDP.Simple
 import SDP.Linear
-import SDP.Index
+import SDP.Set
+
+import SDP.Simple
 
 --------------------------------------------------------------------------------
 
@@ -41,17 +41,17 @@ class (Linear v, Index i) => Indexed (v) i | v -> i
     
     {- Read functions -}
     
-    -- Use (.!) only if you are sure that you will not go beyond the bounds.
+    -- Use (.!) only if you are really sure that you will not go beyond the bounds.
     (.!)        :: v e -> i -> e
     dat .! ix   =  fromMaybe (bndEx "(.!)") $ dat !? ix
     
-    -- (!) is pretty safe function that is slightly slower than (.!)
+    -- (!) is pretty safe function, throws IndexException.
     (!)          :: v e -> i -> e
     (!) dat ix   =  fromMaybe (bndEx "(!)") $ dat !? ix
     
     default (!?) :: (Bordered v i) => v e -> i -> Maybe e
     
-    -- (!?) is completely safe function
+    -- (!?) is completely safe, but so boring function.
     (!?)         :: v e -> i -> Maybe e
     (!?) dat     =  (inRange $ bounds dat) ?: (dat !)
     
@@ -89,8 +89,16 @@ write es i e = es // [(i, e)]
 
 instance Indexed [] Int
   where
-    assoc  = undefined
-    assoc' = undefined
+    assoc' bounds e = toResultList . normalAssocs
+      where
+        fill (ie1@(i1, _) : ie2@(i2, _) : xs) = ie1 : fill rest
+          where
+            rest = nx /= i2 ? (nx, e) : ie2 : xs $ ie2 : xs
+            nx   = next bounds i1
+        fill xs  = xs
+        
+        normalAssocs = fill . setWith cmpfst . filter (inRange bounds . fst)
+        toResultList = fromListN (size bounds) . snds
     
     (x : xs) .! n = (n == 0) ? x $ xs .! (n - 1)
     
