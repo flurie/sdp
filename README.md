@@ -8,9 +8,10 @@ SDP and it can be used as a component in more serious projects.
 
 Why is it needed?
 --------------------------------------------------------------------------------
-The purpose of SDP is, firstly, to save acceptable working quality (in comparsion
-with older and specialized libraries) with greater functionality, and secondly,
-to allow the joint use of various structures and libraries.
+The purpose of SDP is, firstly, to save acceptable working quality (in
+comparsion with using older and specialized libraries) with greater
+functionality, and secondly, to allow the joint use of various structures and
+libraries.
 
 What SDP provides?
 --------------------------------------------------------------------------------
