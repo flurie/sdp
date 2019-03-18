@@ -8,7 +8,7 @@ SDP and it can be used as a component in more serious projects.
 
 Why is it needed?
 --------------------------------------------------------------------------------
-The purpose of SDP is, firstly, to save acceptable working quality(in comparison
+The purpose of SDP is, firstly, to save acceptable working quality (in comparsion
 with older and specialized libraries) with greater functionality, and secondly,
 to allow the joint use of various structures and libraries.
 
@@ -21,8 +21,8 @@ added.
 
 What distinguishes SDP from other libraries?
 --------------------------------------------------------------------------------
-* Internal consistency. I would be sincerely happy if all the libraries were
-consistent. At least in Haskell. At least in the Haskell Platform.
+* Internal consistency. Unfortunately, not all libraries are consistent, even in
+the Haskell Platform.
 * Maximum functionality with minimal number of dependencies. SDP requires only
 the most necessary and commonly used packages. This is one of the reasons why I
 refused to use some existing libraries as dependencies (for example, containers,
