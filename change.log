@@ -12,4 +12,9 @@ version 0.0.0.1
   Added Zip class
 
 version 0.0.0.2
-  Unstable version.
+  Second unstable version.
+  
+  Added Array type (rewrited GHC.Arr)
+
+version 0.0.0.3
+  Third unstable version.

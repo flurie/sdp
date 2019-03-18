@@ -1,9 +1,16 @@
-module SDP.Estimate ( Estimate (..), (<=>), emin, emax, eminimum, emaximum )
+{-# LANGUAGE ExistentialQuantification #-}
+
+module SDP.Estimate
+(
+  module Data.Functor.Classes,
+  
+  Estimate (..), EList (..), (<=>)
+)
 where
 
 import Prelude ( Bool (..), Eq (..), Ord (..), Ordering (..), Num (..), Foldable (..), Int, ($), (||), not, undefined )
 
-import Data.Functor.Classes ( Ord1 (..) )
+import Data.Functor.Classes
 
 --------------------------------------------------------------------------------
 
@@ -11,43 +18,55 @@ import Data.Functor.Classes ( Ord1 (..) )
 (<=>) :: (Ord a) => a -> a -> Ordering
 (<=>) = compare
 
+{-
+    This module is exported by SafePrelude.
+    
+    Estimate class allows the lazy comparsion structures by length (including,
+  with different types of arguments).
+    For some types (lists, for example), this allows you to speed up the
+  comparison or make it finite (if at least one list is infinite). For others
+  (for example, arrays) it can be a convenient abbreviation.
+-}
+
+data EList e = forall o . EList (e o)
+
 class (Foldable e, Ord1 e) => Estimate e
   where
-    (<==>) :: e o -> e o -> Ordering
+    {-# MINIMAL (<==>) #-}
+    
+    (<==>) :: e a -> e b -> Ordering
     xs <==> ys = length xs <=> length ys
     
-    (>.), (<.), (<=.), (>=.) :: e o -> e o -> Bool
+    {- Symmetric comparsion by length. -}
     
-    xs >.  ys = case xs <==> ys of {GT ->  True; _ -> False}
-    xs <.  ys = case xs <==> ys of {LT ->  True; _ -> False}
-    xs <=. ys = case xs <==> ys of {GT -> False; _ ->  True}
-    xs >=. ys = case xs <==> ys of {LT -> False; _ ->  True}
+    (.>.), (.<.), (.<=.), (.>=.) :: e a -> e b -> Bool
     
-    (.>.), (.<.), (.<=.), (.>=.), (.==.), (./=.) :: e o -> Int -> Bool
+    xs .>.  ys = case xs <==> ys of {GT ->  True; _ -> False}
+    xs .<.  ys = case xs <==> ys of {LT ->  True; _ -> False}
+    xs .<=. ys = case xs <==> ys of {GT -> False; _ ->  True}
+    xs .>=. ys = case xs <==> ys of {LT -> False; _ ->  True}
     
-    xs .>.  n = length xs >  n
-    xs .<.  n = length xs <  n
-    xs .>=. n = length xs >= n
-    xs .<=. n = length xs <= n
+    {- Left-side comparsion with length. -}
     
-    xs .==. n = length xs == n
-    xs ./=. n = length xs /= n
-
-emin, emax :: (Estimate e) => e o -> e o -> e o
-
--- Estimated min.
-emin xs ys = case xs <==> ys of {LT -> xs; _ -> ys}
-
--- Estimated max (not emacs).
-emax xs ys = case xs <==> ys of {GT -> xs; _ -> ys}
-
-eminimum, emaximum :: (Foldable f, Estimate e) => f (e o) -> e o
-
--- Estimated minimum.
-eminimum = foldl1 emin
-
--- Estimated maximum.
-emaximum = foldl1 emax
+    (>.), (<.), (<=.), (>=.), (==.), (/=.) :: e o -> Int -> Bool
+    
+    xs >.  n = length xs >  n
+    xs <.  n = length xs <  n
+    xs >=. n = length xs >= n
+    xs <=. n = length xs <= n
+    
+    xs ==. n = length xs == n
+    xs /=. n = length xs /= n
+    
+    emin, emax :: e a -> e b -> Int
+    
+    emin xs ys = if xs .>. ys then length ys else length xs
+    emax xs ys = if xs .<. ys then length ys else length xs
+    
+    eminimum, emaximum :: (Foldable f) => f (EList e) -> Int
+    
+    eminimum = foldl (\ llen (EList es) -> if llen < 0 || es <. llen then length es else llen) (-1)
+    emaximum = foldl (\ llen (EList es) -> if es >. llen then length es else llen) 0
 
 instance Estimate []
   where
@@ -56,15 +75,15 @@ instance Estimate []
     _  <==> [] = GT
     (_ : xs) <==> (_ : ys) = xs <==> ys
     
-    []        .>. n = 0 >  n
-    (x : xs)  .>. n = 1 >  n || xs .>.  (n - 1)
+    []        >. n = 0 >  n
+    (x : xs)  >. n = 1 >  n || xs >.  (n - 1)
     
-    []        .<. n = 0 <  n
-    (x : xs)  .<. n = 1 >  n || xs .<.  (n - 1)
+    []        <. n = 0 <  n
+    (x : xs)  <. n = 1 >  n || xs <.  (n - 1)
     
-    []       .>=. n = 0 >= n
-    (x : xs) .>=. n = 1 >= n || xs .>=. (n - 1)
+    []       >=. n = 0 >= n
+    (x : xs) >=. n = 1 >= n || xs >=. (n - 1)
     
-    []       .<=. n = 0 <= n
-    (x : xs) .<=. n = 1 <= n || xs .<=. (n - 1)
+    []       <=. n = 0 <= n
+    (x : xs) <=. n = 1 <= n || xs <=. (n - 1)
 
