@@ -35,17 +35,16 @@ infixl 5 :<
 --------------------------------------------------------------------------------
 
 {-
-  Class of linear data structures that can be created from list.
-  
-  This is a preliminary version of the Linear class.
-  Later several functions will be transferred and renamed.
+    Class of linear data structures that can be created from list.
+    This is a preliminary version  of the Linear class.  Later several functions
+  will be transferred and renamed.
 -}
 
 class (Traversable l) => Linear l
   where
     {-# MINIMAL (fromList|fromListN), (head, tail|uncons), (init, last|unsnoc) #-}
     
-    {- Service functions -}
+    {- Service functions. -}
     
     -- Empty line. Service constant, synonym for Z.
     lzero :: l e
@@ -79,7 +78,7 @@ class (Traversable l) => Linear l
     last :: l e -> e
     last =  snd . unsnoc
     
-    {- Construction -}
+    {- Construction. -}
     
     -- Singleton.
     single      :: e -> l e
@@ -95,7 +94,7 @@ class (Traversable l) => Linear l
     
     {-
       Makes it safer to work with endless lists.
-      May doesn't evaluate list twice times (default, does).
+      May doesn't evaluate list twice times.
     -}
     fromListN   :: Int -> [e] -> l e
     fromListN n =  fromList . take n
@@ -111,7 +110,7 @@ class (Traversable l) => Linear l
     concat      :: (Foldable f) => f (l e) -> l e
     concat      =  foldr (++) lzero
     
-    {- Deconstruction -}
+    {- Deconstruction. -}
     
     take      :: Int -> l e -> l e
     take n es =  fromList . (take n) $ toList es
@@ -119,7 +118,7 @@ class (Traversable l) => Linear l
     drop      :: Int -> l e -> l e
     drop n es =  fromList . (drop n) $ toList es
     
-    -- takes and drops the longest init
+    -- Takes and drops the longest init
     takeWhile    :: (e -> Bool) -> l e -> l e
     takeWhile p (e :> es) = p e ? (e :> takeWhile p es) $ Z
     takeWhile _     _     = Z
@@ -128,7 +127,7 @@ class (Traversable l) => Linear l
     dropWhile p es@(e :> tail) = p e ? (dropWhile p tail) $ es
     dropWhile _        _       = Z
     
-    -- takes and drops the longest tail
+    -- Takes and drops the longest tail.
     takeEnd      :: (e -> Bool) -> l e -> l e
     takeEnd p list = t' list list
       where
@@ -138,13 +137,15 @@ class (Traversable l) => Linear l
     dropEnd      :: (e -> Bool) -> l e -> l e
     dropEnd p = foldr (\ e es -> (p e && null es) ? Z $ (e :> es)) Z
     
+    -- span f es == (takeWhile f es, dropWhile f es).
     span         :: (e -> Bool) -> l e -> (l e, l e)
     span   f  es =  (takeWhile f es, dropWhile f es)
     
+    -- break f es == (takeWhile (not . f) es, dropWhile (not . f) es).
     break        :: (e -> Bool) -> l e -> (l e, l e)
     break  f  es =  (takeWhile (not . f) es, dropWhile (not . f) es)
     
-    {- Filtering functions -}
+    {- Filtering functions. -}
     
     filter         :: (e -> Bool) -> l e -> l e
     filter p       =  fromList . filter p . toList

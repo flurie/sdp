@@ -25,32 +25,34 @@ import Data.Int
 --------------------------------------------------------------------------------
 
 {-
-  Index is service class for Indexed, it is the result of combining Data.Ix and
-  Data.Array.Repa.Index, but adds several features of its own, for example,
-  more polymorphic instances.
+    Index is service class for Indexed and Bordered it's the result of combining
+  Data.Ix and Data.Array.Repa.Index, but  adds several features of its own,  for
+  example, more polymorphic instances.
   
-  The default definitions is correct for all (Ord, Enum) types with rank 1.
+    The default definitions is correct for all (Ord, Enum) types with rank 1.
   
-  The bounds must be specified in ascending order in all functions except ordBounds:
+    The bounds  must be specified  in ascending order  in all functions,  except
+  ordBounds:
     inRange (-5, 4) 3  == True     but inRange (4, -5) 3  == False
     size    ('a', 'd') == 4        but size    ('d', 'a') == 0
     range   (2, 7)     == [2 .. 7] but range   (7, 2)     == []
   
-  The default definition for isOverflow and isUnderflow gives the answer False
+    The default definition for isOverflow and isUnderflow gives the answer False
   in the case of an empty range:
-    isOverflow (-5, 1) x == False -- forall x, because the boundaries are incorrect.
+    isOverflow (-5, 1) x == False -- forall x - the  boundaries  are  incorrect.
   Other definitions in this module follow this rule.
   
-  This is not a strict requirement, but recommended behavior (where appropriate).
-  If the behavior of a particular implementation of a function is not explicitly
-  specified in the documentation (and is not self-evident for this type),
-  then any other behavior should be considered as unplanned functionality.
+    This isn't a strict requirement, but recommended behavior, where appropriate
+  If the behavior  of a particular implementation of a function isn't explicitly
+  specified  in the documentation (and is not self-evident for this type),  then
+  any other behavior should be considered as unplanned functionality.
   
   Generaly speaking, isOverflow and isUnderflow are not mutually exclusive:
     isOverflow  ((-3, 4), (2, 5)) (-4, 6) == True
     isUnderflow ((-3, 4), (2, 5)) (-4, 6) == True
   And their conjunction is not interchangeable with inversion of inRange:
-    offset ('z', 'a') 'a' == *** Exception: empty range in SDP.Index.offset (default)
+    offset ('z', 'a') 'a'
+    >>> *** Exception: empty range in SDP.Index.offset (default)
   because
     range       ('z', 'a')     ==  [ ]
     inRange     ('z', 'a') 'a' == False
@@ -83,9 +85,9 @@ class (Ord i) => Index i
     rank = const 1
     
     default size  :: (Enum i) => (i, i) -> Int
-    size (l, u) = if u >= l then u -. l + 1 else 0
+    size (l, u) = u >= l ? u -. l + 1 $ 0
     
-    sizes bounds = [size bounds]
+    sizes bounds = [ size bounds ]
     
     default range :: (Enum i) => (i, i) -> [i]
     range (l, u) = [ l .. u ]
@@ -104,7 +106,7 @@ class (Ord i) => Index i
       |     i <  l     = l
       |      True      = succ i
     
-    isEmpty     (l, u)   = u < l
+    isEmpty     (l, u)   = l > u
     inRange     (l, u) i = l <= i && i <= u
     isOverflow  (l, u) i = i >  u && l <= u
     isUnderflow (l, u) i = i <  l && l <= u
@@ -175,9 +177,9 @@ instance (Index i, Enum i) => Index (() :& i)
     next  (() :& l, () :& u) (() :& i) = () :& next (l, u) i
     prev  (() :& l, () :& u) (() :& i) = () :& prev (l, u) i
     
-    inRange     (() :& l, () :& u) (() :& i) = inRange (l, u) i
-    isOverflow  (() :& l, () :& u) (() :& i) = isOverflow  (l, u) i
-    isUnderflow (() :& l, () :& u) (() :& i) = isUnderflow (l, u) i
+    inRange     (() :& l, () :& u) (() :& i) = inRange        (l, u) i
+    isOverflow  (() :& l, () :& u) (() :& i) = isOverflow     (l, u) i
+    isUnderflow (() :& l, () :& u) (() :& i) = isUnderflow    (l, u) i
     safeElem    (() :& l, () :& u) (() :& i) = () :& safeElem (l, u) i
     
     isEmpty     (() :& l, () :& u) = isEmpty (l, u)
@@ -185,9 +187,8 @@ instance (Index i, Enum i) => Index (() :& i)
       where
         (l', u') = ordBounds (l, u)
     
-    offset (() :& l, () :& u) (() :& i) = offset (l, u) i
-    
-    index  (() :& l, () :& u) n = () :& index (l, u) n
+    offset (() :& l, () :& u) (() :& i) = offset      (l, u) i
+    index  (() :& l, () :& u)     n     = () :& index (l, u) n
     
     unsafeIndex n = () :& unsafeIndex n
 
@@ -196,9 +197,11 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
     rank (rs :& _) = rank rs + 1
     
     size  (ls :& l, us :& u) = size  (l, u)   *  size  (ls, us)
+    -- [internal]: O(n ^ 2) sizes. Not critial, but needed to rewrite.
     sizes (ls :& l, us :& u) = sizes (ls, us) ++ sizes (l, u)
     range (ls :& l, us :& u) = liftA2 (:&) (range (ls, us)) (range (l, u))
     
+    -- [internal]: prev and next uses safeElem. Needed to rewrite.
     prev bounds@(ls :& l, us :& u) index
         | isEmpty bounds = throw $ EmptyRange "in SDP.Index.prev (n-dimensional)"
         |     i /= l     = is :& pred i
@@ -216,6 +219,7 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
     inRange     (ls :& l, us :& u) (is :& i) = inRange     (l, u) i && inRange     (ls, us) is
     isOverflow  (ls :& l, us :& u) (is :& i) = isOverflow  (l, u) i || isOverflow  (ls, us) is
     isUnderflow (ls :& l, us :& u) (is :& i) = isUnderflow (l, u) i || isUnderflow (ls, us) is
+    -- [internal]: safeElem - service function, remove after rewriting prev and next.
     safeElem    (ls :& l, us :& u) (is :& i) = safeElem    (ls, us) is :& safeElem (l, u) i
     isEmpty     (ls :& l, us :& u) = isEmpty (l, u) || isEmpty (ls, us)
     ordBounds   (ls :& l, us :& u) = (ls' :& l', us' :& u')
@@ -240,12 +244,13 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
 --------------------------------------------------------------------------------
 
 {-
-  N-dimensional index type. The type (head :& tail) allows working with any
-  finite dimension.
+  N-dimensional  index  type. The  type  (head :& tail) allows  working with any
+  finite dimension number.
 -}
 
 data tail :& head = !tail :& !head deriving (Eq, Ord, Read)
 
+-- Derived instance doesn't have whitespaces, but I like whitespaces...
 instance (Show tail, Show head) => Show (tail :& head)
   where
     show (es :& e) = shows es . showString " :& " $ show e

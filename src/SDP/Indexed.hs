@@ -30,20 +30,20 @@ class (Linear v, Index i) => Indexed (v) i | v -> i
   where
     {-# MINIMAL assoc', (//), ((!)|(!?)), ((.$) | (*$)) #-}
     
-    {- Create functions -}
+    {- Create functions. -}
     
     assoc           :: (i, i) -> [(i, e)] -> v e
-    assoc bounds    =  assoc' bounds undefEx
+    assoc bounds    =  assoc' bounds def
       where
-        undefEx = throw $ IndexOverflow "in SDP.Indexed.assoc"
+        def = throw $ IndexOverflow "in SDP.Indexed.assoc (List)"
     
     assoc'          :: (i, i) -> e -> [(i, e)] -> v e
     
-    {- Read functions -}
+    {- Read functions. -}
     
     -- Use (.!) only if you are really sure that you will not go beyond the bounds.
     (.!)        :: v e -> i -> e
-    dat .! ix   =  fromMaybe (bndEx "(.!)") $ dat !? ix
+    dat .! ix   =  fromMaybe undefined $ dat !? ix
     
     -- (!) is pretty safe function, throws IndexException.
     (!)          :: v e -> i -> e
@@ -66,24 +66,26 @@ class (Linear v, Index i) => Indexed (v) i | v -> i
       where
         assocOf i = (i, f i (es ! i))
     
-    {- search functions -}
+    {- Search functions. -}
     
-    -- searches the index of first matching element
+    -- Searches the index of first matching element.
     (.$) :: (e -> Bool) -> v e -> Maybe i
-    (.$) f = (null ?: head) . (f *$)
+    (.$) f es = null ?: head $ f *$ es
     
     default (*$) :: (Enum i) => (e -> Bool) -> v e -> v i
     
-    -- searches the indices of all matching elements
+    -- Searches the indices of all matching elements.
     (*$) :: (e -> Bool) -> v e -> v i
     f *$ es = fsts . filter (f . snd) $ enum es (unsafeIndex 0)
       where
         enum     Z     _ = Z
         enum (e :> es) c = (c, e) :> (enum es $! succ c)
 
+-- Write one element to structure.
 write        :: (Indexed v i) => v e -> i -> e -> v e
 write es i e = es // [(i, e)]
 
+-- Update one element in structure.
 (>/>)        :: (Indexed v i) => v e -> [i] -> (e -> e) -> v e
 (>/>) es  is = (es /> is) . const
 
@@ -97,10 +99,11 @@ instance Indexed [] Int
             nx   = next bounds i1
         fill xs  = xs
         
-        normalAssocs = fill . setWith cmpfst . filter (inRange bounds . fst)
         toResultList = fromListN (size bounds) . snds
+        normalAssocs = fill . setWith cmpfst . filter (inRange bounds . fst)
     
     (x : xs) .! n = (n == 0) ? x $ xs .! (n - 1)
+    _ .! _ = error "nice try but you still finished badly in SDP.Indexed.(.!) (List)"
     
     (!) [] n = throw $ (n < 0 ? IndexUnderflow $ IndexOverflow) "in SDP.Indexed.(!) (List)"
     (x : xs) ! n = case n <=> 0 of
@@ -114,14 +117,11 @@ instance Indexed [] Int
       EQ -> Just x
       LT -> Nothing
     
-    -- [internal]: O (n ^ 2), obviously inefficient implementation. Rewrite after adding Set and Array to O(n * log n).
-    xs // es = merge xs (clean es) 0
+    -- [internal]: The implementation has been replaced by a more efficient, but still slow: O(n ^ 2).
+    xs // es = snds $ unionWith cmpfst xs' es'
       where
-        merge [] ys _ = snds $ clean ys
-        merge xs [] _ = xs
-        merge (x : xs) ((i, y) : ys) n = i == n ? y : merge xs ys (n + 1) $ x : merge xs ((i, y) : ys) (n + 1)
-        --   not EQ and not LT (neither underflow nor duplications) => GT ^
-        clean = sort' . nub' . filter (\ (i, _) -> i >= 0)
+        es' = setWith cmpfst es
+        xs' = assocs xs
     
     (.$) = findIndex
     (*$) = findIndices

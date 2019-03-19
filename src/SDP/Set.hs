@@ -143,7 +143,7 @@ delete =  deleteWith compare
 
 -- Symetric difference (disjunctive union)
 (\^/) :: (Set s, Ord o) => s o -> s o -> s o
-(\^/) =  undefined
+(\^/) =  symdiffWith compare
 
 -- Intersection of some sets.
 intersections :: (Set s, Foldable f, Ord o) => f (s o) -> s o
@@ -178,12 +178,12 @@ isSetElem =  isContainedIn compare
 instance Set []
   where
     {-
+      [internal]: O(n) at best, but O(n ^ 2) at worst, rewrite setWith.
+      
       setWith is a minor improvement of insertion sort for partially ordered data.
       It selects ordered sequences of elements and merges them. For an ordered
       list, it has complexity O(n) and O (n ^ 2) for an reversed.
     -}
-    
-    -- [internal]: rewrite setWith.
     setWith f xs = dumbMergeList f ordered (setWith f tail)
       where
         (ordered, tail) = splitSeq (\ x y -> f x y == LT) xs
