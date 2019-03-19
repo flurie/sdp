@@ -8,7 +8,7 @@ module SDP.Estimate
 )
 where
 
-import Prelude ( Bool (..), Eq (..), Ord (..), Ordering (..), Num (..), Foldable (..), Int, ($), (||), not, undefined )
+import Prelude ( Bool (..), Eq (..), Ord (..), Ordering (..), Num (..), Foldable (..), Int, ($), (&&), (||), not, undefined )
 
 import Data.Functor.Classes
 
@@ -21,11 +21,11 @@ import Data.Functor.Classes
 {-
     This module is exported by SafePrelude.
     
-    Estimate class allows the lazy comparsion structures by length (including,
+    Estimate class  allows the lazy comparsion structures by  length (including,
   with different types of arguments).
-    For some types (lists, for example), this allows you to speed up the
-  comparison or make it finite (if at least one list is infinite). For others
-  (for example, arrays) it can be a convenient abbreviation.
+    For  some  types  (lists, for example),  this  allows  you  to speed up  the
+  comparison  or  make  it  finite (if  at least one  structure is finite).  For
+  others (for example, arrays) it can be a convenient abbreviation.
 -}
 
 data EList e = forall o . EList (e o)
@@ -83,11 +83,17 @@ instance Estimate []
     (x : xs)  >. n = 1 >  n || xs >.  (n - 1)
     
     []        <. n = 0 <  n
-    (x : xs)  <. n = 1 >  n || xs <.  (n - 1)
+    (x : xs)  <. n = 1 <  n && xs <.  (n - 1)
     
     []       >=. n = 0 >= n
     (x : xs) >=. n = 1 >= n || xs >=. (n - 1)
     
     []       <=. n = 0 <= n
-    (x : xs) <=. n = 1 <= n || xs <=. (n - 1)
+    (x : xs) <=. n = 1 <= n && xs <=. (n - 1)
+    
+    []       ==. n = n == 0
+    (x : xs) ==. n = n >  0 && xs ==. (n - 1)
+    
+    []       /=. n = n /= 0
+    (x : xs) /=. n = n <  0 || xs /=. (n - 1)
 
