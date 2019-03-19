@@ -39,12 +39,16 @@ class (Foldable e, Ord1 e) => Estimate e
     
     {- Symmetric comparsion by length. -}
     
-    (.>.), (.<.), (.<=.), (.>=.) :: e a -> e b -> Bool
+    (.>.), (.<.), (.<=.), (.>=.), (.==.), (./=.) :: e a -> e b -> Bool
     
     xs .>.  ys = case xs <==> ys of {GT ->  True; _ -> False}
     xs .<.  ys = case xs <==> ys of {LT ->  True; _ -> False}
+    
     xs .<=. ys = case xs <==> ys of {GT -> False; _ ->  True}
     xs .>=. ys = case xs <==> ys of {LT -> False; _ ->  True}
+    
+    xs .==. ys = case xs <==> ys of {EQ ->  True; _ -> False}
+    xs ./=. ys = case xs <==> ys of {EQ -> False; _ ->  True}
     
     {- Left-side comparsion with length. -}
     

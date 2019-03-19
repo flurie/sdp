@@ -95,12 +95,7 @@ instance (Index i, Show i, Show e) => Show (Array i e)
 instance (Index i, Read i, Read e) => Read (Array i e)
   where
     readList = readListDefault
-    readPrec = parens $ prec appPrec (lift . expect $ Ident "array") >> liftA2 source (step readPrec) (step readPrec)
-      where
-        source (l, u) ies = (Array l u n arr#) `asTypeOf` arr
-          where
-            arr@(Array _ _ _ arr#) = fromListN n ies
-            n = size (l, u)
+    readPrec = parens $ prec appPrec (lift . expect $ Ident "array") >> liftA2 assoc (step readPrec) (step readPrec)
 
 --------------------------------------------------------------------------------
 
@@ -154,7 +149,7 @@ instance (Index i) => Applicative (Array i)
 
 --------------------------------------------------------------------------------
 
-{- Foldable and Traversable instances -}
+{- Foldable, Scan and Traversable instances -}
 
 instance (Index i) => Foldable (Array i)
   where
@@ -188,11 +183,53 @@ instance (Index i) => Foldable (Array i)
     
     length     (Array _ _ n _) = n
 
+instance (Index i) => Scan (Array i)
+  where
+    scanl f w es = null es ? single w $ fromListN l (w : res w 0)
+      where
+        l = length es + 1
+        -- res generates infinite list, but fromListN catches it.
+        res !curr !n = next : res next (n + 1)
+          where
+            next = f curr (es !# n)
+    
+    scanr f w es = null es ? single w $ fromListN l (res w (l - 2) [w])
+      where
+        l = length es + 1
+        res !curr !n ws = n < 0 ? ws $ res prev (n - 1) (prev : ws)
+          where
+            prev = f (es !# n) curr
+    
+    scanl' f w es = null es ? single w $ fromListN l (w : res w 0)
+      where
+        l = length es + 1
+        res !curr !n = next : res next (n + 1)
+          where
+            next = f curr (es !# n)
+    
+    scanl1 f es = null es ? undEx "scanl1" $ fromListN l (res w 0)
+      where
+        l = length es
+        w = head es
+        res !curr !n = next : res next (n + 1)
+          where
+            next = f curr (es !# n)
+    
+    scanr1 f es = null es ? undEx "scanr1" $ fromList (res w (l - 2) [w])
+      where
+        l = length es
+        w = last es
+        res !curr !n ws = n < 0 ? ws $ res prev (n - 1) (prev : ws)
+          where
+            prev = f (es !# n) curr
+
 instance (Index i) => Traversable (Array i)
   where
     traverse f arr = fromList <$> traverse f (toList arr)
 
 --------------------------------------------------------------------------------
+
+{- Linear and Bordered instances. -}
 
 instance (Index i) => Linear (Array i)
   where
@@ -266,7 +303,17 @@ instance (Index i) => Linear (Array i)
         -- the same as "fmap toList . toList" but on bit faster
         toList' = foldr (\ a l -> toList a ++ l) []
 
+instance (Index i) => Bordered (Array i) i
+  where
+    lower   (Array l _ _ _) = l
+    upper   (Array _ u _ _) = u
+    bounds  (Array l u _ _) = (l, u)
+    indices (Array l u _ _) = range (l, u)
+    assocs  arr = zip (indices arr) (toList arr)
+
 --------------------------------------------------------------------------------
+
+{- Indexed instance. -}
 
 instance (Index i) => Indexed (Array i) i
   where
@@ -293,6 +340,8 @@ instance (Index i) => Indexed (Array i) i
     (.$) pred es = find (pred . (es !)) $ indices es
     (*$) pred es = fromList . filter (pred . (es !)) $ indices es
 
+--------------------------------------------------------------------------------
+
 instance (Index i) => Estimate (Array i)
   where
     (Array _ _ n1 _) <==> (Array _ _ n2 _) = n2 <=> n2
@@ -305,55 +354,6 @@ instance (Index i) => Estimate (Array i)
     (Array _ _ n1 _) <.  n2 = n1 <  n2
     (Array _ _ n1 _) >=. n2 = n1 >= n2
     (Array _ _ n1 _) <=. n2 = n1 <= n2
-
-instance (Index i) => Bordered (Array i) i
-  where
-    lower   (Array l _ _ _) = l
-    upper   (Array _ u _ _) = u
-    bounds  (Array l u _ _) = (l, u)
-    indices (Array l u _ _) = range (l, u)
-    assocs  arr = zip (indices arr) (toList arr)
-
-instance (Index i) => Scan (Array i)
-  where
-    scanl f w es = null es ? single w $ fromListN l (w : res w 0)
-      where
-        l = length es + 1
-        -- res generates infinite list, but fromListN catches it.
-        res !curr !n = next : res next (n + 1)
-          where
-            next = f curr (es !# n)
-    
-    scanr f w es = null es ? single w $ fromListN l (res w (l - 2) [w])
-      where
-        l = length es + 1
-        res !curr !n ws = n < 0 ? ws $ res prev (n - 1) (prev : ws)
-          where
-            prev = f (es !# n) curr
-    
-    scanl' f w es = null es ? single w $ fromListN l (w : res w 0)
-      where
-        l = length es + 1
-        res !curr !n = next : res next (n + 1)
-          where
-            next = f curr (es !# n)
-    
-    scanl1 f es = null es ? undEx "scanl1" $ fromListN l (res w 0)
-      where
-        l = length es
-        w = head es
-        res !curr !n = next : res next (n + 1)
-          where
-            next = f curr (es !# n)
-    
-    scanr1 f es = null es ? undEx "scanr1" $ fromList (res w (l - 2) [w])
-      where
-        l = length es
-        w = last es
-        res !curr !n ws = n < 0 ? ws $ res prev (n - 1) (prev : ws)
-          where
-            prev = f (es !# n) curr
-
 
 -- [internal]: write Set instance.
 -- instance (Index i) => Set (Array i)
