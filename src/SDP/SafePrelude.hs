@@ -8,7 +8,9 @@ module SDP.SafePrelude
   )
 where
 
-{- Module with simple common definitions. -}
+{-
+  Module with simple common definitions.
+-}
 
 import Prelude hiding
   (

@@ -6,11 +6,11 @@ module SDP.Array.Mutable
 )
 where
 
-import GHC.Base hiding ( foldr, (++) )
 import SDP.SafePrelude
 import Prelude ()
-import GHC.Show
-import GHC.ST
+
+import GHC.Base ( MutableArray# (..), Int (..), writeArray#, sameMutableArray#, isTrue# )
+import GHC.ST   ( STRep (..) )
 
 --------------------------------------------------------------------------------
 
