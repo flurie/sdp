@@ -1,13 +1,16 @@
 module SDP.Scan ( Scan (..) ) where
 
-
 import Prelude ()
 import SDP.SafePrelude
 
 import qualified Data.List as L
 
-
 --------------------------------------------------------------------------------
+
+{-
+    Scan is an auxiliary class. It is needed  not so much for practical use, but
+  for generalization.
+-}
 
 class (Foldable s) => Scan s
   where
