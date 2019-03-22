@@ -114,7 +114,6 @@ instance (Index i) => Functor (Array i)
               in go 0 s2#
       )
 
-
 instance (Index i) => Zip (Array i)
   where
     zipWith f as bs              = fromListN size $ apply <$> range (0, size - 1)
@@ -366,7 +365,7 @@ instance (Index i) => Estimate (Array i)
 
 {-# INLINE done #-}
 done :: (i, i) -> Int -> MutableArray# s e -> STRep s (Array i e)
-done (l, u) n@(I# _) marr# = \s1# -> case unsafeFreezeArray# marr# s1# of
+done (l, u) n marr# = \s1# -> case unsafeFreezeArray# marr# s1# of
   (# s2#, arr# #) -> (# s2#, Array l u n arr# #)
 
 prefix :: (Index i) => (e -> Bool) -> (Array i e) -> Int

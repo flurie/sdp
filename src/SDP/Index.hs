@@ -6,11 +6,11 @@ module SDP.Index
   module Data.Word,
   module Data.Int,
   
-  Index (..), Bounds (..), (:&),
+  Index (..), Bounds (..), (:&) (..),
   
   I2  (..), I3  (..), I4  (..), I5  (..), I6  (..), I7  (..), I8  (..), I9 (..),
   I10 (..), I11 (..), I12 (..), I13 (..), I14 (..), I15 (..), I16 (..),
-  ind2,  ind3,  ind4,  ind5,  ind6,  ind7,  ind8, ind9,
+  ind2,  ind3,  ind4,  ind5,  ind6,  ind7,  ind8,  ind9,
   ind10, ind11, ind12, ind13, ind14, ind15, ind16
 )
 where
@@ -37,9 +37,9 @@ import Data.Int
     size    ('a', 'd') == 4        but size    ('d', 'a') == 0
     range   (2, 7)     == [2 .. 7] but range   (7, 2)     == []
   
-    The default definition for isOverflow and isUnderflow gives the answer False
+    The default definition for isOverflow and isUnderflow gives the answer  True
   in the case of an empty range:
-    isOverflow (-5, 1) x == False -- forall x - the  boundaries  are  incorrect.
+    isOverflow (5, -1) x == True -- not (x `elem` [])
   Other definitions in this module follow this rule.
   
     This isn't a strict requirement, but recommended behavior, where appropriate
@@ -94,22 +94,22 @@ class (Ord i) => Index i
     
     default prev  :: (Enum i) => (i, i) -> i -> i
     prev (l, u) i
-      | isEmpty (l, u) = throw $ EmptyRange "in SDP.Index.prev"
+      | isEmpty (l, u) = throw $ EmptyRange "in SDP.Index.prev (default)"
       |     i <= l     = l
       |     i >  u     = u
       |      True      = pred i
     
     default next  :: (Enum i) => (i, i) -> i -> i
     next (l, u) i
-      | isEmpty (l, u) = throw $ EmptyRange "in SDP.Index.next"
+      | isEmpty (l, u) = throw $ EmptyRange "in SDP.Index.next (default)"
       |     i >= u     = u
       |     i <  l     = l
       |      True      = succ i
     
     isEmpty     (l, u)   = l > u
     inRange     (l, u) i = l <= i && i <= u
-    isOverflow  (l, u) i = i >  u && l <= u
-    isUnderflow (l, u) i = i <  l && l <= u
+    isOverflow  (l, u) i = i >  u || l >  u
+    isUnderflow (l, u) i = i <  l || l >  u
     
     ordBounds   (f, s)   = (f <= s) ? (f, s) $ (s, f)
     safeElem    (l, u) i = min u (max l i)
@@ -150,19 +150,19 @@ instance Index ()
 
 instance Index Char
 
-instance Index Integer where size = intSize; offset = intOffset
+instance Index Integer where offset = intOffset
 
-instance Index Int     where size = intSize; offset = intOffset
-instance Index Int8    where size = intSize; offset = intOffset
-instance Index Int16   where size = intSize; offset = intOffset
-instance Index Int32   where size = intSize; offset = intOffset
-instance Index Int64   where size = intSize; offset = intOffset
+instance Index Int     where offset = intOffset
+instance Index Int8    where offset = intOffset
+instance Index Int16   where offset = intOffset
+instance Index Int32   where offset = intOffset
+instance Index Int64   where offset = intOffset
 
-instance Index Word    where size = intSize; offset = intOffset
-instance Index Word8   where size = intSize; offset = intOffset
-instance Index Word16  where size = intSize; offset = intOffset
-instance Index Word32  where size = intSize; offset = intOffset
-instance Index Word64  where size = intSize; offset = intOffset
+instance Index Word    where offset = intOffset
+instance Index Word8   where offset = intOffset
+instance Index Word16  where offset = intOffset
+instance Index Word32  where offset = intOffset
+instance Index Word64  where offset = intOffset
 
 --------------------------------------------------------------------------------
 
@@ -219,7 +219,7 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
     inRange     (ls :& l, us :& u) (is :& i) = inRange     (l, u) i && inRange     (ls, us) is
     isOverflow  (ls :& l, us :& u) (is :& i) = isOverflow  (l, u) i || isOverflow  (ls, us) is
     isUnderflow (ls :& l, us :& u) (is :& i) = isUnderflow (l, u) i || isUnderflow (ls, us) is
-    -- [internal]: safeElem - service function, remove after rewriting prev and next.
+    -- [internal]: safeElem - service function, may be removed after rewriting prev and next.
     safeElem    (ls :& l, us :& u) (is :& i) = safeElem    (ls, us) is :& safeElem (l, u) i
     isEmpty     (ls :& l, us :& u) = isEmpty (l, u) || isEmpty (ls, us)
     ordBounds   (ls :& l, us :& u) = (ls' :& l', us' :& u')
@@ -239,7 +239,8 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
         (ls :& l, us :& u) = bnds
     
     unsafeIndex  c  = (unsafeIndex cs) :& (unsafeIndex i)
-      where (cs, i) = divMod c $ maxBound
+      where
+        (cs, i) = divMod c $ maxBound
 
 --------------------------------------------------------------------------------
 
@@ -339,9 +340,6 @@ checkBounds bnds ix res msg
   | isUnderflow bnds ix = throw . IndexUnderflow $ "in SDP.Index." ++ msg
   |      otherwise      = res
 
-intSize :: (Num i, Ord i, Enum i) => (i, i) -> Int
-intSize (l, u) = (l <= u) ? (fromEnum $ u - l + 1) $ 0
-
 intOffset :: (Index i, Num i, Enum i) => (i, i) -> i -> Int
-intOffset (l, u) i = checkBounds (l, u) i (fromEnum $ i - l) "offset (default)"
+intOffset (l, u) i = checkBounds (l, u) i (fromEnum i - fromEnum l) "offset (default)"
 
