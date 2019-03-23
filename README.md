@@ -4,23 +4,25 @@ That is it?
 --------------------------------------------------------------------------------
 Simple Data Processing library and my sandbox for working with language
 extensions and data structures. Although I expect that sense will come out of
-SDP and it can be used as a component in more serious projects.
+SDP and it can be used as a component in more serious projects. SDP created
+under the impact of containers, it's not based on collections (dead in 2010),
+collections-api (maybe dead in 2010) and EdisonAPI (alive for 2018).
 
-Why is it needed?
+Why is SDP needed?
 --------------------------------------------------------------------------------
-The purpose of SDP is, firstly, to save acceptable working quality (in
-comparsion with using older and specialized libraries) with greater
-functionality, and secondly, to allow the joint use of various structures and
-libraries.
+The purpose of SDP is to provide work with various data structures in the same
+namespace, while maintaining a sufficiently high quality of the code and speed
+of work so that it can be used to write something practically valuable, and
+migration from old and more specialized libraries doesn't cause problems.
 
 What SDP provides?
 --------------------------------------------------------------------------------
-Currently, there are only two structures in SDP (lists and arrays), and most of
+Currently, there are only two structures in SDP (lists and arrays), and some of
 the code requires testing. But in the near future, vectors, matrices, trees,
 sequences, dictionaries, bitmaps, unrolled lists and prefix trees will also be
 added.
 
-What distinguishes SDP from other libraries?
+What distinguishes SDP from similar projects?
 --------------------------------------------------------------------------------
 * Internal consistency. Unfortunately, not all libraries are consistent, even in
 the Haskell Platform.
@@ -29,15 +31,17 @@ the most necessary and commonly used packages. This is one of the reasons why I
 refused to use some existing libraries as dependencies (for example, containers,
 in which there is a lot of duplicate code and an array that relies on poorly
 designed Ix class).
-* Orientation to other libraries. SDP is unlikely to ever become a good library
-by itself. But it can be a good interface for the collaboration of other
-libraries and will develop primarily in this direction. SDP does not benefit its
-own implementation of structures.
+* Orientation to other libraries. SDP is unlikely to be used by itself, but it
+can become a bridge between other libraries and structures. SDP doesn't give its
+own implementations of structures an advantage over external ones.
+You can add general classes implementations for your own and/or external data
+structures and they will be able to work perfectly with native ones.
+If other developers do the same, then writing the code will be a little easier
+(if not, think about using other solutions).
 * It has good extensibility. SDP is based on type classes that provide the
 simplest interfaces for working with different data structures and reduce code
 duplication. SDP will not require you to use qualified import when working with
 different structures in the same namespace.
-* Damn Russian developer with poor knowledge of English.
 
 License.
 --------------------------------------------------------------------------------
