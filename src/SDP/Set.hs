@@ -2,9 +2,12 @@
 
 module SDP.Set
 (
+  module SDP.Linear,
+  
   Set (..),
-  set, insert, delete, intersections, unions, differences, symdiffs,
-  (\/), (/\), (\\), (\^/)
+  
+  set, insert, delete, intersections, unions, differences, symdiffs, isSetElem,
+  (\/), (/\), (\\), (\^/), (\?/), (/?\), (\+/)
 )
 where
 
@@ -21,27 +24,16 @@ import Data.Functor.Classes
   
   Some implementations may be inefficient and used for internal definitions only.
   
-  This library does not provide a distinction between sets and arbitrary data,
-  but all functions relying on the definitions of this class must ensure that
-  the properties of the result are preserved (if responsibility is not explicitly
-  passed on to the programmer). Structures that are mainly used as sets will
-  impose restrictions on the conversions. However, when working with lists and,
-  for example, arrays, you must be careful.
+  This library  does not provide  a distinction between sets and arbitrary data,
+  but  all functions  relying on the definitions of this class  must ensure that
+  the  properties  of  the  result  are  preserved  (if  responsibility  is  not
+  explicitly  passed on  to the programmer). Structures that  are mainly used as
+  sets  will impose restrictions on the conversions. However,  when working with
+  lists and, for example, arrays, you must be careful.
   
-  Unlike other classes in this library, Set provides fairly general functions.
-  For everyday use, the synonyms below are quite enough, but I don’t want me to
-  be commemorated in every non-standard case while creating another newtype.
-  
-    This library does not distinguish between arbitrary data and a set - it
-  facilitates the sharing of different structures and simplifies working with them.
-    In particular, in the Set module there are no analogues of the functions
-  fromAscList and fromDescList since they have the context Linear and not Set.
-  
-    Set functions may not return a valid result if the input data is incorrect.
-    A stronger condition can be satisfied in a natural way or deliberately entered
-  for specific implementations, but in general, the result with incorrect data
-  should be considered undefined and you should independently monitor the
-  preservation of properties.
+  Unlike other classes  in this library,  Set provides  fairly general functions
+  because I don't want to be remembered with bad words every time while creating
+  another newtype. For everyday use, the synonyms below are quite enough.
 -}
 
 class (Linear s) => Set s
@@ -101,7 +93,7 @@ class (Linear s) => Set s
     
     -- Is there element in the set? Same as elem, but can work faster.
     isContainedIn     :: (o -> o -> Ordering) -> o -> s o -> Bool
-    isContainedIn f e es = case find finder es of {Nothing -> True; _ -> False}
+    isContainedIn f e es = case find finder es of {Nothing -> False; _ -> True}
       where
         finder x = case f e x of {EQ -> True; _ -> False}
     
@@ -173,6 +165,9 @@ isSetElem =  isContainedIn compare
 (\?/) :: (Set s, Ord o) => s o -> s o -> Bool
 (\?/) =  isIntersectsWith compare
 
+(\+/) :: (Set s, Ord o) => s o -> s o -> Bool
+(\+/) =  isSubsetWith compare
+
 --------------------------------------------------------------------------------
 
 instance Set []
@@ -180,27 +175,31 @@ instance Set []
     {-
       [internal]: O(n) at best, but O(n ^ 2) at worst, rewrite setWith.
       
-      setWith is a minor improvement of insertion sort for partially ordered data.
-      It selects ordered sequences of elements and merges them. For an ordered
+      setWith -- minor improvement of insertion sort for partially ordered data.
+      It selects ordered sequences of elements and merges them.  For an ordered
       list, it has complexity O(n) and O (n ^ 2) for an reversed.
     -}
+    setWith f [] = []
     setWith f xs = dumbMergeList f ordered (setWith f tail)
       where
-        (ordered, tail) = splitSeq (\ x y -> f x y == LT) xs
+        (ordered, tail) = splitSeq f xs
+        
+        splitSeq :: (o -> o -> Ordering) -> [o] -> ([o], [o])
+        splitSeq f (e1 : e2 : es) = case f e1 e2 of
+            LT -> (e1 : seq, tail)
+            EQ -> (seq, tail)
+            GT -> ([e1], e2 : es)
+          where
+            (seq, tail) = splitSeq f (e2 : es)
+        splitSeq _ xs = (xs, [])
         
         dumbMergeList :: (o -> o -> Ordering) -> [o] -> [o] -> [o]
         dumbMergeList _    []       ys    = ys
         dumbMergeList _    xs       []    = xs
-        dumbMergeList f (x : xs) (y : ys) = case x `f` y of
+        dumbMergeList f (x : xs) (y : ys) = case f x y of
           LT -> x : dumbMergeList f xs (y : ys)
           GT -> y : dumbMergeList f (x : xs) ys
           EQ -> x : dumbMergeList f xs ys
-        
-        splitSeq :: (o -> o -> Bool) -> [o] -> ([o], [o])
-        splitSeq f (e1 : e2 : es) = if f e1 e2 then (e1 : seq, tail) else (seq, e1 : tail)
-          where
-            (seq, tail) = splitSeq f (e2 : es)
-        splitSeq _    xs    = (xs, [])
     
     insertWith _ e [] = [e]
     insertWith f e (x : xs) = case f e x of
@@ -214,18 +213,31 @@ instance Set []
       EQ -> xs
       GT -> x : deleteWith f e xs
     
+    isContainedIn f e [] = False
+    isContainedIn f e (x : xs) = case f e x of
+      LT -> False
+      EQ -> True
+      GT -> isContainedIn f e xs
+    
     intersectionWith _ [] _  = []
     intersectionWith _ _  [] = []
     intersectionWith f (x : xs) (y : ys) = case f x y of
-      LT -> intersectionWith f xs ys
+      LT -> intersectionWith f xs (y : ys)
       EQ -> x : intersectionWith f xs ys
       GT -> intersectionWith f (x : xs) ys
     
+    unionWith _ [] ys = ys
+    unionWith _ xs [] = xs
+    unionWith f (x : xs) (y : ys) = case f x y of
+      LT -> x : unionWith f xs (y : ys)
+      EQ -> x : unionWith f xs ys
+      GT -> y : unionWith f (x : xs) ys
+    
     differenceWith _ xs [] = xs
-    differenceWith _ [] ys = []
+    differenceWith _ [] _  = []
     differenceWith f (x : xs) (y : ys) = case f x y of
+      LT -> x : differenceWith f xs (y : ys)
       EQ -> differenceWith f xs ys
-      LT -> x : differenceWith f xs ys
       GT -> differenceWith f (x : xs) ys
     
     symdiffWith _ xs [] = xs
@@ -235,10 +247,16 @@ instance Set []
       LT -> x : symdiffWith f xs (y : ys)
       GT -> y : symdiffWith f (x : xs) ys
     
-    unionWith _ [] _  = []
-    unionWith _ _  [] = []
-    unionWith f (x : xs) (y : ys) = case f x y of
-      EQ -> x : unionWith f xs ys
-      _  -> x : unionWith f xs (y : ys)
+    isIntersectsWith f (x : xs) (y : ys) = case f x y of
+      LT -> isIntersectsWith f xs (y : ys)
+      EQ -> True
+      GT -> isIntersectsWith f (x : xs) ys
+    isIntersectsWith _ _  _  = False
+    
+    isDisjointWith f (x : xs) (y : ys) = case f x y of
+      LT -> isDisjointWith f xs (y : ys)
+      EQ -> False
+      GT -> isDisjointWith f (x : xs) ys
+    isDisjointWith _ _  _  = True
 
 --------------------------------------------------------------------------------

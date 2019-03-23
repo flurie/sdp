@@ -40,7 +40,7 @@ infixl 5 :<
   will be transferred and renamed.
 -}
 
-class (Traversable l) => Linear l
+class (Functor l, Foldable l) => Linear l
   where
     {-# MINIMAL (fromList|fromListN), (head, tail|uncons), (init, last|unsnoc) #-}
     
@@ -203,7 +203,7 @@ class (Traversable l) => Linear l
 
 --------------------------------------------------------------------------------
 
-class (Linear b, Index i) => Bordered (b) i | b -> i
+class (Foldable b, Index i) => Bordered (b) i | b -> i
   where
     {-# MINIMAL bounds|(lower, upper) #-}
     
