@@ -9,8 +9,8 @@ where
 import SDP.SafePrelude
 import Prelude ()
 
-import GHC.Base ( MutableArray# (..), Int (..), writeArray#, sameMutableArray#, isTrue# )
-import GHC.ST   ( STRep (..) )
+import GHC.Base ( MutableArray#, Int (..), writeArray#, sameMutableArray#, isTrue# )
+import GHC.ST   ( STRep )
 
 --------------------------------------------------------------------------------
 

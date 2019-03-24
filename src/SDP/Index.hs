@@ -6,18 +6,18 @@ module SDP.Index
   module Data.Word,
   module Data.Int,
   
-  Index (..), Bounds (..), (:&) (..),
+  Index (..), Bounds, (:&) (..),
   
-  I2  (..), I3  (..), I4  (..), I5  (..), I6  (..), I7  (..), I8  (..), I9 (..),
-  I10 (..), I11 (..), I12 (..), I13 (..), I14 (..), I15 (..), I16 (..),
+  I2,   I3,  I4,  I5,  I6,  I7,  I8,  I9, I10 , I11, I12, I13, I14, I15, I16,
   ind2,  ind3,  ind4,  ind5,  ind6,  ind7,  ind8,  ind9,
   ind10, ind11, ind12, ind13, ind14, ind15, ind16
 )
 where
 
 import Prelude ( (++) )
-import SDP.SafePrelude
+import Test.QuickCheck
 
+import SDP.SafePrelude
 import SDP.Simple
 import Data.Word
 import Data.Int
@@ -202,19 +202,19 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
     range (ls :& l, us :& u) = liftA2 (:&) (range (ls, us)) (range (l, u))
     
     -- [internal]: prev and next uses safeElem. Needed to rewrite.
-    prev bounds@(ls :& l, us :& u) index
+    prev bounds@(ls :& l, us :& u) ix
         | isEmpty bounds = throw $ EmptyRange "in SDP.Index.prev (n-dimensional)"
         |     i /= l     = is :& pred i
         |    is /= ls    = prev (ls, us) is :& u
         |      True      = ls :& l
-      where (is :& i) = safeElem bounds index
+      where (is :& i) = safeElem bounds ix
     
-    next bounds@(ls :& l, us :& u) index
+    next bounds@(ls :& l, us :& u) ix
         | isEmpty bounds = throw $ EmptyRange "in SDP.Index.next (n-dimensional)"
         |     i /= u     = is :& succ i
         |    is /= us    = prev (ls, us) is :& u
         |      True      = ls :& l
-      where (is :& i) = safeElem bounds index
+      where (is :& i) = safeElem bounds ix
     
     inRange     (ls :& l, us :& u) (is :& i) = inRange     (l, u) i && inRange     (ls, us) is
     isOverflow  (ls :& l, us :& u) (is :& i) = isOverflow  (l, u) i || isOverflow  (ls, us) is
@@ -256,6 +256,10 @@ instance (Show tail, Show head) => Show (tail :& head)
   where
     show (es :& e) = shows es . showString " :& " $ show e
 
+instance (Arbitrary i, Arbitrary i') => Arbitrary (i' :& i)
+  where
+    arbitrary = applyArbitrary2 (:&)
+
 instance (Enum i) => Enum (() :& i)
   where
     succ (() :& e) = () :& succ e
@@ -264,10 +268,10 @@ instance (Enum i) => Enum (() :& i)
     toEnum n           = () :& toEnum n
     fromEnum (() :& e) = fromEnum e
     
-    enumFrom       (() :& fst)                         = (() :&) <$> [fst .. ]
-    enumFromTo     (() :& fst) (() :& lst)             = (() :&) <$> [fst .. lst]
-    enumFromThen   (() :& fst) (() :& nxt)             = (() :&) <$> [fst, nxt .. ]
-    enumFromThenTo (() :& fst) (() :& nxt) (() :& lst) = (() :&) <$> [fst, nxt .. lst]
+    enumFrom       (() :& first)                         = (() :&) <$> [first .. ]
+    enumFromTo     (() :& first) (() :& lst)             = (() :&) <$> [first .. lst]
+    enumFromThen   (() :& first) (() :& nxt)             = (() :&) <$> [first, nxt .. ]
+    enumFromThenTo (() :& first) (() :& nxt) (() :& lst) = (() :&) <$> [first, nxt .. lst]
 
 {-
   Type synonyms are declared up to 16 dimensions (Fortran 2003 permits up to 15,

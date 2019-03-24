@@ -7,6 +7,7 @@ module SDP.Set
   Set (..),
   
   set, insert, delete, intersections, unions, differences, symdiffs, isSetElem,
+  
   (\/), (/\), (\\), (\^/), (\?/), (/?\), (\+/)
 )
 where
@@ -15,7 +16,6 @@ import Prelude ()
 import SDP.SafePrelude
 
 import SDP.Linear
-import Data.Functor.Classes
 
 --------------------------------------------------------------------------------
 
@@ -99,7 +99,7 @@ class (Linear s) => Set s
     
     -- Сhecks whether a first set is a subset of second.
     isSubsetWith :: (o -> o -> Ordering) -> s o -> s o -> Bool
-    isSubsetWith f xs ys = any (\ xs -> isContainedIn f xs ys) xs
+    isSubsetWith f xs ys = any (\ es -> isContainedIn f es ys) xs
     
     default subsets :: (Ord1 s, Ord o) => s o -> [s o]
     
@@ -179,27 +179,25 @@ instance Set []
       It selects ordered sequences of elements and merges them.  For an ordered
       list, it has complexity O(n) and O (n ^ 2) for an reversed.
     -}
-    setWith f [] = []
-    setWith f xs = dumbMergeList f ordered (setWith f tail)
+    setWith _ [] = []
+    setWith f xs = dumbMergeList ordered (setWith f rest)
       where
-        (ordered, tail) = splitSeq f xs
+        (ordered, rest) = splitSeq xs
         
-        splitSeq :: (o -> o -> Ordering) -> [o] -> ([o], [o])
-        splitSeq f (e1 : e2 : es) = case f e1 e2 of
-            LT -> (e1 : seq, tail)
-            EQ -> (seq, tail)
+        splitSeq (e1 : e2 : es) = case f e1 e2 of
+            LT -> (e1 : initseq, others)
+            EQ -> (initseq, others)
             GT -> ([e1], e2 : es)
           where
-            (seq, tail) = splitSeq f (e2 : es)
-        splitSeq _ xs = (xs, [])
+            (initseq, others) = splitSeq (e2 : es)
+        splitSeq es = (es, [])
         
-        dumbMergeList :: (o -> o -> Ordering) -> [o] -> [o] -> [o]
-        dumbMergeList _    []       ys    = ys
-        dumbMergeList _    xs       []    = xs
-        dumbMergeList f (x : xs) (y : ys) = case f x y of
-          LT -> x : dumbMergeList f xs (y : ys)
-          GT -> y : dumbMergeList f (x : xs) ys
-          EQ -> x : dumbMergeList f xs ys
+        dumbMergeList    []       bs    = bs
+        dumbMergeList    as       []    = as
+        dumbMergeList (a : as) (b : bs) = case f a b of
+          LT -> a : dumbMergeList as (b : bs)
+          GT -> b : dumbMergeList (a : as) bs
+          EQ -> a : dumbMergeList as bs
     
     insertWith _ e [] = [e]
     insertWith f e (x : xs) = case f e x of
@@ -207,13 +205,13 @@ instance Set []
       EQ -> x : xs
       GT -> x : insertWith f e xs
     
-    deleteWith f e [] = []
+    deleteWith _ _ [] = []
     deleteWith f e (x : xs) = case f e x of
       LT -> x : xs
       EQ -> xs
       GT -> x : deleteWith f e xs
     
-    isContainedIn f e [] = False
+    isContainedIn _ _ [] = False
     isContainedIn f e (x : xs) = case f e x of
       LT -> False
       EQ -> True

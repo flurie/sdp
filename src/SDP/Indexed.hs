@@ -33,9 +33,9 @@ class (Linear v, Index i) => Indexed (v) i | v -> i
     {- Create functions. -}
     
     assoc           :: (i, i) -> [(i, e)] -> v e
-    assoc bounds    =  assoc' bounds def
+    assoc bnds      =  assoc' bnds defvalue
       where
-        def = throw $ IndexOverflow "in SDP.Indexed.assoc (List)"
+        defvalue = throw $ IndexOverflow "in SDP.Indexed.assoc (List)"
     
     assoc'          :: (i, i) -> e -> [(i, e)] -> v e
     
@@ -79,7 +79,7 @@ class (Linear v, Index i) => Indexed (v) i | v -> i
     f *$ es = fsts . filter (f . snd) $ enum es (unsafeIndex 0)
       where
         enum     Z     _ = Z
-        enum (e :> es) c = (c, e) :> (enum es $! succ c)
+        enum (x :> xs) c = (c, x) :> (enum xs $! succ c)
 
 -- Write one element to structure.
 write        :: (Indexed v i) => v e -> i -> e -> v e
@@ -91,16 +91,16 @@ write es i e = es // [(i, e)]
 
 instance Indexed [] Int
   where
-    assoc' bounds e = toResultList . normalAssocs
+    assoc' bnds e = toResultList . normalAssocs
       where
         fill (ie1@(i1, _) : ie2@(i2, _) : xs) = ie1 : fill rest
           where
             rest = nx /= i2 ? (nx, e) : ie2 : xs $ ie2 : xs
-            nx   = next bounds i1
+            nx   = next bnds i1
         fill xs  = xs
         
-        toResultList = fromListN (size bounds) . snds
-        normalAssocs = fill . setWith cmpfst . filter (inRange bounds . fst)
+        toResultList = fromListN (size bnds) . snds
+        normalAssocs = fill . setWith cmpfst . filter (inRange bnds . fst)
     
     (x : xs) .! n = (n == 0) ? x $ xs .! (n - 1)
     _ .! _ = error "nice try but you still finished badly in SDP.Indexed.(.!) (List)"
@@ -128,5 +128,6 @@ instance Indexed [] Int
 
 --------------------------------------------------------------------------------
 
+bndEx :: String -> a
 bndEx s = throw . UndefinedValue $ "SDP.Indexed." ++ s
 

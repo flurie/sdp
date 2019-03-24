@@ -3,7 +3,7 @@ module SDP.Scan ( Scan (..) ) where
 import Prelude ()
 import SDP.SafePrelude
 
-import qualified Data.List as L
+import qualified Data.List as L ( scanl, scanr, scanl', scanl1, scanr1 )
 
 --------------------------------------------------------------------------------
 

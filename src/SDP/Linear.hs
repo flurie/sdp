@@ -124,15 +124,15 @@ class (Functor l, Foldable l) => Linear l
     takeWhile _     _     = Z
     
     dropWhile    :: (e -> Bool) -> l e -> l e
-    dropWhile p es@(e :> tail) = p e ? (dropWhile p tail) $ es
+    dropWhile p es@(e :> rest) = p e ? (dropWhile p rest) $ es
     dropWhile _        _       = Z
     
     -- Takes and drops the longest tail.
     takeEnd      :: (e -> Bool) -> l e -> l e
     takeEnd p list = t' list list
       where
-        t'     Z     tail = tail
-        t' (e :> es) tail = t' es (p e ? tail $ es)
+        t'     Z     rest = rest
+        t' (e :> es) rest = t' es (p e ? rest $ es)
     
     dropEnd      :: (e -> Bool) -> l e -> l e
     dropEnd p = foldr (\ e es -> (p e && null es) ? Z $ (e :> es)) Z
@@ -159,7 +159,7 @@ class (Functor l, Foldable l) => Linear l
     isSubseqOf    :: (Eq e) => l e -> l e -> Bool
     isSubseqOf Z _ = True
     isSubseqOf _ Z = False
-    isSubseqOf xs@(x :> tail) (y :> ys) = x == y && tail `isSubseqOf` ys || xs `isSubseqOf` ys
+    isSubseqOf xs@(x :> rest) (y :> ys) = x == y && rest `isSubseqOf` ys || xs `isSubseqOf` ys
     
     isPrefixOf    :: (Eq e) => l e -> l e -> Bool
     isPrefixOf Z _ = True
@@ -188,7 +188,7 @@ class (Functor l, Foldable l) => Linear l
     concatMap   f =  foldr' (\ x y -> f x ++ y) Z
     
     subsequences  :: (Linear l) => l e -> [l e]
-    subsequences xs =  Z : subsequences' xs
+    subsequences xxs =  Z : subsequences' xxs
       where
         subsequences'     Z     = Z
         subsequences' (x :> xs) = single x : foldr f [] (subsequences' xs)
@@ -225,7 +225,7 @@ instance Bordered [] Int
     bounds  es = (0,   length es - 1)
     assocs  es = zip  [0 .. ] es
     indices es = [0 .. length es - 1]
-    lower   es = 0
+    lower   _  = 0
     upper   es = length es - 1
 
 --------------------------------------------------------------------------------
@@ -252,10 +252,10 @@ instance Linear []
     toHead      = (:)
     toLast xs x = foldr' (:) [x] xs
     
-    uncons    Z       = throw $ PatternMatchFail "in SDP.Linear.(:>)"
+    uncons   [ ]      = throw $ PatternMatchFail "in SDP.Linear.(:>)"
     uncons (e : es)   = (e, es)
     
-    unsnoc     Z      = throw $ PatternMatchFail "in SDP.Linear.(:<)"
+    unsnoc    [ ]     = throw $ PatternMatchFail "in SDP.Linear.(:<)"
     unsnoc    [e]     = ([], e)
     unsnoc  (e : es)  = (e : es', e') where (es', e') = unsnoc es
     
@@ -292,9 +292,9 @@ nub   :: (Linear l, Eq e) => l e -> l e
 nub   =  nubBy (==)
 
 tails :: (Linear l) => l e -> [l e]
-tails      Z        = Z
-tails all@(_ :> es) = all : tails es
+tails Z  = Z
+tails es = es : tails (tail es)
 
 inits :: (Linear l) => l e -> [l e]
-inits      Z        = Z
-inits all@(es :< _) = all : inits es
+inits Z  = Z
+inits es = es : inits (init es)

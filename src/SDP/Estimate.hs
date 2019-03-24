@@ -8,7 +8,7 @@ module SDP.Estimate
 )
 where
 
-import Prelude ( Bool (..), Eq (..), Ord (..), Ordering (..), Num (..), Foldable (..), Int, ($), (&&), (||), not, undefined )
+import Prelude ( Bool (..), Eq (..), Ord (..), Ordering (..), Num (..), Foldable (..), Int, (&&), (||) )
 
 import Data.Functor.Classes
 
@@ -80,20 +80,20 @@ instance Estimate []
     (_ : xs) <==> (_ : ys) = xs <==> ys
     
     []        >. n = 0 >  n
-    (x : xs)  >. n = 1 >  n || xs >.  (n - 1)
+    (_ : xs)  >. n = 1 >  n || xs >.  (n - 1)
     
     []        <. n = 0 <  n
-    (x : xs)  <. n = 1 <  n && xs <.  (n - 1)
+    (_ : xs)  <. n = 1 <  n && xs <.  (n - 1)
     
     []       >=. n = 0 >= n
-    (x : xs) >=. n = 1 >= n || xs >=. (n - 1)
+    (_ : xs) >=. n = 1 >= n || xs >=. (n - 1)
     
     []       <=. n = 0 <= n
-    (x : xs) <=. n = 1 <= n && xs <=. (n - 1)
+    (_ : xs) <=. n = 1 <= n && xs <=. (n - 1)
     
     []       ==. n = n == 0
-    (x : xs) ==. n = n >  0 && xs ==. (n - 1)
+    (_ : xs) ==. n = n >  0 && xs ==. (n - 1)
     
     []       /=. n = n /= 0
-    (x : xs) /=. n = n <  0 || xs /=. (n - 1)
+    (_ : xs) /=. n = n <  0 || xs /=. (n - 1)
 

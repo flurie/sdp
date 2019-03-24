@@ -20,7 +20,7 @@ module SDP.Simple
   Bounded (..), Enum (..),
   onTup, onTup3, onTup4,
   sort', nub',
-  fst, snd
+  minMax, fst, snd
 )
 
 where
@@ -40,11 +40,11 @@ infixr 1 ? -- Lowest priority, compatible with infixr 0 $
 
 -- ternary operator
 (?)   :: Bool -> a -> a -> a
-(?) pred t e = if pred then t else e
+(?) predicate t e = if predicate then t else e
 
 -- conditional toMaybe
 (?:)  :: (a -> Bool) -> (a -> b) -> a -> Maybe b
-(?:) pred f = \ a -> if pred a then Nothing else Just (f a)
+(?:) predicate f = \ a -> if predicate a then Nothing else Just (f a)
 -- >>> odd ?: (`div` 2) $ 1
 -- Nothing
 -- >>> odd ?: (`div` 2) $ 2

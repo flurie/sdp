@@ -23,7 +23,7 @@ import GHC.Base
     isTrue#, (+#), (-#), (==#)
   )
 
-import GHC.Show ( appPrec, appPrec1 )
+import GHC.Show ( appPrec )
 import GHC.ST   ( ST (..), STRep, runST )
 
 import Text.Read
@@ -116,30 +116,30 @@ instance (Index i) => Functor (Array i)
 
 instance (Index i) => Zip (Array i)
   where
-    zipWith f as bs              = fromListN size $ apply <$> range (0, size - 1)
+    zipWith f as bs              = fromListN sz $ apply <$> range (0, sz - 1)
       where
         apply i = f (as !# i) (bs !# i)
-        size    = eminimum [EList as, EList bs]
+        sz      = eminimum [EList as, EList bs]
     
-    zipWith3 f as bs cs          = fromListN size $ apply <$> range (0, size - 1)
+    zipWith3 f as bs cs          = fromListN sz $ apply <$> range (0, sz - 1)
       where
         apply i = f (as !# i) (bs !# i) (cs !# i)
-        size    = eminimum [EList as, EList bs, EList cs]
+        sz      = eminimum [EList as, EList bs, EList cs]
     
-    zipWith4 f as bs cs ds       = fromListN size $ apply <$> range (0, size - 1)
+    zipWith4 f as bs cs ds       = fromListN sz $ apply <$> range (0, sz - 1)
       where
         apply i = f (as !# i) (bs !# i) (cs !# i) (ds !# i)
-        size    = eminimum [EList as, EList bs, EList cs, EList ds]
+        sz      = eminimum [EList as, EList bs, EList cs, EList ds]
     
-    zipWith5 f as bs cs ds es    = fromListN size $ apply <$> range (0, size - 1)
+    zipWith5 f as bs cs ds es    = fromListN sz $ apply <$> range (0, sz - 1)
       where
         apply i = f (as !# i) (bs !# i) (cs !# i) (ds !# i) (es !# i)
-        size    = eminimum [EList as, EList bs, EList cs, EList ds, EList es]
+        sz      = eminimum [EList as, EList bs, EList cs, EList ds, EList es]
     
-    zipWith6 f as bs cs ds es fs = fromListN size $ apply <$> range (0, size - 1)
+    zipWith6 f as bs cs ds es fs = fromListN sz $ apply <$> range (0, sz - 1)
       where
         apply i = f (as !# i) (bs !# i) (cs !# i) (ds !# i) (es !# i) (fs !# i)
-        size    = eminimum [EList as, EList bs, EList cs, EList ds, EList es, EList fs]
+        sz      = eminimum [EList as, EList bs, EList cs, EList ds, EList es, EList fs]
 
 instance (Index i) => Applicative (Array i)
   where
@@ -152,19 +152,19 @@ instance (Index i) => Applicative (Array i)
 
 instance (Index i) => Foldable (Array i)
   where
-    foldr  f init arr = go 0
+    foldr  f base arr = go 0
       where
-        go i = arr ==. i ? init $ f (arr !# i) (go $ i + 1)
+        go i = arr ==. i ? base $ f (arr !# i) (go $ i + 1)
     
-    foldl  f init arr = go $ length arr - 1
+    foldl  f base arr = go $ length arr - 1
       where
-        go i = i == -1 ? init $ f (go $ i - 1) (arr !# i)
+        go i = i == -1 ? base $ f (go $ i - 1) (arr !# i)
     
-    foldr' f init arr = go (length arr - 1) init
+    foldr' f base arr = go (length arr - 1) base
       where
         go i a = i == -1 ? a $ go (i - 1) (f (arr !# i) $! a)
     
-    foldl' f init arr = go 0 init
+    foldl' f base arr = go 0 base
       where
         go i a = (arr ==. i) ? a $ go (i + 1) ((f $! a) $ arr !# i)
     
@@ -188,39 +188,39 @@ instance (Index i) => Scan (Array i)
       where
         l = length es + 1
         -- res generates infinite list, but fromListN catches it.
-        res !curr !n = next : res next (n + 1)
+        res !curr !n = nxt : res nxt (n + 1)
           where
-            next = f curr (es !# n)
+            nxt = f curr (es !# n)
     
     scanr f w es = null es ? single w $ fromListN l (res w (l - 2) [w])
       where
         l = length es + 1
-        res !curr !n ws = n < 0 ? ws $ res prev (n - 1) (prev : ws)
+        res !curr !n ws = n < 0 ? ws $ res prv (n - 1) (prv : ws)
           where
-            prev = f (es !# n) curr
+            prv = f (es !# n) curr
     
     scanl' f w es = null es ? single w $ fromListN l (w : res w 0)
       where
         l = length es + 1
-        res !curr !n = next : res next (n + 1)
+        res !curr !n = nxt : res nxt (n + 1)
           where
-            next = f curr (es !# n)
+            nxt = f curr (es !# n)
     
     scanl1 f es = null es ? undEx "scanl1" $ fromListN l (res w 0)
       where
         l = length es
         w = head es
-        res !curr !n = next : res next (n + 1)
+        res !curr !n = nxt : res nxt (n + 1)
           where
-            next = f curr (es !# n)
+            nxt = f curr (es !# n)
     
     scanr1 f es = null es ? undEx "scanr1" $ fromList (res w (l - 2) [w])
       where
         l = length es
         w = last es
-        res !curr !n ws = n < 0 ? ws $ res prev (n - 1) (prev : ws)
+        res !curr !n ws = n < 0 ? ws $ res prv (n - 1) (prv : ws)
           where
-            prev = f (es !# n) curr
+            prv = f (es !# n) curr
 
 instance (Index i) => Traversable (Array i)
   where
@@ -285,17 +285,17 @@ instance (Index i) => Linear (Array i)
     -- No more than O(n) comparing.
     isSuffixOf xs ys = xs .<=. ys && and equals
       where
-        equals = [ xs !# i == xs !# (i + offset) | i <- [0 .. ly - 1] ]
-        offset = length xs - ly
+        equals  = [ xs !# i == xs !# (i + offset') | i <- [0 .. ly - 1] ]
+        offset' = length xs - ly
         ly = length ys
     
     -- Default isInfixOf, no more than O(n) comparing.
     
-    takeWhile pred es = take (pred `prefix` es) es
-    dropWhile pred es = drop (pred `prefix` es) es
+    takeWhile predicate es = take (predicate `prefix` es) es
+    dropWhile predicate es = drop (predicate `prefix` es) es
     
-    takeEnd   pred es = drop (pred `suffix` es) es
-    dropEnd   pred es = take (pred `suffix` es) es
+    takeEnd   predicate es = drop (predicate `suffix` es) es
+    dropEnd   predicate es = take (predicate `suffix` es) es
     
     concat = fromList . toList'
       where
@@ -316,16 +316,16 @@ instance (Index i) => Bordered (Array i) i
 
 instance (Index i) => Indexed (Array i) i
   where
-    assoc' bnds def assocs = runST (ST $ \ s1# -> case newArray# n# def s1# of (# s2#, marr# #) -> writes marr# s2#)
+    assoc' bnds defvalue ascs = runST (ST $ \ s1# -> case newArray# n# defvalue s1# of (# s2#, marr# #) -> writes marr# s2#)
       where
         writes marr# = foldr (fill marr#) (done bnds n marr#) ies
-          where ies  = [ (offset bnds i, e) | (i, e) <- assocs ]
-        n@(I# n#)    = size bnds
+          where ies  = [ (offset bnds i, e) | (i, e) <- ascs ]
+        !n@(I# n#)   = size bnds
     
-    arr@(Array l u n@(I# n#) arr#) // assocs = runST $ thaw >>= writes
+    arr@(Array l u n@(I# n#) _) // ascs = runST $ thaw >>= writes
       where
-        writes (STArray l u n marr#) = ST $ foldr (fill marr#) (done (l, u) n marr#) ies
-          where ies = [ (offset (l, u) i, e) | (i, e) <- assocs ]
+        writes (STArray l' u' n' marr#) = ST $ foldr (fill marr#) (done (l', u') n' marr#) ies
+          where ies = [ (offset (l', u') i, e) | (i, e) <- ascs ]
         
         thaw = ST $ \s1# -> case newArray# n# (undEx "(//)") s1# of
           (# s2#, marr# #) ->
@@ -336,14 +336,14 @@ instance (Index i) => Indexed (Array i) i
     (!)  arr@(Array l u _ _) i = arr !# offset (l, u) i
     (!?) arr@(Array l u _ _)   = (not . inRange (l, u)) ?: (arr !)
     
-    (.$) pred es = find (pred . (es !)) $ indices es
-    (*$) pred es = fromList . filter (pred . (es !)) $ indices es
+    (.$) predicate es = find (predicate . (es !)) $ indices es
+    (*$) predicate es = fromList . filter (predicate . (es !)) $ indices es
 
 --------------------------------------------------------------------------------
 
 instance (Index i) => Estimate (Array i)
   where
-    (Array _ _ n1 _) <==> (Array _ _ n2 _) = n2 <=> n2
+    (Array _ _ n1 _) <==> (Array _ _ n2 _) = n1 <=> n2
     (Array _ _ n1 _) .>.  (Array _ _ n2 _) = n1  >  n2
     (Array _ _ n1 _) .<.  (Array _ _ n2 _) = n1  <  n2
     (Array _ _ n1 _) .>=. (Array _ _ n2 _) = n1  >= n2
@@ -369,16 +369,17 @@ done (l, u) n marr# = \s1# -> case unsafeFreezeArray# marr# s1# of
   (# s2#, arr# #) -> (# s2#, Array l u n arr# #)
 
 prefix :: (Index i) => (e -> Bool) -> (Array i e) -> Int
-prefix pred arr@(Array _ _ n _) = last' 0
+prefix predicate arr@(Array _ _ n _) = last' 0
   where
     last'   c = (inRange (0, n - 1) c && satisfy c) ? (last' $! c + 1) $! c
-    satisfy c = pred $ arr !# c
+    satisfy c = predicate $ arr !# c
 
 suffix :: (Index i) => (e -> Bool) -> (Array i e) -> Int
-suffix pred arr@(Array _ _ n _) = init' $ n - 1
+suffix predicate arr@(Array _ _ n _) = init' $ n - 1
   where
     init'   c = (inRange (0, n - 1) c && satisfy c) ? (init' $! c - 1) $! c + 1
-    satisfy c = pred $ arr !# c
+    satisfy c = predicate $ arr !# c
 
+undEx :: String -> a
 undEx msg = throw . UndefinedValue $ "in SDP.Array." ++ msg
 
