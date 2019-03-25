@@ -3,10 +3,10 @@
 
 module SDP.Array.Immutable
 (
-  module SDP.Array.Mutable,
+  module Test.QuickCheck,
   
+  module SDP.Array.Mutable,
   module SDP.Indexed,
-  module SDP.Linear,
   module SDP.Scan,
   
   Array (..)
@@ -16,13 +16,14 @@ where
 import Prelude ()
 import SDP.SafePrelude
 
+import Test.QuickCheck
+
 import GHC.Base
   (
     MutableArray#, Array#, Int (..),
     newArray#, unsafeFreezeArray#, writeArray#, indexArray#,
     isTrue#, (+#), (-#), (==#)
   )
-
 import GHC.Show ( appPrec )
 import GHC.ST   ( ST (..), STRep, runST )
 
@@ -31,7 +32,6 @@ import Text.Read.Lex ( expect )
 
 import SDP.Array.Mutable
 import SDP.Indexed
-import SDP.Linear
 import SDP.Scan
 -- import SDP.Set
 
@@ -90,7 +90,7 @@ instance (Index i, Show i, Show e) => Show (Array i e)
   where
     showsPrec p arr@(Array l u _ _) = showParen (p > appPrec) shows'
       where
-        shows' = showString "array " . shows (l, u) . showChar ' ' . shows (toList arr)
+        shows' = showString "array " . shows (l, u) . showChar ' ' . shows (assocs arr)
 
 instance (Index i, Read i, Read e) => Read (Array i e)
   where
@@ -232,7 +232,8 @@ instance (Index i) => Traversable (Array i)
 
 instance (Index i) => Linear (Array i)
   where
-    fromListN n@(I# n#) es = runST $ ST 
+    
+    fromListN n es = runST $ ST 
         (
           \ s1# -> case newArray# n# (undEx "fromList") s1# of
               (# s2#, marr# #) ->
@@ -240,14 +241,15 @@ instance (Index i) => Linear (Array i)
                       s4# -> if isTrue# (i# ==# n# -# 1#)
                                 then s4#
                                 else r (i# +# 1#) s4#
-                in done (l, u) n marr#
+                in done (l, u) n' marr#
                 (
-                  if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2#
+                  if n' == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2#
                 )
         )
       where
+        !n'@(I# n#) = max 0 $ (es <. n) ? (length es) $ n
         l = unsafeIndex 0
-        u = unsafeIndex (n - 1)
+        u = unsafeIndex (n' - 1)
     
     -- O(n + m) concatenation
     xs ++ ys = fromList $ on (++) toList xs ys
@@ -258,20 +260,20 @@ instance (Index i) => Linear (Array i)
     head arr = arr !# 0
     last arr = arr !# (length arr - 1)
     
-    tail es = fromListN (length es - 1) $ toList es
+    tail es = fromListN (length es - 1) . tail $ toList es
     init es = fromListN (length es - 1) $ toList es
     
     -- O (n) take.
-    take n es = n < 1 ? Z  $ fromListN (length es - n) $ toList es
+    take n es = fromListN n $ toList es
     
     -- O (n) drop.
-    drop n es = n < 1 ? es $ fromListN n [ es !# i | i <- [n .. length es - 1] ]
+    drop n es = fromListN (l - n + 1) [ es !# i | i <- [n .. l - 1] ] where l = length es
     
     -- O(n) reverse
     reverse es = fromListN n $ listR es where n = length es
     
     -- O(n) right list view
-    listR   es = [es !# i | i <- [n - 1, n - 2 .. 0] ] where n = length es
+    listR   es = [ es !# i | i <- [n - 1, n - 2 .. 0] ] where n = length es
     
     -- O(n * m) concatenation
     concatMap f = concat . map f . toList
@@ -322,6 +324,10 @@ instance (Index i) => Indexed (Array i) i
           where ies  = [ (offset bnds i, e) | (i, e) <- ascs ]
         !n@(I# n#)   = size bnds
     
+    Z // ascs = null ascs ? Z $ assoc (l, u) ascs
+      where
+        l = fst $ minimumBy cmpfst ascs
+        u = fst $ maximumBy cmpfst ascs
     arr@(Array l u n@(I# n#) _) // ascs = runST $ thaw >>= writes
       where
         writes (STArray l' u' n' marr#) = ST $ foldr (fill marr#) (done (l', u') n' marr#) ies
@@ -356,6 +362,12 @@ instance (Index i) => Estimate (Array i)
 
 -- [internal]: write Set instance.
 -- instance (Index i) => Set (Array i)
+
+--------------------------------------------------------------------------------
+
+instance (Index i, Arbitrary e) => Arbitrary (Array i e)
+  where
+    arbitrary = fromList <$> arbitrary
 
 --------------------------------------------------------------------------------
 

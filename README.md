@@ -17,10 +17,9 @@ migration from old and more specialized libraries doesn't cause problems.
 
 What SDP provides?
 --------------------------------------------------------------------------------
-Currently, there are only two structures in SDP (lists and arrays), and some of
-the code requires testing. But in the near future, vectors, matrices, trees,
-sequences, dictionaries, bitmaps, unrolled lists and prefix trees will also be
-added.
+Currently, there are only two structures in SDP (lists and arrays).
+But in the near future, vectors, matrices, trees, sequences, dictionaries,
+bitmaps, unrolled lists and prefix trees will also be added.
 
 What distinguishes SDP from similar projects?
 --------------------------------------------------------------------------------
@@ -38,8 +37,8 @@ You can add general classes implementations for your own and/or external data
 structures and they will be able to work perfectly with native ones.
 If other developers do the same, then writing the code will be a little easier
 (if not, think about using other solutions).
-* It has good extensibility. SDP is based on type classes that provide the
-simplest interfaces for working with different data structures and reduce code
+* Good extensibility. SDP is based on type classes that provide the simplest
+interfaces for working with different data structures and reduce code
 duplication. SDP will not require you to use qualified import when working with
 different structures in the same namespace.
 

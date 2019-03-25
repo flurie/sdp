@@ -1,7 +1,6 @@
 module SDP.Array
 (
-  module SDP.Array.Immutable,
-  module SDP.Indexed
+  module SDP.Array.Immutable
 )
 where
 
@@ -13,4 +12,3 @@ import Prelude ()
 import SDP.SafePrelude
 
 import SDP.Array.Immutable
-import SDP.Indexed

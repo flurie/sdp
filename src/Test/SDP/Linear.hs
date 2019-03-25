@@ -26,7 +26,7 @@ testLinear n e line = and
     , single e == (fromList [e] `asTypeOf` line)
     , not $ null (single e `asTypeOf` line)
     
-    , fromList (toList line) == line
+    , null line || fromList (toList line) == line
     
     , null line || head line == head (toList line)
     , null line || last line == last (toList line)
@@ -44,7 +44,7 @@ testLinear n e line = and
     , reverse (toList line) == listR line
     
     , all ( == e) ((replicate n e) `asTypeOf` line)
-    , length ((replicate n' e) `asTypeOf` line) == n'
+    , n < 0 || length ((replicate n e) `asTypeOf` line) == n
     
     , not $ n > 0 && null ((replicate n e) `asTypeOf` line)
     

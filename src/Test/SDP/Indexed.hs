@@ -28,7 +28,7 @@ testIndexed ix xs = and
     
     -- just strict calculation that checks (.!) on all range
     , fmap (xs .!) rs == toList xs
-    , null xs || (xs .! i == xs ! i)
+    , null xs || (xs ! i == xs .! i)
     
     , inRange bnds ix || isNothing (xs !? ix)
     , null xs || isJust (xs !? i)

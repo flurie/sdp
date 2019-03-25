@@ -18,7 +18,7 @@ import Prelude ()
 import Data.List ( findIndex, findIndices )
 
 import SDP.Linear
-import SDP.Set
+import SDP.Set    -- needed for Indexed [] Int instance only.
 
 import SDP.Simple
 
