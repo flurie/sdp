@@ -118,6 +118,9 @@ class (Functor l, Foldable l) => Linear l
     drop      :: Int -> l e -> l e
     drop n es =  fromList . (drop n) $ toList es
     
+    splitAt      :: Int -> l e -> (l e, l e)
+    splitAt n es =  (take n es, drop n es)
+    
     -- Takes and drops the longest init
     takeWhile    :: (e -> Bool) -> l e -> l e
     takeWhile p (e :> es) = p e ? (e :> takeWhile p es) $ Z
@@ -261,6 +264,8 @@ instance Linear []
     
     take = L.take
     drop = L.drop
+    
+    splitAt = L.splitAt
     
     reverse      = L.reverse
     replicate    = L.replicate

@@ -71,10 +71,7 @@ instance (Index i) => Eq1 (Array i)
 
 {- Ord and Ord1 instances -}
 
-instance (Index i, Ord e) => Ord (Array i e)
-  where
-    compare = compare `on` assocs
-
+instance (Index i, Ord e) => Ord (Array i e) where compare = compare1
 
 instance (Index i) => Ord1 (Array i)
   where

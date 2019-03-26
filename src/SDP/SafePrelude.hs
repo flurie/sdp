@@ -20,7 +20,7 @@ import Prelude hiding
     -- defined in SDP.Scan and Data.List (originally in GHC.List)
     scanl, scanr, scanl1, scanr1,
     -- defined in SDP.Linear and Data.List (originally in GHC.List)
-    head, tail, init, last, take, drop, (++), reverse, filter,
+    head, tail, init, last, take, drop, splitAt, (++), reverse, filter,
     concat, concatMap, replicate, takeWhile, dropWhile, span, break
   
   )
