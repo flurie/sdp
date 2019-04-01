@@ -34,6 +34,7 @@ Library
     SDP.Index
     
     SDP.Array
+    SDP.Unrolled
     
     SDP.Indexed
     SDP.Linear
@@ -51,6 +52,5 @@ Library
     
     SDP.Array.Immutable
     SDP.Array.Mutable
-    SDP.UNList
     
     SDP.Simple

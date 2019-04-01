@@ -6,8 +6,8 @@ module SDP.Array.Mutable
 )
 where
 
-import SDP.SafePrelude
 import Prelude ()
+import SDP.SafePrelude
 
 import GHC.Base ( MutableArray#, Int (..), writeArray#, sameMutableArray#, isTrue# )
 import GHC.ST   ( STRep )
