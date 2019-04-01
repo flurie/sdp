@@ -28,8 +28,6 @@ import SDP.Set
 import SDP.UNList
 import SDP.Simple
 
-import Test.SDP.Linear
-
 --------------------------------------------------------------------------------
 
 {- Unrolled type section. Free for public use. -}
@@ -157,9 +155,6 @@ instance (Index i) => Linear (Unrolled i)
         l = unsafeIndex 0
         u = unsafeIndex $ max 0 n - 1
     
-    -- toHead
-    -- toLast
-    
     -- filter, partition
     
     -- takeWhile, dropWhile, takeEnd, dropEnd, span, break
@@ -190,6 +185,7 @@ instance (Index i) => Indexed (Unrolled i) i
         filler = zip (range bnds) (replicate n e)
         n = size bnds
     
+    Z  // []   = Z
     Z  // ascs = assoc (l, u) ascs
       where
         l = minimum $ fsts ascs

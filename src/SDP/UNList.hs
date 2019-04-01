@@ -1,7 +1,13 @@
 {-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, RoleAnnotations #-}
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 
-module SDP.UNList where
+module SDP.UNList
+(
+  UNList (..),
+  _UNLIST_CHUNK_MAX_SIZE_, -- internal constant, not for public use
+  (!#)                     -- unsafe function,   not for public use
+)
+where
 
 import Prelude ()
 import SDP.SafePrelude
