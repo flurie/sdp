@@ -42,6 +42,6 @@ testIndexed ix xs = and
     , null xs || elem i ((== xs ! i) *$ xs)
   ]
   where
-    i = safeElem bnds ix
+    i    = safeElem bnds ix
+    rs   = indices xs
     bnds = bounds xs
-    rs = indices xs

@@ -13,17 +13,14 @@ import GHC.Base
     newArray#, unsafeFreezeArray#, writeArray#, indexArray#,
     isTrue#, (+#), (-#), (==#)
   )
-import GHC.ST   ( ST (..), STRep (..), runST )
+import GHC.ST   ( ST (..), STRep, runST )
 
 import GHC.Show ( appPrec )
 
-import Text.Read
-import Text.Read.Lex ( expect )
-
 import SDP.Array.Mutable
 import SDP.Indexed
-import SDP.Scan
-import SDP.Set
+-- import SDP.Scan
+-- import SDP.Set
 
 import SDP.Simple
 
@@ -70,7 +67,7 @@ instance Functor UNList
               (# s2#, marr# #) ->
                 let go i s3# = if i == n
                     then case unsafeFreezeArray# marr# s3# of
-                      (# s4#, arr# #) -> (# s2#, UNList n arr# (f <$> arrs) #)
+                      (# s4#, arr# #) -> (# s4#, UNList n arr# (f <$> arrs) #)
                     else fill marr# (i, f $ arr !# i) (go $ i + 1) s3#
                 in go 0 s2#
         )
@@ -230,15 +227,15 @@ instance Linear UNList
     toHead e (UNList c arr# arrs) = c < lim ? res1 $ (UNList 1 single# arrs)
       where
         res1 = fromListN (max 0 c + 1) $ e : toList (UNList c arr# Z)
-        (UNList 1 single# Z) = single e
+        !(UNList 1 single# Z) = single e
         
         lim  = _UNLIST_CHUNK_MAX_SIZE_
     
     toLast Z e = single e
-    toLast es@(UNList c arr# Z) e = c < lim ? res1 $ (UNList 1 single# Z)
+    toLast es@(UNList c _ Z) e = c < lim ? res1 $ (UNList 1 single# Z)
       where
         res1 = fromListN (max 0 c + 1) $ foldr (:) [e] es
-        (UNList 1 single# Z) = single e
+        !(UNList 1 single# Z) = single e
         
         lim  = _UNLIST_CHUNK_MAX_SIZE_
     toLast (UNList c arr# arrs) e = UNList c arr# (toLast arrs e)
@@ -278,25 +275,27 @@ instance Bordered UNList Int
 
 instance Indexed UNList Int
   where
-    assoc' bnds@(l, u) defvalue ascs = runST
+    assoc' bnds@(l, u) defvalue ascs = isEmpty bnds ? UNEmpty $ runST
         (
           ST $ \ s1# -> case newArray# n# defvalue s1# of
-            (# s2#, marr# #) -> foldr (fill marr#) (done n (undefined) marr#) ies s2#
+            (# s2#, marr# #) -> foldr (fill marr#) (done n rest marr#) ies s2#
         )
       where
+        !n@(I# n#)     = min lim $ size bnds
+        (curr, others) = partition (\ (i, _) -> inRange (0, n - 1) i) ascs
+        
+        rest = assoc' (l + n, u) defvalue others
+        
         ies = [ (offset bnds i, e) | (i, e) <- curr ]
-        
-        (count, !n@(I# n#)) = (size bnds) `divMod` lim
-        
-        (curr, others) = partition (\ (i, e) -> inRange (0, lim - 1) i) ies
         lim = _UNLIST_CHUNK_MAX_SIZE_
     
+    Z // []   = Z
     Z // ascs = assoc (l, u) ascs
       where
         l = minimum $ fsts ascs
         u = maximum $ fsts ascs
     
-    es@(UNList c@(I# c#) arr# arrs) // ascs = runST $ thaw >>= (`writes` (arrs // others))
+    es@(UNList c@(I# c#) _ arrs) // ascs = runST $ thaw >>= (`writes` (arrs // others))
       where
         writes (STArray l' u' n' marr#) rest = ST $ foldr (fill marr#) (done n' rest marr#) ies
           where
@@ -309,7 +308,7 @@ instance Indexed UNList Int
                   else copy (i + 1) (writeArray# marr# i# (es !# i) s3#)
             in case copy 0 s2# of s3# -> (# s3#, STArray 0 (c - 1) c marr# #)
         
-        (curr, others) = partition (\ (i, e) -> inRange (0, c - 1) i) ascs
+        (curr, others) = partition (\ (i, _) -> inRange (0, c - 1) i) ascs
     
     es .! n = es !# offset (bounds es) n
     
