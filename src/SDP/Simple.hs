@@ -1,11 +1,11 @@
 {-
-  NOTE: This is an internal module for typical functions.
+  NOTE: This is an internal module for typical functions and imports.
   Its contents may be changed or removed without reference to the changelog.
 -}
 
 module SDP.Simple
 (
-  (?), (?:), fsts, snds,
+  (?:), fsts, snds,
   cmpfst, cmpsnd, eqfst, eqsnd,
   
   module Control.Exception.SDP,
@@ -35,12 +35,6 @@ import Data.Maybe
 import Data.Bool
 import Data.Ord 
 import Data.Eq
-
-infixr 1 ? -- Lowest priority, compatible with infixr 0 $
-
--- ternary operator
-(?)   :: Bool -> a -> a -> a
-(?) predicate t e = if predicate then t else e
 
 -- conditional toMaybe
 (?:)  :: (a -> Bool) -> (a -> b) -> a -> Maybe b
@@ -81,7 +75,7 @@ nub' :: (Eq i)  => [(i, e)] -> [(i, e)]
 nub'  = L.nubBy eqfst
 
 minMax :: (Ord i) => i -> i -> (i, i)
-minMax x y = (y > x) ? (x, y) $ (y, x)
+minMax x y = if y > x then (x, y) else (y, x)
 
 onTup :: (a -> b) -> (a, a) -> (b, b)
 onTup f (x, y) = (f x, f y)

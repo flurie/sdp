@@ -13,8 +13,11 @@ import Prelude ()
 import SDP.SafePrelude
 
 import Test.QuickCheck
-
 import SDP.Linear
+
+default ()
+
+--------------------------------------------------------------------------------
 
 type TestLinear l e = Int -> e -> l e -> Bool
 

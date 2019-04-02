@@ -37,7 +37,7 @@ infixl 5 :<
 {-
     Class of linear data structures that can be created from list.
     This is a preliminary version  of the Linear class.  Later several functions
-  will be transferred and renamed.
+  will be transferred.
 -}
 
 class (Functor l, Foldable l) => Linear l

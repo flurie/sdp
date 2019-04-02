@@ -8,7 +8,14 @@ module SDP.Estimate
 )
 where
 
-import Prelude ( Bool (..), Eq (..), Ord (..), Ordering (..), Num (..), Foldable (..), Int, (&&), (||) )
+import Prelude
+  (
+    Eq (..), Ord (..), Num (..), Foldable (..),
+    
+    Bool (..), Ordering (..), Int,
+    
+    (&&), (||)
+  )
 
 import Data.Functor.Classes
 

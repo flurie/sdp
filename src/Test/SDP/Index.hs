@@ -15,6 +15,8 @@ import SDP.Index
 
 default ()
 
+--------------------------------------------------------------------------------
+
 type TestIndex i = (i, i) -> i -> Bool
 
 listSizeRestriction :: Int

@@ -21,7 +21,9 @@ import Test.QuickCheck
 import GHC.Base
   (
     MutableArray#, Array#, Int (..),
+    
     newArray#, unsafeFreezeArray#, writeArray#, indexArray#,
+    
     isTrue#, (+#), (-#), (==#)
   )
 import GHC.Show ( appPrec )
@@ -315,7 +317,11 @@ instance (Index i) => Bordered (Array i) i
 
 instance (Index i) => Indexed (Array i) i
   where
-    assoc' bnds defvalue ascs = runST (ST $ \ s1# -> case newArray# n# defvalue s1# of (# s2#, marr# #) -> writes marr# s2#)
+    assoc' bnds defvalue ascs = runST
+        (
+          ST $ \ s1# -> case newArray# n# defvalue s1# of
+            (# s2#, marr# #) -> writes marr# s2#
+        )
       where
         writes marr# = foldr (fill marr#) (done bnds n marr#) ies
           where ies  = [ (offset bnds i, e) | (i, e) <- ascs ]
@@ -357,7 +363,6 @@ instance (Index i) => Estimate (Array i)
     (Array _ _ n1 _) >=. n2 = n1 >= n2
     (Array _ _ n1 _) <=. n2 = n1 <= n2
 
--- [internal]: write Set instance.
 -- instance (Index i) => Set (Array i)
 
 --------------------------------------------------------------------------------

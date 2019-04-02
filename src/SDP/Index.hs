@@ -39,7 +39,11 @@ import Data.Int
   
     The default definition for isOverflow and isUnderflow gives the answer  True
   in the case of an empty range:
-    isOverflow (5, -1) x == True -- not (x `elem` [])
+    isOverflow (5, -1)  x == True
+    isUnderflow (5, -1) x == True
+  because 
+    not $ x `elem` (range (5, -1)) == True
+    isEmpty (5, -1) == True
   Other definitions in this module follow this rule.
   
     This isn't a strict requirement, but recommended behavior, where appropriate

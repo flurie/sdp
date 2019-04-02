@@ -13,8 +13,11 @@ import Prelude ()
 import SDP.SafePrelude
 
 import Test.QuickCheck
-
 import SDP.Set
+
+default ()
+
+--------------------------------------------------------------------------------
 
 type TestSet s o = o -> s o -> s o -> Bool
 

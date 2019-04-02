@@ -18,11 +18,12 @@ import Test.QuickCheck
 import GHC.Base
   (
     Array#, MutableArray#, Int (..),
+    
     newArray#, unsafeFreezeArray#, writeArray#, indexArray#,
+    
     isTrue#, (+#), (-#), (==#)
   )
 import GHC.ST   ( ST (..), STRep, runST )
-
 import GHC.Show ( appPrec )
 
 import Text.Read
@@ -30,10 +31,11 @@ import Text.Read.Lex ( expect )
 
 import SDP.Array.Mutable
 import SDP.Indexed
+import SDP.Simple
 import SDP.Scan
 import SDP.Set
 
-import SDP.Simple
+default ()
 
 --------------------------------------------------------------------------------
 
@@ -480,10 +482,6 @@ instance Bordered UNList Int
 
 --------------------------------------------------------------------------------
 
-{-
-  Unchecked instance (assoc, assoc', (//))
--}
-
 instance Indexed UNList Int
   where
     assoc' bnds@(l, u) defvalue ascs = isEmpty bnds ? UNEmpty $ runST
@@ -553,11 +551,13 @@ instance (Arbitrary e) => Arbitrary (UNList e)
 
 --------------------------------------------------------------------------------
 
+{-# INLINE (!#) #-}
 (!#) :: UNList e -> Int -> e
 (UNList c arr# arrs) !# i@(I# i#) = i < c ? e $ arrs !# (i - c)
   where
     (# e #) = indexArray# arr# i#
 
+{-# INLINE done #-}
 done :: Int -> UNList e -> MutableArray# s e -> STRep s (UNList e)
 done c rest marr# = \s1# -> case unsafeFreezeArray# marr# s1# of
   (# s2#, arr# #) -> (# s2#, UNList c arr# rest #)

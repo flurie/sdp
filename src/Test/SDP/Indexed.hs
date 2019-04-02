@@ -12,10 +12,13 @@ import Prelude ()
 import SDP.SafePrelude
 
 import Test.QuickCheck
-
 import SDP.Indexed
 
 import Data.Maybe
+
+default ()
+
+--------------------------------------------------------------------------------
 
 type TestIndexed l i e = i -> l e -> Bool
 

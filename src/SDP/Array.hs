@@ -5,7 +5,7 @@ module SDP.Array
 where
 
 {-
-  This is reexport of SDP.Array.Immutable.
+  This is reexport of SDP.Array.Immutable (internal module).
 -}
 
 import Prelude ()

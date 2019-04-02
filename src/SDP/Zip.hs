@@ -7,8 +7,8 @@ import SDP.SafePrelude
 
 {-
     Zip  is typeclass  with  vector  applicative  semantics  (but without pure).
-  zipWith{3 .. 6} may be can be expressed in zipWith{ , 3 .. 5}, but in many
-  cases it would be extremely memory inefficient.
+  zipWith{3 .. 6} may can be expressed in  zipWith{ , 3 .. 5}, but in many cases
+  it would be extremely memory inefficient.
 -}
 
 class (Functor z) => Zip z
