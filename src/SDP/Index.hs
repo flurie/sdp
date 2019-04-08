@@ -138,19 +138,443 @@ instance Index ()
     size  = const 0
     sizes = const []
     range = const []
+    
     next _ _ = ()
     prev _ _ = ()
+    
     isEmpty  = const False
-    index    = const unsafeIndex
     inRange     _ _ = True
     isOverflow  _ _ = False
     isUnderflow _ _ = False
-    unsafeIndex x = case x <=> 0 of
-      EQ -> ()
-      GT -> throw $ IndexOverflow  "in SDP.Index.unsafeIndex ()"
-      LT -> throw $ IndexUnderflow "in SDP.Index.unsafeIndex ()"
     
-    offset _ _ = 0
+    unsafeIndex _ = throw $ EmptyRange "in SDP.Index.unsafeIndex ()"
+    index         = const unsafeIndex
+    offset  _  _  = 0
+
+instance (Index i, Enum i, Bounded i) => Index (i, i)
+  where
+    rank = const 2
+    
+    size  ((l1, l2), (u1, u2)) = s1 * s2
+      where
+        s1 = size (l1, u1)
+        s2 = size (l2, u2)
+    
+    sizes ((l1, l2), (u1, u2)) = [s1, s2]
+      where
+        s1 = size (l1, u1)
+        s2 = size (l2, u2)
+    
+    range ((l1, l2), (u1, u2)) = liftA2 (,) r1 r2
+      where
+        r1 = range (l1, u1)
+        r2 = range (l2, u2)
+    
+    inRange ((l1, l2), (u1, u2)) (i1, i2) = inr1 && inr2
+      where
+        inr1 = inRange (l1, u1) i1
+        inr2 = inRange (l2, u2) i2
+    
+    next bnds@((_, l2), (u1, u2)) (i1, i2)
+        | isEmpty bnds = throw $ EmptyRange "in SDP.Index.prev (i, i)"
+        |    s /= u2   = (f, succ s)
+        |    f /= u1   = (succ f, l2)
+        |     True     = (f, s)
+      where
+        (f, s) = safeElem bnds (i1, i2)
+    
+    prev bnds@((l1, l2), (_, u2)) (i1, i2)
+        | isEmpty bnds = throw $ EmptyRange "in SDP.Index.prev (i, i)"
+        |    s /= l2   = (f, pred s)
+        |    f /= l1   = (pred f, u2)
+        |     True     = (f, s)
+      where
+        (f, s) = safeElem bnds (i1, i2)
+    
+    isEmpty ((l1, l2), (u1, u2)) = e1 || e2
+      where
+        e1 = isEmpty (l1, u1)
+        e2 = isEmpty (l2, u2)
+    
+    isOverflow  ((l1, l2), (u1, u2)) (i1, i2) = ovr1 || ovr2
+      where
+        ovr1 = isOverflow  (l1, u1) i1
+        ovr2 = isOverflow  (l2, u2) i2
+    
+    isUnderflow ((l1, l2), (u1, u2)) (i1, i2) = und1 || und2
+      where
+        und1 = isUnderflow (l1, u1) i1
+        und2 = isUnderflow (l2, u2) i2
+    
+    safeElem ((l1, l2), (u1, u2)) (i1, i2) = (se1, se2)
+      where
+        se1 = safeElem (l1, u1) i1
+        se2 = safeElem (l2, u2) i2
+    
+    ordBounds ((l1, l2), (u1, u2)) = ((f1, f2), (s1, s2))
+      where
+        (f1, s1) = ordBounds (l1, u1)
+        (f2, s2) = ordBounds (l2, u2)
+    
+    offset ((l1, l2), (u1, u2)) (i1, i2) = o1 * n + o2
+      where
+        o1 = offset (l1, u1) i1
+        o2 = offset (l2, u2) i2
+        
+        n  = size   (l2, u2)
+    
+    index ((l1, l2), (u1, u2)) c = (index (l1, u1) i', j)
+      where
+        (i', j) = c /. n $ (l2, u2)
+        n  = size (l2, u2)
+    
+    unsafeIndex c = (unsafeIndex i', j)
+      where
+        (i', j) = uns c
+
+instance (Index i, Enum i, Bounded i) => Index (i, i, i)
+  where
+    rank = const 3
+    
+    size  ((l1, l2, l3), (u1, u2, u3)) = s1 * s2 * s3
+      where
+        s1 = size (l1, u1)
+        s2 = size (l2, u2)
+        s3 = size (l3, u3)
+    
+    sizes ((l1, l2, l3), (u1, u2, u3)) = [s1, s2, s3]
+      where
+        s1 = size (l1, u1)
+        s2 = size (l2, u2)
+        s3 = size (l3, u3)
+    
+    range ((l1, l2, l3), (u1, u2, u3)) = liftA3 (,,) r1 r2 r3
+      where
+        r1 = range (l1, u1)
+        r2 = range (l2, u2)
+        r3 = range (l3, u3)
+    
+    inRange ((l1, l2, l3), (u1, u2, u3)) (i1, i2, i3) = inr1 && inr2 && inr3
+      where
+        inr1 = inRange (l1, u1) i1
+        inr2 = inRange (l2, u2) i2
+        inr3 = inRange (l3, u3) i3
+    
+    next bnds@((_, l2, l3), (u1, u2, u3)) (i1, i2, i3)
+        | isEmpty bnds = throw $ EmptyRange "in SDP.Index.prev (i, i, i)"
+        |    t /= u3   = (f, s, succ t)
+        |    s /= u2   = (f, succ s, l3)
+        |    f /= u1   = (succ f, l2, l3)
+        |     True     = (f, s, t)
+      where
+        (f, s, t) = safeElem bnds (i1, i2, i3)
+    
+    prev bnds@((l1, l2, l3), (_, u2, u3)) (i1, i2, i3)
+        | isEmpty bnds = throw $ EmptyRange "in SDP.Index.prev (i, i, i)"
+        |    t /= l3   = (f, s, pred t)
+        |    s /= l2   = (f, pred s, u3)
+        |    f /= l1   = (pred f, u2, u3)
+        |     True     = (f, s, t)
+      where
+        (f, s, t) = safeElem bnds (i1, i2, i3)
+    
+    isEmpty ((l1, l2, l3), (u1, u2, u3)) = e1 || e2 || e3
+      where
+        e1 = isEmpty (l1, u1)
+        e2 = isEmpty (l2, u2)
+        e3 = isEmpty (l3, u3)
+    
+    isOverflow  ((l1, l2, l3), (u1, u2, u3)) (i1, i2, i3) = ovr1 || ovr2 || ovr3
+      where
+        ovr1 = isOverflow  (l1, u1) i1
+        ovr2 = isOverflow  (l2, u2) i2
+        ovr3 = isOverflow  (l3, u3) i3
+    
+    isUnderflow ((l1, l2, l3), (u1, u2, u3)) (i1, i2, i3) = und1 || und2 || und3
+      where
+        und1 = isUnderflow (l1, u1) i1
+        und2 = isUnderflow (l2, u2) i2
+        und3 = isUnderflow (l3, u3) i3
+    
+    safeElem ((l1, l2, l3), (u1, u2, u3)) (i1, i2, i3) = (se1, se2, se3)
+      where
+        se1 = safeElem (l1, u1) i1
+        se2 = safeElem (l2, u2) i2
+        se3 = safeElem (l3, u3) i3
+    
+    ordBounds ((l1, l2, l3), (u1, u2, u3)) = ((f1, f2, f3), (s1, s2, s3))
+      where
+        (f1, s1) = ordBounds (l1, u1)
+        (f2, s2) = ordBounds (l2, u2)
+        (f3, s3) = ordBounds (l3, u3)
+    
+    offset ((l1, l2, l3), (u1, u2, u3)) (i1, i2, i3) = (o1 * n + o2) * m + o3
+      where
+        o1 = offset (l1, u1) i1
+        o2 = offset (l2, u2) i2
+        o3 = offset (l3, u3) i3
+        
+        n  = size (l2, u2)
+        m  = size (l3, u3)
+    
+    index ((l1, l2, l3), (u1, u2, u3)) c = (index (l1, u1) i', j, k)
+      where
+        (inj, k) = c /. m $ (l3, u3)
+        (i', j)  = inj /. n $ (l2, u2)
+        
+        m  = size (l3, u3)
+        n  = size (l2, u2)
+    
+    unsafeIndex c = (unsafeIndex i', j, k)
+      where
+        (inj, k) = uns c
+        (i', j)  = uns inj
+
+instance (Index i, Enum i, Bounded i) => Index (i, i, i, i)
+  where
+    rank = const 4
+    
+    size  ((l1, l2, l3, l4), (u1, u2, u3, u4)) = s1 * s2 * s3 * s4
+      where
+        s1 = size (l1, u1)
+        s2 = size (l2, u2)
+        s3 = size (l3, u3)
+        s4 = size (l4, u4)
+    
+    sizes ((l1, l2, l3, l4), (u1, u2, u3, u4)) = [s1, s2, s3, s4]
+      where
+        s1 = size (l1, u1)
+        s2 = size (l2, u2)
+        s3 = size (l3, u3)
+        s4 = size (l4, u4)
+    
+    range ((l1, l2, l3, l4), (u1, u2, u3, u4)) = liftA3 (,,,) r1 r2 r3 <*> r4
+      where
+        r1 = range (l1, u1)
+        r2 = range (l2, u2)
+        r3 = range (l3, u3)
+        r4 = range (l4, u4)
+    
+    inRange ((l1, l2, l3, l4), (u1, u2, u3, u4)) (i1, i2, i3, i4) = inr1 && inr2 && inr3 && inr4
+      where
+        inr1 = inRange (l1, u1) i1
+        inr2 = inRange (l2, u2) i2
+        inr3 = inRange (l3, u3) i3
+        inr4 = inRange (l4, u4) i4
+    
+    next bnds@((_, l2, l3, l4), (u1, u2, u3, u4)) (i1, i2, i3, i4)
+        | isEmpty bnds = throw $ EmptyRange "in SDP.Index.prev (i, i, i, i)"
+        |   f' /= u4   = (f, s, t, succ f')
+        |    t /= u3   = (f, s, succ t, l4)
+        |    s /= u2   = (f, succ s, l3, l4)
+        |    f /= u1   = (succ f, l2, l3, l4)
+        |     True     = (f, s, t, f')
+      where
+        (f, s, t, f') = safeElem bnds (i1, i2, i3, i4)
+    
+    prev bnds@((l1, l2, l3, l4), (_, u2, u3, u4)) (i1, i2, i3, i4)
+        | isEmpty bnds = throw $ EmptyRange "in SDP.Index.prev (i, i, i, i)"
+        |   f' /= l4   = (f, s,   t, pred f')
+        |    t /= l3   = (f, s,   pred t, u4)
+        |    s /= l2   = (f,  pred s, u3, u4)
+        |    f /= l1   = (pred f, u2, u3, u4)
+        |     True     = (f, s, t, f')
+      where
+        (f, s, t, f') = safeElem bnds (i1, i2, i3, i4)
+    
+    isEmpty ((l1, l2, l3, l4), (u1, u2, u3, u4)) = e1 || e2 || e3 || e4
+      where
+        e1 = isEmpty (l1, u1)
+        e2 = isEmpty (l2, u2)
+        e3 = isEmpty (l3, u3)
+        e4 = isEmpty (l4, u4)
+    
+    isOverflow  ((l1, l2, l3, l4), (u1, u2, u3, u4)) (i1, i2, i3, i4) = ovr1 || ovr2 || ovr3 || ovr4
+      where
+        ovr1 = isOverflow  (l1, u1) i1
+        ovr2 = isOverflow  (l2, u2) i2
+        ovr3 = isOverflow  (l3, u3) i3
+        ovr4 = isOverflow  (l4, u4) i4
+    
+    isUnderflow ((l1, l2, l3, l4), (u1, u2, u3, u4)) (i1, i2, i3, i4) = und1 || und2 || und3 || und4
+      where
+        und1 = isUnderflow (l1, u1) i1
+        und2 = isUnderflow (l2, u2) i2
+        und3 = isUnderflow (l3, u3) i3
+        und4 = isUnderflow (l4, u4) i4
+    
+    safeElem ((l1, l2, l3, l4), (u1, u2, u3, u4)) (i1, i2, i3, i4) = (se1, se2, se3, se4)
+      where
+        se1 = safeElem (l1, u1) i1
+        se2 = safeElem (l2, u2) i2
+        se3 = safeElem (l3, u3) i3
+        se4 = safeElem (l4, u4) i4
+    
+    ordBounds ((l1, l2, l3, l4), (u1, u2, u3, u4)) = ((f1, f2, f3, f4), (s1, s2, s3, s4))
+      where
+        (f1, s1) = ordBounds (l1, u1)
+        (f2, s2) = ordBounds (l2, u2)
+        (f3, s3) = ordBounds (l3, u3)
+        (f4, s4) = ordBounds (l4, u4)
+    
+    offset ((l1, l2, l3, l4), (u1, u2, u3, u4)) (i1, i2, i3, i4) = ((o1 * n + o2) * m + o3) * v + o4
+      where
+        o1 = offset (l1, u1) i1
+        o2 = offset (l2, u2) i2
+        o3 = offset (l3, u3) i3
+        o4 = offset (l4, u4) i4
+        
+        n  = size (l1, u1)
+        m  = size (l2, u2)
+        v  = size (l3, u3)
+    
+    index ((l1, l2, l3, l4), (u1, u2, u3, u4)) c = (index (l1, u1) i', j, k, l)
+      where
+        (injmk, l) = c     /. v $ (l4, u4)
+        (inj, k)   = injmk /. m $ (l3, u3)
+        (i', j)    = inj   /. n $ (l2, u2)
+        
+        n  = size (l2, u2)
+        m  = size (l3, u3)
+        v  = size (l4, u4)
+    
+    unsafeIndex c = (unsafeIndex i', j, k, l)
+      where
+        (injmk, l) = uns c
+        (inj, k)   = uns injmk
+        (i', j)    = uns inj
+
+instance (Index i, Enum i, Bounded i) => Index (i, i, i, i, i)
+  where
+    rank = const 5
+    
+    size  ((l1, l2, l3, l4, l5), (u1, u2, u3, u4, u5)) = s1 * s2 * s3 * s4 * s5
+      where
+        s1 = size (l1, u1)
+        s2 = size (l2, u2)
+        s3 = size (l3, u3)
+        s4 = size (l4, u4)
+        s5 = size (l5, u5)
+    
+    sizes ((l1, l2, l3, l4, l5), (u1, u2, u3, u4, u5)) = [s1, s2, s3, s4, s5]
+      where
+        s1 = size (l1, u1)
+        s2 = size (l2, u2)
+        s3 = size (l3, u3)
+        s4 = size (l4, u4)
+        s5 = size (l5, u5)
+    
+    range ((l1, l2, l3, l4, l5), (u1, u2, u3, u4, u5)) = liftA3 (,,,,) r1 r2 r3 <*> r4 <*> r5
+      where
+        r1 = range (l1, u1)
+        r2 = range (l2, u2)
+        r3 = range (l3, u3)
+        r4 = range (l4, u4)
+        r5 = range (l5, u5)
+    
+    inRange ((l1, l2, l3, l4, l5), (u1, u2, u3, u4, u5)) (i1, i2, i3, i4, i5) = inr1 && inr2 && inr3 && inr4 && inr5
+      where
+        inr1 = inRange (l1, u1) i1
+        inr2 = inRange (l2, u2) i2
+        inr3 = inRange (l3, u3) i3
+        inr4 = inRange (l4, u4) i4
+        inr5 = inRange (l5, u5) i5
+    
+    next bnds@((_, l2, l3, l4, l5), (u1, u2, u3, u4, u5)) (i1, i2, i3, i4, i5)
+        | isEmpty bnds = throw $ EmptyRange "in SDP.Index.prev (i, i, i, i, i)"
+        |  f'' /= u5   = (f, s, t, f',  succ f'')
+        |   f' /= u4   = (f, s, t,  succ f', f'')
+        |    t /= u3   = (f, s,   succ t, l4, l5)
+        |    s /= u2   = (f,  succ s, l3, l4, l5)
+        |    f /= u1   = (succ f, l2, l3, l4, l5)
+        |     True     = (f, s, t, f', f'')
+      where
+        (f, s, t, f', f'') = safeElem bnds (i1, i2, i3, i4, i5)
+    
+    prev bnds@((l1, l2, l3, l4, l5), (_, u2, u3, u4, u5)) (i1, i2, i3, i4, i5)
+        | isEmpty bnds = throw $ EmptyRange "in SDP.Index.prev (i, i, i, i, i)"
+        |  f'' /= l5   = (f, s, t, f',   pred f'')
+        |   f' /= l4   = (f, s, t,   pred f', u5)
+        |    t /= l3   = (f, s,   pred t, u4, u5)
+        |    s /= l2   = (f,  pred s, u3, u4, u5)
+        |    f /= l1   = (pred f, u2, u3, u4, u5)
+        |     True     = (f, s, t, f', f'')
+      where
+        (f, s, t, f', f'') = safeElem bnds (i1, i2, i3, i4, i5)
+    
+    isEmpty ((l1, l2, l3, l4, l5), (u1, u2, u3, u4, u5)) = e1 || e2 || e3 || e4 || e5
+      where
+        e1 = isEmpty (l1, u1)
+        e2 = isEmpty (l2, u2)
+        e3 = isEmpty (l3, u3)
+        e4 = isEmpty (l4, u4)
+        e5 = isEmpty (l5, u5)
+    
+    isOverflow  ((l1, l2, l3, l4, l5), (u1, u2, u3, u4, u5)) (i1, i2, i3, i4, i5) = ovr1 || ovr2 || ovr3 || ovr4 || ovr5
+      where
+        ovr1 = isOverflow  (l1, u1) i1
+        ovr2 = isOverflow  (l2, u2) i2
+        ovr3 = isOverflow  (l3, u3) i3
+        ovr4 = isOverflow  (l4, u4) i4
+        ovr5 = isOverflow  (l5, u5) i5
+    
+    isUnderflow ((l1, l2, l3, l4, l5), (u1, u2, u3, u4, u5)) (i1, i2, i3, i4, i5) = und1 || und2 || und3 || und4 || und5
+      where
+        und1 = isUnderflow (l1, u1) i1
+        und2 = isUnderflow (l2, u2) i2
+        und3 = isUnderflow (l3, u3) i3
+        und4 = isUnderflow (l4, u4) i4
+        und5 = isUnderflow (l5, u5) i5
+    
+    safeElem ((l1, l2, l3, l4, l5), (u1, u2, u3, u4, u5)) (i1, i2, i3, i4, i5) = (se1, se2, se3, se4, se5)
+      where
+        se1 = safeElem (l1, u1) i1
+        se2 = safeElem (l2, u2) i2
+        se3 = safeElem (l3, u3) i3
+        se4 = safeElem (l4, u4) i4
+        se5 = safeElem (l5, u5) i5
+    
+    ordBounds ((l1, l2, l3, l4, l5), (u1, u2, u3, u4, u5)) = ((f1, f2, f3, f4, f5), (s1, s2, s3, s4, s5))
+      where
+        (f1, s1) = ordBounds (l1, u1)
+        (f2, s2) = ordBounds (l2, u2)
+        (f3, s3) = ordBounds (l3, u3)
+        (f4, s4) = ordBounds (l4, u4)
+        (f5, s5) = ordBounds (l5, u5)
+    
+    offset ((l1, l2, l3, l4, l5), (u1, u2, u3, u4, u5)) (i1, i2, i3, i4, i5) = (((o1 * n + o2) * m + o3) * v + o4) * h + o5
+      where
+        o1 = offset (l1, u1) i1
+        o2 = offset (l2, u2) i2
+        o3 = offset (l3, u3) i3
+        o4 = offset (l4, u4) i4
+        o5 = offset (l5, u5) i5
+        
+        n  = size (l1, u1)
+        m  = size (l2, u2)
+        v  = size (l3, u3)
+        h  = size (l4, u4)
+    
+    index ((l1, l2, l3, l4, l5), (u1, u2, u3, u4, u5)) c = (index (l1, u1) i', j, k, l, t)
+      where
+        (injmkhl, t) = c       /. v $ (l5, u5)
+        (injmk, l)   = injmkhl /. h $ (l4, u4)
+        (inj, k)     = injmk   /. m $ (l3, u3)
+        (i', j)      = inj     /. n $ (l2, u2)
+        
+        n  = size (l2, u2)
+        m  = size (l3, u3)
+        h  = size (l4, u4)
+        v  = size (l5, u5)
+    
+    unsafeIndex c  = (unsafeIndex i', j, k, l, t)
+      where
+        (injmkhl, t) = uns c
+        (injmk, l)   = uns injmkhl
+        (inj, k)     = uns injmk
+        (i', j)      = uns inj
+
+--------------------------------------------------------------------------------
 
 instance Index Char
 
@@ -340,6 +764,16 @@ ind16 a b c d e f g h i j k l m n o p = () :& a :& b :& c :& d :& e :& f :& g :&
 
 (-.) :: (Enum i) => i -> i -> Int
 (-.) =  on (-) fromEnum
+
+(/.) :: (Index i) => Int -> Int -> (i, i) -> (Int, i)
+(/.) a b bnds = (d, index bnds m)
+  where
+    (d, m) = a `divMod` b
+
+uns :: (Index i, Bounded i) => Int -> (Int, i)
+uns a = (d, unsafeIndex m)
+  where
+    (d, m) = a `divMod` maxBound
 
 checkBounds :: (Index i) => (i, i) -> i -> res -> String -> res
 checkBounds bnds ix res msg
