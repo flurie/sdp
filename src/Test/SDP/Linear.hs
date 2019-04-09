@@ -1,11 +1,11 @@
 module Test.SDP.Linear
 (
   Arbitrary (..),
-  
   TestLinear,
-  
+  TestSplit,
   quickCheck,
-  testLinear
+  testLinear,
+  testSplit
 )
 where
 
@@ -58,12 +58,18 @@ testLinear n e line = and
     
     , concat [line, reverse line] == line ++ reverse line
     , concat [line, reverse line] == fromList (concat [toList line, listR line])
+  ]
+
+type TestSplit s e = Int -> s e -> Bool
+
+testSplit :: (Split s, Eq e, Eq (s e), Arbitrary (s e)) => Int -> s e -> Bool
+testSplit n line = and
+  [
+    (take n line, drop n line) == split n line
     
-    , null $ take (-n') line
+    , null $ take (- max 0 n) line
     , null $ drop (length line) line
     
-    , toList (take n' line) == take n' (toList line)
-    , toList (drop n' line) == drop n' (toList line)
-    
+    , toList (take n line) == take n (toList line)
+    , toList (drop n line) == drop n (toList line)
   ]
-  where n' = max 0 n

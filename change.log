@@ -21,3 +21,8 @@ version 0.0.0.3
   Many stupid bugs were fixed.
   Сommon tests for standard classes were added.
   There are no other notable changes.
+version 0.0.0.4
+  Changed Linear class.
+  Added LineS and Split classes.
+  Added Unrolled linked list type.
+  Added Tuple instances for Index

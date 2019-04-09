@@ -6,7 +6,7 @@ module SDP.Index
   module Data.Word,
   module Data.Int,
   
-  Index (..), Bounds, (:&) (..),
+  Index (..), Bounds, (:&) (..), DimLeak (..),
   
   I2,   I3,  I4,  I5,  I6,  I7,  I8,  I9, I10 , I11, I12, I13, I14, I15, I16,
   ind2,  ind3,  ind4,  ind5,  ind6,  ind7,  ind8,  ind9,
@@ -225,8 +225,7 @@ instance (Index i, Enum i, Bounded i) => Index (i, i)
     
     index ((l1, l2), (u1, u2)) c = (index (l1, u1) i', j)
       where
-        (i', j) = c /. n $ (l2, u2)
-        n  = size (l2, u2)
+        (i', j) = c /. (l2, u2)
     
     unsafeIndex c = (unsafeIndex i', j)
       where
@@ -319,11 +318,8 @@ instance (Index i, Enum i, Bounded i) => Index (i, i, i)
     
     index ((l1, l2, l3), (u1, u2, u3)) c = (index (l1, u1) i', j, k)
       where
-        (inj, k) = c /. m $ (l3, u3)
-        (i', j)  = inj /. n $ (l2, u2)
-        
-        m  = size (l3, u3)
-        n  = size (l2, u2)
+        (inj, k) = c   /. (l3, u3)
+        (i', j)  = inj /. (l2, u2)
     
     unsafeIndex c = (unsafeIndex i', j, k)
       where
@@ -430,13 +426,9 @@ instance (Index i, Enum i, Bounded i) => Index (i, i, i, i)
     
     index ((l1, l2, l3, l4), (u1, u2, u3, u4)) c = (index (l1, u1) i', j, k, l)
       where
-        (injmk, l) = c     /. v $ (l4, u4)
-        (inj, k)   = injmk /. m $ (l3, u3)
-        (i', j)    = inj   /. n $ (l2, u2)
-        
-        n  = size (l2, u2)
-        m  = size (l3, u3)
-        v  = size (l4, u4)
+        (injmk, l) = c     /. (l4, u4)
+        (inj, k)   = injmk /. (l3, u3)
+        (i', j)    = inj   /. (l2, u2)
     
     unsafeIndex c = (unsafeIndex i', j, k, l)
       where
@@ -557,15 +549,10 @@ instance (Index i, Enum i, Bounded i) => Index (i, i, i, i, i)
     
     index ((l1, l2, l3, l4, l5), (u1, u2, u3, u4, u5)) c = (index (l1, u1) i', j, k, l, t)
       where
-        (injmkhl, t) = c       /. v $ (l5, u5)
-        (injmk, l)   = injmkhl /. h $ (l4, u4)
-        (inj, k)     = injmk   /. m $ (l3, u3)
-        (i', j)      = inj     /. n $ (l2, u2)
-        
-        n  = size (l2, u2)
-        m  = size (l3, u3)
-        h  = size (l4, u4)
-        v  = size (l5, u5)
+        (injmkhl, t) = c       /. (l5, u5)
+        (injmk, l)   = injmkhl /. (l4, u4)
+        (inj, k)     = injmk   /. (l3, u3)
+        (i', j)      = inj     /. (l2, u2)
     
     unsafeIndex c  = (unsafeIndex i', j, k, l, t)
       where
@@ -573,6 +560,12 @@ instance (Index i, Enum i, Bounded i) => Index (i, i, i, i, i)
         (injmk, l)   = uns injmkhl
         (inj, k)     = uns injmk
         (i', j)      = uns inj
+
+--------------------------------------------------------------------------------
+
+-- Service Type for future use.
+
+newtype DimLeak = DimLeak Word deriving (Eq, Ord, Show, Read)
 
 --------------------------------------------------------------------------------
 
@@ -765,10 +758,10 @@ ind16 a b c d e f g h i j k l m n o p = () :& a :& b :& c :& d :& e :& f :& g :&
 (-.) :: (Enum i) => i -> i -> Int
 (-.) =  on (-) fromEnum
 
-(/.) :: (Index i) => Int -> Int -> (i, i) -> (Int, i)
-(/.) a b bnds = (d, index bnds m)
+(/.) :: (Index i) => Int -> (i, i) -> (Int, i)
+(/.) a bnds = (d, index bnds m)
   where
-    (d, m) = a `divMod` b
+    (d, m) = a `divMod` (size bnds)
 
 uns :: (Index i, Bounded i) => Int -> (Int, i)
 uns a = (d, unsafeIndex m)

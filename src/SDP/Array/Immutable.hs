@@ -227,7 +227,7 @@ instance (Index i) => Traversable (Array i)
 
 --------------------------------------------------------------------------------
 
-{- Linear and Bordered instances. -}
+{- Linear, Split and Bordered instances. -}
 
 instance (Index i) => Linear (Array i)
   where
@@ -246,7 +246,7 @@ instance (Index i) => Linear (Array i)
                 )
         )
       where
-        !n'@(I# n#) = max 0 $ (es <. n) ? (length es) $ n
+        !n'@(I# n#) = max 0 $ (es <. n) ? length es $ n
         l = unsafeIndex 0
         u = unsafeIndex (n' - 1)
     
@@ -262,12 +262,6 @@ instance (Index i) => Linear (Array i)
     tail es = fromListN (length es - 1) . tail $ toList es
     init es = fromListN (length es - 1) $ toList es
     
-    -- O (n) take.
-    take n es = fromListN n $ toList es
-    
-    -- O (n) drop.
-    drop n es = fromListN (l - n + 1) [ es !# i | i <- [n .. l - 1] ] where l = length es
-    
     -- O(n) reverse
     reverse es = fromListN n $ listR es where n = length es
     
@@ -276,6 +270,29 @@ instance (Index i) => Linear (Array i)
     
     -- O(n * m) concatenation
     concatMap f = concat . map f . toList
+    
+    concat = fromList . toList'
+      where
+        -- the same as "fmap toList . toList" but on bit faster
+        toList' = foldr (\ a l -> toList a ++ l) []
+
+instance (Index i) => Split (Array i)
+  where
+    prefix predicate arr@(Array _ _ n _) = last' 0
+      where
+        last'   c = (inRange (0, n - 1) c && satisfy c) ? (last' $! c + 1) $! c
+        satisfy c = predicate $ arr !# c
+    
+    suffix predicate arr@(Array _ _ n _) = init' $ n - 1
+      where
+        init'   c = (inRange (0, n - 1) c && satisfy c) ? (init' $! c - 1) $! c + 1
+        satisfy c = predicate $ arr !# c
+    
+    -- O (n) take.
+    take n es = fromListN n $ toList es
+    
+    -- O (n) drop.
+    drop n es = fromListN (l - n + 1) [ es !# i | i <- [n .. l - 1] ] where l = length es
     
     -- No more than O(n) comparing.
     isPrefixOf xs ys = xs .<=. ys && and equals
@@ -289,19 +306,6 @@ instance (Index i) => Linear (Array i)
         equals  = [ xs !# i == xs !# (i + offset') | i <- [0 .. ly - 1] ]
         offset' = length xs - ly
         ly = length ys
-    
-    -- Default isInfixOf, no more than O(n) comparing.
-    
-    takeWhile predicate es = take (predicate `prefix` es) es
-    dropWhile predicate es = drop (predicate `prefix` es) es
-    
-    takeEnd   predicate es = drop (predicate `suffix` es) es
-    dropEnd   predicate es = take (predicate `suffix` es) es
-    
-    concat = fromList . toList'
-      where
-        -- the same as "fmap toList . toList" but on bit faster
-        toList' = foldr (\ a l -> toList a ++ l) []
 
 instance (Index i) => Bordered (Array i) i
   where
@@ -365,6 +369,8 @@ instance (Index i) => Estimate (Array i)
 
 -- instance (Index i) => Set (Array i)
 
+instance (Index i) => LineS (Array i)
+
 --------------------------------------------------------------------------------
 
 instance (Index i, Arbitrary e) => Arbitrary (Array i e)
@@ -381,18 +387,6 @@ instance (Index i, Arbitrary e) => Arbitrary (Array i e)
 done :: (i, i) -> Int -> MutableArray# s e -> STRep s (Array i e)
 done (l, u) n marr# = \s1# -> case unsafeFreezeArray# marr# s1# of
   (# s2#, arr# #) -> (# s2#, Array l u n arr# #)
-
-prefix :: (Index i) => (e -> Bool) -> (Array i e) -> Int
-prefix predicate arr@(Array _ _ n _) = last' 0
-  where
-    last'   c = (inRange (0, n - 1) c && satisfy c) ? (last' $! c + 1) $! c
-    satisfy c = predicate $ arr !# c
-
-suffix :: (Index i) => (e -> Bool) -> (Array i e) -> Int
-suffix predicate arr@(Array _ _ n _) = init' $ n - 1
-  where
-    init'   c = (inRange (0, n - 1) c && satisfy c) ? (init' $! c - 1) $! c + 1
-    satisfy c = predicate $ arr !# c
 
 undEx :: String -> a
 undEx msg = throw . UndefinedValue $ "in SDP.Array." ++ msg

@@ -9,6 +9,8 @@ module SDP.Linear
   
   Bordered (..),
   Linear (..),
+  Split (..),
+  LineS (..),
   
   pattern (:>), pattern (:<), pattern  Z,
   
@@ -36,8 +38,6 @@ infixl 5 :<
 
 {-
     Class of linear data structures that can be created from list.
-    This is a preliminary version  of the Linear class.  Later several functions
-  will be transferred.
 -}
 
 class (Functor l, Foldable l) => Linear l
@@ -110,44 +110,6 @@ class (Functor l, Foldable l) => Linear l
     concat      :: (Foldable f) => f (l e) -> l e
     concat      =  foldr (++) lzero
     
-    {- Deconstruction. -}
-    
-    take      :: Int -> l e -> l e
-    take n es =  fromList . (take n) $ toList es
-    
-    drop      :: Int -> l e -> l e
-    drop n es =  fromList . (drop n) $ toList es
-    
-    splitAt      :: Int -> l e -> (l e, l e)
-    splitAt n es =  (take n es, drop n es)
-    
-    -- Takes and drops the longest init
-    takeWhile    :: (e -> Bool) -> l e -> l e
-    takeWhile p (e :> es) = p e ? (e :> takeWhile p es) $ Z
-    takeWhile _     _     = Z
-    
-    dropWhile    :: (e -> Bool) -> l e -> l e
-    dropWhile p es@(e :> rest) = p e ? (dropWhile p rest) $ es
-    dropWhile _        _       = Z
-    
-    -- Takes and drops the longest tail.
-    takeEnd      :: (e -> Bool) -> l e -> l e
-    takeEnd p list = t' list list
-      where
-        t'     Z     rest = rest
-        t' (e :> es) rest = t' es (p e ? rest $ es)
-    
-    dropEnd      :: (e -> Bool) -> l e -> l e
-    dropEnd p = foldr (\ e es -> (p e && null es) ? Z $ (e :> es)) Z
-    
-    -- span f es == (takeWhile f es, dropWhile f es).
-    span         :: (e -> Bool) -> l e -> (l e, l e)
-    span   f  es =  (takeWhile f es, dropWhile f es)
-    
-    -- break f es == (takeWhile (not . f) es, dropWhile (not . f) es).
-    break        :: (e -> Bool) -> l e -> (l e, l e)
-    break  f  es =  (takeWhile (not . f) es, dropWhile (not . f) es)
-    
     {- Filtering functions. -}
     
     filter         :: (e -> Bool) -> l e -> l e
@@ -164,21 +126,6 @@ class (Functor l, Foldable l) => Linear l
     isSubseqOf _ Z = False
     isSubseqOf xs@(x :> rest) (y :> ys) = x == y && rest `isSubseqOf` ys || xs `isSubseqOf` ys
     
-    isPrefixOf    :: (Eq e) => l e -> l e -> Bool
-    isPrefixOf Z _ = True
-    isPrefixOf _ Z = False
-    isPrefixOf (x :> xs) (y :> ys) = (x == y) && (xs `isPrefixOf` ys)
-    
-    isSuffixOf    :: (Eq e) => l e -> l e -> Bool
-    isSuffixOf Z _ = True
-    isSuffixOf _ Z = False
-    isSuffixOf (xs :< x) (ys :< y) = (x == y) && (xs `isSuffixOf` ys)
-    
-    isInfixOf     :: (Eq e) => l e -> l e -> Bool
-    isInfixOf Z _   = True
-    isInfixOf _ Z   = False
-    isInfixOf xs ys = xs `isPrefixOf` ys || xs `isInfixOf` (tail ys)
-    
     {- Special functions -}
     
     reverse       :: l e -> l e
@@ -193,16 +140,16 @@ class (Functor l, Foldable l) => Linear l
     subsequences  :: (Linear l) => l e -> [l e]
     subsequences xxs =  Z : subsequences' xxs
       where
-        subsequences'     Z     = Z
         subsequences' (x :> xs) = single x : foldr f [] (subsequences' xs)
           where
             f ys rest = ys : (x :> ys) : rest
+        subsequences'     _     = Z
     
-    listR         :: l e -> [e]
-    listR         =  reverse . toList
+    listR   :: l e -> [e]
+    listR   =  reverse . toList
     
-    nubBy         :: (e -> e -> Bool) -> l e -> l e
-    nubBy       f = fromList . nubBy f . toList
+    nubBy   :: (e -> e -> Bool) -> l e -> l e
+    nubBy f =  fromList . nubBy f . toList
 
 --------------------------------------------------------------------------------
 
@@ -212,24 +159,108 @@ class (Foldable b, Index i) => Bordered (b) i | b -> i
     
     bounds    :: b e ->  (i, i)
     bounds es =  (lower es, upper es)
+    
     assocs    :: b e -> [(i, e)]
     assocs xs =  zip (indices xs) (toList xs)
+    
     indices   :: b e -> [i]
     indices   =  range . bounds
+    
     lower     :: b e -> i
     lower     =  fst  . bounds
+    
     upper     :: b e -> i
     upper     =  snd  . bounds
 
 --------------------------------------------------------------------------------
 
-instance Bordered [] Int
+class (Foldable l) => LineS l
   where
-    bounds  es = (0,   length es - 1)
-    assocs  es = zip  [0 .. ] es
-    indices es = [0 .. length es - 1]
-    lower   _  = 0
-    upper   es = length es - 1
+    
+    (<+>)  :: (l e -> l e) -> l e -> (l e -> l e)
+    (<+>) xss ys = xss . openS ys
+    
+    openS  ::  l e -> (l e -> l e)
+    openS  =   (++)
+    
+    closeS :: (l e -> l e) -> l e
+    closeS xs = xs Z
+
+--------------------------------------------------------------------------------
+
+class (Linear s) => Split s
+  where
+    {- Simple splitters. -}
+    
+    take       :: Int -> s e -> s e
+    take n es  =  fromList . take n $ toList es
+    
+    drop       :: Int -> s e -> s e
+    drop n es  =  fromList . drop n $ toList es
+    
+    split      :: Int -> s e -> (s e, s e)
+    split n es =  (take n es, drop n es)
+    
+    splits :: (Foldable f) => f Int -> s e -> [s e]
+    splits ints es = splits' (toList ints) es
+      where
+        splits'    []    xs = [xs]
+        splits' (i : is) xs = case split i xs of (y, ys) -> y : splits is ys
+    
+    {- Subsequence checkers. -}
+    
+    isPrefixOf :: (Eq e) => s e -> s e -> Bool
+    isPrefixOf Z _ = True
+    isPrefixOf (x :> xs) (y :> ys) = (x == y) && (xs `isPrefixOf` ys)
+    isPrefixOf _ _ = False
+    
+    isSuffixOf :: (Eq e) => s e -> s e -> Bool
+    isSuffixOf Z _ = True
+    isSuffixOf (xs :< x) (ys :< y) = (x == y) && (xs `isSuffixOf` ys)
+    isSuffixOf _ _ = False
+    
+    isInfixOf  :: (Eq e) => s e -> s e -> Bool
+    isInfixOf Z _   = True
+    isInfixOf _ Z   = False
+    isInfixOf xs ys = xs `isPrefixOf` ys || xs `isInfixOf` (tail ys)
+    
+    {- Largest sequences. -}
+    
+    prefix :: (e -> Bool) -> s e -> Int
+    prefix p = prefix p . toList
+    
+    suffix :: (e -> Bool) -> s e -> Int
+    suffix p = suffix p . toList
+    
+    {- "Clever" splitters. -}
+    
+    -- Takes the longest init.
+    takeWhile :: (e -> Bool) -> s e -> s e
+    takeWhile p es = take (p `prefix` es) es
+    
+    -- Drops the longest init.
+    dropWhile :: (e -> Bool) -> s e -> s e
+    dropWhile p es = drop (p `prefix` es) es
+    
+    -- Takes the longest tail.
+    takeEnd   :: (e -> Bool) -> s e -> s e
+    takeEnd p es = drop (n - suffix p es) es where n = length es
+    
+    -- Drops the longest tail.
+    dropEnd   :: (e -> Bool) -> s e -> s e
+    dropEnd p es = take (n - suffix p es) es where n = length es
+    
+    spanl       :: (e -> Bool) -> s e -> (s e, s e)
+    spanl  p es =  (take n es, drop n es) where n = p `prefix` es
+    
+    breakl      :: (e -> Bool) -> s e -> (s e, s e)
+    breakl p es =  (take n es, drop n es) where n = (not . p) `prefix` es
+    
+    spanr       :: (e -> Bool) -> s e -> (s e, s e)
+    spanr  p es =  (take n es, drop n es) where n = length es - suffix p es
+    
+    breakr      :: (e -> Bool) -> s e -> (s e, s e)
+    breakr p es =  (drop n es, take n es) where n = length es - suffix (not . p) es
 
 --------------------------------------------------------------------------------
 
@@ -262,11 +293,6 @@ instance Linear []
     unsnoc    [e]     = ([], e)
     unsnoc  (e : es)  = (e : es', e') where (es', e') = unsnoc es
     
-    take = L.take
-    drop = L.drop
-    
-    splitAt = L.splitAt
-    
     reverse      = L.reverse
     replicate    = L.replicate
     intersperse  = L.intersperse
@@ -277,19 +303,48 @@ instance Linear []
     fromFoldable = toList
     
     isSubseqOf   = L.isSubsequenceOf
-    isPrefixOf   = L.isPrefixOf
-    isSuffixOf   = L.isSuffixOf
-    isInfixOf    = L.isInfixOf
-    
-    span         = L.span
-    break        = L.break
     listR        = L.reverse
-    
-    takeWhile    = L.takeWhile
-    dropWhile    = L.dropWhile
-    
-    dropEnd p    = L.foldr (\ x xs -> (p x && null xs) ? [] $ (x : xs)) []
     nubBy        = L.nubBy
+
+instance Bordered [] Int
+  where
+    bounds  es = (0,   length es - 1)
+    assocs  es = zip  [0 .. ] es
+    indices es = [0 .. length es - 1]
+    lower   _  = 0
+    upper   es = length es - 1
+
+instance LineS []
+  where
+    openS   xs = \ ys -> null ys ? xs $ foldr (:) ys xs
+    closeS ess = ess []
+
+instance Split []
+  where
+    take = L.take
+    drop = L.drop
+    
+    split = L.splitAt
+    
+    isPrefixOf = L.isPrefixOf
+    isInfixOf  = L.isInfixOf
+    isSuffixOf = L.isSuffixOf
+    
+    spanl  = L.span
+    breakl = L.break
+    
+    takeWhile _ [] = []
+    takeWhile p (e : es) = p e ? e : takeWhile p es $ []
+    
+    dropWhile _ [] = []
+    dropWhile p es@(x : xs) = p x ? dropWhile p xs $ es
+    
+    takeEnd p list = t list list
+      where
+        t [] res = res
+        t xs@(e : es) res = t es (p e ? res $ xs)
+    
+    dropEnd p = foldr (\ e es -> p e && null es ? [] $ (e : es)) []
 
 --------------------------------------------------------------------------------
 

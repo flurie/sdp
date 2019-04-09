@@ -78,8 +78,7 @@ class (Linear v, Index i) => Indexed (v) i | v -> i
     (*$) :: (e -> Bool) -> v e -> v i
     f *$ es = fsts . filter (f . snd) $ enum es (unsafeIndex 0)
       where
-        enum     Z     _ = Z
-        enum (x :> xs) c = (c, x) :> (enum xs $! succ c)
+        enum xs c = case xs of {y :> ys -> (c, y) :> (enum ys $! succ c); _ -> Z}
 
 -- Write one element to structure.
 write        :: (Indexed v i) => v e -> i -> e -> v e

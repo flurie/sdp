@@ -130,18 +130,14 @@ instance (Index i) => Traversable (Unrolled i)
 
 --------------------------------------------------------------------------------
 
-{- Linear and Bordered instances. -}
+{- Linear, Split and Bordered instances. -}
 
 instance (Index i) => Linear (Unrolled i)
   where
-    fromList es = fromListN (length es) es
-    
-    fromListN n es = Unrolled l u n unlist
+    fromListN n es = Unrolled l u n $ fromListN n es
       where
         l = unsafeIndex 0
         u = unsafeIndex $ max 0 n - 1
-        
-        unlist = fromListN n es
     
     uncons Z = throw $ EmptyRange "in SDP.Unrolled.(:>)"
     uncons (Unrolled l u n es) = (x, n < 2 ? Z $ Unrolled l1 u n1 xs)
@@ -166,15 +162,25 @@ instance (Index i) => Linear (Unrolled i)
     
     -- filter, partition
     
-    -- takeWhile, dropWhile, takeEnd, dropEnd, span, break
-    
-    -- isSubseqOf, isPrefixOf, isSuffixOf, isInfixOf
+    -- isSubseqOf
     
     intersperse e (Unrolled _ _ n es) = Unrolled l1 u1 n1 (intersperse e es)
       where
         n1 = case n <=> 0 of {LT -> -1; EQ -> 1; GT -> 2 * n - 1}
         u1 = unsafeIndex (n1 - 1)
         l1 = unsafeIndex 0
+
+instance (Index i) => Split (Unrolled i)
+  where
+    take n (Unrolled l u c es) = Unrolled l u' n' (take n' es)
+      where
+        u' = index (l, u) n'
+        n' = min c n
+    
+    drop n (Unrolled l u c es) = Unrolled l' u n' (drop n' es)
+      where
+        l' = index (l, u) n'
+        n' = min c n
 
 instance (Index i) => Bordered (Unrolled i) i
   where
@@ -226,13 +232,17 @@ instance (Index i) => Indexed (Unrolled i) i
 
 --------------------------------------------------------------------------------
 
+instance (Index i, Arbitrary e) => Arbitrary (Unrolled i e)
+  where
+    arbitrary = fromList <$> arbitrary
+
+--------------------------------------------------------------------------------
+
 instance (Index i) => Estimate (Unrolled i)
   where
     (Unrolled _ _ n1 _) <==> (Unrolled _ _ n2 _) = n1 <=> n2
 
-instance (Index i, Arbitrary e) => Arbitrary (Unrolled i e)
-  where
-    arbitrary = fromList <$> arbitrary
+instance (Index i) => LineS (Unrolled i)
 
 --------------------------------------------------------------------------------
 
@@ -354,6 +364,8 @@ instance Traversable UNList
 
 --------------------------------------------------------------------------------
 
+{- Linear, Split and Bordered instances. -}
+
 instance Linear UNList
   where
     fromList [] = UNEmpty
@@ -371,7 +383,7 @@ instance Linear UNList
                 )
         )
       where
-        (curr, others) = splitAt _UNLIST_CHUNK_MAX_SIZE_ es
+        (curr, others) = split _UNLIST_CHUNK_MAX_SIZE_ es
         !n'@(I# n#)    = length curr
     
     head Z  = throw $ EmptyRange "in SDP.Unrolled.(:>)"
@@ -393,39 +405,6 @@ instance Linear UNList
     Z ++ ys = ys
     xs ++ Z = xs
     (UNList c arr# arrs) ++ ys = UNList c arr# (arrs ++ ys)
-    
-    take n es
-        |  n <= 0  = Z
-        | es <=. n = es
-        |   True   = take' n es
-      where
-        take' _ Z = Z
-        take' n' (UNList c arr# arrs) = n' > c ? take' (n' - c) arrs $ UNList c1 arr1# arrs
-          where
-            !(UNList c1 arr1# _) = fromList . take n' . toList $ UNList c arr# Z
-    
-    drop n es
-        |  n <=  0 = es
-        | es <=. n = Z
-        |   True   = drop' n es
-      where
-        drop' _ Z = Z
-        drop' n' (UNList c arr# arrs) = n' > c ? drop' (n' - c) arrs $ UNList c1 arr1# arrs
-          where
-            !(UNList c1 arr1# _) = fromList . drop n' . toList $ UNList c arr# Z
-    
-    splitAt n es
-        |  n  <  0  = (Z, es)
-        | es >=. n  = (es, Z)
-        |    True   = split' n es
-      where
-        split' _ Z = (Z, Z)
-        split' n' (UNList c arr# arrs) = n' > c ? (UNList c arr# ts, ds) $ (fromList tpart, UNList c1 arr1# arrs)
-          where
-            (tpart, dpart) = splitAt n' . toList $ UNList c arr# Z
-            !(UNList _ arr1# _) = fromList dpart
-            (ts, ds) = split' c1 arrs
-            c1 = n' - c
     
     replicate n e = copy count chunk
       where
@@ -456,23 +435,51 @@ instance Linear UNList
         lim  = _UNLIST_CHUNK_MAX_SIZE_
     toLast (UNList c arr# arrs) e = UNList c arr# (toLast arrs e)
     
-    -- default: takeWhile, dropWhile, takeEnd, dropEnd, span, break
-    
     filter predicate = fromList . filter predicate . toList
     
     partition predicate es = (fromList x, fromList y)
       where
         (x, y) = partition predicate $ toList es
+
+instance Split UNList
+  where
+    take n es
+        |  n <= 0  = Z
+        | es <=. n = es
+        |   True   = take' n es
+      where
+        take' _ Z = Z
+        take' n' (UNList c arr# arrs) = n' > c ? take' (n' - c) arrs $ UNList c1 arr1# arrs
+          where
+            !(UNList c1 arr1# _) = fromList . take n' . toList $ UNList c arr# Z
+    
+    drop n es
+        |  n <=  0 = es
+        | es <=. n = Z
+        |   True   = drop' n es
+      where
+        drop' _ Z = Z
+        drop' n' (UNList c arr# arrs) = n' > c ? drop' (n' - c) arrs $ UNList c1 arr1# arrs
+          where
+            !(UNList c1 arr1# _) = fromList . drop n' . toList $ UNList c arr# Z
+    
+    split n es
+        |  n  <  0  = (Z, es)
+        | es >=. n  = (es, Z)
+        |    True   = split' n es
+      where
+        split' _ Z = (Z, Z)
+        split' n' (UNList c arr# arrs) = n' > c ? (UNList c arr# ts, ds) $ (fromList tpart, UNList c1 arr1# arrs)
+          where
+            (tpart, dpart) = split n' . toList $ UNList c arr# Z
+            !(UNList _ arr1# _) = fromList dpart
+            (ts, ds) = split' c1 arrs
+            c1 = n' - c
     
     isPrefixOf xs ys = and $ zipWith (==) xs ys
     isSuffixOf xs ys = and $ zipWith (==) xs (take n ys)
       where
         n = length xs - length ys
-    
-    isInfixOf  = isInfixOf `on` toList
-    isSubseqOf = isSubseqOf `on` toList
-    
-    intersperse e = fromList . intersperse e . toList
 
 instance Bordered UNList Int
   where
