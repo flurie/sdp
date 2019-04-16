@@ -3,6 +3,8 @@
 
 module SDP.Index
 (
+  module Data.Default,
+  
   module Data.Word,
   module Data.Int,
   
@@ -15,12 +17,15 @@ module SDP.Index
 where
 
 import Prelude ( (++) )
+import SDP.SafePrelude
+
 import Test.QuickCheck
 
-import SDP.SafePrelude
-import SDP.Simple
+import Data.Default
 import Data.Word
 import Data.Int
+
+import SDP.Simple
 
 --------------------------------------------------------------------------------
 
@@ -219,9 +224,7 @@ instance (Index i, Enum i, Bounded i) => Index (i, i)
     offset ((l1, l2), (u1, u2)) (i1, i2) = o1 * n + o2
       where
         o1 = offset (l1, u1) i1
-        o2 = offset (l2, u2) i2
-        
-        n  = size   (l2, u2)
+        o2 = offset (l2, u2) i2; n = size (l2, u2)
     
     index ((l1, l2), (u1, u2)) c = (index (l1, u1) i', j)
       where
@@ -310,11 +313,8 @@ instance (Index i, Enum i, Bounded i) => Index (i, i, i)
     offset ((l1, l2, l3), (u1, u2, u3)) (i1, i2, i3) = (o1 * n + o2) * m + o3
       where
         o1 = offset (l1, u1) i1
-        o2 = offset (l2, u2) i2
-        o3 = offset (l3, u3) i3
-        
-        n  = size (l2, u2)
-        m  = size (l3, u3)
+        o2 = offset (l2, u2) i2; n = size (l2, u2)
+        o3 = offset (l3, u3) i3; m = size (l3, u3)
     
     index ((l1, l2, l3), (u1, u2, u3)) c = (index (l1, u1) i', j, k)
       where
@@ -416,13 +416,9 @@ instance (Index i, Enum i, Bounded i) => Index (i, i, i, i)
     offset ((l1, l2, l3, l4), (u1, u2, u3, u4)) (i1, i2, i3, i4) = ((o1 * n + o2) * m + o3) * v + o4
       where
         o1 = offset (l1, u1) i1
-        o2 = offset (l2, u2) i2
-        o3 = offset (l3, u3) i3
-        o4 = offset (l4, u4) i4
-        
-        n  = size (l1, u1)
-        m  = size (l2, u2)
-        v  = size (l3, u3)
+        o2 = offset (l2, u2) i2; n = size (l2, u2)
+        o3 = offset (l3, u3) i3; m = size (l3, u3)
+        o4 = offset (l4, u4) i4; v = size (l4, u4)
     
     index ((l1, l2, l3, l4), (u1, u2, u3, u4)) c = (index (l1, u1) i', j, k, l)
       where
@@ -537,15 +533,10 @@ instance (Index i, Enum i, Bounded i) => Index (i, i, i, i, i)
     offset ((l1, l2, l3, l4, l5), (u1, u2, u3, u4, u5)) (i1, i2, i3, i4, i5) = (((o1 * n + o2) * m + o3) * v + o4) * h + o5
       where
         o1 = offset (l1, u1) i1
-        o2 = offset (l2, u2) i2
-        o3 = offset (l3, u3) i3
-        o4 = offset (l4, u4) i4
-        o5 = offset (l5, u5) i5
-        
-        n  = size (l1, u1)
-        m  = size (l2, u2)
-        v  = size (l3, u3)
-        h  = size (l4, u4)
+        o2 = offset (l2, u2) i2; n = size (l2, u2)
+        o3 = offset (l3, u3) i3; m = size (l3, u3)
+        o4 = offset (l4, u4) i4; v = size (l4, u4)
+        o5 = offset (l5, u5) i5; h = size (l5, u5)
     
     index ((l1, l2, l3, l4, l5), (u1, u2, u3, u4, u5)) c = (index (l1, u1) i', j, k, l, t)
       where
@@ -569,7 +560,7 @@ newtype DimLeak = DimLeak Word deriving (Eq, Ord, Show, Read)
 
 --------------------------------------------------------------------------------
 
-instance Index Char
+instance Index Char    where unsafeIndex = toEnum . max 0 . succ
 
 instance Index Integer where offset = intOffset
 
@@ -579,11 +570,11 @@ instance Index Int16   where offset = intOffset
 instance Index Int32   where offset = intOffset
 instance Index Int64   where offset = intOffset
 
-instance Index Word    where offset = intOffset
-instance Index Word8   where offset = intOffset
-instance Index Word16  where offset = intOffset
-instance Index Word32  where offset = intOffset
-instance Index Word64  where offset = intOffset
+instance Index Word    where offset = intOffset; unsafeIndex = defUI
+instance Index Word8   where offset = intOffset; unsafeIndex = defUI
+instance Index Word16  where offset = intOffset; unsafeIndex = defUI
+instance Index Word32  where offset = intOffset; unsafeIndex = defUI
+instance Index Word64  where offset = intOffset; unsafeIndex = defUI
 
 --------------------------------------------------------------------------------
 
@@ -694,6 +685,8 @@ instance (Enum i) => Enum (() :& i)
     enumFromThen   (() :& first) (() :& nxt)             = (() :&) <$> [first, nxt .. ]
     enumFromThenTo (() :& first) (() :& nxt) (() :& lst) = (() :&) <$> [first, nxt .. lst]
 
+instance (Default d, Default d') => Default (d :& d') where def = def :& def
+
 {-
   Type synonyms are declared up to 16 dimensions (Fortran 2003 permits up to 15,
   and I would like to compete with a language 15 years ago at least in this).
@@ -777,4 +770,7 @@ checkBounds bnds ix res msg
 
 intOffset :: (Index i, Num i, Enum i) => (i, i) -> i -> Int
 intOffset (l, u) i = checkBounds (l, u) i (fromEnum i - fromEnum l) "offset (default)"
+
+defUI :: (Enum i) => Int -> i
+defUI =  toEnum . max 0 . succ
 

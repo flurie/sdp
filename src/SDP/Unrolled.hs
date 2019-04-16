@@ -55,7 +55,7 @@ instance (Eq e, Index i) => Eq (Unrolled i e) where (==) = eq1
 
 instance (Index i) => Eq1 (Unrolled i)
   where
-    liftEq f unr1 unr2 = (null unr1 && null unr2) || (l1 == l2 && u1 == u2 && n1 == n2 && liftEq f xs ys)
+    liftEq f unr1 unr2 = n1 == n2 && (null unr1 && null unr2 || l1 == l2 && u1 == u2 && liftEq f xs ys)
       where
         (Unrolled l1 u1 n1 xs) = unr1
         (Unrolled l2 u2 n2 ys) = unr2
@@ -243,6 +243,8 @@ instance (Index i) => Estimate (Unrolled i)
     (Unrolled _ _ n1 _) <==> (Unrolled _ _ n2 _) = n1 <=> n2
 
 instance (Index i) => LineS (Unrolled i)
+
+instance (Index i) => Default (Unrolled i e) where def = Z
 
 --------------------------------------------------------------------------------
 

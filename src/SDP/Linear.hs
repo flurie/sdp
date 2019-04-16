@@ -174,17 +174,23 @@ class (Foldable b, Index i) => Bordered (b) i | b -> i
 
 --------------------------------------------------------------------------------
 
-class (Foldable l) => LineS l
+class (Linear l) => LineS l
   where
+    -- fromFoldable for stream
+    stream :: (Foldable f) => f e -> (l e -> l e)
+    stream es xs = foldr (:>) xs es
     
+    -- This function has a purely syntactic meaning. More productive will be the use of (.).
     (<+>)  :: (l e -> l e) -> l e -> (l e -> l e)
     (<+>) xss ys = xss . openS ys
     
-    openS  ::  l e -> (l e -> l e)
-    openS  =   (++)
+    -- This function is used to create a stream from an already existing string.
+    openS  :: l e -> (l e -> l e)
+    openS  =  (++)
     
-    closeS :: (l e -> l e) -> l e
-    closeS xs = xs Z
+    -- This function has a purely syntactic meaning. It closes the open stream.
+    closeS    :: (l e -> l e) -> l e
+    closeS xs =  xs Z
 
 --------------------------------------------------------------------------------
 

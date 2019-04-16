@@ -26,3 +26,6 @@ version 0.0.0.4
   Added LineS and Split classes.
   Added Unrolled linked list type.
   Added Tuple instances for Index
+version 0.0.0.5
+  fixed unsafeIndex for unsigned types - (toEnum (-1)) fail. Now arrays indexed from (toEnum 1).
+

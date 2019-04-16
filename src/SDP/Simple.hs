@@ -19,13 +19,10 @@ module SDP.Simple
   
   Bounded (..), Enum (..),
   onTup, onTup3, onTup4,
-  sort', nub',
   minMax, fst, snd
 )
 
 where
-
-import qualified Data.List as L
 
 import Control.Exception.SDP
 
@@ -67,12 +64,6 @@ eqfst = on (==) fst
 -- compare tuples by second elements
 eqsnd :: (Eq b) => (a, b) -> (a, b) -> Bool
 eqsnd = on (==) snd
-
-sort' :: (Ord i) => [(i, e)] -> [(i, e)]
-sort' = L.sortBy cmpfst
-
-nub' :: (Eq i)  => [(i, e)] -> [(i, e)]
-nub'  = L.nubBy eqfst
 
 minMax :: (Ord i) => i -> i -> (i, i)
 minMax x y = if y > x then (x, y) else (y, x)

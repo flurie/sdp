@@ -62,7 +62,7 @@ instance (Index i, Eq e) => Eq (Array i e) where (==) = eq1
 
 instance (Index i) => Eq1 (Array i)
   where
-    liftEq eq xs ys = (n1 == 0 && n2 == 0) || (l1 == l2 && u1 == u2 && elemsEq)
+    liftEq eq xs ys = n1 == n2 && (n1 == 0 || l1 == l2 && u1 == u2 && elemsEq)
       where
         elemsEq = and [ (xs !# i) `eq` (ys !# i) | i <- [0 .. n1 - 1] ]
         
@@ -231,7 +231,6 @@ instance (Index i) => Traversable (Array i)
 
 instance (Index i) => Linear (Array i)
   where
-    
     fromListN n es = runST $ ST 
         (
           \ s1# -> case newArray# n# (undEx "fromList") s1# of
@@ -369,7 +368,9 @@ instance (Index i) => Estimate (Array i)
 
 -- instance (Index i) => Set (Array i)
 
-instance (Index i) => LineS (Array i)
+instance (Index i) => LineS (Array i) where stream = stream . toList
+
+instance (Index i) => Default (Array i e) where def = Z
 
 --------------------------------------------------------------------------------
 

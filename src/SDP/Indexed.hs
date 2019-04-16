@@ -18,7 +18,7 @@ import Prelude ()
 import Data.List ( findIndex, findIndices )
 
 import SDP.Linear
-import SDP.Set    -- needed for Indexed [] Int instance only.
+import SDP.Set
 
 import SDP.Simple
 
@@ -47,7 +47,9 @@ class (Linear v, Index i) => Indexed (v) i | v -> i
     
     -- (!) is pretty safe function, throws IndexException.
     (!)          :: v e -> i -> e
-    (!) dat ix   =  fromMaybe (bndEx "(!)") $ dat !? ix
+    (!) dat ix   =  fromMaybe err $ dat !? ix
+      where
+        err = throw . UndefinedValue $ "SDP.Indexed.(!)"
     
     default (!?) :: (Bordered v i) => v e -> i -> Maybe e
     
@@ -116,7 +118,6 @@ instance Indexed [] Int
       EQ -> Just x
       LT -> Nothing
     
-    -- [internal]: The implementation has been replaced by a more efficient, but still slow: O(n ^ 2).
     xs // es = snds $ unionWith cmpfst xs' es'
       where
         es' = setWith cmpfst es
@@ -126,7 +127,3 @@ instance Indexed [] Int
     (*$) = findIndices
 
 --------------------------------------------------------------------------------
-
-bndEx :: String -> a
-bndEx s = throw . UndefinedValue $ "SDP.Indexed." ++ s
-

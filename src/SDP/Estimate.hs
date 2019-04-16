@@ -42,7 +42,6 @@ class (Foldable e, Ord1 e) => Estimate e
     {-# MINIMAL (<==>) #-}
     
     (<==>) :: e a -> e b -> Ordering
-    xs <==> ys = length xs <=> length ys
     
     {- Symmetric comparsion by length. -}
     
@@ -76,8 +75,8 @@ class (Foldable e, Ord1 e) => Estimate e
     
     eminimum, emaximum :: (Foldable f) => f (EList e) -> Int
     
-    eminimum = foldl (\ llen (EList es) -> if llen < 0 || es <. llen then length es else llen) (-1)
-    emaximum = foldl (\ llen (EList es) -> if es >. llen then length es else llen) 0
+    eminimum = foldl (\ len' (EList es) -> if len' < 0 || es <. len' then length es else len') (-1)
+    emaximum = foldl (\ len' (EList es) -> if es >. len' then length es else len') 0
 
 instance Estimate []
   where
