@@ -9,6 +9,4 @@ where
 -}
 
 import Prelude ()
-import SDP.SafePrelude
-
 import SDP.Array.Immutable

@@ -184,7 +184,7 @@ class (Linear l) => LineS l
     (<+>)  :: (l e -> l e) -> l e -> (l e -> l e)
     (<+>) xss ys = xss . openS ys
     
-    -- This function is used to create a stream from an already existing string.
+    -- This function is used to create a stream from an already existing string (like shows for String).
     openS  :: l e -> (l e -> l e)
     openS  =  (++)
     

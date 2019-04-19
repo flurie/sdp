@@ -37,8 +37,10 @@ testIndex (l, u) i = and
     , not $ inRange (l, u) i && isOverflow  (l, u) i
     , not $ inRange (l, u) i && isUnderflow (l, u) i
     , not $ inRange (l, u) i && isEmpty     (l, u)
-    , not (isEmpty (l, u))   || isOverflow  (l, u) i
-    , not (isEmpty (l, u))   || isUnderflow (l, u) i
+    , not (isEmpty  (l, u))  || isOverflow  (l, u) i
+    , not (isEmpty  (l, u))  || isUnderflow (l, u) i
+    
+    , inBoundsCheck (l, u) i
     
     {- Dumb tests, very long. -}
     
@@ -60,4 +62,10 @@ testIndex (l, u) i = and
       where
         test = take listSizeRestriction $ zipWith (==) r (tail $ prev bnds <$> r)
         r = range bnds
+    
+    inBoundsCheck bnds ix = case inBounds bnds ix of
+      ER -> isEmpty     bnds
+      UR -> isUnderflow bnds i
+      IN -> inRange     bnds i
+      OR -> isOverflow  bnds i
 

@@ -8,7 +8,7 @@ module SDP.Index
   module Data.Word,
   module Data.Int,
   
-  Index (..), Bounds, (:&) (..), DimLeak (..),
+  Index (..), Bounds, (:&) (..), DimLeak (..), InBounds (..),
   
   I2,   I3,  I4,  I5,  I6,  I7,  I8,  I9, I10 , I11, I12, I13, I14, I15, I16,
   ind2,  ind3,  ind4,  ind5,  ind6,  ind7,  ind8,  ind9,
@@ -28,6 +28,16 @@ import Data.Int
 import SDP.Simple
 
 --------------------------------------------------------------------------------
+
+{-
+  InBounds - service type that specifies:
+    range is empty,
+    index underflows this range,
+    index in this range or
+    index overflows this range.
+-}
+
+data InBounds = ER | UR | IN | OR deriving ( Eq, Enum )
 
 {-
     Index is service class for Indexed and Bordered it's the result of combining
@@ -76,19 +86,20 @@ class (Ord i) => Index i
     sizes :: (i, i) -> [Int]
     range :: (i, i) ->  [i]
     
-    next  :: (i, i) ->   i   -> i
-    prev  :: (i, i) ->   i   -> i
+    next  :: (i, i) -> i -> i
+    prev  :: (i, i) -> i -> i
     
-    isEmpty     :: (i, i) -> Bool
+    inBounds    :: (i, i) -> i -> InBounds
     inRange     :: (i, i) -> i -> Bool
     isOverflow  :: (i, i) -> i -> Bool
     isUnderflow :: (i, i) -> i -> Bool
+    isEmpty     :: (i, i) -> Bool
     
     safeElem    :: (i, i) -> i -> i
     ordBounds   :: (i, i) -> (i, i)
+    
     offset      :: (i, i) -> i -> Int
     index       :: (i, i) -> Int -> i
-    
     unsafeIndex :: Int -> i
     
     rank = const 1
@@ -114,6 +125,12 @@ class (Ord i) => Index i
       |     i >= u     = u
       |     i <  l     = l
       |      True      = succ i
+    
+    inBounds (l, u) i
+      | l > u = ER
+      | i > u = OR
+      | i < l = UR
+      |  True = IN
     
     isEmpty     (l, u)   = l > u
     inRange     (l, u) i = l <= i && i <= u
@@ -147,7 +164,8 @@ instance Index ()
     next _ _ = ()
     prev _ _ = ()
     
-    isEmpty  = const False
+    inBounds    _ _ = IN
+    isEmpty       _ = False
     inRange     _ _ = True
     isOverflow  _ _ = False
     isUnderflow _ _ = False
@@ -195,6 +213,12 @@ instance (Index i, Enum i, Bounded i) => Index (i, i)
         |     True     = (f, s)
       where
         (f, s) = safeElem bnds (i1, i2)
+    
+    inBounds bnds i
+      |    isEmpty bnds    = ER
+      | isUnderflow bnds i = UR
+      | isOverflow  bnds i = OR
+      |        True        = IN
     
     isEmpty ((l1, l2), (u1, u2)) = e1 || e2
       where
@@ -256,12 +280,6 @@ instance (Index i, Enum i, Bounded i) => Index (i, i, i)
         r2 = range (l2, u2)
         r3 = range (l3, u3)
     
-    inRange ((l1, l2, l3), (u1, u2, u3)) (i1, i2, i3) = inr1 && inr2 && inr3
-      where
-        inr1 = inRange (l1, u1) i1
-        inr2 = inRange (l2, u2) i2
-        inr3 = inRange (l3, u3) i3
-    
     next bnds@((_, l2, l3), (u1, u2, u3)) (i1, i2, i3)
         | isEmpty bnds = throw $ EmptyRange "in SDP.Index.prev (i, i, i)"
         |    t /= u3   = (f, s, succ t)
@@ -280,11 +298,23 @@ instance (Index i, Enum i, Bounded i) => Index (i, i, i)
       where
         (f, s, t) = safeElem bnds (i1, i2, i3)
     
+    inBounds bnds i
+      |    isEmpty bnds    = ER
+      | isUnderflow bnds i = UR
+      | isOverflow  bnds i = OR
+      |        True        = IN
+    
     isEmpty ((l1, l2, l3), (u1, u2, u3)) = e1 || e2 || e3
       where
         e1 = isEmpty (l1, u1)
         e2 = isEmpty (l2, u2)
         e3 = isEmpty (l3, u3)
+    
+    inRange ((l1, l2, l3), (u1, u2, u3)) (i1, i2, i3) = inr1 && inr2 && inr3
+      where
+        inr1 = inRange (l1, u1) i1
+        inr2 = inRange (l2, u2) i2
+        inr3 = inRange (l3, u3) i3
     
     isOverflow  ((l1, l2, l3), (u1, u2, u3)) (i1, i2, i3) = ovr1 || ovr2 || ovr3
       where
@@ -351,13 +381,6 @@ instance (Index i, Enum i, Bounded i) => Index (i, i, i, i)
         r3 = range (l3, u3)
         r4 = range (l4, u4)
     
-    inRange ((l1, l2, l3, l4), (u1, u2, u3, u4)) (i1, i2, i3, i4) = inr1 && inr2 && inr3 && inr4
-      where
-        inr1 = inRange (l1, u1) i1
-        inr2 = inRange (l2, u2) i2
-        inr3 = inRange (l3, u3) i3
-        inr4 = inRange (l4, u4) i4
-    
     next bnds@((_, l2, l3, l4), (u1, u2, u3, u4)) (i1, i2, i3, i4)
         | isEmpty bnds = throw $ EmptyRange "in SDP.Index.prev (i, i, i, i)"
         |   f' /= u4   = (f, s, t, succ f')
@@ -378,12 +401,25 @@ instance (Index i, Enum i, Bounded i) => Index (i, i, i, i)
       where
         (f, s, t, f') = safeElem bnds (i1, i2, i3, i4)
     
+    inBounds bnds i
+      |    isEmpty bnds    = ER
+      | isUnderflow bnds i = UR
+      | isOverflow  bnds i = OR
+      |        True        = IN
+    
     isEmpty ((l1, l2, l3, l4), (u1, u2, u3, u4)) = e1 || e2 || e3 || e4
       where
         e1 = isEmpty (l1, u1)
         e2 = isEmpty (l2, u2)
         e3 = isEmpty (l3, u3)
         e4 = isEmpty (l4, u4)
+    
+    inRange ((l1, l2, l3, l4), (u1, u2, u3, u4)) (i1, i2, i3, i4) = inr1 && inr2 && inr3 && inr4
+      where
+        inr1 = inRange (l1, u1) i1
+        inr2 = inRange (l2, u2) i2
+        inr3 = inRange (l3, u3) i3
+        inr4 = inRange (l4, u4) i4
     
     isOverflow  ((l1, l2, l3, l4), (u1, u2, u3, u4)) (i1, i2, i3, i4) = ovr1 || ovr2 || ovr3 || ovr4
       where
@@ -460,14 +496,6 @@ instance (Index i, Enum i, Bounded i) => Index (i, i, i, i, i)
         r4 = range (l4, u4)
         r5 = range (l5, u5)
     
-    inRange ((l1, l2, l3, l4, l5), (u1, u2, u3, u4, u5)) (i1, i2, i3, i4, i5) = inr1 && inr2 && inr3 && inr4 && inr5
-      where
-        inr1 = inRange (l1, u1) i1
-        inr2 = inRange (l2, u2) i2
-        inr3 = inRange (l3, u3) i3
-        inr4 = inRange (l4, u4) i4
-        inr5 = inRange (l5, u5) i5
-    
     next bnds@((_, l2, l3, l4, l5), (u1, u2, u3, u4, u5)) (i1, i2, i3, i4, i5)
         | isEmpty bnds = throw $ EmptyRange "in SDP.Index.prev (i, i, i, i, i)"
         |  f'' /= u5   = (f, s, t, f',  succ f'')
@@ -490,6 +518,12 @@ instance (Index i, Enum i, Bounded i) => Index (i, i, i, i, i)
       where
         (f, s, t, f', f'') = safeElem bnds (i1, i2, i3, i4, i5)
     
+    inBounds bnds i
+      |    isEmpty bnds    = ER
+      | isUnderflow bnds i = UR
+      | isOverflow  bnds i = OR
+      |        True        = IN
+    
     isEmpty ((l1, l2, l3, l4, l5), (u1, u2, u3, u4, u5)) = e1 || e2 || e3 || e4 || e5
       where
         e1 = isEmpty (l1, u1)
@@ -497,6 +531,14 @@ instance (Index i, Enum i, Bounded i) => Index (i, i, i, i, i)
         e3 = isEmpty (l3, u3)
         e4 = isEmpty (l4, u4)
         e5 = isEmpty (l5, u5)
+    
+    inRange ((l1, l2, l3, l4, l5), (u1, u2, u3, u4, u5)) (i1, i2, i3, i4, i5) = inr1 && inr2 && inr3 && inr4 && inr5
+      where
+        inr1 = inRange (l1, u1) i1
+        inr2 = inRange (l2, u2) i2
+        inr3 = inRange (l3, u3) i3
+        inr4 = inRange (l4, u4) i4
+        inr5 = inRange (l5, u5) i5
     
     isOverflow  ((l1, l2, l3, l4, l5), (u1, u2, u3, u4, u5)) (i1, i2, i3, i4, i5) = ovr1 || ovr2 || ovr3 || ovr4 || ovr5
       where
@@ -762,11 +804,11 @@ uns a = (d, unsafeIndex m)
     (d, m) = a `divMod` maxBound
 
 checkBounds :: (Index i) => (i, i) -> i -> res -> String -> res
-checkBounds bnds ix res msg
-  |    isEmpty  bnds    = throw . EmptyRange     $ "in SDP.Index." ++ msg
-  | isOverflow  bnds ix = throw . IndexOverflow  $ "in SDP.Index." ++ msg
-  | isUnderflow bnds ix = throw . IndexUnderflow $ "in SDP.Index." ++ msg
-  |      otherwise      = res
+checkBounds bnds i res msg = case inBounds bnds i of
+  ER -> throw . EmptyRange     $ "in SDP.Index." ++ msg
+  UR -> throw . IndexOverflow  $ "in SDP.Index." ++ msg
+  OR -> throw . IndexUnderflow $ "in SDP.Index." ++ msg
+  IN -> res
 
 intOffset :: (Index i, Num i, Enum i) => (i, i) -> i -> Int
 intOffset (l, u) i = checkBounds (l, u) i (fromEnum i - fromEnum l) "offset (default)"
