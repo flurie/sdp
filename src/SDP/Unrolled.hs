@@ -54,7 +54,7 @@ instance (Eq e, Index i) => Eq (Unrolled i e) where (==) = eq1
 
 instance (Index i) => Eq1 (Unrolled i)
   where
-    liftEq f unr1 unr2 = null xs && null xs || l1 == l2 && u1 == u2 && liftEq f xs ys
+    liftEq f unr1 unr2 = null xs && null ys || l1 == l2 && u1 == u2 && liftEq f xs ys
       where
         (Unrolled l1 u1 xs) = unr1
         (Unrolled l2 u2 ys) = unr2
@@ -94,7 +94,13 @@ instance (Index i) => Functor (Unrolled i)
   where
     fmap f (Unrolled l u es) = Unrolled l u (f <$> es)
 
--- instance (Index i) => Zip (Unrolled i)
+instance (Index i) => Zip (Unrolled i)
+  where
+    zipWith  f as bs             = fromList $ zipWith  f (toList as) (toList bs)
+    zipWith3 f as bs cs          = fromList $ zipWith3 f (toList as) (toList bs) (toList cs)
+    zipWith4 f as bs cs ds       = fromList $ zipWith4 f (toList as) (toList bs) (toList cs) (toList ds)
+    zipWith5 f as bs cs ds es    = fromList $ zipWith5 f (toList as) (toList bs) (toList cs) (toList ds) (toList es)
+    zipWith6 f as bs cs ds es fs = fromList $ zipWith6 f (toList as) (toList bs) (toList cs) (toList ds) (toList es) (toList fs)
 
 instance (Index i) => Applicative (Unrolled i)
   where
@@ -116,10 +122,10 @@ instance (Index i) => Foldable (Unrolled i)
     foldr1 f (Unrolled _ _ es) = foldr1 f es
     foldl1 f (Unrolled _ _ es) = foldl1 f es
     
-    length (Unrolled l u  _) = size (l, u)
-    toList (Unrolled l u es) = take n $ toList es where n = size (l, u)
-    elem e (Unrolled _ _ es) = e `elem` es
-    null   (Unrolled l u es) = null es || isEmpty (l, u)
+    toList   (Unrolled l u es) = take n $ toList es where n = size (l, u)
+    null     (Unrolled l u es) = null es || isEmpty (l, u)
+    length   (Unrolled l u  _) = size (l, u)
+    elem e   (Unrolled _ _ es) = e `elem` es
 
 -- instance (Index i) => Scan (Unrolled i)
 
@@ -163,8 +169,7 @@ instance (Index i) => Linear (Unrolled i)
     
     intersperse e (Unrolled _ _ es) = Unrolled l1 u1 (intersperse e es)
       where
-        n1 = case n <=> 0 of {LT -> -2; EQ -> 0; GT -> 2 * n - 2}
-        n  = length es
+        n1 = case n <=> 0 of {LT -> -2; EQ -> 0; GT -> 2 * n - 2}; n = length es
         u1 = unsafeIndex n1
         l1 = unsafeIndex 0
 

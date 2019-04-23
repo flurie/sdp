@@ -18,7 +18,6 @@ module SDP.Simple
   module Data.Eq,
   
   Bounded (..), Enum (..),
-  onTup, onTup3, onTup4,
   minMax, fst, snd
 )
 
@@ -67,12 +66,3 @@ eqsnd = on (==) snd
 
 minMax :: (Ord i) => i -> i -> (i, i)
 minMax x y = if y > x then (x, y) else (y, x)
-
-onTup :: (a -> b) -> (a, a) -> (b, b)
-onTup f (x, y) = (f x, f y)
-
-onTup3 :: (a -> b) -> (a, a, a) -> (b, b, b)
-onTup3 f (x, y, z) = (f x, f y, f z)
-
-onTup4 :: (a -> b) -> (a, a, a, a) -> (b, b, b, b)
-onTup4 f (x, y, z, u) = (f x, f y, f z, f u)
