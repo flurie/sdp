@@ -1,10 +1,19 @@
 {-# LANGUAGE DefaultSignatures, FlexibleInstances, FlexibleContexts #-}
 {-# LANGUAGE TypeOperators #-}
 
+{- |
+    Module      :  SDP.Index
+    Copyright   :  (c) Andrey Mulik 2019
+    License     :  BSD-style
+    Maintainer  :  work.a.mulik@gmail.com
+    Portability :  portable
+  
+  Index is service class that replaces the more practice-oriented, but limitary
+  "Data.Ix".
+-}
+
 module SDP.Index
 (
-  module Data.Default,
-  
   module Data.Word,
   module Data.Int,
   
@@ -27,79 +36,164 @@ import Data.Int
 
 import SDP.Simple
 
+default ()
+
 --------------------------------------------------------------------------------
 
-{-
-  InBounds - service type that specifies:
-    range is empty,
-    index underflows this range,
-    index in this range or
-    index overflows this range.
--}
+{- | InBounds - service type that specifies index and bounds status. -}
+data InBounds =
+              {- | Empty range     -} ER |
+              {- | Index underflow -} UR |
+              {- | Index in range  -} IN |
+              {- | Index overflow  -} OR deriving ( Eq, Enum )
 
-data InBounds = ER | UR | IN | OR deriving ( Eq, Enum )
-
-{-
-    Index is service class for Indexed and Bordered it's the result of combining
-  Data.Ix and Data.Array.Repa.Index, but  adds several features of its own,  for
-  example, more polymorphic instances.
+{- |
+    Index is service class for Indexed and Bordered. It's the result of combining
+  Data.Ix (base) and Data.Array.Repa.Index (repa), but adds several features of
+  its own, for example, more polymorphic instances.
   
     The default definitions is correct for all (Ord, Enum) types with rank 1.
-  
-    The bounds  must be specified  in ascending order  in all functions,  except
-  ordBounds:
-    inRange (-5, 4) 3  == True     but inRange (4, -5) 3  == False
-    size    ('a', 'd') == 4        but size    ('d', 'a') == 0
-    range   (2, 7)     == [2 .. 7] but range   (7, 2)     == []
-  
-    The default definition for isOverflow and isUnderflow gives the answer  True
-  in the case of an empty range:
-    isOverflow (5, -1)  x == True
-    isUnderflow (5, -1) x == True
-  because 
-    not $ x `elem` (range (5, -1)) == True
-    isEmpty (5, -1) == True
-  Other definitions in this module follow this rule.
-  
-    This isn't a strict requirement, but recommended behavior, where appropriate
-  If the behavior  of a particular implementation of a function isn't explicitly
-  specified  in the documentation (and is not self-evident for this type),  then
-  any other behavior should be considered as unplanned functionality.
-  
-  Generaly speaking, isOverflow and isUnderflow are not mutually exclusive:
-    isOverflow  ((-3, 4), (2, 5)) (-4, 6) == True
-    isUnderflow ((-3, 4), (2, 5)) (-4, 6) == True
-  And their conjunction is not interchangeable with inversion of inRange:
-    offset ('z', 'a') 'a'
-    >>> *** Exception: empty range in SDP.Index.offset (default)
-  because
-    range       ('z', 'a')     ==  [ ]
-    inRange     ('z', 'a') 'a' == False
-    isOverflow  ('z', 'a') 'a' == False
-    isUnderflow ('z', 'a') 'a' == False
 -}
 
 class (Ord i) => Index i
   where
-    rank  ::    i   ->  Int
+    -- | Returns the number of dimensions that this type of index represents.
+    -- Usually - a constant function.
+    --
+    -- >>> rank ()
+    -- 0
+    --
+    -- >>> rank (1, 6)
+    -- 2
+    rank  :: i -> Int
+    
+    -- | Returns the size (length) of range.
+    --
+    -- >>> size (ind3 1 2 3, ind3 4 5 6)
+    -- 64
+    --
+    -- >>> size (0, 3)
+    -- 4
+    --
+    -- If range in bounds empty, size return 0.
+    --
+    -- >>> size (3, 0)
+    -- 0
     size  :: (i, i) ->  Int
+    
+    -- | Returns the sizes (length) of range dimensionwise.
+    --
+    -- >>> sizes (5, 7)
+    -- [3]
+    --
+    -- >>> sizes (ind4 7 (-1) 12 4, ind4 0 12 9 4)
+    -- [0, 14, 0, 1]
     sizes :: (i, i) -> [Int]
+    
+    -- | Returns the list of indices in this range.
+    --
+    -- >>> range (2, 7)
+    -- [2 .. 7]
+    --
+    -- but
+    --
+    -- >>> range (7, 2)
+    -- []
     range :: (i, i) ->  [i]
     
+    -- | Returns next index in range.
     next  :: (i, i) -> i -> i
+    
+    -- | Returns previous index in range.
     prev  :: (i, i) -> i -> i
     
+    -- | Returns the index and bounds status.
     inBounds    :: (i, i) -> i -> InBounds
+    
+    -- | Checks if the index is in range
+    --
+    -- >>> inRange (-5, 4) 3
+    -- True
+    --
+    -- but
+    --
+    -- >>> inRange (4, -5) 3
+    -- False
     inRange     :: (i, i) -> i -> Bool
+    
+    -- | Checks if the index is overflow. The default definition for isOverflow
+    -- and isUnderflow gives the answer True in the case of an empty range:
+    --
+    -- >>> isOverflow  (5, -1) x
+    -- True
+    --
+    -- >>> isUnderflow (5, -1) x
+    -- True
+    --
+    -- for all x, because
+    -- 
+    -- >>> not $ x `elem` (range (5, -1)) -- range (5, -1) == []
+    -- True
+    --
+    -- >>> isEmpty (5, -1)
+    -- True
+    --
+    --   Other definitions in this module follow this rule.
+    --
+    --   This isn't a strict requirement, but recommended behavior, where
+    -- appropriate If the behavior of a particular implementation of a function
+    -- isn't explicitly specified in the documentation.
+    --
+    -- Generaly speaking, isOverflow and isUnderflow are not mutually exclusive:
+    --
+    -- >>> isOverflow  ((-3, 4), (2, 5)) (-4, 6)
+    -- True
+    --
+    -- >>> isUnderflow ((-3, 4), (2, 5)) (-4, 6)
+    -- True
+    --
+    -- Their disjunction is interchangeable with inversion of inRange (in
+    -- default definitions), but conjunction of isOverflow and isUnderflow also
+    -- includes empty range case and doesn't guarantee the truth of inRange.
+    --
+    -- >>> offset (26, 0) 0
+    -- *** Exception: empty range in SDP.Index.offset (default)
+    --
+    -- because
+    --
+    -- >>> range (26, 0)
+    -- []
+    --
+    -- and
+    --
+    -- >>> inRange (26, 0) 0
+    -- False
+    --
+    -- but
+    --
+    -- >>> isOverflow  (26, 0) 0
+    -- True
+    --
+    -- >>> isUnderflow (26, 0) 0
+    -- True
     isOverflow  :: (i, i) -> i -> Bool
+    
+    -- | Checks if the index is underflow.
     isUnderflow :: (i, i) -> i -> Bool
+    
+    -- | Checks if the bounds is empty.
     isEmpty     :: (i, i) -> Bool
     
+    -- | Returns the index belonging to the given range. Service function.
     safeElem    :: (i, i) -> i -> i
+    -- | Returns bounds of nonempty range.
     ordBounds   :: (i, i) -> (i, i)
     
+    -- | Returns offset (indent) of index in this bounds.
     offset      :: (i, i) -> i -> Int
+    -- | Returns index by this offset in range.
     index       :: (i, i) -> Int -> i
+    -- | Returns index by this offset in default range.
     unsafeIndex :: Int -> i
     
     rank = const 1
@@ -596,13 +690,13 @@ instance (Index i, Enum i, Bounded i) => Index (i, i, i, i, i)
 
 --------------------------------------------------------------------------------
 
--- Service Type for future use.
-
+-- | Service type for future use.
 newtype DimLeak = DimLeak Word deriving (Eq, Ord, Show, Read)
 
 --------------------------------------------------------------------------------
 
-instance Index Char    where unsafeIndex = toEnum . max 0 . succ
+-- | Char indices begins from \SOH, because type is unsigned.
+instance Index Char    where unsafeIndex = defUI
 
 instance Index Integer where offset = intOffset
 
@@ -612,10 +706,15 @@ instance Index Int16   where offset = intOffset
 instance Index Int32   where offset = intOffset
 instance Index Int64   where offset = intOffset
 
+-- | Word   indices begins from 1, because type is unsigned.
 instance Index Word    where offset = intOffset; unsafeIndex = defUI
+-- | Word8  indices begins from 1, because type is unsigned.
 instance Index Word8   where offset = intOffset; unsafeIndex = defUI
+-- | Word16 indices begins from 1, because type is unsigned.
 instance Index Word16  where offset = intOffset; unsafeIndex = defUI
+-- | Word32 indices begins from 1, because type is unsigned.
 instance Index Word32  where offset = intOffset; unsafeIndex = defUI
+-- | Word64 indices begins from 1, because type is unsigned.
 instance Index Word64  where offset = intOffset; unsafeIndex = defUI
 
 --------------------------------------------------------------------------------
@@ -650,7 +749,7 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
   where
     rank (rs :& _) = rank rs + 1
     
-    size  (ls :& l, us :& u) = size  (l, u)   *  size  (ls, us)
+    size  (ls :& l, us :& u) = size (l, u) * size (ls, us)
     -- [internal]: O(n ^ 2) sizes. Not critial, but needed to rewrite.
     sizes (ls :& l, us :& u) = sizes (ls, us) ++ sizes (l, u)
     range (ls :& l, us :& u) = liftA2 (:&) (range (ls, us)) (range (l, u))
@@ -698,11 +797,10 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
 
 --------------------------------------------------------------------------------
 
-{-
+{- |
   N-dimensional  index  type. The  type  (head :& tail) allows  working with any
   finite dimension number.
 -}
-
 data tail :& head = !tail :& !head deriving (Eq, Ord, Read)
 
 -- Derived instance doesn't have whitespaces, but I like whitespaces...
@@ -729,46 +827,80 @@ instance (Enum i) => Enum (() :& i)
 
 instance (Default d, Default d') => Default (d :& d') where def = def :& def
 
+
+-- | Type synonym for very long type annotations, e.g.
+-- Bounds (Int, Int, Int, Int, Int) is same as
+-- ((Int, Int, Int, Int, Int), (Int, Int, Int, Int, Int))
+type Bounds i = (i, i)
+
 {-
   Type synonyms are declared up to 16 dimensions (Fortran 2003 permits up to 15,
-  and I would like to compete with a language 15 years ago at least in this).
+  and I would like to compete with a 16-years old language at least in this).
   Although, for example, with the tuple library (supports 32-element tuples)
   I am still far away.
 -}
 
-type Bounds i = (i, i)
-
+-- | 2-dimensional index
 type  I2  i  = () :& i :& i
+-- | 3-dimensional index
 type  I3  i  = (I2  i) :& i
+-- | 4-dimensional index
 type  I4  i  = (I3  i) :& i
+-- | 5-dimensional index
 type  I5  i  = (I4  i) :& i
+-- | 6-dimensional index
 type  I6  i  = (I5  i) :& i
+-- | 7-dimensional index
 type  I7  i  = (I6  i) :& i
+-- | 8-dimensional index
 type  I8  i  = (I7  i) :& i
+-- | 9-dimensional index
 type  I9  i  = (I8  i) :& i
+-- | 10-dimensional index
 type  I10 i  = (I9  i) :& i
+-- | 11-dimensional index
 type  I11 i  = (I10 i) :& i
+-- | 12-dimensional index
 type  I12 i  = (I11 i) :& i
+-- | 13-dimensional index
 type  I13 i  = (I12 i) :& i
+-- | 14-dimensional index
 type  I14 i  = (I13 i) :& i
+-- | 15-dimensional index
 type  I15 i  = (I14 i) :& i
+-- | i-think-you-guessed-how-much-dimensional index
 type  I16 i  = (I15 i) :& i
 
+-- | 2-dimensional index clever constructor.
 ind2  :: (Index i) => i -> i                                                                       -> I2  i
+-- | 3-dimensional index clever constructor.
 ind3  :: (Index i) => i -> i -> i                                                                  -> I3  i
+-- | 4-dimensional index clever constructor.
 ind4  :: (Index i) => i -> i -> i -> i                                                             -> I4  i
+-- | 5-dimensional index clever constructor.
 ind5  :: (Index i) => i -> i -> i -> i -> i                                                        -> I5  i
+-- | 6-dimensional index clever constructor.
 ind6  :: (Index i) => i -> i -> i -> i -> i -> i                                                   -> I6  i
+-- | 7-dimensional index clever constructor.
 ind7  :: (Index i) => i -> i -> i -> i -> i -> i -> i                                              -> I7  i
+-- | 8-dimensional index clever constructor.
 ind8  :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i                                         -> I8  i
+-- | 9-dimensional index clever constructor.
 ind9  :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i -> i                                    -> I9  i
+-- | 10-dimensional index clever constructor.
 ind10 :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i                               -> I10 i
 
+-- | 11-dimensional index clever constructor.
 ind11 :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i                          -> I11 i
+-- | 12-dimensional index clever constructor.
 ind12 :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i                     -> I12 i
+-- | 13-dimensional index clever constructor.
 ind13 :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i                -> I13 i
+-- | 14-dimensional index clever constructor.
 ind14 :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i           -> I14 i
+-- | 15-dimensional index clever constructor.
 ind15 :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i      -> I15 i
+-- | 16-dimensional index clever constructor.
 ind16 :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> I16 i
 
 ind2  a b                             = () :& a :& b

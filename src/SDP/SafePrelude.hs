@@ -1,3 +1,16 @@
+{- |
+    Module      :  SDP.SafePrelude
+    Copyright   :  (c) Andrey Mulik 2019
+    License     :  BSD-style
+    Maintainer  :  work.a.mulik@gmail.com
+    Portability :  portable
+  
+  Module with simple common definitions.
+  
+  Exports base "Prelude" without zips, scans, and some list functions, ('?') and
+  'Estimate'.
+-}
+
 module SDP.SafePrelude
   (
     module Control.Applicative,
@@ -9,10 +22,6 @@ module SDP.SafePrelude
     (?)
   )
 where
-
-{-
-  Module with simple common definitions.
--}
 
 import Prelude hiding
   (
@@ -37,6 +46,10 @@ import SDP.Estimate
 
 infixr 1 ? -- Lowest priority, compatible with infixr 0 $
 
--- ternary operator
+{- |
+  Ternary operator.
+  > odd 1 ? "is True" $ "is False"
+  > "is True"
+-}
 (?)   :: Bool -> a -> a -> a
 (?) predicate t e = if predicate then t else e

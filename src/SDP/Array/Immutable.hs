@@ -41,16 +41,12 @@ import SDP.Simple
 
 --------------------------------------------------------------------------------
 
-{-
+{- |
   This Array type definition is no different from the standard GHC.Arr,
   but I have to redefine it because of the limitation of the Ix type.
 -}
 
-data Array i e = Array
-               !i                  {- lower  bound -}
-               !i                  {- upper  bound -}
-               {-# UNPACK #-} !Int {-     size     -}
-               (Array# e)          {-   elements   -}
+data Array i e = Array !i !i {-# UNPACK #-} !Int (Array# e)
 
 type role Array nominal representational
 
@@ -118,27 +114,27 @@ instance (Index i) => Zip (Array i)
     zipWith f as bs              = fromListN sz $ apply <$> range (0, sz - 1)
       where
         apply i = f (as !# i) (bs !# i)
-        sz      = eminimum [EList as, EList bs]
+        sz      = eminimum [EL as, EL bs]
     
     zipWith3 f as bs cs          = fromListN sz $ apply <$> range (0, sz - 1)
       where
         apply i = f (as !# i) (bs !# i) (cs !# i)
-        sz      = eminimum [EList as, EList bs, EList cs]
+        sz      = eminimum [EL as, EL bs, EL cs]
     
     zipWith4 f as bs cs ds       = fromListN sz $ apply <$> range (0, sz - 1)
       where
         apply i = f (as !# i) (bs !# i) (cs !# i) (ds !# i)
-        sz      = eminimum [EList as, EList bs, EList cs, EList ds]
+        sz      = eminimum [EL as, EL bs, EL cs, EL ds]
     
     zipWith5 f as bs cs ds es    = fromListN sz $ apply <$> range (0, sz - 1)
       where
         apply i = f (as !# i) (bs !# i) (cs !# i) (ds !# i) (es !# i)
-        sz      = eminimum [EList as, EList bs, EList cs, EList ds, EList es]
+        sz      = eminimum [EL as, EL bs, EL cs, EL ds, EL es]
     
     zipWith6 f as bs cs ds es fs = fromListN sz $ apply <$> range (0, sz - 1)
       where
         apply i = f (as !# i) (bs !# i) (cs !# i) (ds !# i) (es !# i) (fs !# i)
-        sz      = eminimum [EList as, EList bs, EList cs, EList ds, EList es, EList fs]
+        sz      = eminimum [EL as, EL bs, EL cs, EL ds, EL es, EL fs]
 
 instance (Index i) => Applicative (Array i)
   where

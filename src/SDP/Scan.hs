@@ -1,3 +1,14 @@
+{- |
+    Module      :  SDP.Scan
+    Copyright   :  (c) Andrey Mulik 2019
+    License     :  BSD-style
+    Maintainer  :  work.a.mulik@gmail.com
+    Portability :  portable
+  
+  This module provides Scan class that doesn't so needed for practical use, but
+  good for generalization.
+-}
+
 module SDP.Scan ( Scan (..) ) where
 
 import Prelude ()
@@ -7,10 +18,7 @@ import qualified Data.List as L ( scanl, scanr, scanl', scanl1, scanr1 )
 
 --------------------------------------------------------------------------------
 
-{-
-    Scan is an auxiliary class. It is needed  not so much for practical use, but
-  for generalization.
--}
+-- | Scan is an auxiliary class.
 
 class (Foldable s) => Scan s
   where

@@ -1,3 +1,14 @@
+{- |
+    Module      :  SDP.Zip
+    Copyright   :  (c) Andrey Mulik 2019
+    License     :  BSD-style
+    Maintainer  :  work.a.mulik@gmail.com
+    Portability :  portable
+  
+  Zip is a very useful class that allows parallel application of functions
+  to several lines of elements.
+-}
+
 module SDP.Zip ( Zip (..) ) where
 
 import Prelude ()
@@ -5,10 +16,8 @@ import SDP.SafePrelude
 
 --------------------------------------------------------------------------------
 
-{-
-    Zip  is typeclass  with  vector  applicative  semantics  (but without pure).
-  zipWith{3 .. 6} can be expressed in  zipWith{ , 3 .. 5}, but in many cases
-  it would be extremely memory inefficient.
+{- |
+  Zip is generalization of ZipList applicative semantics (but not requires pure).
 -}
 
 class (Functor z) => Zip z

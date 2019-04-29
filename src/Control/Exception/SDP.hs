@@ -1,3 +1,11 @@
+{- |
+    Module      :  Control.Exception.SDP
+    Copyright   :  (c) Andrey Mulik 2019
+    License     :  BSD-style
+    Maintainer  :  work.a.mulik@gmail.com
+    Portability :  portable
+-}
+
 module Control.Exception.SDP
 (
   module Control.Exception,
@@ -12,8 +20,8 @@ import Data.Typeable
 
 --------------------------------------------------------------------------------
 
-{-
-    Exception type IndexException replaces  the less informative ArrayException
+{-|
+    Exception type IndexException replaces  the less informative 'ArrayException'
   and  has  more  neutral  names  in  relation  to other  indexable  structures.
   
     If the index can overflow and underflow at the same time,  it is recommended

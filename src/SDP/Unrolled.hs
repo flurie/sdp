@@ -1,6 +1,16 @@
 {-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, RoleAnnotations #-}
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 
+{- |
+    Module      :  SDP.Index
+    Copyright   :  (c) Andrey Mulik 2019
+    License     :  BSD-style
+    Maintainer  :  work.a.mulik@gmail.com
+    Portability :  portable
+    
+    This mdule provides Unrolled - unrolled linked list.
+-}
+
 module SDP.Unrolled
 (
   Unrolled (..),
@@ -39,12 +49,10 @@ default ()
 
 --------------------------------------------------------------------------------
 
-{- Unrolled type section. Free for public use. -}
+-- | Unrolled linked list.
+data Unrolled i e = Unrolled !i !i (Unlist e)
 
-data Unrolled i e = Unrolled
-                  !i                  {- lower  bound -}
-                  !i                  {- upper  bound -}
-                  (Unlist e)          {-  container   -}
+type role Unrolled nominal representational
 
 --------------------------------------------------------------------------------
 
@@ -54,10 +62,11 @@ instance (Eq e, Index i) => Eq (Unrolled i e) where (==) = eq1
 
 instance (Index i) => Eq1 (Unrolled i)
   where
-    liftEq f unr1 unr2 = null xs && null ys || l1 == l2 && u1 == u2 && liftEq f xs ys
+    liftEq f unr1@(Unrolled l1 u1 xs) unr2@(Unrolled l2 u2 ys) = res
       where
-        (Unrolled l1 u1 xs) = unr1
-        (Unrolled l2 u2 ys) = unr2
+        res = null xs && null ys || l1 == l2 && u1 == u2 && liftEq f xs' ys'
+        xs' = toList unr1
+        ys' = toList unr2
 
 --------------------------------------------------------------------------------
 
@@ -113,19 +122,19 @@ instance (Index i) => Applicative (Unrolled i)
 
 instance (Index i) => Foldable (Unrolled i)
   where
-    foldr  f base (Unrolled _ _ es) = foldr  f base es
-    foldl  f base (Unrolled _ _ es) = foldl  f base es
+    foldr  f base (Unrolled l u es) = foldr  f base $ take (size (l, u)) es
+    foldl  f base (Unrolled l u es) = foldl  f base $ take (size (l, u)) es
     
-    foldr' f base (Unrolled _ _ es) = foldr' f base es
-    foldl' f base (Unrolled _ _ es) = foldl' f base es
+    foldr' f base (Unrolled l u es) = foldr' f base $ take (size (l, u)) es
+    foldl' f base (Unrolled l u es) = foldl' f base $ take (size (l, u)) es
     
-    foldr1 f (Unrolled _ _ es) = foldr1 f es
-    foldl1 f (Unrolled _ _ es) = foldl1 f es
+    foldr1 f (Unrolled l u es) = foldr1 f $ take (size (l, u)) es
+    foldl1 f (Unrolled l u es) = foldl1 f $ take (size (l, u)) es
     
     toList   (Unrolled l u es) = take n $ toList es where n = size (l, u)
+    elem e   (Unrolled l u es) = elem e $ take (size (l, u)) es
     null     (Unrolled l u es) = null es || isEmpty (l, u)
     length   (Unrolled l u  _) = size (l, u)
-    elem e   (Unrolled _ _ es) = e `elem` es
 
 -- instance (Index i) => Scan (Unrolled i)
 
@@ -158,7 +167,9 @@ instance (Index i) => Linear (Unrolled i)
     
     concat xss = Unrolled l u res
       where
-        (n', res) = foldr (\ (Unrolled _ _ xs) (len, ys) -> (len + length xs, xs ++ ys)) (0, Z) xss
+        (n', res) = foldr f (0, Z) xss
+        
+        f = \ (Unrolled _ _ xs) (len, ys) -> (len + length xs, xs ++ ys)
         
         l = unsafeIndex 0
         u = unsafeIndex $ max 0 n' - 1
@@ -176,20 +187,31 @@ instance (Index i) => Linear (Unrolled i)
 instance (Index i) => Split (Unrolled i)
   where
     take n unr@(Unrolled l u es)
-      | n <= 0 = Z
-      | n >= c = unr
-      |  True  = Unrolled l u' (take n es)
+        | n <= 0 = Z
+        | n >= c = unr
+        |  True  = Unrolled l u' (take n es)
       where
         u' = index (l, u) $ n - 1
         c  = size  (l, u)
     
     drop n unr@(Unrolled l u es)
-      | n >= c = Z
-      | n <= 0 = unr
-      |  True  = Unrolled l' u (drop n es)
+        | n <= 0 = unr
+        | n >= c = Z
+        |  True  = Unrolled l' u (drop n es)
       where
-        l' = index (l, u) $ n - 1
+        l' = index (l, u) n
         c  = size  (l, u)
+    
+    split n unr@(Unrolled l u es)
+        | n <= 0 = (Z, unr)
+        | n >= c = (unr, Z)
+        |  True  = (Unrolled l u' take', Unrolled l' u drop')
+      where
+        u' = index (l, u) $ n - 1
+        l' = index (l, u)   n
+        c  = size  (l, u)
+        
+        (take', drop') = split n es
 
 instance (Index i) => Bordered (Unrolled i) i
   where
@@ -203,40 +225,33 @@ instance (Index i) => Bordered (Unrolled i) i
 instance (Index i) => Indexed (Unrolled i) i
   where
     -- [internal]: it's correct, but completly inneficient (Set []). Rewrite.
-    assoc' bnds e ies = fromListN n $ snds ixset
+    assoc' bnds e ies = fromListN n sorted
       where
-        ixset  = unionWith cmpfst (setWith cmpfst ies) filler
+        sorted = snds $ unionWith cmpfst (setWith cmpfst ies) filler
         filler = zip (range bnds) (replicate n e)
         n = size bnds
     
     Z  // []   = Z
-    Z  // ascs = assoc (l, u) ascs
-      where
-        l = minimum $ fsts ascs
-        u = maximum $ fsts ascs
+    Z  // ascs = assoc (minimum ixs, maximum ixs) ascs where ixs = fsts ascs
     
     (Unrolled l u es) // ascs = Unrolled l' u' es'
       where
-        ascs' = (\ (i, e) -> (offset (l, u) i, e)) <$> ascs
-        l'    = unsafeIndex $ lower es'
-        u'    = unsafeIndex $ upper es'
-        es'   = es // ascs'
+        es' = es // [ (offset (l, u) i, e) | (i, e) <- ascs ]
+        u'  = unsafeIndex $ upper es'
+        l'  = unsafeIndex 0
     
     (Unrolled l u es)   .! i = es !# (offset (l, u) i)
     
     (!) (Unrolled l u es)  i = es !# (offset (l, u) i)
     
-    (Unrolled l u arrs) !? i = inRange (l, u) i ? Just e $ Nothing
-      where
-        e = arrs !# offset (l, u) i
+    (Unrolled l u arrs) !? i = inRange (l, u) i ? Just (arrs !# offset (l, u) i) $ Nothing
     
     predicate .$ (Unrolled l u es) = index (l, u) <$> (predicate .$ es)
     predicate *$ (Unrolled l u es) = Unrolled l' u' es'
       where
-        es' = index (l, u) <$> (predicate *$ es)
-        u'  = index (l, u) (n - 1)
+        es' = index (l, u) <$> predicate *$ es
+        u'  = index (l, u) $ upper es'
         l'  = index (l, u) 0
-        n   = length es'
 
 --------------------------------------------------------------------------------
 
@@ -248,7 +263,10 @@ instance (Index i, Arbitrary e) => Arbitrary (Unrolled i e)
 
 instance (Index i) => Estimate (Unrolled i)
   where
-    (Unrolled _ _ xs) <==> (Unrolled _ _ ys) = xs <==> ys
+    (Unrolled l1 u1 _) <==> (Unrolled l2 u2 _) = compare s1 s2
+      where
+        s1 = size (l1, u1)
+        s2 = size (l2, u2)
 
 instance (Index i) => LineS (Unrolled i)
 
@@ -266,13 +284,13 @@ data Unlist e = UNEmpty | Unlist {-# UNPACK #-} !Int (Array# e) (Unlist e)
 
 {- Eq1 and Ord1 instances. -}
 
-instance Eq1 Unlist where liftEq f xs ys = liftEq f (toList xs) (toList ys)
+instance Eq1  Unlist where liftEq f xs ys = liftEq f (toList xs) (toList ys)
 
 instance Ord1 Unlist where liftCompare f xs ys = liftCompare f (toList xs) (toList ys)
 
 --------------------------------------------------------------------------------
 
-{- Functor, Zip and Applicative instances. -}
+{- Functor instance. -}
 
 instance Functor Unlist
   where
@@ -289,17 +307,9 @@ instance Functor Unlist
                 in go 0 s2#
         )
 
-instance Zip Unlist
-  where
-    zipWith  f as bs             = fromList $ zipWith  f (toList as) (toList bs)
-    zipWith3 f as bs cs          = fromList $ zipWith3 f (toList as) (toList bs) (toList cs)
-    zipWith4 f as bs cs ds       = fromList $ zipWith4 f (toList as) (toList bs) (toList cs) (toList ds)
-    zipWith5 f as bs cs ds es    = fromList $ zipWith5 f (toList as) (toList bs) (toList cs) (toList ds) (toList es)
-    zipWith6 f as bs cs ds es fs = fromList $ zipWith6 f (toList as) (toList bs) (toList cs) (toList ds) (toList es) (toList fs)
-
 --------------------------------------------------------------------------------
 
-{- Foldable, Zip and Traversable instances. -}
+{- Foldable instance. -}
 
 instance Foldable Unlist
   where
@@ -442,22 +452,19 @@ instance Split Unlist
             !(Unlist c1 arr1# _) = fromList . drop n' . toList $ Unlist c arr# Z
     
     split n es
-        |  n  <  0  = (Z, es)
-        | es >=. n  = (es, Z)
-        |    True   = split' n es
+        |  n <= 0  = (Z, es)
+        | es <=. n = (es, Z)
+        |   True   = split' n es
       where
-        split' _ Z = (Z, Z)
-        split' n' (Unlist c arr# arrs) = n' > c ? (Unlist c arr# ts, ds) $ (fromList tpart, Unlist c1 arr1# arrs)
+        split' _  Z = (Z, Z)
+        split' n' (Unlist c arr# arrs) = n' > c ? split' (n' - c) arrs $ (Unlist c1 arr1# arrs, Unlist c2 arr2# arrs)
           where
-            (tpart, dpart) = split n' . toList $ Unlist c arr# Z
-            !(Unlist _ arr1# _) = fromList dpart
-            (ts, ds) = split' c1 arrs
-            c1 = n' - c
+            (take', drop')       = split n' . toList $ Unlist c arr# Z
+            !(Unlist c1 arr1# _) = fromList take'
+            !(Unlist c2 arr2# _) = fromList drop'
     
-    isPrefixOf xs ys = and $ zipWith (==) xs ys
-    isSuffixOf xs ys = and $ zipWith (==) xs (take n ys)
-      where
-        n = length xs - length ys
+    isPrefixOf = isPrefixOf `on` toList
+    isSuffixOf = isSuffixOf `on` toList
 
 instance Bordered Unlist Int
   where
@@ -466,6 +473,8 @@ instance Bordered Unlist Int
     bounds es = (0, length es - 1)
 
 --------------------------------------------------------------------------------
+
+{- Indexed instance. -}
 
 instance Indexed Unlist Int
   where
@@ -504,22 +513,20 @@ instance Indexed Unlist Int
         
         (curr, others) = partition (\ (i, _) -> inRange (0, c - 1) i) ascs
     
-    es .! n = es !# offset (bounds es) n
+    es .! n = es !# (n + lower es)
     
-    (!) es n
-        |     null  es     = throw $ EmptyRange     "in SDP.Unrolled.(!)"
-        | isOverflow  bs n = throw $ IndexOverflow  "in SDP.Unrolled.(!)"
-        | isUnderflow bs n = throw $ IndexUnderflow "in SDP.Unrolled.(!)"
-        |       True       = es !# offset bs n
+    (!) es n = case inBounds bs n of
+        ER -> throw $ EmptyRange     "in SDP.Unrolled.(!)"
+        UR -> throw $ IndexOverflow  "in SDP.Unrolled.(!)"
+        OR -> throw $ IndexUnderflow "in SDP.Unrolled.(!)"
+        IN -> es !# offset bs n
       where
         bs = bounds es
     
-    es !? n = inRange bs n ? Just (es !# offset bs n) $ Nothing
-      where
-        bs = bounds es
+    es !? n = inRange bs n ? Just (es !# offset bs n) $ Nothing where bs = bounds es
     
-    predicate .$ es = predicate .$ (toList es)
-    predicate *$ es = fromList $ predicate *$ (toList es)
+    predicate .$ es = predicate .$ toList es
+    predicate *$ es = fromList $ predicate *$ toList es
 
 --------------------------------------------------------------------------------
 
@@ -538,9 +545,8 @@ instance (Arbitrary e) => Arbitrary (Unlist e)
 
 {-# INLINE (!#) #-}
 (!#) :: Unlist e -> Int -> e
-(Unlist c arr# arrs) !# i@(I# i#) = i < c ? e $ arrs !# (i - c)
-  where
-    (# e #) = indexArray# arr# i#
+(Unlist c arr# arrs) !# i@(I# i#) = i < c ? (case indexArray# arr# i# of (# e #) -> e) $ arrs !# (i - c)
+_ !# _ = error "SDP.Unrolled.(!#) tried to find element in empty Unlist"
 
 {-# INLINE done #-}
 done :: Int -> Unlist e -> MutableArray# s e -> STRep s (Unlist e)
