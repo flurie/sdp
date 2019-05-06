@@ -3,7 +3,7 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  portable
+    Portability :  non-portable (uses SDP.Estimate)
   
   Module with simple common definitions.
   

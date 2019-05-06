@@ -3,7 +3,7 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  portable
+    Portability :  non-portable (GHC Extensions)
     
     SDP.Array provides immutable lazy array type. This implementation of array
     no much different from Data.Array (array), but incopatible with it.

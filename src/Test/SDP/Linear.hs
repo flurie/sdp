@@ -21,7 +21,7 @@ default ()
 
 type TestLinear l e = Int -> e -> l e -> Bool
 
-testLinear :: (Linear l, Eq e, Eq (l e), Arbitrary (l e)) => Int -> e -> l e -> Bool
+testLinear :: (Foldable l, Eq e, Eq (l e), Linear (l e) e, Arbitrary (l e)) => Int -> e -> l e -> Bool
 testLinear n e line = and
   [
     null (fromList [] `asTypeOf` line), null (lzero `asTypeOf` line)
@@ -60,9 +60,9 @@ testLinear n e line = and
     , concat [line, reverse line] == fromList (concat [toList line, listR line])
   ]
 
-type TestSplit s e = Int -> s e -> Bool
+type TestSplit f e = Int -> f e -> Bool
 
-testSplit :: (Split s, Eq e, Eq (s e), Arbitrary (s e)) => Int -> s e -> Bool
+testSplit :: (Foldable f, Split (f e) e, Eq e, Eq (f e), Arbitrary (f e)) => Int -> f e -> Bool
 testSplit n line = and
   [
     (take n line, drop n line) == split n line

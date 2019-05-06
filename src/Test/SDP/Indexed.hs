@@ -22,7 +22,7 @@ default ()
 
 type TestIndexed l i e = i -> l e -> Bool
 
-testIndexed :: (Indexed l i, Bordered l i, Eq e, Eq (l e)) => i -> l e -> Bool
+testIndexed :: (Foldable l, Eq e, Eq (l e), Indexed (l e) i e, Bordered (l e) i e) => i -> l e -> Bool
 testIndexed ix xs = and
   [
     null xs || inRange bnds i

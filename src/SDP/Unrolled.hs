@@ -6,7 +6,7 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  portable
+    Portability :  non-portable (GHC Extensions)
     
     This module provides Unrolled - unrolled linked list.
 -}
@@ -147,7 +147,7 @@ instance (Index i) => Traversable (Unrolled i)
 
 {- Linear, Split and Bordered instances. -}
 
-instance (Index i) => Linear (Unrolled i)
+instance (Index i) => Linear (Unrolled i e) e
   where
     fromListN n es = Unrolled l u $ fromListN n es
       where
@@ -185,7 +185,7 @@ instance (Index i) => Linear (Unrolled i)
         u1 = unsafeIndex n1
         l1 = unsafeIndex 0
 
-instance (Index i) => Split (Unrolled i)
+instance (Index i) => Split (Unrolled i e) e
   where
     take n unr@(Unrolled l u es)
         | n <= 0 = Z
@@ -213,8 +213,15 @@ instance (Index i) => Split (Unrolled i)
         c  = size  (l, u)
         
         (take', drop') = split n es
+    
+    prefix f = prefix f . toList
+    suffix f = suffix f . toList
+    
+    isPrefixOf = isPrefixOf `on` toList
+    isInfixOf  = isInfixOf  `on` toList
+    isSuffixOf = isSuffixOf `on` toList
 
-instance (Index i) => Bordered (Unrolled i) i
+instance (Index i) => Bordered (Unrolled i e) i e
   where
     indices (Unrolled l u _) = range (l, u)
     bounds  (Unrolled l u _) = (l, u)
@@ -223,7 +230,7 @@ instance (Index i) => Bordered (Unrolled i) i
 
 --------------------------------------------------------------------------------
 
-instance (Index i) => Indexed (Unrolled i) i
+instance (Index i) => Indexed (Unrolled i e) i e
   where
     -- [internal]: it's correct, but completly inneficient (Set []). Rewrite.
     assoc' bnds e ies = fromListN n sorted
@@ -248,11 +255,7 @@ instance (Index i) => Indexed (Unrolled i) i
     (Unrolled l u arrs) !? i = inRange (l, u) i ? Just (arrs !# offset (l, u) i) $ Nothing
     
     predicate .$ (Unrolled l u es) = index (l, u) <$> (predicate .$ es)
-    predicate *$ (Unrolled l u es) = Unrolled l' u' es'
-      where
-        es' = index (l, u) <$> predicate *$ es
-        u'  = index (l, u) $ upper es'
-        l'  = index (l, u) 0
+    predicate *$ (Unrolled l u es) = index (l, u) <$> (predicate *$ es)
 
 --------------------------------------------------------------------------------
 
@@ -269,7 +272,9 @@ instance (Index i) => Estimate (Unrolled i)
         s1 = size (l1, u1)
         s2 = size (l2, u2)
 
-instance (Index i) => LineS (Unrolled i)
+instance (Index i) => LineS (Unrolled i e) e
+  where
+    stream = stream . toList
 
 instance (Index i) => Default (Unrolled i e) where def = Z
 
@@ -358,7 +363,7 @@ instance Foldable Unlist
 
 {- Linear, Split and Bordered instances. -}
 
-instance Linear Unlist
+instance Linear (Unlist e) e
   where
     fromList [] = UNEmpty
     fromList es = runST $ ST
@@ -431,7 +436,7 @@ instance Linear Unlist
       where
         (x, y) = partition predicate $ toList es
 
-instance Split Unlist
+instance Split (Unlist e) e
   where
     take n es
         |  n <= 0  = Z
@@ -466,9 +471,13 @@ instance Split Unlist
             !(Unlist c2 arr2# _) = fromList drop'
     
     isPrefixOf = isPrefixOf `on` toList
+    isInfixOf  = isInfixOf  `on` toList
     isSuffixOf = isSuffixOf `on` toList
+    
+    prefix f = prefix f . toList
+    suffix f = suffix f . toList
 
-instance Bordered Unlist Int
+instance Bordered (Unlist e) Int e
   where
     lower  _  = 0
     upper  es = length es - 1
@@ -478,7 +487,7 @@ instance Bordered Unlist Int
 
 {- Indexed instance. -}
 
-instance Indexed Unlist Int
+instance Indexed (Unlist e) Int e
   where
     assoc' bnds@(l, u) defvalue ascs = isEmpty bnds ? UNEmpty $ runST
         (
@@ -528,7 +537,7 @@ instance Indexed Unlist Int
     es !? n = inRange bs n ? Just (es !# offset bs n) $ Nothing where bs = bounds es
     
     predicate .$ es = predicate .$ toList es
-    predicate *$ es = fromList $ predicate *$ toList es
+    predicate *$ es = predicate *$ toList es
 
 --------------------------------------------------------------------------------
 

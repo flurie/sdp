@@ -5,7 +5,7 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  portable
+    Portability :  non-portable (GHC Extensions: ExistentialQuantification)
     
     This module is exported by "SDP.SafePrelude".
 -}

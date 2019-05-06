@@ -15,7 +15,6 @@ import GHC.ST   ( STRep )
 --------------------------------------------------------------------------------
 
 -- | STArray - service type, that needed for SDP.Array and SDP.Unrolled definitions.
-
 data STArray s i e = STArray !i !i {-# UNPACK #-} !Int (MutableArray# s e)
 
 type role STArray nominal nominal representational

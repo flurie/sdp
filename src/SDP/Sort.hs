@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 {-# LANGUAGE BangPatterns #-}
 
 {- |
@@ -20,22 +21,22 @@ import SDP.Simple
 {- |
   Sort - is class of types that can be sorted.
 -}
-class (Foldable s) => Sort s
+class Sort s e | s -> e
   where
     -- | The sortBy function is the non-overloaded version of sort.
-    sortBy :: (e -> e -> Ordering) -> s e -> s e
+    sortBy :: (e -> e -> Ordering) -> s -> s
 
 -- | The sort function implements a stable sorting algorithm.
-sort :: (Sort s, Ord e) => s e -> s e
+sort :: (Sort s e, Ord e) => s -> s
 sort = sortBy compare
 
 -- | Sort by comparing the results of a key function applied to each element.
-sortOn :: (Sort s, Ord o) => (e -> o) -> s e -> s e
+sortOn :: (Sort s e, Ord o) => (e -> o) -> s -> s
 sortOn f = sortBy (compare `on` f)
 
 --------------------------------------------------------------------------------
 
-instance Sort []
+instance Sort [a] a
   where
     {-
       Code of sortBy "stolen" from Data.List (base-4.12.0.0, BSD3-style).

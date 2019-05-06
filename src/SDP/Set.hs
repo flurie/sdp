@@ -1,11 +1,14 @@
-{-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
+
+-- For default definitions.
+{-# LANGUAGE TypeOperators, TypeFamilies, DefaultSignatures #-}
 
 {- |
     Module      :  SDP.Set
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  portable
+    Portability :  non-portable (GHC Extensions)
   
     Set is a class that allows you to create sets and perform simple operations
   on them.
@@ -28,6 +31,8 @@ import SDP.SafePrelude
 
 import SDP.Linear
 
+import GHC.Types
+
 --------------------------------------------------------------------------------
 
 {- |
@@ -47,150 +52,174 @@ import SDP.Linear
   another newtype. For everyday use, the synonyms below are quite enough.
 -}
 
-class (Linear s) => Set s
+class (Linear s o) => Set s o | s -> o
   where
     {-# MINIMAL intersectionWith, unionWith, differenceWith #-}
     
     {- Creation functions. -}
     
     -- | Creates ordered set from linear structure.
-    setWith      :: (o -> o -> Ordering) -> s o -> s o
-    setWith f es =  foldl (flip $ insertWith f) Z es
+    setWith    :: (o -> o -> Ordering) -> s -> s
     
     -- | Adding element to set.
-    insertWith :: (o -> o -> Ordering) -> o -> s o -> s o
+    insertWith :: (o -> o -> Ordering) -> o -> s -> s
     insertWith f e es = intersectionWith f es (single e)
     
     -- | Deleting element from set.
-    deleteWith :: (o -> o -> Ordering) -> o -> s o -> s o
+    deleteWith :: (o -> o -> Ordering) -> o -> s -> s
     deleteWith f e es = differenceWith   f es (single e)
     
     {- Basic operations on sets. -}
     
     -- | Intersection of two sets.
-    intersectionWith  :: (o -> o -> Ordering) -> s o -> s o -> s o
+    intersectionWith  :: (o -> o -> Ordering) -> s -> s -> s
     
     -- | Difference (relative complement, aka A / B) of two sets.
-    differenceWith    :: (o -> o -> Ordering) -> s o -> s o -> s o
+    differenceWith    :: (o -> o -> Ordering) -> s -> s -> s
     
     -- | Symmetric difference of two sets.
-    symdiffWith       :: (o -> o -> Ordering) -> s o -> s o -> s o
+    symdiffWith       :: (o -> o -> Ordering) -> s -> s -> s
     symdiffWith f xs ys = differenceWith f (unionWith f xs ys) (intersectionWith f xs ys)
     
     -- | Union of two sets.
-    unionWith         :: (o -> o -> Ordering) -> s o -> s o -> s o
+    unionWith         :: (o -> o -> Ordering) -> s -> s -> s
     
     {- Generalization of basic set operations on foldable. -}
     
     -- | Generalization of intersection on Foldable.
-    intersectionsWith   :: (Foldable f) => (o -> o -> Ordering) -> f (s o) -> s o
-    intersectionsWith f =  foldl (intersectionWith f) Z
+    intersectionsWith   :: (Foldable f) => (o -> o -> Ordering) -> f s -> s
     
     -- | Generalization of difference on Foldable.
-    differencesWith     :: (Foldable f) => (o -> o -> Ordering) -> f (s o) -> s o
-    differencesWith   f =  foldl (differenceWith f) Z
+    differencesWith     :: (Foldable f) => (o -> o -> Ordering) -> f s -> s
     
     -- | Generalization of union on Foldable.
-    unionsWith          :: (Foldable f) => (o -> o -> Ordering) -> f (s o) -> s o
-    unionsWith        f =  foldl (unionWith f) Z
+    unionsWith          :: (Foldable f) => (o -> o -> Ordering) -> f s -> s
     
     -- | Generalization of symdiff on Foldable.
-    symdiffsWith        :: (Foldable f) => (o -> o -> Ordering) -> f (s o) -> s o
-    symdiffsWith      f =  foldl (symdiffWith f) Z
+    symdiffsWith        :: (Foldable f) => (o -> o -> Ordering) -> f s -> s
     
     {- Сomparison operations -}
     
     -- | Compares sets on intersection.
-    isIntersectsWith  :: (o -> o -> Ordering) -> s o -> s o -> Bool
-    isIntersectsWith f xs ys = not . null $ intersectionWith f xs ys
+    isIntersectsWith  :: (o -> o -> Ordering) -> s -> s -> Bool
     
     -- | Compares sets on disjoint.
-    isDisjointWith    :: (o -> o -> Ordering) -> s o -> s o -> Bool
-    isDisjointWith f xs ys = null $ intersectionWith f xs ys
+    isDisjointWith    :: (o -> o -> Ordering) -> s -> s -> Bool
     
     -- | Same as elem (Foldable), but can work faster. By default, uses find.
-    isContainedIn     :: (o -> o -> Ordering) -> o -> s o -> Bool
-    isContainedIn f e es = case find finder es of {Nothing -> False; _ -> True}
+    isContainedIn     :: (o -> o -> Ordering) -> o -> s -> Bool
+    
+    -- | Сhecks whether a first set is a subset of second.
+    isSubsetWith :: (o -> o -> Ordering) -> s -> s -> Bool
+    
+    -- | Generates a list of different subsets (including empty and equivalent).
+    subsets  :: (Ord o) => s -> [s]
+    
+    {- Default definitions. -}
+    
+    default setWith :: (((t o) ~~ s), Foldable t) => (o -> o -> Ordering) -> s -> s
+    setWith f es    =  foldl (flip $ insertWith f) Z es
+    
+    default subsets :: (Ord s, Ord o) => s -> [s]
+    subsets         =  setWith compare . subsequences . set
+    
+    -- comparsion.
+    
+    default isSubsetWith  :: (((t o) ~~ s), Foldable t) => (o -> o -> Ordering) -> s -> s -> Bool
+    isSubsetWith f xs ys  =  any (\ es -> isContainedIn f es ys) xs
+    
+    default isContainedIn :: (((t o) ~~ s), Foldable t) => (o -> o -> Ordering) -> o -> s -> Bool
+    isContainedIn f e es  = case find finder es of {Nothing -> False; _ -> True}
       where
         finder x = case f e x of {EQ -> True; _ -> False}
     
-    -- | Сhecks whether a first set is a subset of second.
-    isSubsetWith :: (o -> o -> Ordering) -> s o -> s o -> Bool
-    isSubsetWith f xs ys = any (\ es -> isContainedIn f es ys) xs
+    default isIntersectsWith  :: (((t o) ~~ s), Foldable t) => (o -> o -> Ordering) -> s -> s -> Bool
+    isIntersectsWith f xs ys = not . null $ intersectionWith f xs ys
     
-    default subsets :: (Ord1 s, Ord o) => s o -> [s o]
+    default isDisjointWith    :: (((t o) ~~ s), Foldable t) => (o -> o -> Ordering) -> s -> s -> Bool
+    isDisjointWith f xs ys = null $ intersectionWith f xs ys
     
-    -- | Generates a list of different subsets (including empty and equivalent).
-    subsets  :: (Ord o) => s o -> [s o]
-    subsets  =  setWith compare1 . subsequences . set
+    -- basic set operators.
+    
+    default intersectionsWith :: (((t o) ~~ s), Foldable f, Foldable t) => (o -> o -> Ordering) -> f s -> s
+    intersectionsWith f       =  foldl (intersectionWith f) Z
+    
+    default differencesWith   :: (((t o) ~~ s), Foldable f, Foldable t) => (o -> o -> Ordering) -> f s -> s
+    differencesWith   f       =  foldl (differenceWith f) Z
+    
+    default unionsWith        :: (((t o) ~~ s), Foldable f, Foldable t) => (o -> o -> Ordering) -> f s -> s
+    unionsWith        f       =  foldl (unionWith f) Z
+    
+    default symdiffsWith      :: (((t o) ~~ s), Foldable f, Foldable t) => (o -> o -> Ordering) -> f s -> s
+    symdiffsWith      f       =  foldl (symdiffWith f) Z
 
 --------------------------------------------------------------------------------
 
 {- Useful functions. -}
 
 -- | The same as sort . nub for list.
-set    :: (Set s, Ord o) => s o -> s o
+set    :: (Set s o, Ord o) => s -> s
 set    =  setWith compare
 
 -- | Same as insert compare.
-insert :: (Set s, Ord o) => o -> s o -> s o
+insert :: (Set s o, Ord o) => o -> s -> s
 insert =  insertWith compare
 
 -- | Same as deleteWith compare.
-delete :: (Set s, Ord o) => o -> s o -> s o
+delete :: (Set s o, Ord o) => o -> s -> s
 delete =  deleteWith compare
 
 -- | Intersection of two sets.
-(/\)  :: (Set s, Ord o) => s o -> s o -> s o
+(/\)  :: (Set s o, Ord o) => s -> s -> s
 (/\)  =  intersectionWith compare
 
 -- | Union of two sets.
-(\/)  :: (Set s, Ord o) => s o -> s o -> s o
+(\/)  :: (Set s o, Ord o) => s -> s -> s
 (\/)  =  unionWith compare
 
 -- | Difference (relative complement, aka A / B) of two sets.
-(\\)  :: (Set s, Ord o) => s o -> s o -> s o
+(\\)  :: (Set s o, Ord o) => s -> s -> s
 (\\)  =  differenceWith compare
 
 -- | Symetric difference (disjunctive union)
-(\^/) :: (Set s, Ord o) => s o -> s o -> s o
+(\^/) :: (Set s o, Ord o) => s -> s -> s
 (\^/) =  symdiffWith compare
 
 -- | Intersection of some sets.
-intersections :: (Set s, Foldable f, Ord o) => f (s o) -> s o
+intersections :: (Foldable f, Set s o, Ord o) => f s -> s
 intersections =  intersectionsWith compare
 
 -- | Union of some sets.
-unions        :: (Set s, Foldable f, Ord o) => f (s o) -> s o
+unions        :: (Foldable f, Set s o, Ord o) => f s -> s
 unions        =  unionsWith compare
 
 -- | Diference of some sets.
-differences   :: (Set s, Foldable f, Ord o) => f (s o) -> s o
+differences   :: (Foldable f, Set s o, Ord o) => f s -> s
 differences   =  differencesWith compare
 
 -- | Symmetric difference of some sets.
-symdiffs      :: (Set s, Foldable f, Ord o) => f (s o) -> s o
+symdiffs      :: (Foldable f, Set s o, Ord o) => f s -> s
 symdiffs      =  symdiffsWith compare
 
 -- | isSetElem o so = elem o so, but faster.
-isSetElem :: (Set s, Ord o) => o -> s o -> Bool
+isSetElem :: (Set s o, Ord o) => o -> s -> Bool
 isSetElem =  isContainedIn compare
 
 -- | isDisjoint synonym. Mnemonic: is the intersection of sets (/\) empty?
-(/?\) :: (Set s, Ord o) => s o -> s o -> Bool
+(/?\) :: (Set s o, Ord o) => s -> s -> Bool
 (/?\) =  isDisjointWith compare
 
 -- | Same as isIntersectsWith compare.
-(\?/) :: (Set s, Ord o) => s o -> s o -> Bool
+(\?/) :: (Set s o, Ord o) => s -> s -> Bool
 (\?/) =  isIntersectsWith compare
 
 -- | Same as isSubsetWith compare.
-(\+/) :: (Set s, Ord o) => s o -> s o -> Bool
+(\+/) :: (Set s o, Ord o) => s -> s -> Bool
 (\+/) =  isSubsetWith compare
 
 --------------------------------------------------------------------------------
 
-instance Set []
+instance Set [e] e
   where
     {-
       [internal]: O(n) at best, but O(n ^ 2) at worst, rewrite setWith.

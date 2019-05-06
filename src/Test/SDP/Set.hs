@@ -21,7 +21,7 @@ default ()
 
 type TestSet s o = o -> s o -> s o -> Bool
 
-testSet :: (Set s, Ord (s o), Ord o) => o -> s o -> s o -> Bool
+testSet :: (Foldable s, Ord o, Ord (s o), Set (s o) o) => o -> s o -> s o -> Bool
 testSet e sx sy = and
   [
     null sx == null sx' && null sy == null sy'

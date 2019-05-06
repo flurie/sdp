@@ -45,7 +45,6 @@ import SDP.Simple
   This Array type definition is no different from the standard GHC.Arr,
   but I have to redefine it because of the limitation of the Ix type.
 -}
-
 data Array i e = Array !i !i {-# UNPACK #-} !Int (Array# e)
 
 type role Array nominal representational
@@ -225,7 +224,7 @@ instance (Index i) => Traversable (Array i)
 
 {- Linear, Split and Bordered instances. -}
 
-instance (Index i) => Linear (Array i)
+instance (Index i) => Linear (Array i e) e
   where
     fromListN n es = runST $ ST 
         (
@@ -271,7 +270,7 @@ instance (Index i) => Linear (Array i)
         -- the same as "fmap toList . toList" but on bit faster
         toList' = foldr (\ a l -> toList a ++ l) []
 
-instance (Index i) => Split (Array i)
+instance (Index i) => Split (Array i e) e
   where
     prefix predicate arr@(Array _ _ n _) = last' 0
       where
@@ -302,7 +301,7 @@ instance (Index i) => Split (Array i)
         offset' = length xs - ly
         ly = length ys
 
-instance (Index i) => Bordered (Array i) i
+instance (Index i) => Bordered (Array i e) i e
   where
     lower   (Array l _ _ _) = l
     upper   (Array _ u _ _) = u
@@ -314,7 +313,7 @@ instance (Index i) => Bordered (Array i) i
 
 {- Indexed instance. -}
 
-instance (Index i) => Indexed (Array i) i
+instance (Index i) => Indexed (Array i e) i e
   where
     assoc' bnds defvalue ascs = runST
         (
@@ -344,8 +343,8 @@ instance (Index i) => Indexed (Array i) i
     (!)  arr@(Array l u _ _) i = arr !# offset (l, u) i
     (!?) arr@(Array l u _ _)   = (not . inRange (l, u)) ?: (arr !)
     
-    (.$) predicate es = find (predicate . (es !)) $ indices es
-    (*$) predicate es = fromList . filter (predicate . (es !)) $ indices es
+    (.$) predicate es = find   (predicate . (es !)) $ indices es
+    (*$) predicate es = filter (predicate . (es !)) $ indices es
 
 --------------------------------------------------------------------------------
 
@@ -364,7 +363,9 @@ instance (Index i) => Estimate (Array i)
 
 -- instance (Index i) => Set (Array i)
 
-instance (Index i) => LineS (Array i) where stream = stream . toList
+instance (Index i) => LineS (Array i e) e
+  where
+    stream = stream . toList
 
 instance (Index i) => Default (Array i e) where def = Z
 
