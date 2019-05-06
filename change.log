@@ -30,8 +30,10 @@ version 0.0.0.5
   Fixed unsafeIndex for unsigned types - (toEnum (-1)) fail.
   Structures with unsigned indices now indexed from (toEnum 1).
   Added haddock documentation.
+version 0.0.0.6
   Added Sort class.
   Added new dependency: ghc-prim >= 0.5.3 (to use ~~ class)
+version 0.0.0.7
 
 
 
