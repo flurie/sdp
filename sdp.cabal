@@ -1,5 +1,5 @@
 name:          sdp
-version:       0.0.0.5
+version:       0.0.0.6
 category:      Data Structures
 
 synopsis:      Simple Data Processing
@@ -40,6 +40,7 @@ Library
     SDP.Linear
     SDP.Set
     
+    SDP.Sort
     SDP.Scan
     SDP.Zip
     

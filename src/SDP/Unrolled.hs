@@ -1,5 +1,5 @@
-{-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, RoleAnnotations #-}
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
+{-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, RoleAnnotations #-}
 
 {- |
     Module      :  SDP.Index
@@ -8,12 +8,13 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
     
-    This mdule provides Unrolled - unrolled linked list.
+    This module provides Unrolled - unrolled linked list.
 -}
 
 module SDP.Unrolled
 (
   Unrolled (..),
+  Unlist, -- type Unlist is abstract.
   
   module SDP.Indexed,
   module SDP.Scan,
@@ -278,6 +279,7 @@ instance (Index i) => Default (Unrolled i e) where def = Z
 {- INTERNAL SECTION -}
 {--------------------}
 
+-- | Unlist is internal (abstract) type.
 data Unlist e = UNEmpty | Unlist {-# UNPACK #-} !Int (Array# e) (Unlist e)
 
 --------------------------------------------------------------------------------

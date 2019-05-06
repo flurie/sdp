@@ -5,7 +5,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
     
-    SDP.Array provides immutable lazy array type. This implementatin of array
+    SDP.Array provides immutable lazy array type. This implementation of array
     no much different from Data.Array (array), but incopatible with it.
     The main difference is the Index class instead of Ix.
 -}
