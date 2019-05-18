@@ -160,7 +160,7 @@ instance (Index i) => Foldable (Array i)
     
     foldl' f base arr = go 0 base
       where
-        go i a = (arr ==. i) ? a $ go (i + 1) ((f $! a) $ arr !# i)
+        go i a = arr ==. i ? a $ go (i + 1) ((f $! a) $ arr !# i)
     
     foldr1 f arr = null arr ? undEx "foldr1" $ go 0
       where
@@ -226,6 +226,8 @@ instance (Index i) => Traversable (Array i)
 
 instance (Index i) => Linear (Array i e) e
   where
+    isNull = null
+    
     fromListN n es = runST $ ST 
         (
           \ s1# -> case newArray# n# (undEx "fromList") s1# of
@@ -308,6 +310,7 @@ instance (Index i) => Bordered (Array i e) i e
     bounds  (Array l u _ _) = (l, u)
     indices (Array l u _ _) = range (l, u)
     assocs  arr = zip (indices arr) (toList arr)
+    sizeOf  (Array _ _ n _) = n
 
 --------------------------------------------------------------------------------
 

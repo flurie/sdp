@@ -34,7 +34,8 @@ version 0.0.0.6
   Added Sort class.
   Added new dependency: ghc-prim >= 0.5.3 (to use ~~ class)
 version 0.0.0.7
-
+  Linear and LineS now completely (formally) independent of Foldable
+  [internal]: Added STUArray (rewrited Data.Array.Base)
 
 
 

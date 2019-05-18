@@ -21,4 +21,5 @@ where
 -}
 
 import Prelude ()
-import SDP.Array.Immutable
+import SDP.Array.Immutable hiding ( STUArray )
+

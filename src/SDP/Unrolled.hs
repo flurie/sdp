@@ -149,6 +149,10 @@ instance (Index i) => Traversable (Unrolled i)
 
 instance (Index i) => Linear (Unrolled i e) e
   where
+    isNull = null
+    
+    listL  = toList
+    
     fromListN n es = Unrolled l u $ fromListN n es
       where
         l = unsafeIndex 0
@@ -227,6 +231,8 @@ instance (Index i) => Bordered (Unrolled i e) i e
     bounds  (Unrolled l u _) = (l, u)
     lower   (Unrolled l _ _) = l
     upper   (Unrolled _ u _) = u
+    
+    sizeOf  (Unrolled l u _) = size (l, u)
 
 --------------------------------------------------------------------------------
 
@@ -365,6 +371,10 @@ instance Foldable Unlist
 
 instance Linear (Unlist e) e
   where
+    isNull = null
+    
+    listL = toList
+    
     fromList [] = UNEmpty
     fromList es = runST $ ST
         (
@@ -482,6 +492,8 @@ instance Bordered (Unlist e) Int e
     lower  _  = 0
     upper  es = length es - 1
     bounds es = (0, length es - 1)
+    
+    sizeOf es = length es
 
 --------------------------------------------------------------------------------
 
