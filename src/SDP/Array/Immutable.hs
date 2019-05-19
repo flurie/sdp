@@ -246,6 +246,24 @@ instance (Index i) => Linear (Array i e) e
         l = unsafeIndex 0
         u = unsafeIndex (n' - 1)
     
+    fromFoldable es = runST $ ST
+        (
+          \ s1# -> case newArray# n# (undEx "fromList") s1# of
+              (# s2#, marr# #) ->
+                let go y r = \ i# s3# -> case writeArray# marr# i# y s3# of
+                      s4# -> if isTrue# (i# ==# n# -# 1#)
+                                then s4#
+                                else r (i# +# 1#) s4#
+                in done (l, u) n marr#
+                (
+                  if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2#
+                )
+        )
+      where
+        !n@(I# n#) = length es
+        l = unsafeIndex 0
+        u = unsafeIndex $ n - 1
+    
     -- O(n + m) concatenation
     xs ++ ys = fromList $ on (++) toList xs ys
     
@@ -259,7 +277,10 @@ instance (Index i) => Linear (Array i e) e
     init es = fromListN (length es - 1) $ toList es
     
     -- O(n) reverse
-    reverse es = fromListN n $ listR es where n = length es
+    reverse es = fromListN (length es) (listR es)
+    
+    -- O (n) right view.
+    listL   es = toList es
     
     -- O(n) right list view
     listR   es = [ es !# i | i <- [n - 1, n - 2 .. 0] ] where n = length es
@@ -289,6 +310,12 @@ instance (Index i) => Split (Array i e) e
     
     -- O (n) drop.
     drop n es = fromListN (l - n + 1) [ es !# i | i <- [n .. l - 1] ] where l = length es
+    
+    split n es = (fromListN n take', fromListN (l - n + 1) drop')
+      where
+        (take', drop') = split n $ toList es
+        
+        l = length es
     
     -- No more than O(n) comparing.
     isPrefixOf xs ys = xs .<=. ys && and equals

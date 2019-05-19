@@ -1,5 +1,5 @@
 name:          sdp
-version:       0.0.0.8
+version:       0.0.0.9
 category:      Data Structures
 
 synopsis:      Simple Data Processing
@@ -37,6 +37,7 @@ Library
     
     SDP.Unrolled
     SDP.Array
+    SDP.Bytes
     
     SDP.Indexed
     SDP.Linear

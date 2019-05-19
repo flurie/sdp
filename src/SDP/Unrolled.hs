@@ -50,7 +50,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | Unrolled linked list.
+-- | Bordered unrolled linked list.
 data Unrolled i e = Unrolled !i !i (Unlist e)
 
 type role Unrolled nominal representational
@@ -178,10 +178,6 @@ instance (Index i) => Linear (Unrolled i e) e
         
         l = unsafeIndex 0
         u = unsafeIndex $ max 0 n' - 1
-    
-    -- filter, partition
-    
-    -- isSubseqOf
     
     intersperse e (Unrolled _ _ es) = Unrolled l1 u1 (intersperse e es)
       where

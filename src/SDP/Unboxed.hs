@@ -17,10 +17,9 @@ module SDP.Unboxed ( Unboxed (..), newUnboxedByteArray, safe_scale ) where
 import Prelude ()
 import SDP.SafePrelude
 
-import GHC.Exts
-
 import GHC.Stable ( StablePtr(..) )
 import GHC.Base   ( divInt# )
+import GHC.Exts
 
 import GHC.Int  ( Int  (..), Int8  (..), Int16  (..), Int32  (..), Int64  (..) )
 import GHC.Word ( Word (..), Word8 (..), Word16 (..), Word32 (..), Word64 (..) )

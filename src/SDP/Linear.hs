@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE PatternSynonyms, ViewPatterns, DefaultSignatures #-}
+{-# LANGUAGE TypeOperators, GADTs, DefaultSignatures #-}
+{-# LANGUAGE PatternSynonyms, ViewPatterns #-}
 
 {- |
     Module      :  SDP.Linear
@@ -24,7 +25,7 @@ module SDP.Linear
   
   pattern (:>), pattern (:<), pattern Z,
   
-  tails, inits, nub
+  intercalate, tails, inits, nub
 )
 
 where
@@ -38,6 +39,8 @@ import SDP.SafePrelude
 import SDP.Simple
 import SDP.Index
 import SDP.Zip
+
+import GHC.Types
 
 --------------------------------------------------------------------------------
 
@@ -105,6 +108,10 @@ class Linear l e | l -> e
     single      :: e -> l
     single x    =  fromList [x]
     
+    -- | Generalization of (Some.Module.++).
+    (++)        :: l -> l -> l
+    xs ++ ys    =  fromList $ (listL xs) ++ (listL ys)
+    
     -- | Line of n equal elements.
     replicate   :: Int -> e -> l
     replicate n =  fromListN n . replicate n
@@ -117,72 +124,62 @@ class Linear l e | l -> e
     fromListN   :: Int -> [e] -> l
     fromListN n =  fromList . take n
     
+    -- | Same as listL . reverse.
+    listR :: l -> [e]
+    listR =  listL . reverse
+    
+    -- | Same as toList, but formally doesn't requires Foldable.
+    listL :: l -> [e]
+    listL =  reverse . listR
+    
+    {- Generalized folds. -}
+    
     {- |
-      Generalisation of fromList. fromFoldable is very powerful, but not
-      comfortable to use, because needed type signatures.
+      Very powerful generalisation of fromList, but not comfortable to use -
+      oftentimes needed type signatures.
     -}
     fromFoldable  :: (Foldable f) => f e -> l
     fromFoldable  =  fromList . toList
     
-    -- | Generalization of (Some.Library.++).
-    (++)          :: l -> l -> l
-    xs ++ ys      =  fromList $ (listL xs) ++ (listL ys)
-    
-    -- | Generalization of Some.Library.concat.
+    -- | Generalization of Some.Module.concat.
     concat        :: (Foldable f) => f l -> l
     concat        =  foldr (++) lzero
     
+    -- | Generalization of Data.List.concatMap.
+    concatMap     :: (Foldable f) => (a -> l) -> f a -> l
+    concatMap  f  =  foldr' (\ x y -> f x ++ y) Z
+    
+    -- | Generalization of Data.List.intersperse. May be moved.
+    intersperse   :: e -> l -> l
+    intersperse e =  fromList . intersperse e . listL
+    
     {- Filtering functions. -}
     
-    -- | Generalization of Some.Library.filter.
+    -- | Generalization of Some.Module.filter.
     filter         :: (e -> Bool) -> l -> l
     filter p       =  fromList . filter p . listL
     
-    -- | Generalization of Some.Library.partition.
+    -- | Generalization of Some.Module.partition.
     partition      :: (e -> Bool) -> l -> (l, l)
     partition p es = (filter p es, filter (not . p) es)
     
     {- Special functions -}
     
     -- Compares lines as [multi]sets. May be rewrited and moved.
-    isSubseqOf    :: (Eq e) => l -> l -> Bool
+    isSubseqOf :: (Eq e) => l -> l -> Bool
     isSubseqOf Z _       =  True
     isSubseqOf _ Z       =  False
     isSubseqOf xs@(x :> rest) (y :> ys) = x == y && rest `isSubseqOf` ys || xs `isSubseqOf` ys
     
-    -- | Generalization of Some.Library.reverse.
-    reverse       :: l -> l
-    reverse       =  fromList . reverse . listL
-    
-    -- | Generalization of Data.List.intersperse. May be moved.
-    intersperse   :: e -> l -> l
-    intersperse e =  fromList . intersperse e . listL
-    
-    -- | Generalization of Data.List.concatMap.
-    concatMap     :: (Foldable f) => (a -> l) -> f a -> l
-    concatMap  f  =  foldr' (\ x y -> f x ++ y) Z
+    -- | Generalization of Some.Module.reverse.
+    reverse    :: l -> l
+    reverse    =  fromList . reverse . listL
     
     -- | Generalization of Data.List.subsequences. May be moved.
     subsequences     :: l -> [l]
     subsequences xxs =  Z : ss xxs
       where
         ss es = case es of {(x :> xs) -> single x : foldr (\ ys r -> ys : (x :> ys) : r) [] (ss xs); _ -> Z}
-    
-    {- |
-      Same as listL . reverse.
-      The listR looks rather inappropriate, but allows you to speed up processing
-      a bit in some cases and not worry about the details of the specific
-      structures implementation when writing generalized functions.
-    -}
-    listR :: l -> [e]
-    listR =  listL . reverse
-    
-    {- |
-      Same as toList (or, generally speaking, listR . reverse), but formally
-      doesn't requires Foldable.
-    -}
-    listL :: l -> [e]
-    listL =  reverse . listR
     
     -- | Generalization of Data.List.nubBy.
     nubBy   :: (e -> e -> Bool) -> l -> l
@@ -244,17 +241,17 @@ class (Linear l e) => LineS l e | l -> e
 
 class (Linear s e) => Split s e | s -> e
   where
-    {-# MINIMAL (take,drop|split), prefix, suffix #-}
+    {-# MINIMAL (take,drop|split) #-}
     
     {- Simple splitters. -}
     
     take       :: Int -> s -> s
-    take n     =  fst . split n
+    take n es  =  fst $ split n es
     
     drop       :: Int -> s -> s
-    drop n     =  snd . split n
+    drop n es  =  snd $ split n es
     
-    -- | split is same as Some.Library.splitAt
+    -- | split is same as Some.Module.splitAt
     split      :: Int -> s -> (s, s)
     split n es =  (take n es, drop n es)
     
@@ -275,15 +272,15 @@ class (Linear s e) => Split s e | s -> e
     
     -- | isSuffixOf checks whether the first line is the ending of the second
     isSuffixOf :: (Eq e) => s -> s -> Bool
-    isSuffixOf Z _ = True
     isSuffixOf (xs :< x) (ys :< y) = (x == y) && (xs `isSuffixOf` ys)
+    isSuffixOf Z _ = True
     isSuffixOf _ _ = False
     
     -- | isInfixOf checks whether the first line is the substring of the second
     isInfixOf  :: (Eq e) => s -> s -> Bool
-    isInfixOf Z _   = True
-    isInfixOf _ Z   = False
-    isInfixOf xs ys = xs `isPrefixOf` ys || xs `isInfixOf` (tail ys)
+    isInfixOf  Z _   = True
+    isInfixOf  _ Z   = False
+    isInfixOf  xs ys = xs `isPrefixOf` ys || xs `isInfixOf` (tail ys)
     
     {- Largest sequences. -}
     
@@ -326,10 +323,16 @@ class (Linear s e) => Split s e | s -> e
     breakr p es = (takeEnd (not . p) es, dropEnd (not . p) es)
     
     default takeEnd :: (Index i, Bordered s i e) => (e -> Bool) -> s -> s
-    takeEnd p es = drop (sizeOf es - suffix p es) es
+    takeEnd p es    =  drop (sizeOf es - suffix p es) es
     
     default dropEnd :: (Index i, Bordered s i e) => (e -> Bool) -> s -> s
-    dropEnd p es = take (sizeOf es - suffix p es) es
+    dropEnd p es    =  take (sizeOf es - suffix p es) es
+    
+    default prefix  :: (Foldable t, t e ~~ s) => (e -> Bool) -> s -> Int
+    prefix p        =  foldr (\ e c -> p e ? c + 1 $ 0) 0
+
+    default suffix  :: (Foldable t, t e ~~ s) => (e -> Bool) -> s -> Int
+    suffix p        =  foldl (\ c e -> p e ? c + 1 $ 0) 0
 
 --------------------------------------------------------------------------------
 
@@ -401,9 +404,6 @@ instance Split [e] e
     drop  = L.drop
     split = L.splitAt
     
-    prefix = undefined
-    suffix = undefined
-    
     isPrefixOf = L.isPrefixOf
     isInfixOf  = L.isInfixOf
     isSuffixOf = L.isSuffixOf
@@ -425,6 +425,10 @@ instance Split [e] e
 
 --------------------------------------------------------------------------------
 
+-- | intercalate is generalization of Data.List.intercalate
+intercalate   :: (Foldable f, Linear (f (t e)) (t e), Linear (t e) e) => t e -> f (t e) -> t e
+intercalate l =  concat . intersperse l
+
 -- | nub is generalization of Data.List.nub and synonym for nubBy (==).
 nub   :: (Linear l e, Eq e) => l -> l
 nub   =  nubBy (==)
@@ -438,3 +442,4 @@ tails es = es : tails (tail es)
 inits :: (Linear l e) => l -> [l]
 inits Z  = Z
 inits es = es : inits (init es)
+

@@ -11,7 +11,13 @@ where
 import Prelude ()
 import SDP.SafePrelude
 
-import GHC.Base ( MutableArray#, MutableByteArray#, Int (..), writeArray#, sameMutableArray#, isTrue# )
+import GHC.Base
+  (
+    MutableArray#, MutableByteArray#, Int (..),
+    
+    writeArray#, sameMutableArray#, isTrue#
+  )
+
 import GHC.ST   ( STRep )
 
 --------------------------------------------------------------------------------
@@ -29,6 +35,8 @@ instance Eq (STArray s i e)
 {-# INLINE fill #-}
 fill :: MutableArray# s e -> (Int, e) -> STRep s a -> STRep s a
 fill marr# (I# i#, e) next = \s1# -> case writeArray# marr# i# e s1# of s2# -> next s2#
+
+--------------------------------------------------------------------------------
 
 {- |
   STUArray is a poor service type that lift the primitive ByteArray to the

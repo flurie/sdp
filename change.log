@@ -42,3 +42,7 @@ version 0.0.0.7:
 version 0.0.0.8:
   Service class Unboxed for ByteArray added.
 
+version 0.0.0.9:
+  Bytes (UArray analogue) added.
+  Implemented lost fucntions (prefix, suffix) for list.
+

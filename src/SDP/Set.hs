@@ -1,7 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 
 -- For default definitions.
-{-# LANGUAGE TypeOperators, TypeFamilies, DefaultSignatures #-}
+{-# LANGUAGE TypeOperators, GADTs, DefaultSignatures #-}
 
 {- |
     Module      :  SDP.Set
