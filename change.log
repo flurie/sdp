@@ -1,41 +1,44 @@
-version 0.0.0.1
+version 0.0.0.1:
   First, unstable version of SDP (Simple Data Processing).
   
-  Added Indexed class
-  Added Linear class
-  Added Set class
+  Added Indexed class.
+  Added Linear class.
+  Added Set class.
   
-  Added IndexException type
-  Added Estimate class
-  Added Index class
-  Added Scan class
-  Added Zip class
+  Added IndexException type.
+  Added Estimate class.
+  Added Index class.
+  Added Scan class.
+  Added Zip class.
 
-version 0.0.0.2
-  Second unstable version.
-  
-  Added Array type (rewrited GHC.Arr)
+version 0.0.0.2:
+  Added Array type (rewrited GHC.Arr).
 
-version 0.0.0.3
+version 0.0.0.3:
   A lot of code was tested.
   Many stupid bugs were fixed.
   Сommon tests for standard classes were added.
   There are no other notable changes.
-version 0.0.0.4
+
+version 0.0.0.4:
   Changed Linear class.
   Added LineS and Split classes.
   Added Unrolled linked list type.
   Added Tuple instances for Index.
-version 0.0.0.5
+
+version 0.0.0.5:
   Fixed unsafeIndex for unsigned types - (toEnum (-1)) fail.
   Structures with unsigned indices now indexed from (toEnum 1).
   Added haddock documentation.
-version 0.0.0.6
+
+version 0.0.0.6:
   Added Sort class.
-  Added new dependency: ghc-prim >= 0.5.3 (to use ~~ class)
-version 0.0.0.7
-  Linear and LineS now completely (formally) independent of Foldable
-  [internal]: Added STUArray (rewrited Data.Array.Base)
+  Added new dependency: ghc-prim >= 0.5.3 (to use ~~ class).
 
+version 0.0.0.7:
+  Linear and LineS now completely (formally) independent of Foldable.
+  [internal]: Added STUArray (rewrited Data.Array.Base).
 
+version 0.0.0.8:
+  Service class Unboxed for ByteArray added.
 

@@ -1,5 +1,5 @@
 name:          sdp
-version:       0.0.0.7
+version:       0.0.0.8
 category:      Data Structures
 
 synopsis:      Simple Data Processing
@@ -32,6 +32,7 @@ Library
     Control.Exception.SDP
     SDP.SafePrelude
     SDP.Estimate
+    SDP.Unboxed
     SDP.Index
     
     SDP.Unrolled
