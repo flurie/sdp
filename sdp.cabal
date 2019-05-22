@@ -53,8 +53,6 @@ Library
     Test.SDP.Set
   
   other-modules:
-    
-    SDP.Array.Immutable
     SDP.Array.Mutable
     
     SDP.Simple

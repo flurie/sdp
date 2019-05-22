@@ -1,3 +1,5 @@
+{-# OPTIONS_HADDOCK ignore-exports #-}
+
 {- |
     Module      :  SDP.SafePrelude
     Copyright   :  (c) Andrey Mulik 2019
@@ -7,7 +9,7 @@
   
   Module with simple common definitions.
   
-  Exports base "Prelude" without zips, scans, and some list functions, ('?') and
+  Exports base "Prelude" (without zips, scans, some list functions), ('?') and
   'Estimate'.
 -}
 
@@ -46,10 +48,10 @@ import SDP.Estimate
 
 infixr 1 ? -- Lowest priority, compatible with infixr 0 $
 
-{- |
-  Ternary operator.
-  > odd 1 ? "is True" $ "is False"
-  > "is True"
--}
+-- |
+-- Ternary operator.
+-- >>> odd 1 ? "is True" $ "is False"
+-- "is True"
+
 (?)   :: Bool -> a -> a -> a
 (?) predicate t e = if predicate then t else e

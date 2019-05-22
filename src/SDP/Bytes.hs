@@ -1,9 +1,25 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 {-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, RoleAnnotations #-}
 
+{- |
+    Module      :  SDP.Bytes
+    Copyright   :  (c) Andrey Mulik 2019
+    License     :  BSD-style
+    Maintainer  :  work.a.mulik@gmail.com
+    Portability :  non-portable (GHC Extensions)
+    
+    SDP.Bytes provides immutable strict unboxed array type.
+    This implementation of UArray no much different from Data.Array.Unboxed (array),
+    but incopatible with it.
+    The main difference is the Index class instead of Ix.
+-}
+
 module SDP.Bytes
   (
+    module Test.QuickCheck,
+    
     module SDP.Unboxed,
+    module SDP.Indexed,
     
     Bytes (..)
   )
@@ -37,6 +53,11 @@ import GHC.Int  ( Int (..) )
 import GHC.ST   ( ST(..), STRep, runST )
 
 --------------------------------------------------------------------------------
+
+{- |
+  This UArray type definition is no different from the standard Data.Array.Base,
+  but I have to redefine it because of the limitation of the Ix class.
+-}
 
 data Bytes i e = Bytes !i !i {-# UNPACK #-} !Int ByteArray#
 
@@ -144,7 +165,18 @@ instance (Index i, Unboxed e) => Bordered (Bytes i e) i e
 
 instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
   where
-    assoc' = undefined
+    assoc' (l, u) defvalue ascs = runST $ ST $
+      \ s1# -> case newUnboxed defvalue n# s1# of
+        (# s2#, marr# #) ->
+          let gowrite (i, y) r = \ i# s3# -> case writeByteArray# marr# (ix i) y s3# of
+                s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#
+          in case foldr gowrite (\ _ s# -> s#) ies 0# s2# of
+            s5# -> case unsafeFreezeByteArray# marr# s5# of
+              (# s6#, arr# #) -> (# s6#, Bytes l u n arr# #)
+        where
+          ies = filter (inRange (l, u) . fst) ascs
+          ix i = case offset (l, u) i of (I# i#) -> i#
+          !n@(I# n#) = size (l, u)
     
     Z // ascs = isNull ascs ? Z $ assoc (l, u) ascs
       where

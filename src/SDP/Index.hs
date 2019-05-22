@@ -121,8 +121,9 @@ class (Ord i) => Index i
     -- False
     inRange     :: (i, i) -> i -> Bool
     
-    -- | Checks if the index is overflow. The default definition for isOverflow
-    -- and isUnderflow gives the answer True in the case of an empty range:
+    -- | Checks if the index is overflow.
+    -- The default definition for isOverflow and isUnderflow gives the answer
+    -- True in the case of an empty range:
     --
     -- >>> isOverflow  (5, -1) x
     -- True
@@ -131,30 +132,11 @@ class (Ord i) => Index i
     -- True
     --
     -- for all x, because
-    -- 
+    --
     -- >>> not $ x `elem` (range (5, -1)) -- range (5, -1) == []
     -- True
     --
-    -- >>> isEmpty (5, -1)
-    -- True
-    --
-    --   Other definitions in this module follow this rule.
-    --
-    --   This isn't a strict requirement, but recommended behavior, where
-    -- appropriate If the behavior of a particular implementation of a function
-    -- isn't explicitly specified in the documentation.
-    --
-    -- Generaly speaking, isOverflow and isUnderflow are not mutually exclusive:
-    --
-    -- >>> isOverflow  ((-3, 4), (2, 5)) (-4, 6)
-    -- True
-    --
-    -- >>> isUnderflow ((-3, 4), (2, 5)) (-4, 6)
-    -- True
-    --
-    -- Their disjunction is interchangeable with inversion of inRange (in
-    -- default definitions), but conjunction of isOverflow and isUnderflow also
-    -- includes empty range case and doesn't guarantee the truth of inRange.
+    -- and
     --
     -- >>> offset (26, 0) 0
     -- *** Exception: empty range in SDP.Index.offset (default)
@@ -176,6 +158,26 @@ class (Ord i) => Index i
     --
     -- >>> isUnderflow (26, 0) 0
     -- True
+    --
+    --   Other definitions in this module follow this rule.
+    --
+    --   This is not a strict requirement, but a recommended behavior (if it's
+    -- relevant to a particular implementation).
+    --
+    -- Generaly speaking, isOverflow and isUnderflow are not mutually exclusive:
+    --
+    -- >>> isOverflow  ((-3, 4), (2, 5)) (-4, 6)
+    -- True
+    --
+    -- >>> isUnderflow ((-3, 4), (2, 5)) (-4, 6)
+    -- True
+    --
+    -- And their conjunction doesn't mean that range is empty
+    -- Although, for example, for one-dimensional indexes, previous 2 points is
+    -- true.
+    -- 
+    -- Also, their disjunction is interchangeable with inversion of inRange (in
+    -- default definitions)
     isOverflow  :: (i, i) -> i -> Bool
     
     -- | Checks if the index is underflow.
