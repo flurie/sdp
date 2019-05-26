@@ -45,4 +45,10 @@ version 0.0.0.8:
 version 0.0.0.9:
   Bytes (UArray analogue) added.
   Implemented lost fucntions (prefix, suffix) for list.
+  Test suite rewrited and documented.
+  Changed Unboxed class (removed fillByteArray# and changed newUnboxed implementation).
+  Repaired SDP.Bytes.fromList
+
+scheduled changes:
+  Cabal tests.
 

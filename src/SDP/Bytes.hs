@@ -112,17 +112,23 @@ instance (Unboxed e, Index i) => Linear (Bytes i e) e
     fromListN = fromListN' (throw $ UndefinedValue "in SDP.Bytes.fromListN")
       where
         fromListN' :: (Index i, Unboxed e) => e -> Int -> [e] -> Bytes i e
-        fromListN' e n@(I# n#) es = runST $ ST $ \ s1# -> case newUnboxed e n# s1# of
-            (# s2#, marr# #) ->
-              let go y r = \ i# s3# -> case writeByteArray# marr# i# y s3# of
-                    s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#
-              in done (STUArray l u n marr#)
-              (
-                if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2#
-              )
+        fromListN' e n es = runST $ ST
+            (
+              \ s1# -> case newUnboxed e n# s1# of
+                  (# s2#, marr# #) ->
+                    let go y r = \ i# s3# -> case writeByteArray# marr# i# y s3# of
+                          s4# -> if isTrue# (i# ==# n# -# 1#)
+                                    then s4#
+                                    else r (i# +# 1#) s4#
+                    in done (STUArray l u n' marr#)
+                    (
+                      if n' == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2#
+                    )
+            )
           where
+            !n'@(I# n#) = max 0 $ (es <. n) ? length es $ n
             l = unsafeIndex 0
-            u = unsafeIndex $ n - 1
+            u = unsafeIndex (n' - 1)
     
     xs  ++  ys = fromListN (sizeOf xs + sizeOf ys) $ (listL xs) ++ (listL ys)
     
@@ -130,17 +136,10 @@ instance (Unboxed e, Index i) => Linear (Bytes i e) e
     
     reverse es = fromListN (sizeOf es) (listR es)
     
-    replicate n@(I# n#) e = runST $ ST $ \ s1# -> case newUnboxed e n# s1# of
-        (# s2#, marr# #) -> case unsafeFreezeByteArray# marr# s2# of
-          (# s3#, arr# #) -> (# s3#, Bytes l u n arr# #)
-      where
-        l = unsafeIndex 0
-        u = unsafeIndex $ n - 1
-    
     listL (Bytes _ _ n bytes#) = [ bytes# !# i# | (I# i#) <- [0 .. n - 1] ]
     listR (Bytes _ _ n bytes#) = [ bytes# !# i# | (I# i#) <- [n - 1, n - 2 .. 0] ]
     
-    concatMap   f = concat . map f . toList
+    concatMap f = concat . map f . toList
 
 instance (Index i, Unboxed e) => Split (Bytes i e) e
   where
@@ -178,13 +177,12 @@ instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
           ix i = case offset (l, u) i of (I# i#) -> i#
           !n@(I# n#) = size (l, u)
     
-    Z // ascs = isNull ascs ? Z $ assoc (l, u) ascs
+    -- I spent half a day on this code. It was a fun time...
+    -- Now I need to understand what I wrote.
+    Z // ascs = null ascs ? Z $ assoc (l, u) ascs
       where
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
-    
-    -- I spent half a day on this code. It was a fun time...
-    -- Now I need to understand what I wrote.
     es'@(Bytes l' u' _ _) // ascs = writecopy' es' err ies'
       where
         writecopy' :: (Index i, Unboxed e) => Bytes i e -> e -> [(i, e)] -> Bytes i e

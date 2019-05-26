@@ -1,17 +1,28 @@
+{- |
+    Module      :  Test.SDP.Indexed
+    Copyright   :  (c) Andrey Mulik 2019
+    License     :  BSD-style
+    Maintainer  :  work.a.mulik@gmail.com
+    Portability :  non-portable (GHC Extensions)
+    
+    Test.SDP.Indexed provides simple set of test for SDP.Indexed class.
+-}
+
 module Test.SDP.Indexed
 (
-  module Test.QuickCheck,
-  
   TestIndexed,
   
-  testIndexed
+  basicIndexedTest,
+  assocIndexedTest,
+  readIndexedTest,
+  
+  indexedTest
 )
 where
 
 import Prelude ()
 import SDP.SafePrelude
 
-import Test.QuickCheck
 import SDP.Indexed
 
 import Data.Maybe
@@ -20,31 +31,56 @@ default ()
 
 --------------------------------------------------------------------------------
 
-type TestIndexed l i e = i -> l e -> Bool
+-- | TestIndexed is service type synonym for more comfortable quickCheck using.
+type TestIndexed l i = i -> l -> Bool
 
-testIndexed :: (Foldable l, Eq e, Eq (l e), Indexed (l e) i e, Bordered (l e) i e) => i -> l e -> Bool
-testIndexed ix xs = and
+-- | basicIndexedTest checks relations of isNull and safeElem
+basicIndexedTest :: (Indexed l i e, Bordered l i e, Index i) => i -> l -> Bool
+basicIndexedTest i es = isNull es || inRange bnds i'
+  where
+    i'   = safeElem bnds i
+    bnds = bounds es
+
+-- | assocIndexedTest checks relations of assoc, assocs, (.$), (*$) and (//).
+assocIndexedTest :: (Indexed l i e, Bordered l i e, Index i, Eq e, Eq l) => i -> l -> Bool
+assocIndexedTest i es = and
   [
-    null xs || inRange bnds i
+    assoc (bounds es) (assocs es) == es,
     
-    , assoc bnds (assocs xs) == xs
-    
-    -- just strict calculation that checks (.!) on all range
-    , fmap (xs .!) rs == toList xs
-    , null xs || (xs ! i == xs .! i)
-    
-    , inRange bnds ix || isNothing (xs !? ix)
-    , null xs || isJust (xs !? i)
-    
-    , xs // (assocs xs) == xs
-    , Z  // (assocs xs) == xs
-    , xs // [] == xs
+    es // (assocs es) == es,
+    Z  // (assocs es) == es,
+    es //     []      == es,
     
     -- if structure contain dublicates, (.$) may find earlier match.
-    , null xs || i >= fromJust ((== xs ! i) .$ xs)
-    , null xs || elem i ((== xs ! i) *$ xs)
+    isNull es || i' >= fromJust ((== es ! i') .$ es),
+    isNull es || elem i' ((== es ! i') *$ es)
   ]
   where
-    i    = safeElem bnds ix
-    rs   = indices xs
-    bnds = bounds xs
+    i'   = safeElem bnds i
+    bnds = bounds es
+
+-- | readIndexedTest checks relations of listL, (.!), (!) and (!?).
+readIndexedTest :: (Indexed l i e, Bordered l i e, Eq e, Index i) => i -> l -> Bool
+readIndexedTest i es = and
+    [
+      -- just strict calculation that checks (.!) on all range
+      fmap (es .!) (indices es) == listL es,
+      
+      isNull es || (es ! i' == es .! i'),
+      
+      inRange bnds i || isNothing (es !? i),
+      isNull es || isJust (es !? i')
+    ]
+  where
+    i'   = safeElem bnds i
+    bnds = bounds es
+
+-- | indexedTest is complex test, that includes all other tests.
+indexedTest :: (Indexed l i e, Bordered l i e, Eq e, Eq l) => i -> l -> Bool
+indexedTest i es = and
+  [
+    basicIndexedTest i es,
+    assocIndexedTest i es,
+    readIndexedTest  i es
+  ]
+

@@ -23,9 +23,10 @@ What SDP provides?
 --------------------------------------------------------------------------------
 Currently there are only three data structures in SDP:
 - standard lists ([])
-- "lazy" arrays (Array)
+- "lazy" immutable boxed arrays (Array)
+- strict mutable unboxed arrays (Bytes)
 - unrolled linked lists (Unrolled, "lazy")
-but strict arrays and expanded byte lists, matrices, bitmaps, trees, sequences,
+but strict unrolled bytelists, matrices, bitmaps, trees, sequences,
 dictionaries, and prefix trees.
 
 How does SDP differ from other libraries?

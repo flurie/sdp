@@ -1,75 +1,141 @@
+{- |
+    Module      :  Test.SDP.Linear
+    Copyright   :  (c) Andrey Mulik 2019
+    License     :  BSD-style
+    Maintainer  :  work.a.mulik@gmail.com
+    Portability :  non-portable (GHC Extensions)
+    
+    Test.SDP.Linear provides simple set of test for SDP.Linear class.
+-}
+
 module Test.SDP.Linear
 (
-  Arbitrary (..),
   TestLinear,
   TestSplit,
-  quickCheck,
-  testLinear,
-  testSplit
+  
+  basicLinearTest,
+  
+  deconstructionLinearTest,
+  constructionLinearTest,
+  
+  concatTest,
+  reverseTest,
+  replicateTest,
+  
+  linearTest,
+  splitTest
 )
 where
 
 import Prelude ()
 import SDP.SafePrelude
 
-import Test.QuickCheck
 import SDP.Linear
 
 default ()
 
 --------------------------------------------------------------------------------
 
-type TestLinear l e = Int -> e -> l e -> Bool
+-- | TestLinear is service type synonym for more comfortable quickCheck using.
+type TestLinear l e = Int -> e -> l -> Bool
 
-testLinear :: (Foldable l, Eq e, Eq (l e), Linear (l e) e, Arbitrary (l e)) => Int -> e -> l e -> Bool
-testLinear n e line = and
+-- | basicLinearTest checks relations of isNull, lzero, single and fromList.
+basicLinearTest :: (Linear l e, Eq l) => e -> l -> Bool
+basicLinearTest e line = and
   [
-    null (fromList [] `asTypeOf` line), null (lzero `asTypeOf` line)
+    isNull (   lzero    `asTypeOf` line),
+    isNull (fromList [] `asTypeOf` line),
     
-    , single e == (fromList [e] `asTypeOf` line)
-    , not $ null (single e `asTypeOf` line)
+    single  e == (fromList [e] `asTypeOf` line),
+    not $ isNull (  single e   `asTypeOf` line),
     
-    , null line || fromList (toList line) == line
-    
-    , null line || head line == head (toList line)
-    , null line || last line == last (toList line)
-    
-    , null line || toList (init line) == init (toList line)
-    , null line || toList (tail line) == tail (toList line)
-    
-    , toHead e line == fromList (e : toList line)
-    , toLast line e == fromList (toList line ++ [e])
-    
-    , not . null $ toHead e line
-    , not . null $ toLast line e
-    
-    , reverse (toList line) == toList (reverse line)
-    , reverse (toList line) == listR line
-    
-    , all ( == e) ((replicate n e) `asTypeOf` line)
-    , n < 0 || length ((replicate n e) `asTypeOf` line) == n
-    
-    , not $ n > 0 && null ((replicate n e) `asTypeOf` line)
-    
-    , toList line ++ listR line == toList (line ++ reverse line)
-    
-    , Z ++ line == line
-    , line ++ Z == line
-    
-    , concat [line, reverse line] == line ++ reverse line
-    , concat [line, reverse line] == fromList (concat [toList line, listR line])
+    fromList (listL line) == line
   ]
 
-type TestSplit f e = Int -> f e -> Bool
-
-testSplit :: (Foldable f, Split (f e) e, Eq e, Eq (f e), Arbitrary (f e)) => Int -> f e -> Bool
-testSplit n line = and
+-- | deconstructionLinearTest checks relations of isNull, head, last, init and tail.
+deconstructionLinearTest :: (Linear l e, Eq e) => l -> Bool
+deconstructionLinearTest line = and
   [
+    isNull line || head line == head (listL line),
+    isNull line || last line == last (listL line),
+    
+    isNull line || listL (init line) == init (listL line),
+    isNull line || listL (tail line) == tail (listL line)
+  ]
+
+-- | constructionLinearTest checks relations of toHead, toLast and fromList.
+constructionLinearTest :: (Linear l e, Eq l) => e -> l -> Bool
+constructionLinearTest e line = and
+  [
+    toHead e line == fromList (e  :  listL  line),
+    toLast line e == fromList (listL line ++ [e]),
+    
+    not . isNull $ toHead e line,
+    not . isNull $ toLast line e
+  ]
+
+-- | reverseTest checks rules of reverse, listL and listR.
+reverseTest :: (Linear l e, Eq e) => l -> Bool
+reverseTest line = and
+  [
+    reverse (listL line) == listL (reverse line),
+    reverse (listL line) == listR line
+  ]
+
+-- | replicateTest checks rules of replicate.
+replicateTest :: (Linear l e, Eq l, Bordered l i e) => Int -> e -> l -> Bool
+replicateTest n e line = and
+  [
+    line' == fromList (replicate n e),
+    n < 0 || sizeOf line' == n,
+    not $ n > 0 && isNull line'
+  ]
+  where
+    line' = (replicate n e) `asTypeOf` line
+
+-- | concatTest checks rules of (++) and concat.
+concatTest :: (Linear l e, Eq e, Eq l) => l -> Bool
+concatTest line = and
+  [
+    listL line ++ listR line == listL (line ++ reverse line),
+    
+    Z ++ line == line,
+    line ++ Z == line,
+    
+    concat [line, reverse line] == fromList (concat [listL line, listR line]),
+    concat [line, reverse line] == line ++ reverse line
+  ]
+
+-- | linearTest is complex test, that includes all ther tests.
+linearTest :: (Linear l e, Eq e, Eq l, Bordered l i e) => Int -> e -> l -> Bool
+linearTest n e line = and
+  [
+    basicLinearTest e line,
+    
+    deconstructionLinearTest line,
+    constructionLinearTest e line,
+    
+    replicateTest n e line,
+    reverseTest line,
+    concatTest line
+  ]
+
+-- | TestSplit is service type synonym for more comfortable quickCheck using.
+type TestSplit s = Int -> s -> Bool
+
+{- |
+  splitTest is pure, basic test of take, drop and split relations.
+  Various types requires specific tests.
+-}
+splitTest :: (Split s e, Eq e, Eq s, Bordered s i e) => Int -> s -> Bool
+splitTest n line = and
+  [
+    isNull $ take (- max 0 n)   line,
+    isNull $ drop (sizeOf line) line,
+    
+    listL (take n line) == take n (listL line),
+    listL (drop n line) == drop n (listL line),
+    
     (take n line, drop n line) == split n line
-    
-    , null $ take (- max 0 n) line
-    , null $ drop (length line) line
-    
-    , toList (take n line) == take n (toList line)
-    , toList (drop n line) == drop n (toList line)
   ]
+
