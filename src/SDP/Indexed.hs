@@ -46,13 +46,13 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
       assoc creates new structure from list of associations [(index, element)],
       where default element is IndexOverflow Exception.
     -}
-    assoc           :: (i, i) -> [(i, e)] -> v
-    assoc bnds      =  assoc' bnds defvalue
+    assoc :: (i, i) -> [(i, e)] -> v
+    assoc bnds =  assoc' bnds err
       where
-        defvalue = throw $ IndexOverflow "in SDP.Indexed.assoc (List)"
+        err = throw $ IndexOverflow "in SDP.Indexed.assoc (List)"
     
     -- | assoc' is safe version of assoc.
-    assoc'          :: (i, i) -> e -> [(i, e)] -> v
+    assoc' :: (i, i) -> e -> [(i, e)] -> v
     
     {- Read functions. -}
     
@@ -60,31 +60,30 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
       (.!) is unsafe, but on bit faster version of (!).
       Use (.!) only if you are really sure that you will not go beyond the bounds.
     -}
-    (.!)        :: v -> i -> e
-    dat .! ix   =  fromMaybe undefined $ dat !? ix
+    (.!) :: v -> i -> e
+    dat .! ix = fromMaybe err $ dat !? ix
+      where
+        err = error "in SDP.Indexed.(.!)"
     
     {- |
       (!) is pretty safe function, that returns elements by index.
       Throws IndexException.
     -} 
-    (!)          :: v -> i -> e
-    (!) dat ix   =  fromMaybe err $ dat !? ix
+    (!)  :: v -> i -> e
+    (!) dat ix = fromMaybe err $ dat !? ix
       where
         err = throw . UndefinedValue $ "SDP.Indexed.(!)"
     
-    default (!?) :: (Bordered v i e) => v -> i -> Maybe e
-    
     -- | (!?) is completely safe, but so boring function.
-    (!?)         :: v -> i -> Maybe e
-    (!?) dat     =  (inRange $ bounds dat) ?: (dat !)
+    (!?) :: v -> i -> Maybe e
     
     {- Write and update functions -}
     
     -- | Writes elements to (immutable) structure.
-    (//)         :: v -> [(i, e)] -> v
+    (//) :: v -> [(i, e)] -> v
     
     -- | Update function. Uses (!) and may throw IndexException.
-    (/>)         :: v -> [i] -> (i -> e -> e) -> v
+    (/>) :: v -> [i] -> (i -> e -> e) -> v
     (/>) es is f = es // [ (i, f i (es ! i)) | i <- is ]
     
     {- Search functions. -}
@@ -97,16 +96,18 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
     (*$) :: (e -> Bool) -> v -> [i]
     
     default (*$) :: (Bordered v i e) => (e -> Bool) -> v -> [i]
-    
     f *$ es = fsts . filter (f . snd) $ assocs es
+    
+    default (!?) :: (Bordered v i e) => v -> i -> Maybe e
+    (!?) dat     =  (inRange $ bounds dat) ?: (dat !)
 
 -- |  Write one element to structure.
-write        :: (Indexed v i e) => v -> i -> e -> v
+write :: (Indexed v i e) => v -> i -> e -> v
 write es i e = es // [(i, e)]
 
 -- | Update one element in structure.
-(>/>)        :: (Indexed v i e) => v -> [i] -> (e -> e) -> v
-(>/>) es  is = (es /> is) . const
+(>/>) :: (Indexed v i e) => v -> [i] -> (e -> e) -> v
+(>/>) es is = (es /> is) . const
 
 instance Indexed [e] Int e
   where

@@ -1,7 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 
 -- For default definitions.
-{-# LANGUAGE TypeOperators, TypeFamilies, DefaultSignatures #-}
+{-# LANGUAGE TypeOperators, GADTs, DefaultSignatures #-}
 
 {- |
     Module      :  SDP.Set
@@ -38,7 +38,8 @@ import GHC.Types
 {- |
     A class of data structures, that can represent sets.
   
-    Some implementations may be inefficient and used for internal definitions only.
+    Some implementations may be inefficient and useful for internal definitions
+  only.
   
     This library does not provide a distinction between sets and arbitrary data,
   but all functions relying on the definitions of this class must ensure that
@@ -181,9 +182,21 @@ delete =  deleteWith compare
 (\\)  :: (Set s o, Ord o) => s -> s -> s
 (\\)  =  differenceWith compare
 
--- | Symetric difference (disjunctive union)
+-- | Symetric difference (disjunctive union).
 (\^/) :: (Set s o, Ord o) => s -> s -> s
 (\^/) =  symdiffWith compare
+
+-- | isDisjoint synonym. Mnemonic: is the intersection of sets (/\) empty?
+(/?\) :: (Set s o, Ord o) => s -> s -> Bool
+(/?\) =  isDisjointWith compare
+
+-- | Same as isIntersectsWith compare.
+(\?/) :: (Set s o, Ord o) => s -> s -> Bool
+(\?/) =  isIntersectsWith compare
+
+-- | Same as isSubsetWith compare.
+(\+/) :: (Set s o, Ord o) => s -> s -> Bool
+(\+/) =  isSubsetWith compare
 
 -- | Intersection of some sets.
 intersections :: (Foldable f, Set s o, Ord o) => f s -> s
@@ -202,20 +215,8 @@ symdiffs      :: (Foldable f, Set s o, Ord o) => f s -> s
 symdiffs      =  symdiffsWith compare
 
 -- | isSetElem o so = elem o so, but faster.
-isSetElem :: (Set s o, Ord o) => o -> s -> Bool
-isSetElem =  isContainedIn compare
-
--- | isDisjoint synonym. Mnemonic: is the intersection of sets (/\) empty?
-(/?\) :: (Set s o, Ord o) => s -> s -> Bool
-(/?\) =  isDisjointWith compare
-
--- | Same as isIntersectsWith compare.
-(\?/) :: (Set s o, Ord o) => s -> s -> Bool
-(\?/) =  isIntersectsWith compare
-
--- | Same as isSubsetWith compare.
-(\+/) :: (Set s o, Ord o) => s -> s -> Bool
-(\+/) =  isSubsetWith compare
+isSetElem     :: (Set s o, Ord o) => o -> s -> Bool
+isSetElem     =  isContainedIn compare
 
 --------------------------------------------------------------------------------
 
