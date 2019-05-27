@@ -82,11 +82,11 @@ class Linear l e | l -> e
     toHead      :: e -> l -> l
     toHead e es =  single e ++ es
     
-    head :: l -> e
-    head =  fst . uncons
+    head    :: l -> e
+    head es =  fst (uncons es)
     
-    tail :: l -> l
-    tail =  snd . uncons
+    tail    :: l -> l
+    tail es =  snd (uncons es)
     
     -- | Separates init and last. Service function, synonym for (xs :< x).
     unsnoc      :: l -> (l, e)
@@ -96,11 +96,11 @@ class Linear l e | l -> e
     toLast      :: l -> e -> l
     toLast es e =  es ++ single e
     
-    init :: l -> l
-    init =  fst . unsnoc
+    init    :: l -> l
+    init es =  fst (unsnoc es)
     
-    last :: l -> e
-    last =  snd . unsnoc
+    last    :: l -> e
+    last es =  snd (unsnoc es)
     
     {- Construction. -}
     
@@ -125,12 +125,12 @@ class Linear l e | l -> e
     fromListN n =  fromList . take n
     
     -- | Same as listL . reverse.
-    listR :: l -> [e]
-    listR =  listL . reverse
+    listR    :: l -> [e]
+    listR es =  listL (reverse es)
     
     -- | Same as toList, but formally doesn't requires Foldable.
-    listL :: l -> [e]
-    listL =  reverse . listR
+    listL    :: l -> [e]
+    listL es =  reverse (listR es)
     
     {- Generalized folds. -}
     
@@ -197,25 +197,34 @@ class (Index i) => Bordered (b) i e | b -> i, b -> e
   where
     {-# MINIMAL (bounds|(lower, upper)) #-}
     
-    bounds    :: b -> (i, i)
-    bounds es =  (lower es, upper es)
+    {-# INLINE bounds #-}
+    bounds       :: b -> (i, i)
+    bounds  es   =  (lower es, upper es)
     
-    indices   :: b -> [i]
-    indices   =  range . bounds
+    {-# INLINE indices #-}
+    indices      :: b -> [i]
+    indices es   =  range (bounds es)
     
-    lower     :: b -> i
-    lower     =  fst  . bounds
+    {-# INLINE lower #-}
+    lower        :: b -> i
+    lower   es   =  fst (bounds es)
     
-    upper     :: b -> i
-    upper     =  snd  . bounds
+    {-# INLINE upper #-}
+    upper        :: b -> i
+    upper   es   =  snd (bounds es)
     
-    assocs    :: b -> [(i, e)]
+    assocs       :: b -> [(i, e)]
     
-    sizeOf    :: b -> Int
-    sizeOf    =  size . bounds
+    {-# INLINE sizeOf #-}
+    sizeOf       :: b -> Int
+    sizeOf  es   =  size (bounds es)
+    
+    {-# INLINE indexOf #-}
+    indexOf      :: b -> i -> Bool
+    indexOf es i = bounds es `inRange` i
     
     default assocs :: (Linear b e) => b -> [(i, e)]
-    assocs es =  zip (indices es) (listL es)
+    assocs es    = zip (indices es) (listL es)
 
 --------------------------------------------------------------------------------
 
@@ -388,13 +397,11 @@ instance Linear [e] e
 
 instance Bordered [e] Int e
   where
-    indices es = [0 .. length es - 1]
-    bounds  es = (0,   length es - 1)
     assocs  es = zip  [0 .. ] es
+    sizeOf  es = length es
     
     lower   _  = 0
     upper   es = length es - 1
-    sizeOf  es = length es
 
 instance LineS [e] e
 
@@ -410,18 +417,6 @@ instance Split [e] e
     
     spanl  = L.span
     breakl = L.break
-    
-    takeWhile _ [] = []
-    takeWhile p (e : es) = p e ? e : takeWhile p es $ []
-    
-    dropWhile _ [] = []
-    dropWhile p es@(x : xs) = p x ? dropWhile p xs $ es
-    
-    takeEnd p list = t list list
-      where
-        t xs res = case xs of {(e : es) -> t es (p e ? res $ xs); _ -> res}
-    
-    dropEnd p = foldr (\ e es -> p e && null es ? [] $ (e : es)) []
 
 --------------------------------------------------------------------------------
 

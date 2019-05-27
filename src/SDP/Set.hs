@@ -159,64 +159,79 @@ class (Linear s o) => Set s o | s -> o
 {- Useful functions. -}
 
 -- | The same as sort . nub for list.
+{-# INLINE set #-}
 set    :: (Set s o, Ord o) => s -> s
-set    =  setWith compare
+set es =  setWith compare es
 
 -- | Same as insert compare.
-insert :: (Set s o, Ord o) => o -> s -> s
-insert =  insertWith compare
+{-# INLINE insert #-}
+insert      :: (Set s o, Ord o) => o -> s -> s
+insert e es =  insertWith compare e es
 
 -- | Same as deleteWith compare.
-delete :: (Set s o, Ord o) => o -> s -> s
-delete =  deleteWith compare
+{-# INLINE delete #-}
+delete      :: (Set s o, Ord o) => o -> s -> s
+delete e es =  deleteWith compare e es
 
 -- | Intersection of two sets.
-(/\)  :: (Set s o, Ord o) => s -> s -> s
-(/\)  =  intersectionWith compare
+{-# INLINE (/\) #-}
+(/\)       :: (Set s o, Ord o) => s -> s -> s
+(/\) xs ys =  intersectionWith compare xs ys
 
 -- | Union of two sets.
-(\/)  :: (Set s o, Ord o) => s -> s -> s
-(\/)  =  unionWith compare
+{-# INLINE (\/) #-}
+(\/)       :: (Set s o, Ord o) => s -> s -> s
+(\/) xs ys =  unionWith compare xs ys
 
 -- | Difference (relative complement, aka A / B) of two sets.
-(\\)  :: (Set s o, Ord o) => s -> s -> s
-(\\)  =  differenceWith compare
+{-# INLINE (\\) #-}
+(\\)       :: (Set s o, Ord o) => s -> s -> s
+(\\) xs ys =  differenceWith compare xs ys
 
 -- | Symetric difference (disjunctive union).
-(\^/) :: (Set s o, Ord o) => s -> s -> s
-(\^/) =  symdiffWith compare
+{-# INLINE (\^/) #-}
+(\^/)       :: (Set s o, Ord o) => s -> s -> s
+(\^/) xs ys =  symdiffWith compare xs ys
 
 -- | isDisjoint synonym. Mnemonic: is the intersection of sets (/\) empty?
-(/?\) :: (Set s o, Ord o) => s -> s -> Bool
-(/?\) =  isDisjointWith compare
+{-# INLINE (/?\) #-}
+(/?\)       :: (Set s o, Ord o) => s -> s -> Bool
+(/?\) xs ys =  isDisjointWith compare xs ys
 
 -- | Same as isIntersectsWith compare.
-(\?/) :: (Set s o, Ord o) => s -> s -> Bool
-(\?/) =  isIntersectsWith compare
+{-# INLINE (\?/) #-}
+(\?/)       :: (Set s o, Ord o) => s -> s -> Bool
+(\?/) xs ys =  isIntersectsWith compare xs ys
 
 -- | Same as isSubsetWith compare.
-(\+/) :: (Set s o, Ord o) => s -> s -> Bool
-(\+/) =  isSubsetWith compare
+{-# INLINE (\+/) #-}
+(\+/)       :: (Set s o, Ord o) => s -> s -> Bool
+(\+/) xs ys =  isSubsetWith compare xs ys
 
 -- | Intersection of some sets.
-intersections :: (Foldable f, Set s o, Ord o) => f s -> s
-intersections =  intersectionsWith compare
+{-# INLINE intersections #-}
+intersections     :: (Foldable f, Set s o, Ord o) => f s -> s
+intersections xss =  intersectionsWith compare xss
 
 -- | Union of some sets.
-unions        :: (Foldable f, Set s o, Ord o) => f s -> s
-unions        =  unionsWith compare
+{-# INLINE unions #-}
+unions      :: (Foldable f, Set s o, Ord o) => f s -> s
+unions  xss =  unionsWith compare xss
 
 -- | Diference of some sets.
-differences   :: (Foldable f, Set s o, Ord o) => f s -> s
-differences   =  differencesWith compare
+{-# INLINE differences #-}
+differences     :: (Foldable f, Set s o, Ord o) => f s -> s
+differences xss =  differencesWith compare xss
 
 -- | Symmetric difference of some sets.
-symdiffs      :: (Foldable f, Set s o, Ord o) => f s -> s
-symdiffs      =  symdiffsWith compare
+{-# INLINE symdiffs #-}
+symdiffs     :: (Foldable f, Set s o, Ord o) => f s -> s
+symdiffs xss =  symdiffsWith compare xss
 
 -- | isSetElem o so = elem o so, but faster.
-isSetElem     :: (Set s o, Ord o) => o -> s -> Bool
-isSetElem     =  isContainedIn compare
+{-# INLINE isSetElem #-}
+isSetElem      :: (Set s o, Ord o) => o -> s -> Bool
+isSetElem e es =  isContainedIn compare e es
 
 --------------------------------------------------------------------------------
 

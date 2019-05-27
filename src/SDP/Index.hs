@@ -42,10 +42,10 @@ default ()
 
 {- | InBounds - service type that specifies index and bounds status. -}
 data InBounds =
-              {- | Empty range     -} ER |
-              {- | Index underflow -} UR |
-              {- | Index in range  -} IN |
-              {- | Index overflow  -} OR deriving ( Eq, Enum )
+              {- | Empty Range     -} ER |
+              {- | Underflow Range -} UR |
+              {- | Index IN range  -} IN |
+              {- | Overflow Range  -} OR deriving ( Eq, Enum )
 
 {- |
     Index is service class for Indexed and Bordered. It's the result of combining
@@ -79,6 +79,7 @@ class (Ord i) => Index i
     --
     -- >>> size (3, 0)
     -- 0
+    {-# INLINE size #-}
     size  :: (i, i) ->  Int
     
     -- | Returns the sizes (length) of range dimensionwise.
@@ -99,16 +100,17 @@ class (Ord i) => Index i
     --
     -- >>> range (7, 2)
     -- []
+    {-# INLINE range #-}
     range :: (i, i) ->  [i]
     
     -- | Returns next index in range.
-    next  :: (i, i) -> i -> i
+    next     :: (i, i) -> i -> i
     
     -- | Returns previous index in range.
-    prev  :: (i, i) -> i -> i
+    prev     :: (i, i) -> i -> i
     
     -- | Returns the index and bounds status.
-    inBounds    :: (i, i) -> i -> InBounds
+    inBounds :: (i, i) -> i -> InBounds
     
     -- | Checks if the index is in range
     --
@@ -119,7 +121,8 @@ class (Ord i) => Index i
     --
     -- >>> inRange (4, -5) 3
     -- False
-    inRange     :: (i, i) -> i -> Bool
+    {-# INLINE inRange #-}
+    inRange   :: (i, i) -> i -> Bool
     
     -- | Checks if the index is overflow.
     -- The default definition for isOverflow and isUnderflow gives the answer
@@ -178,24 +181,31 @@ class (Ord i) => Index i
     --
     -- Also, their disjunction is interchangeable with inversion of inRange (in
     -- default definitions)
+    {-# INLINE isOverflow  #-}
     isOverflow  :: (i, i) -> i -> Bool
     
     -- | Checks if the index is underflow.
+    {-# INLINE isUnderflow #-}
     isUnderflow :: (i, i) -> i -> Bool
     
     -- | Checks if the bounds is empty.
+    {-# INLINE isEmpty #-}
     isEmpty     :: (i, i) -> Bool
     
     -- | Returns the index belonging to the given range. Service function.
     safeElem    :: (i, i) -> i -> i
     -- | Returns bounds of nonempty range.
+    {-# INLINE ordBounds #-}
     ordBounds   :: (i, i) -> (i, i)
     
     -- | Returns offset (indent) of index in this bounds.
+    {-# INLINE offset #-}
     offset      :: (i, i) -> i -> Int
     -- | Returns index by this offset in range.
+    {-# INLINE index  #-}
     index       :: (i, i) -> Int -> i
     -- | Returns index by this offset in default range.
+    {-# INLINE unsafeIndex #-}
     unsafeIndex :: Int -> i
     
     rank = const 1
@@ -244,7 +254,7 @@ class (Ord i) => Index i
       where res = toEnum $ n + fromEnum l
     
     default unsafeIndex :: (Enum i) => Int -> i
-    unsafeIndex = toEnum
+    unsafeIndex o = toEnum o
 
 --------------------------------------------------------------------------------
 
@@ -944,9 +954,11 @@ checkBounds bnds i res msg = case inBounds bnds i of
   OR -> throw . IndexUnderflow $ "in SDP.Index." ++ msg
   IN -> res
 
+{-# INLINE intOffset #-}
 intOffset :: (Index i, Num i, Enum i) => (i, i) -> i -> Int
 intOffset (l, u) i = checkBounds (l, u) i (fromEnum i - fromEnum l) "offset (default)"
 
-defUI :: (Enum i) => Int -> i
-defUI =  toEnum . max 0 . succ
+{-# INLINE defUI #-}
+defUI   :: (Enum i) => Int -> i
+defUI o =  toEnum $ max 0 (succ o)
 
