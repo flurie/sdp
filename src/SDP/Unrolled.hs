@@ -504,15 +504,14 @@ instance Indexed (Unlist e) Int e
         )
       where
         !n@(I# n#)     = min lim $ size bnds
-        (curr, others) = partition (\ (i, _) -> inRange (0, n - 1) i) ascs
+        (curr, others) = partition (inRange (0, n - 1) . fst) ascs
         
         rest = assoc' (l + n, u) defvalue others
         
         ies = [ (offset bnds i, e) | (i, e) <- curr ]
         lim = _UNLIST_CHUNK_MAX_SIZE_
     
-    Z // []   = Z
-    Z // ascs = assoc (l, u) ascs
+    Z // ascs = isNull ascs ? Z $ assoc (l, u) ascs
       where
         l = minimum $ fsts ascs
         u = maximum $ fsts ascs
@@ -523,7 +522,7 @@ instance Indexed (Unlist e) Int e
           where
             ies = [ (offset (l', u') i, e) | (i, e) <- curr ]
         
-        thaw = ST $ \s1# -> case newArray# c# (undEx "(//)") s1# of
+        thaw = ST $ \ s1# -> case newArray# c# (undEx "(//)") s1# of
           (# s2#, marr# #) ->
             let copy i@(I# i#) s3# = if i == c
                   then s3#
@@ -569,7 +568,7 @@ _ !# _ = error "SDP.Unrolled.(!#) tried to find element in empty Unlist"
 
 {-# INLINE done #-}
 done :: Int -> Unlist e -> MutableArray# s e -> STRep s (Unlist e)
-done c rest marr# = \s1# -> case unsafeFreezeArray# marr# s1# of
+done c rest marr# = \ s1# -> case unsafeFreezeArray# marr# s1# of
   (# s2#, arr# #) -> (# s2#, Unlist c arr# rest #)
 
 _UNLIST_CHUNK_MAX_SIZE_ :: Int
