@@ -2,7 +2,7 @@
 {-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, RoleAnnotations #-}
 
 {- |
-    Module      :  SDP.Index
+    Module      :  SDP.Unrolled
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
