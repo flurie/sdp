@@ -25,7 +25,9 @@ module SDP.Linear
   
   pattern (:>), pattern (:<), pattern Z,
   
-  intercalate, tails, inits, nub
+  intercalate, tails, inits, nub,
+  
+  stripPrefix, stripSuffix
 )
 
 where
@@ -420,8 +422,18 @@ instance Split [e] e
 
 --------------------------------------------------------------------------------
 
+stripPrefix :: (Split s e, Bordered s i e, Eq e) => s -> s -> s
+stripPrefix sub line = sub `isPrefixOf` line ? drop n line $ line
+  where
+    n = sizeOf sub
+
+stripSuffix :: (Split s e, Bordered s i e, Eq e) => s -> s -> s
+stripSuffix sub line = sub `isSuffixOf` line ? take n line $ line
+  where
+    n = sizeOf line - sizeOf sub
+
 -- | intercalate is generalization of Data.List.intercalate
-intercalate   :: (Foldable f, Linear (f (t e)) (t e), Linear (t e) e) => t e -> f (t e) -> t e
+intercalate   :: (Foldable f, Linear (f l) l, Linear l e) => l -> f l -> l
 intercalate l =  concat . intersperse l
 
 -- | nub is generalization of Data.List.nub and synonym for nubBy (==).
