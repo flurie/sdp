@@ -89,23 +89,29 @@ class (Linear s o) => Set s o | s -> o
     
     -- | Generalization of intersection on Foldable.
     intersectionsWith   :: (Foldable f) => (o -> o -> Ordering) -> f s -> s
+    intersectionsWith f =  foldl (intersectionWith f) Z
     
     -- | Generalization of difference on Foldable.
     differencesWith     :: (Foldable f) => (o -> o -> Ordering) -> f s -> s
+    differencesWith   f =  foldl (differenceWith f) Z
     
     -- | Generalization of union on Foldable.
     unionsWith          :: (Foldable f) => (o -> o -> Ordering) -> f s -> s
+    unionsWith        f =  foldl (unionWith f) Z
     
     -- | Generalization of symdiff on Foldable.
     symdiffsWith        :: (Foldable f) => (o -> o -> Ordering) -> f s -> s
+    symdiffsWith      f =  foldl (symdiffWith f) Z
     
     {- Сomparison operations -}
     
     -- | Compares sets on intersection.
-    isIntersectsWith  :: (o -> o -> Ordering) -> s -> s -> Bool
+    isIntersectsWith         :: (o -> o -> Ordering) -> s -> s -> Bool
+    isIntersectsWith f xs ys =  not . isNull $ intersectionWith f xs ys
     
     -- | Compares sets on disjoint.
-    isDisjointWith    :: (o -> o -> Ordering) -> s -> s -> Bool
+    isDisjointWith           :: (o -> o -> Ordering) -> s -> s -> Bool
+    isDisjointWith   f xs ys =  isNull $ intersectionWith f xs ys
     
     -- | Same as elem (Foldable), but can work faster. By default, uses find.
     isContainedIn     :: (o -> o -> Ordering) -> o -> s -> Bool
@@ -118,13 +124,11 @@ class (Linear s o) => Set s o | s -> o
     
     {- Default definitions. -}
     
+    default subsets :: (Ord s, Ord o) => s -> [s]
+    subsets         =  set . subsequences . set
+    
     default setWith :: (((t o) ~~ s), Foldable t) => (o -> o -> Ordering) -> s -> s
     setWith f es    =  foldl (flip $ insertWith f) Z es
-    
-    default subsets :: (Ord s, Ord o) => s -> [s]
-    subsets         =  setWith compare . subsequences . set
-    
-    -- comparsion.
     
     default isSubsetWith  :: (((t o) ~~ s), Foldable t) => (o -> o -> Ordering) -> s -> s -> Bool
     isSubsetWith f xs ys  =  any (\ es -> isContainedIn f es ys) xs
@@ -133,26 +137,6 @@ class (Linear s o) => Set s o | s -> o
     isContainedIn f e es  = case find finder es of {Nothing -> False; _ -> True}
       where
         finder x = case f e x of {EQ -> True; _ -> False}
-    
-    default isIntersectsWith  :: (((t o) ~~ s), Foldable t) => (o -> o -> Ordering) -> s -> s -> Bool
-    isIntersectsWith f xs ys = not . null $ intersectionWith f xs ys
-    
-    default isDisjointWith    :: (((t o) ~~ s), Foldable t) => (o -> o -> Ordering) -> s -> s -> Bool
-    isDisjointWith f xs ys = null $ intersectionWith f xs ys
-    
-    -- basic set operators.
-    
-    default intersectionsWith :: (((t o) ~~ s), Foldable f, Foldable t) => (o -> o -> Ordering) -> f s -> s
-    intersectionsWith f       =  foldl (intersectionWith f) Z
-    
-    default differencesWith   :: (((t o) ~~ s), Foldable f, Foldable t) => (o -> o -> Ordering) -> f s -> s
-    differencesWith   f       =  foldl (differenceWith f) Z
-    
-    default unionsWith        :: (((t o) ~~ s), Foldable f, Foldable t) => (o -> o -> Ordering) -> f s -> s
-    unionsWith        f       =  foldl (unionWith f) Z
-    
-    default symdiffsWith      :: (((t o) ~~ s), Foldable f, Foldable t) => (o -> o -> Ordering) -> f s -> s
-    symdiffsWith      f       =  foldl (symdiffWith f) Z
 
 --------------------------------------------------------------------------------
 

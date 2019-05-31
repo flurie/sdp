@@ -61,9 +61,7 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
       Use (.!) only if you are really sure that you will not go beyond the bounds.
     -}
     (.!) :: v -> i -> e
-    dat .! ix = fromMaybe err $ dat !? ix
-      where
-        err = error "in SDP.Indexed.(.!)"
+    dat .! ix = dat ! ix
     
     {- |
       (!) is pretty safe function, that returns elements by index.
@@ -99,7 +97,7 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
     f *$ es = fsts . filter (f . snd) $ assocs es
     
     default (!?) :: (Bordered v i e) => v -> i -> Maybe e
-    (!?) dat     =  (inRange $ bounds dat) ?: (dat !)
+    (!?) dat     =  (not . inRange (bounds dat)) ?: (dat !)
 
 -- |  Write one element to structure.
 write :: (Indexed v i e) => v -> i -> e -> v

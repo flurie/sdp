@@ -150,7 +150,6 @@ instance (Index i) => Traversable (Unrolled i)
 instance (Index i) => Linear (Unrolled i e) e
   where
     isNull = null
-    
     listL  = toList
     
     fromListN n es = Unrolled l u $ fromListN n es
@@ -256,8 +255,8 @@ instance (Index i) => Indexed (Unrolled i e) i e
     
     (Unrolled l u arrs) !? i = inRange (l, u) i ? Just (arrs !# offset (l, u) i) $ Nothing
     
-    predicate .$ (Unrolled l u es) = index (l, u) <$> (predicate .$ es)
-    predicate *$ (Unrolled l u es) = index (l, u) <$> (predicate *$ es)
+    p .$ (Unrolled l u es) = index (l, u) <$> (p .$ es)
+    p *$ (Unrolled l u es) = index (l, u) <$> (p *$ es)
 
 --------------------------------------------------------------------------------
 

@@ -53,5 +53,8 @@ infixr 1 ? -- Lowest priority, compatible with infixr 0 $
 -- >>> odd 1 ? "is True" $ "is False"
 -- "is True"
 
+{-# INLINE (?) #-}
 (?)   :: Bool -> a -> a -> a
-(?) predicate t e = if predicate then t else e
+(?) p t e = if p then t else e
+
+
