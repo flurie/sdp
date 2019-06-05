@@ -21,7 +21,7 @@ simplest of them. However, such structures are required in 80-95% cases.
 
 What SDP provides?
 --------------------------------------------------------------------------------
-Currently there are only three data structures in SDP:
+Currently there are only five data structures in SDP:
 - standard lists ([])
 - lazy   immutable  boxed  arrays (Array)
 - strict immutable unboxed arrays (Bytes)
