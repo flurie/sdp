@@ -163,15 +163,15 @@ class Linear l e | l -> e
     
     -- | Generalization of Some.Module.partition.
     partition      :: (e -> Bool) -> l -> (l, l)
-    partition p es = (filter p es, filter (not . p) es)
+    partition p es =  (filter p es, filter (not . p) es)
     
     {- Special functions -}
     
     -- Compares lines as [multi]sets. May be rewrited and moved.
     isSubseqOf :: (Eq e) => l -> l -> Bool
-    isSubseqOf Z _       =  True
-    isSubseqOf _ Z       =  False
     isSubseqOf xs@(x :> rest) (y :> ys) = x == y && rest `isSubseqOf` ys || xs `isSubseqOf` ys
+    isSubseqOf Z _ =  True
+    isSubseqOf _ _ =  False
     
     -- | Generalization of Some.Module.reverse.
     reverse    :: l -> l
@@ -333,10 +333,10 @@ class (Linear s e) => Split s e | s -> e
     breakr      :: (e -> Bool) -> s -> (s, s)
     breakr p es = (takeEnd (not . p) es, dropEnd (not . p) es)
     
-    default takeEnd :: (Index i, Bordered s i e) => (e -> Bool) -> s -> s
+    default takeEnd :: (Bordered s i e) => (e -> Bool) -> s -> s
     takeEnd p es    =  drop (sizeOf es - suffix p es) es
     
-    default dropEnd :: (Index i, Bordered s i e) => (e -> Bool) -> s -> s
+    default dropEnd :: (Bordered s i e) => (e -> Bool) -> s -> s
     dropEnd p es    =  take (sizeOf es - suffix p es) es
     
     default prefix  :: (Foldable t, t e ~~ s) => (e -> Bool) -> s -> Int
@@ -422,11 +422,13 @@ instance Split [e] e
 
 --------------------------------------------------------------------------------
 
+-- | stripPrefix sub line... strips prefix sub of line
 stripPrefix :: (Split s e, Bordered s i e, Eq e) => s -> s -> s
 stripPrefix sub line = sub `isPrefixOf` line ? drop n line $ line
   where
     n = sizeOf sub
 
+-- | stripSuffix sub line... strips suffix sub of line
 stripSuffix :: (Split s e, Bordered s i e, Eq e) => s -> s -> s
 stripSuffix sub line = sub `isSuffixOf` line ? take n line $ line
   where

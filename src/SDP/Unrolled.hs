@@ -343,10 +343,10 @@ instance Foldable Unlist
           where
             (# e #) = indexArray# arr# i#
     
-    length Z = 0
+    length UNEmpty = 0
     length (Unlist c _ arrs) = c + (length arrs)
     
-    toList Z = []
+    toList UNEmpty = []
     toList (Unlist c arr# arrs) = foldr addIxElem (toList arrs) [0 .. c - 1]
       where
         addIxElem = \ (I# i#) es -> let (# e #) = indexArray# arr# i# in e : es

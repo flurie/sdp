@@ -23,12 +23,13 @@ What SDP provides?
 --------------------------------------------------------------------------------
 Currently there are only three data structures in SDP:
 - standard lists ([])
-- "lazy" immutable  boxed  arrays (Array)
+- lazy   immutable  boxed  arrays (Array)
 - strict immutable unboxed arrays (Bytes)
-- unrolled linked lists (Unrolled, "lazy")
+- lazy   unrolled linked lists (Unrolled)
+- strict unrolled linked lists (ByteList)
 
-but strict unrolled bytelists, matrices, bitmaps, trees, sequences,
-dictionaries, and prefix trees will also be added.
+but matrices, bitmaps, trees, sequences, dictionaries, and prefix trees will
+also be added.
 
 How does SDP differ from other libraries?
 --------------------------------------------------------------------------------
@@ -41,11 +42,11 @@ designed Ix class).
 * Orientation to other libraries. SDP is unlikely to be used by itself, but it
 can become a bridge between other libraries and structures. SDP doesn't give its
 own implementations of structures an advantage over external ones (except,
-perhaps, own implementation of indices).
-You can add general classes implementations for any data structures and they
-will be able to work perfectly with native ones and between themselves. If other
-developers do the same, then writing the code will be a little easier (if not,
-think about using other solutions).
+perhaps, own implementation of n-dimensional indices). You can add general
+classes implementations for any data structures and they will be able to work
+perfectly with native ones and between themselves. If other developers do the
+same, then writing the code will be a little easier (if not, think about using
+other solutions).
 * Good extensibility. SDP is based on type classes that provide the simplest
 interfaces for working with different data structures and reduce code
 duplication. SDP will not require you to use qualified import when working with
@@ -55,15 +56,6 @@ It provides the simplest interfaces for working with various data and
 implementations, reduces duplication of code (as in the library, and in its
 uses). SDP will not require you to be qualified import to work with different
 types in the same namespace.
-
-How can you help.
---------------------------------------------------------------------------------
-* Since this is primarily a training project, more than you can
-help - indicating errors in the documentation. If you notice typos (especially
-in English) and the like - email me.
-* If you want to create an extension for SDP and/or compatibility layer, then
-it is advisable to write about it to me (perhaps I am already doing this).
-* Use PR only after you get an answer from me.
 
 License.
 --------------------------------------------------------------------------------
