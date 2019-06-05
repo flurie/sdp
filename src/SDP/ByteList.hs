@@ -102,12 +102,12 @@ instance (Index i, Unboxed e) => Linear (ByteList i e) e
         (xs, x) = unsnoc es
         u1 = prev (l, u) u
     
-    fromListN n es = ByteList l u (fromListN n es)
+    fromListN n es = ByteList l u $ fromListN n es
       where
         l = unsafeIndex 0
         u = unsafeIndex $ max 0 n - 1
     
-    replicate n e = ByteList l u (replicate n e)
+    replicate n e = ByteList l u $ replicate n e
       where
         l = unsafeIndex 0
         u = unsafeIndex $ max 0 n - 1
@@ -121,7 +121,7 @@ instance (Index i, Unboxed e) => Linear (ByteList i e) e
         l = unsafeIndex 0
         u = unsafeIndex $ max 0 n' - 1
     
-    intersperse e (ByteList _ _ es) = ByteList l1 u1 (intersperse e es)
+    intersperse e (ByteList _ _ es) = ByteList l1 u1 $ intersperse e es
       where
         n1 = case n <=> 0 of {LT -> -2; EQ -> 0; GT -> 2 * n - 2}; n = sizeOf es
         u1 = unsafeIndex n1
@@ -419,4 +419,3 @@ done c arrs marr# = \ s1# -> case unsafeFreezeByteArray# marr# s1# of
 
 _UBLIST_CHUNK_MAX_SIZE_ :: Int
 _UBLIST_CHUNK_MAX_SIZE_ =  1024
-

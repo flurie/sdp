@@ -304,10 +304,7 @@ instance (Index i) => Linear (Array i e) e
     -- O(n * m) concatenation
     concatMap f = concat . map f . toList
     
-    concat = fromList . toList'
-      where
-        -- the same as "fmap toList . toList" but on bit faster
-        toList' = foldr (\ a l -> toList a ++ l) []
+    concat = fromList . foldr (\ a l -> toList a ++ l) []
 
 instance (Index i) => Split (Array i e) e
   where
@@ -361,8 +358,7 @@ instance (Index i) => Indexed (Array i e) i e
   where
     assoc' bnds defvalue ascs = runST $ ST $ \ s1# -> case newArray# n# defvalue s1# of (# s2#, marr# #) -> writes marr# s2#
       where
-        writes marr# = foldr (fill marr#) (done bnds n marr#) ies
-          where ies  = [ (offset bnds i, e) | (i, e) <- ascs ]
+        writes marr# = foldr (fill marr#) (done bnds n marr#) [ (offset bnds i, e) | (i, e) <- ascs ]
         !n@(I# n#)   = size bnds
     
     Z // ascs = null ascs ? Z $ assoc (l, u) ascs
@@ -379,7 +375,6 @@ instance (Index i) => Indexed (Array i e) i e
             let copy i@(I# i#) s3# = if i == n then s3# else copy (i + 1) (writeArray# marr# i# (arr !# i) s3#)
             in case copy 0 s2# of s3# -> (# s3#, STArray l u n marr# #)
     
-    (.!) arr@(Array l u _ _) i = arr !# offset (l, u) i
     (!)  arr@(Array l u _ _) i = arr !# offset (l, u) i
     
     (.$) p es = find   (\ i -> p $ es ! i) $ indices es
