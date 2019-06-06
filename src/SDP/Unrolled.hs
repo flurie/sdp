@@ -287,11 +287,29 @@ data Unlist e = UNEmpty | Unlist {-# UNPACK #-} !Int (Array# e) (Unlist e)
 
 --------------------------------------------------------------------------------
 
-{- Eq1 and Ord1 instances. -}
+{- Eq and Eq1 instances. -}
 
-instance Eq1  Unlist where liftEq f xs ys = liftEq f (toList xs) (toList ys)
+instance (Eq e) => Eq (Unlist e) where (==) = eq1
+
+instance Eq1 Unlist where liftEq f xs ys = liftEq f (toList xs) (toList ys)
+
+--------------------------------------------------------------------------------
+
+{- Ord and Ord1 instances. -}
+
+instance (Ord e) => Ord (Unlist e) where compare = compare1
 
 instance Ord1 Unlist where liftCompare f xs ys = liftCompare f (toList xs) (toList ys)
+
+--------------------------------------------------------------------------------
+
+{- Show instance. -}
+
+instance (Show e) => Show (Unlist e)
+  where
+    showsPrec p unl = showParen (p > appPrec) shows'
+      where
+        shows' = showString "unlist " . showChar ' ' . shows (assocs unl)
 
 --------------------------------------------------------------------------------
 

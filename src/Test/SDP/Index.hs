@@ -12,8 +12,6 @@
 
 module Test.SDP.Index
 (
-  module SDP.Index,
-  
   TestIndex,
   
   rangeTest,

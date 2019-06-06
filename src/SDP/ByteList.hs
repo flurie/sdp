@@ -140,14 +140,14 @@ instance (Index i, Unboxed e) => Split (ByteList i e) e
         | n >= size (l, u) = list
         |       True       = ByteList l u' $ take n es
       where
-        u' = index (l, u) $ n - 1
+        u' = prev (l, u) u
     
     drop n list@(ByteList l u es)
         | n <= 0 = list
-        | n >= size (l, u) = list
-        | True = ByteList l' u $ take n es
+        | n >= size (l, u) = Z
+        | True = ByteList l' u $ drop n es
       where
-        l' = index (l, u) $ n
+        l' = next (l, u) l
 
 instance (Index i, Unboxed e) => Bordered (ByteList i e) i e
   where
