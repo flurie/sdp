@@ -60,19 +60,19 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
       (.!) is unsafe, but on bit faster version of (!).
       Use (.!) only if you are really sure that you will not go beyond the bounds.
     -}
+    {-# INLINE (.!) #-}
     (.!) :: v -> i -> e
-    dat .! ix = fromMaybe err $ dat !? ix
-      where
-        err = error "in SDP.Indexed.(.!)"
+    dat .! ix = dat ! ix
     
     {- |
       (!) is pretty safe function, that returns elements by index.
       Throws IndexException.
-    -} 
+    -}
+    {-# INLINE (!) #-}
     (!)  :: v -> i -> e
     (!) dat ix = fromMaybe err $ dat !? ix
       where
-        err = throw . UndefinedValue $ "SDP.Indexed.(!)"
+        err = throw . UndefinedValue $ "in SDP.Indexed.(!)"
     
     -- | (!?) is completely safe, but so boring function.
     (!?) :: v -> i -> Maybe e
@@ -96,16 +96,19 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
     (*$) :: (e -> Bool) -> v -> [i]
     
     default (*$) :: (Bordered v i e) => (e -> Bool) -> v -> [i]
-    f *$ es = fsts . filter (f . snd) $ assocs es
+    f *$ es      =  fsts . filter (f . snd) $ assocs es
     
     default (!?) :: (Bordered v i e) => v -> i -> Maybe e
-    (!?) dat     =  (inRange $ bounds dat) ?: (dat !)
+    {-# INLINE (!?) #-}
+    (!?) dat     =  (not . indexOf dat) ?: (dat !)
 
 -- |  Write one element to structure.
+{-# INLINE write #-}
 write :: (Indexed v i e) => v -> i -> e -> v
 write es i e = es // [(i, e)]
 
 -- | Update one element in structure.
+{-# INLINE (>/>) #-}
 (>/>) :: (Indexed v i e) => v -> [i] -> (e -> e) -> v
 (>/>) es is = (es /> is) . const
 
@@ -113,36 +116,35 @@ instance Indexed [e] Int e
   where
     assoc' bnds e = toResultList . normalAssocs
       where
+        toResultList = fromListN (size bnds) . snds
+        normalAssocs = fill . setWith cmpfst . filter (inRange bnds . fst)
+        
         fill (ie1@(i1, _) : ie2@(i2, _) : xs) = ie1 : fill rest
           where
             rest = nx /= i2 ? (nx, e) : ie2 : xs $ ie2 : xs
             nx   = next bnds i1
         fill xs  = xs
-        
-        toResultList = fromListN (size bnds) . snds
-        normalAssocs = fill . setWith cmpfst . filter (inRange bnds . fst)
     
-    (x : xs) .! n = (n == 0) ? x $ xs .! (n - 1)
-    _ .! _ = error "nice try but you still finished badly in SDP.Indexed.(.!) (List)"
+    (x : xs) .! n = n == 0 ? x $ xs .! (n - 1)
+    _        .! _ = error "nice try but you still finished badly in SDP.Indexed.(.!) (List)"
     
-    (!) [] n = throw $ (n < 0 ? IndexUnderflow $ IndexOverflow) "in SDP.Indexed.(!) (List)"
-    (x : xs) ! n = case n <=> 0 of
-      GT -> xs .! (n - 1)
-      EQ -> x
-      LT -> throw $ IndexUnderflow "in SDP.Indexed.(!) (List)"
-    
-    [] !? _ = Nothing
-    (x : xs) !? n = case n <=> 0 of
-      GT -> xs !? (n - 1)
-      EQ -> Just x
-      LT -> Nothing
-    
-    xs // es = snds $ unionWith cmpfst xs' es'
+    [] ! _ = throw $ EmptyRange "in SDP.Indexed.(!) (List)"
+    es ! n = n < 0 ? (throw $ IndexUnderflow "in SDP.Indexed.(!) (List)") $ es !^ n
       where
-        es' = setWith cmpfst es
-        xs' = assocs xs
+        []       !^ _  = throw $ IndexOverflow "in SDP.Indexed.(!) (List)"
+        (x : xs) !^ n' = n == 0 ? x $ xs !^ (n' - 1)
     
-    (.$) = findIndex
-    (*$) = findIndices
+    {-# INLINE (!?) #-}
+    []       !? _ = Nothing
+    (x : xs) !? n = case n <=> 0 of {LT -> Nothing; EQ -> Just x; GT -> xs !? (n - 1)}
+    
+    {-# INLINE (//) #-}
+    xs // es = snds $ unionWith cmpfst (assocs xs) (setWith cmpfst es)
+    
+    {-# INLINE (.$) #-}
+    p .$ es = findIndex p es
+    
+    {-# INLINE (*$) #-}
+    p *$ es = findIndices p es
 
 --------------------------------------------------------------------------------

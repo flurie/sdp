@@ -150,7 +150,6 @@ instance (Index i) => Traversable (Unrolled i)
 instance (Index i) => Linear (Unrolled i e) e
   where
     isNull = null
-    
     listL  = toList
     
     fromListN n es = Unrolled l u $ fromListN n es
@@ -250,14 +249,11 @@ instance (Index i) => Indexed (Unrolled i e) i e
         u'  = unsafeIndex $ upper es'
         l'  = unsafeIndex 0
     
-    (Unrolled l u es)   .! i = es !# (offset (l, u) i)
+    {-# INLINE (!) #-}
+    (!)  (Unrolled l u es) i = es !# (offset (l, u) i)
     
-    (!) (Unrolled l u es)  i = es !# (offset (l, u) i)
-    
-    (Unrolled l u arrs) !? i = inRange (l, u) i ? Just (arrs !# offset (l, u) i) $ Nothing
-    
-    predicate .$ (Unrolled l u es) = index (l, u) <$> (predicate .$ es)
-    predicate *$ (Unrolled l u es) = index (l, u) <$> (predicate *$ es)
+    p .$ (Unrolled l u es) = index (l, u) <$> (p .$ es)
+    p *$ (Unrolled l u es) = index (l, u) <$> (p *$ es)
 
 --------------------------------------------------------------------------------
 
@@ -304,17 +300,14 @@ instance Ord1 Unlist where liftCompare f xs ys = liftCompare f (toList xs) (toLi
 instance Functor Unlist
   where
     fmap _ UNEmpty = UNEmpty
-    fmap f arr@(Unlist n@(I# n#) _ arrs) = runST
-        (
-          ST $ \ s1# ->
-            case newArray# n# (undEx "fmap") s1# of
-              (# s2#, marr# #) ->
-                let go i s3# = if i == n
-                    then case unsafeFreezeArray# marr# s3# of
-                      (# s4#, arr# #) -> (# s4#, Unlist n arr# (f <$> arrs) #)
-                    else fill marr# (i, f $ arr !# i) (go $ i + 1) s3#
-                in go 0 s2#
-        )
+    fmap f arr@(Unlist n@(I# n#) _ arrs) = runST $ ST $ \ s1# ->
+      case newArray# n# (undEx "fmap") s1# of
+        (# s2#, marr# #) ->
+          let go i s3# = if i == n
+              then case unsafeFreezeArray# marr# s3# of
+                (# s4#, arr# #) -> (# s4#, Unlist n arr# (f <$> arrs) #)
+              else fill marr# (i, f $ arr !# i) (go $ i + 1) s3#
+          in go 0 s2#
 
 --------------------------------------------------------------------------------
 
@@ -350,13 +343,13 @@ instance Foldable Unlist
           where
             (# e #) = indexArray# arr# i#
     
-    length Z = 0
+    length UNEmpty = 0
     length (Unlist c _ arrs) = c + (length arrs)
     
-    toList Z = []
+    toList UNEmpty = []
     toList (Unlist c arr# arrs) = foldr addIxElem (toList arrs) [0 .. c - 1]
       where
-        addIxElem (I# i#) = let (# e #) = indexArray# arr# i# in (e :)
+        addIxElem = \ (I# i#) es -> let (# e #) = indexArray# arr# i# in e : es
     
     null UNEmpty = True
     null (Unlist c _ _) = c < 0
@@ -372,19 +365,17 @@ instance Linear (Unlist e) e
     listL = toList
     
     fromList [] = UNEmpty
-    fromList es = runST $ ST
-        (
-          \ s1# -> case newArray# n# (undEx "fromList") s1# of
-              (# s2#, marr# #) ->
-                let go e r = \ i# s3# -> case writeArray# marr# i# e s3# of
-                      s4# -> if isTrue# (i# ==# n# -# 1#)
-                                then s4#
-                                else r (i# +# 1#) s4#
-                in done n' (fromList others) marr#
-                (
-                  if n' == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2#
-                )
-        )
+    fromList es = runST $ ST $
+        \ s1# -> case newArray# n# (undEx "fromList") s1# of
+            (# s2#, marr# #) ->
+              let go e r = \ i# s3# -> case writeArray# marr# i# e s3# of
+                    s4# -> if isTrue# (i# ==# n# -# 1#)
+                              then s4#
+                              else r (i# +# 1#) s4#
+              in done n' (fromList others) marr#
+              (
+                if n' == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2#
+              )
       where
         (curr, others) = split _UNLIST_CHUNK_MAX_SIZE_ es
         !n'@(I# n#)    = length curr
@@ -438,9 +429,9 @@ instance Linear (Unlist e) e
         lim  = _UNLIST_CHUNK_MAX_SIZE_
     toLast (Unlist c arr# arrs) e = Unlist c arr# (toLast arrs e)
     
-    partition predicate es = (fromList x, fromList y)
+    partition p es = (fromList x, fromList y)
       where
-        (x, y) = partition predicate $ toList es
+        (x, y) = partition p $ toList es
 
 instance Split (Unlist e) e
   where
@@ -504,15 +495,14 @@ instance Indexed (Unlist e) Int e
         )
       where
         !n@(I# n#)     = min lim $ size bnds
-        (curr, others) = partition (\ (i, _) -> inRange (0, n - 1) i) ascs
+        (curr, others) = partition (inRange (0, n - 1) . fst) ascs
         
         rest = assoc' (l + n, u) defvalue others
         
         ies = [ (offset bnds i, e) | (i, e) <- curr ]
         lim = _UNLIST_CHUNK_MAX_SIZE_
     
-    Z // []   = Z
-    Z // ascs = assoc (l, u) ascs
+    Z // ascs = isNull ascs ? Z $ assoc (l, u) ascs
       where
         l = minimum $ fsts ascs
         u = maximum $ fsts ascs
@@ -523,7 +513,7 @@ instance Indexed (Unlist e) Int e
           where
             ies = [ (offset (l', u') i, e) | (i, e) <- curr ]
         
-        thaw = ST $ \s1# -> case newArray# c# (undEx "(//)") s1# of
+        thaw = ST $ \ s1# -> case newArray# c# (undEx "(//)") s1# of
           (# s2#, marr# #) ->
             let copy i@(I# i#) s3# = if i == c
                   then s3#
@@ -569,7 +559,7 @@ _ !# _ = error "SDP.Unrolled.(!#) tried to find element in empty Unlist"
 
 {-# INLINE done #-}
 done :: Int -> Unlist e -> MutableArray# s e -> STRep s (Unlist e)
-done c rest marr# = \s1# -> case unsafeFreezeArray# marr# s1# of
+done c rest marr# = \ s1# -> case unsafeFreezeArray# marr# s1# of
   (# s2#, arr# #) -> (# s2#, Unlist c arr# rest #)
 
 _UNLIST_CHUNK_MAX_SIZE_ :: Int

@@ -211,10 +211,9 @@ instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
         err  = throw $ UndefinedValue "in SDP.Bytes.(//)"
     
     (!)  (Bytes l u _ bytes#) i = case offset (l, u) i of (I# i#) -> bytes# !# i#
-    (!?)   es@(Bytes l u _ _)   = (not . inRange (l, u)) ?: (es !)
     
-    (.$) p es@(Bytes l u _ _)   = index (l, u) <$> (p .$) (listL es)
-    (*$) p es@(Bytes l u _ _)   = index (l, u) <$> (p *$) (listL es)
+    (.$) p es@(Bytes l u _ _)   = index (l, u) <$> p .$ (listL es)
+    (*$) p es@(Bytes l u _ _)   = index (l, u) <$> p *$ (listL es)
 
 --------------------------------------------------------------------------------
 
@@ -231,7 +230,7 @@ instance (Index i) => Default (Bytes i e)
         (# s3#, arr# #) -> (# s3#, Bytes l u 0 arr# #)
       where
         l = unsafeIndex 0
-        u = unsafeIndex (-1)
+        u = unsafeIndex $ -1
 
 instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (Bytes i e)
   where

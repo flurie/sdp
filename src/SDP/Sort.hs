@@ -18,9 +18,7 @@ import SDP.SafePrelude
 
 import SDP.Simple
 
-{- |
-  Sort - is class of types that can be sorted.
--}
+-- | Sort - is class of types that can be sorted.
 class Sort s e | s -> e
   where
     -- | The sortBy function is the non-overloaded version of sort.

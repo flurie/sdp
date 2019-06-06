@@ -16,8 +16,6 @@
 
 module SDP.Array
 (
-  module Test.QuickCheck,
-  
   module SDP.Array.Mutable,
   module SDP.Indexed,
   module SDP.Scan,
@@ -110,16 +108,13 @@ instance (Index i, Read i, Read e) => Read (Array i e)
 
 instance (Index i) => Functor (Array i)
   where
-    fmap f arr@(Array l u n@(I# n#) _) = runST
-      (
-        ST $ \ s1# ->
-          case newArray# n# (undEx "fmap") s1# of
-            (# s2#, marr# #) ->
-              let go i s# = if i == n
-                  then done (l, u) n marr# s#
-                  else fill marr# (i, f $ arr !# i) (go $ i + 1) s#
-              in go 0 s2#
-      )
+    fmap f arr@(Array l u n@(I# n#) _) = runST $ ST $ \ s1# ->
+      case newArray# n# (undEx "fmap") s1# of
+        (# s2#, marr# #) ->
+          let go i s# = if i == n
+              then done (l, u) n marr# s#
+              else fill marr# (i, f $ arr !# i) (go $ i + 1) s#
+          in go 0 s2#
 
 instance (Index i) => Zip (Array i)
   where
@@ -159,34 +154,43 @@ instance (Index i) => Applicative (Array i)
 
 instance (Index i) => Foldable (Array i)
   where
+    {-# INLINE foldr #-}
     foldr  f base arr = go 0
       where
         go i = arr ==. i ? base $ f (arr !# i) (go $ i + 1)
     
+    {-# INLINE foldl #-}
     foldl  f base arr = go $ length arr - 1
       where
         go i = i == -1 ? base $ f (go $ i - 1) (arr !# i)
     
+    {-# INLINE foldr' #-}
     foldr' f base arr = go (length arr - 1) base
       where
         go i a = i == -1 ? a $ go (i - 1) (f (arr !# i) $! a)
     
+    {-# INLINE foldl' #-}
     foldl' f base arr = go 0 base
       where
         go i a = arr ==. i ? a $ go (i + 1) ((f $! a) $ arr !# i)
     
+    {-# INLINE foldr1 #-}
     foldr1 f arr = null arr ? undEx "foldr1" $ go 0
       where
         go i = arr ==. (i + 1) ? e $ f e (go $ i + 1) where e = arr !# i
     
+    {-# INLINE foldl1 #-}
     foldl1 f arr = null arr ? undEx "foldl1" $ go (length arr - 1)
       where
-        go i = i == 0 ? (arr !# 0) $ f (go $ i - 1) (arr !# i)
+        go i = i == 0 ? e $ f (go $ i - 1) e where e = arr !# i
     
-    toList arr@(Array _ _ n _) = (arr !#) <$> [0 .. n - 1]
+    {-# INLINE toList #-}
+    toList arr@(Array _ _ n _) = [ arr !# i | i <- [0 .. n - 1] ]
     
+    {-# INLINE null #-}
     null       (Array _ _ n _) = n < 1
     
+    {-# INLINE length #-}
     length     (Array _ _ n _) = n
 
 instance (Index i) => Scan (Array i)
@@ -241,44 +245,43 @@ instance (Index i) => Linear (Array i e) e
   where
     isNull = null
     
-    fromListN n es = runST $ ST
-        (
-          \ s1# -> case newArray# n# (undEx "fromList") s1# of
-              (# s2#, marr# #) ->
-                let go y r = \ i# s3# -> case writeArray# marr# i# y s3# of
-                      s4# -> if isTrue# (i# ==# n# -# 1#)
-                                then s4#
-                                else r (i# +# 1#) s4#
-                in done (l, u) n' marr#
-                (
-                  if n' == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2#
-                )
-        )
+    {-# INLINE fromList #-}
+    fromList es = fromFoldable es
+    
+    fromListN n es = runST $ ST $
+        \ s1# -> case newArray# n# (undEx "fromList") s1# of
+            (# s2#, marr# #) ->
+              let go y r = \ i# s3# -> case writeArray# marr# i# y s3# of
+                    s4# -> if isTrue# (i# ==# n# -# 1#)
+                              then s4#
+                              else r (i# +# 1#) s4#
+              in done (l, u) n' marr#
+              (
+                if n' == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2#
+              )
       where
         !n'@(I# n#) = max 0 $ (es <. n) ? length es $ n
         l = unsafeIndex 0
         u = unsafeIndex (n' - 1)
     
-    fromFoldable es = runST $ ST
-        (
-          \ s1# -> case newArray# n# (undEx "fromList") s1# of
-              (# s2#, marr# #) ->
-                let go y r = \ i# s3# -> case writeArray# marr# i# y s3# of
-                      s4# -> if isTrue# (i# ==# n# -# 1#)
-                                then s4#
-                                else r (i# +# 1#) s4#
-                in done (l, u) n marr#
-                (
-                  if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2#
-                )
-        )
+    fromFoldable es = runST $ ST $
+        \ s1# -> case newArray# n# (undEx "fromList") s1# of
+            (# s2#, marr# #) ->
+              let go y r = \ i# s3# -> case writeArray# marr# i# y s3# of
+                    s4# -> if isTrue# (i# ==# n# -# 1#)
+                              then s4#
+                              else r (i# +# 1#) s4#
+              in done (l, u) n marr#
+              (
+                if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2#
+              )
       where
         !n@(I# n#) = length es
         l = unsafeIndex 0
         u = unsafeIndex $ n - 1
     
     -- O(n + m) concatenation
-    xs ++ ys = fromList $ on (++) toList xs ys
+    xs ++ ys = fromList $ (toList xs) ++ (toList ys)
     
     toHead e es = fromList (e : toList es)
     toLast es e = fromList (foldr (:) [e] es)
@@ -301,33 +304,27 @@ instance (Index i) => Linear (Array i e) e
     -- O(n * m) concatenation
     concatMap f = concat . map f . toList
     
-    concat = fromList . toList'
-      where
-        -- the same as "fmap toList . toList" but on bit faster
-        toList' = foldr (\ a l -> toList a ++ l) []
+    concat = fromList . foldr (\ a l -> toList a ++ l) []
 
 instance (Index i) => Split (Array i e) e
   where
-    prefix predicate arr@(Array _ _ n _) = last' 0
-      where
-        last'   c = (inRange (0, n - 1) c && satisfy c) ? (last' $! c + 1) $! c
-        satisfy c = predicate $ arr !# c
-    
-    suffix predicate arr@(Array _ _ n _) = init' $ n - 1
-      where
-        init'   c = (inRange (0, n - 1) c && satisfy c) ? (init' $! c - 1) $! c + 1
-        satisfy c = predicate $ arr !# c
-    
     -- O (n) take.
     take n es = fromListN n $ toList es
     
     -- O (n) drop.
-    drop n es = fromListN (l - n + 1) [ es !# i | i <- [n .. l - 1] ] where l = length es
+    drop n es
+        | n <= 0 = es
+        | n >= l = Z
+        |  True  = fromListN (l - n) [ es !# i | i <- [n .. l - 1] ]
+      where
+        l = length es
     
-    split n es = (fromListN n take', fromListN (l - n + 1) drop')
+    split n es
+        | n <= 0 = (Z, es)
+        | n >= l = (es, Z)
+        |  True  = (fromListN n take', fromListN (l - n) drop')
       where
         (take', drop') = split n $ toList es
-        
         l = length es
     
     -- No more than O(n) comparing.
@@ -347,10 +344,11 @@ instance (Index i) => Bordered (Array i e) i e
   where
     lower   (Array l _ _ _) = l
     upper   (Array _ u _ _) = u
+    sizeOf  (Array _ _ n _) = n
     bounds  (Array l u _ _) = (l, u)
     indices (Array l u _ _) = range (l, u)
+    
     assocs  arr = zip (indices arr) (toList arr)
-    sizeOf  (Array _ _ n _) = n
 
 --------------------------------------------------------------------------------
 
@@ -358,14 +356,9 @@ instance (Index i) => Bordered (Array i e) i e
 
 instance (Index i) => Indexed (Array i e) i e
   where
-    assoc' bnds defvalue ascs = runST
-        (
-          ST $ \ s1# -> case newArray# n# defvalue s1# of
-            (# s2#, marr# #) -> writes marr# s2#
-        )
+    assoc' bnds defvalue ascs = runST $ ST $ \ s1# -> case newArray# n# defvalue s1# of (# s2#, marr# #) -> writes marr# s2#
       where
-        writes marr# = foldr (fill marr#) (done bnds n marr#) ies
-          where ies  = [ (offset bnds i, e) | (i, e) <- ascs ]
+        writes marr# = foldr (fill marr#) (done bnds n marr#) [ (offset bnds i, e) | (i, e) <- ascs ]
         !n@(I# n#)   = size bnds
     
     Z // ascs = null ascs ? Z $ assoc (l, u) ascs
@@ -377,17 +370,15 @@ instance (Index i) => Indexed (Array i e) i e
         writes (STArray l' u' n' marr#) = ST $ foldr (fill marr#) (done (l', u') n' marr#) ies
           where ies = [ (offset (l', u') i, e) | (i, e) <- ascs ]
         
-        thaw = ST $ \s1# -> case newArray# n# (undEx "(//)") s1# of
+        thaw = ST $ \ s1# -> case newArray# n# (undEx "(//)") s1# of
           (# s2#, marr# #) ->
             let copy i@(I# i#) s3# = if i == n then s3# else copy (i + 1) (writeArray# marr# i# (arr !# i) s3#)
             in case copy 0 s2# of s3# -> (# s3#, STArray l u n marr# #)
     
-    (.!) arr@(Array l u _ _) i = arr !# offset (l, u) i
     (!)  arr@(Array l u _ _) i = arr !# offset (l, u) i
-    (!?) arr@(Array l u _ _)   = (not . inRange (l, u)) ?: (arr !)
     
-    (.$) predicate es = find   (predicate . (es !)) $ indices es
-    (*$) predicate es = filter (predicate . (es !)) $ indices es
+    (.$) p es = find   (\ i -> p $ es ! i) $ indices es
+    (*$) p es = filter (\ i -> p $ es ! i) $ indices es
 
 --------------------------------------------------------------------------------
 

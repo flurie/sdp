@@ -48,6 +48,9 @@ version 0.0.0.9:
   Test suite rewrited and documented.
   Changed Unboxed class (removed fillByteArray# and changed newUnboxed implementation).
   Repaired SDP.Bytes.fromList
+version 0.0.0.10:
+  ByteList (Unrolled + UArray) added.
+  Added functions stripPrefix and stripSuffix
 
 scheduled changes:
   Cabal tests.

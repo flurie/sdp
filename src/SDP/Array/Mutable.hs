@@ -34,7 +34,7 @@ instance Eq (STArray s i e)
 -- | fill - service function, that needed for writing to MutableArray#.
 {-# INLINE fill #-}
 fill :: MutableArray# s e -> (Int, e) -> STRep s a -> STRep s a
-fill marr# (I# i#, e) next = \s1# -> case writeArray# marr# i# e s1# of s2# -> next s2#
+fill marr# (I# i#, e) next = \ s1# -> case writeArray# marr# i# e s1# of s2# -> next s2#
 
 --------------------------------------------------------------------------------
 
