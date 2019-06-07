@@ -265,13 +265,25 @@ class (Linear s e) => Split s e | s -> e
     -- | split is same as Some.Module.splitAt
     split      :: Int -> s -> (s, s)
     split n es =  (take n es, drop n es)
-    
-    -- | splits is generalization of split. Can be generalized yet.
+    {- |
+      splits is generalization of split, that breaks a line into sublines of a
+      given sizes.
+    -}
     splits         :: (Foldable f) => f Int -> s -> [s]
     splits ints es =  splits' (toList ints) es
       where
         splits'    []    xs = [xs]
         splits' (i : is) xs = case split i xs of (y, ys) -> y : splits is ys
+    
+    {- |
+      parts is generalization of split, that breaks a sublines into sublines
+      starting at a given indices.
+    -}
+    parts          :: (Foldable f) => f Int -> s -> [s]
+    parts ints es  =  parts' 0 (toList ints) es
+      where
+        parts' _ [] xs = [xs]
+        parts' c (i : is) xs = case split (i - c) xs of (y, ys) -> y : parts' i is ys
     
     {- Subsequence checkers. -}
     

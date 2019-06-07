@@ -37,7 +37,7 @@ version 0.0.0.6:
 
 version 0.0.0.7:
   Linear and LineS now completely (formally) independent of Foldable.
-  [internal]: Added STUArray (rewrited Data.Array.Base).
+  [internal]: Added STUArray (rewrited Data.Array.Base type).
 
 version 0.0.0.8:
   Service class Unboxed for ByteArray added.
@@ -48,9 +48,10 @@ version 0.0.0.9:
   Test suite rewrited and documented.
   Changed Unboxed class (removed fillByteArray# and changed newUnboxed implementation).
   Repaired SDP.Bytes.fromList
+
 version 0.0.0.10:
   ByteList (Unrolled + UArray) added.
-  Added functions stripPrefix and stripSuffix
+  Added functions parts, stripPrefix and stripSuffix
 
 scheduled changes:
   Cabal tests.
