@@ -35,7 +35,8 @@ How does SDP differ from other libraries?
 * Internal consistency. Unfortunately, not all libraries are consistent, even in
 the Haskell Platform.
 * Maximum functionality with the minimum number of dependencies. SDP requires
-only the most necessary and commonly used packages. This is one of the reasons for which I refused to use some libraries as dependencies (for example,
+only the most necessary and commonly used packages. This is one of the reasons
+for which I refused to use some libraries as dependencies (for example,
 containers, in which a lot of duplicate code and array, which relies on a poorly
 designed Ix class).
 * Orientation to other libraries. SDP is unlikely to be used by itself, but it
@@ -44,17 +45,11 @@ own implementations of structures an advantage over external ones (except,
 perhaps, own implementation of n-dimensional indices). You can add general
 classes implementations for any data structures and they will be able to work
 perfectly with native ones and between themselves. If other developers do the
-same, then writing the code will be a little easier (if not, think about using
-other solutions).
+same, then writing the code will be a little easier.
 * Good extensibility. SDP is based on type classes that provide the simplest
 interfaces for working with different data structures and reduce code
 duplication. SDP will not require you to use qualified import when working with
 different structures in the same namespace.
-* Good extensibility. SDP is based on type classes, not structures.
-It provides the simplest interfaces for working with various data and
-implementations, reduces duplication of code (as in the library, and in its
-uses). SDP will not require you to be qualified import to work with different
-types in the same namespace.
 
 License.
 --------------------------------------------------------------------------------
