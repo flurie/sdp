@@ -165,6 +165,13 @@ class Linear l e | l -> e
     partition      :: (e -> Bool) -> l -> (l, l)
     partition p es =  (filter p es, filter (not . p) es)
     
+    -- | Generalization of partition, that select sublines by predicates.
+    partitions       :: (Foldable f) => f (e -> Bool) -> l -> [l]
+    partitions ps' es = partitions' (toList ps') es
+      where
+        partitions'    []    xs =  [xs]
+        partitions' (p : ps) xs =  case partition p xs of (y, ys) -> y : partitions' ps ys
+    
     {- Special functions -}
     
     -- Compares lines as [multi]sets. May be rewrited and moved.

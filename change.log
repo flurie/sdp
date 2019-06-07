@@ -51,7 +51,7 @@ version 0.0.0.9:
 
 version 0.0.0.10:
   ByteList (Unrolled + UArray) added.
-  Added functions parts, stripPrefix and stripSuffix
+  Added functions parts, partitions, stripPrefix and stripSuffix
 
 scheduled changes:
   Cabal tests.
