@@ -1,5 +1,5 @@
 name:          sdp
-version:       0.0.0.10
+version:       0.0.0.11
 category:      Data Structures
 
 synopsis:      Simple Data Processing
@@ -52,8 +52,11 @@ Library
     
     -- general structure implementations
     
+    SDP.Tree.BinTree
+    
     SDP.Unrolled
     SDP.ByteList
+    
     SDP.Array
     SDP.Bytes
     
