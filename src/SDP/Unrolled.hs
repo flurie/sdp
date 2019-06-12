@@ -40,7 +40,7 @@ import GHC.Show ( appPrec )
 import Text.Read
 import Text.Read.Lex ( expect )
 
-import SDP.Array.Mutable
+import SDP.Internal.MutableArrays ( STArray (..), fill )
 import SDP.Indexed
 import SDP.Simple
 import SDP.Scan

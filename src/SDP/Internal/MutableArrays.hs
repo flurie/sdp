@@ -1,6 +1,6 @@
 {-# LANGUAGE Unsafe, MagicHash, RoleAnnotations #-}
 
-module SDP.Array.Mutable
+module SDP.Internal.MutableArrays
 (
   STArray  (..),
   STUArray (..),

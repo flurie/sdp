@@ -16,8 +16,6 @@
 
 module SDP.Bytes
   (
-    module Test.QuickCheck,
-    
     module SDP.Unboxed,
     module SDP.Indexed,
     
@@ -30,7 +28,7 @@ import SDP.SafePrelude
 
 import Test.QuickCheck
 
-import SDP.Array.Mutable ( STUArray (..) )
+import SDP.Internal.MutableArrays ( STUArray (..) )
 
 import SDP.Indexed
 import SDP.Unboxed

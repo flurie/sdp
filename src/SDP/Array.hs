@@ -16,7 +16,6 @@
 
 module SDP.Array
 (
-  module SDP.Array.Mutable,
   module SDP.Indexed,
   module SDP.Scan,
   
@@ -43,7 +42,7 @@ import GHC.ST   ( ST (..), STRep, runST )
 import Text.Read
 import Text.Read.Lex ( expect )
 
-import SDP.Array.Mutable
+import SDP.Internal.MutableArrays ( STArray (..), fill )
 import SDP.Indexed
 import SDP.Scan
 -- import SDP.Set

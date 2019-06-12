@@ -60,6 +60,6 @@ Library
     Test.SDP.Set
   
   other-modules:
-    SDP.Array.Mutable
+    SDP.Internal.MutableArrays
     
     SDP.Simple

@@ -45,7 +45,7 @@ import SDP.Set
 
 import SDP.Unboxed
 
-import SDP.Array.Mutable ( STUArray (..) )
+import SDP.Internal.MutableArrays ( STUArray (..) )
 import SDP.Simple
 
 --------------------------------------------------------------------------------
