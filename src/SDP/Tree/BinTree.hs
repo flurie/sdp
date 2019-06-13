@@ -257,12 +257,28 @@ instance Bordered (BinTree e) Int e
 {- Indexed instance. -}
 
 instance Indexed (BinTree e) Int e
+  where
+    es@(BinNode _ _ s _ _) ! n
+        | Z <- es = throw $ EmptyRange     msg
+        | n  <  0 = throw $ IndexUnderflow msg
+        | n  >= s = throw $ IndexOverflow  msg
+        |  True   = es .! n
+      where
+        msg = "in SDP.BinTree"
+    
+    (BinNode l e _ _ r) .! n = let s = length l in case n <=> s of {LT -> l .! n; EQ -> e; GT -> r .! (n - s - 1)}
+    
+    es !? n = (not . indexOf es) ?: (es !) $ n
+    
+    p *$ es = p *$ (toList es)
 
 --------------------------------------------------------------------------------
 
 instance (Arbitrary e) => Arbitrary (BinTree e)
   where
     arbitrary = fromList <$> arbitrary
+
+instance Default (BinTree e) where def = Z
 
 --------------------------------------------------------------------------------
 
