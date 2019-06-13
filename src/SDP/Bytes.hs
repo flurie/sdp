@@ -15,12 +15,13 @@
 -}
 
 module SDP.Bytes
-  (
-    module SDP.Unboxed,
-    module SDP.Indexed,
-    
-    Bytes (..)
-  )
+(
+  module SDP.Unboxed,
+  module SDP.Indexed,
+  module SDP.Set,
+  
+  Bytes (..)
+)
 where
 
 import Prelude ()
@@ -32,9 +33,7 @@ import SDP.Internal.MutableArrays ( STUArray (..) )
 
 import SDP.Indexed
 import SDP.Unboxed
--- import SDP.Set
-
-import SDP.Simple
+import SDP.Set
 
 import Text.Read
 import Text.Read.Lex ( expect )
@@ -45,10 +44,11 @@ import GHC.Exts
     
     isTrue#, (+#), (-#), (==#)
   )
-
 import GHC.Show ( appPrec )
 import GHC.Int  ( Int (..) )
 import GHC.ST   ( ST(..), STRep, runST )
+
+import SDP.Simple
 
 --------------------------------------------------------------------------------
 
@@ -159,6 +159,8 @@ instance (Index i, Unboxed e) => Bordered (Bytes i e) i e
     sizeOf (Bytes _ _ n _) = n
 
 --------------------------------------------------------------------------------
+
+{- Indexed instance. -}
 
 instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
   where

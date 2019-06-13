@@ -14,15 +14,15 @@
 -}
 
 module SDP.SafePrelude
-  (
-    module Control.Applicative,
-    module Control.Monad,
-    module Data.Foldable,
-    module SDP.Estimate,
-    module Prelude,
-    
-    (?)
-  )
+(
+  module Control.Applicative,
+  module Control.Monad,
+  module Data.Foldable,
+  module SDP.Estimate,
+  module Prelude,
+  
+  (?)
+)
 where
 
 import Prelude hiding

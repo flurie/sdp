@@ -36,24 +36,39 @@ Library
   
   exposed-modules:
     
+    -- common definitions
+    
     Control.Exception.SDP
     SDP.SafePrelude
     SDP.Estimate
     SDP.Unboxed
     SDP.Index
     
-    SDP.Unrolled
-    SDP.ByteList
-    SDP.Array
-    SDP.Bytes
+    -- general class modules
     
     SDP.Indexed
     SDP.Linear
     SDP.Set
     
+    -- general structure implementations
+    
+    SDP.Unrolled
+    SDP.ByteList
+    SDP.Array
+    SDP.Bytes
+    
+    -- service structures
+    
+    SDP.Unrolled.Unlist
+    SDP.ByteList.Ublist
+    
+    -- some dispensable classes
+    
     SDP.Sort
     SDP.Scan
     SDP.Zip
+    
+    -- basic test suite
     
     Test.SDP.Indexed
     Test.SDP.Linear

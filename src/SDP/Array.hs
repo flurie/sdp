@@ -18,6 +18,7 @@ module SDP.Array
 (
   module SDP.Indexed,
   module SDP.Scan,
+  module SDP.Set,
   
   Array (..)
 )
@@ -45,7 +46,7 @@ import Text.Read.Lex ( expect )
 import SDP.Internal.MutableArrays ( STArray (..), fill )
 import SDP.Indexed
 import SDP.Scan
--- import SDP.Set
+import SDP.Set
 
 import SDP.Simple
 
@@ -61,7 +62,7 @@ type role Array nominal representational
 
 --------------------------------------------------------------------------------
 
-{- Eq and Eq1 instances -}
+{- Eq and Eq1 instances. -}
 
 instance (Index i, Eq e) => Eq (Array i e) where (==) = eq1
 
@@ -76,7 +77,7 @@ instance (Index i) => Eq1 (Array i)
 
 --------------------------------------------------------------------------------
 
-{- Ord and Ord1 instances -}
+{- Ord and Ord1 instances. -}
 
 instance (Index i, Ord e) => Ord (Array i e) where compare = compare1
 
@@ -88,7 +89,7 @@ instance (Index i) => Ord1 (Array i)
 
 --------------------------------------------------------------------------------
 
-{- Show and Read instances -}
+{- Show and Read instances. -}
 
 instance (Index i, Show i, Show e) => Show (Array i e)
   where
@@ -103,7 +104,7 @@ instance (Index i, Read i, Read e) => Read (Array i e)
 
 --------------------------------------------------------------------------------
 
-{- Functor, Zip and Applicative instances -}
+{- Functor, Zip and Applicative instances. -}
 
 instance (Index i) => Functor (Array i)
   where
@@ -149,7 +150,7 @@ instance (Index i) => Applicative (Array i)
 
 --------------------------------------------------------------------------------
 
-{- Foldable, Scan and Traversable instances -}
+{- Foldable, Scan and Traversable instances. -}
 
 instance (Index i) => Foldable (Array i)
   where
@@ -396,13 +397,9 @@ instance (Index i) => Estimate (Array i)
 
 -- instance (Index i) => Set (Array i)
 
-instance (Index i) => LineS (Array i e) e
-  where
-    stream = stream . toList
+instance (Index i) => LineS (Array i e) e where stream = stream . toList
 
 instance (Index i) => Default (Array i e) where def = Z
-
---------------------------------------------------------------------------------
 
 instance (Index i, Arbitrary e) => Arbitrary (Array i e)
   where
