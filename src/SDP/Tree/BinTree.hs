@@ -1,5 +1,21 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE BangPatterns #-}
+
+{- |
+    Module      :  SDP.Tree.BinTree
+    Copyright   :  (c) Andrey Mulik 2019
+    License     :  BSD-style
+    Maintainer  :  work.a.mulik@gmail.com
+    Portability :  non-portable (imports SDP.Indexed)
+    
+    SDP.Tree.BinTree provides immutable lazy boxed tree.
+    This implementation of a binary tree is self-balancing (when adding elements),
+    but sensitive to adding and removing several elements due to a simplified
+    balancing algorithm. In the next versions this problem will be solved.
+    
+    This tree has additional fields for quick calculations (size and height),
+    but it still has terrible performance. This mainly concerns the construction
+    and deconstruction.
+-}
 
 module SDP.Tree.BinTree ( BinTree (..) ) where
 
@@ -18,11 +34,12 @@ import SDP.Simple
 
 --------------------------------------------------------------------------------
 
+-- | BinTree is just binary tree implementation.
 data BinTree a = BinEmpty
                | BinNode
                 !(BinTree a)        {- left  branch -}
                 !a                  {-    element   -}
-                {-# UNPACK #-} !Int {-    length    -}
+                {-# UNPACK #-} !Int {-     size     -}
                 {-# UNPACK #-} !Int {-    height    -}
                 !(BinTree a)        {- right branch -}
 
@@ -68,7 +85,7 @@ instance (Read a) => Read (BinTree a)
 
 instance (Show a) => Show (BinTree a)
   where
-    showsPrec p     BinEmpty      = showParen (p > appPrec) $ showString "Z"
+    showsPrec p      BinEmpty       = showParen (p > appPrec) $ showString "Z"
     showsPrec p (BinNode Z e _ _ Z) = showParen (p > appPrec) $ shows e
     showsPrec p (BinNode l e _ _ r) = showParen (p > appPrec) shows'
       where
