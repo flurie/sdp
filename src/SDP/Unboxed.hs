@@ -20,6 +20,7 @@ import SDP.SafePrelude
 import GHC.Stable ( StablePtr(..) )
 import GHC.Base   ( divInt# )
 import GHC.Exts
+import GHC.ST     ( ST (..) )
 
 import GHC.Int  ( Int  (..), Int8  (..), Int16  (..), Int32  (..), Int64  (..) )
 import GHC.Word ( Word (..), Word8 (..), Word16 (..), Word32 (..), Word64 (..) )
@@ -42,8 +43,20 @@ class (Eq e) => Unboxed e
     -- | writeByteArray# marr# i# e writes e to marr# with index i#.
     writeByteArray# :: MutableByteArray# s -> Int# -> e -> State# s -> State# s
     
+    fillByteArray#  :: MutableByteArray# s -> Int# -> e -> State# s -> State# s
+    fillByteArray# marr# n# e = \ s1# -> case sequence_
+        [
+          ST $ \ sn# -> case writeByteArray# marr# i# e sn# of
+            sn1# -> (# sn1#, () #) | (I# i#) <- [0 .. (I# n#)]
+        ]
+        of ST (rep) -> case rep s1# of (# s2#, () #) -> s2#
+    
     -- | newUnboxed e n# creates new MutableByteArray. First argument used as type variable.
     newUnboxed      :: e -> Int# -> State# s -> (# State# s, MutableByteArray# s #)
+    
+    newUnboxed'     :: e -> Int# -> State# s -> (# State# s, MutableByteArray# s #)
+    newUnboxed' e n# = \ s1# -> case newUnboxed e n# s1# of
+      (# s2#, marr# #) -> case fillByteArray# marr# n# e s2# of s3# -> (# s3#, marr# #)
 
 --------------------------------------------------------------------------------
 
@@ -156,6 +169,10 @@ instance Unboxed Bool
       where
         bitWrite old_byte# = if e then old_byte# `or#` bool_bit n# else old_byte# `and#` bool_not_bit n#
         i# = bool_index n#
+    
+    fillByteArray# marr# n# e = \ s1# -> setByteArray# marr# 0# (bool_scale n#) byte# s1#
+      where
+        !(I# byte#) = e ? 0xff $ 0
 
 instance Unboxed Char
   where

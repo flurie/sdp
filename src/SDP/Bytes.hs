@@ -165,7 +165,7 @@ instance (Index i, Unboxed e) => Bordered (Bytes i e) i e
 instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
   where
     assoc' (l, u) defvalue ascs = runST $ ST $
-      \ s1# -> case newUnboxed defvalue n# s1# of
+      \ s1# -> case newUnboxed' defvalue n# s1# of
         (# s2#, marr# #) ->
           let gowrite (i, y) r = \ i# s3# -> case writeByteArray# marr# (ix i) y s3# of
                 s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#

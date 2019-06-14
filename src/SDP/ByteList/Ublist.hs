@@ -236,7 +236,7 @@ instance (Unboxed e) => Indexed (Ublist e) Int e
         (curr, others) = partition (\ (i, _) -> inRange (0, c - 1) i) ascs
     
     assoc' bnds@(l, u) defvalue ascs = isEmpty bnds ? UBEmpty $ runST $
-        ST $ \ s1# -> case newUnboxed defvalue n# s1# of
+        ST $ \ s1# -> case newUnboxed' defvalue n# s1# of
           (# s2#, marr# #) -> foldr (fill marr#) (done n rest marr#) ies s2#
       where
         !n@(I# n#)     = min lim $ size bnds
