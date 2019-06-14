@@ -43,6 +43,8 @@ class (Eq e) => Unboxed e
     -- | writeByteArray# marr# i# e writes e to marr# with index i#.
     writeByteArray# :: MutableByteArray# s -> Int# -> e -> State# s -> State# s
     
+    {-# INLINE fillByteArray# #-}
+    -- | fillByteArray# fills byte array.
     fillByteArray#  :: MutableByteArray# s -> Int# -> e -> State# s -> State# s
     fillByteArray# marr# n# e = \ s1# -> case sequence_
         [
@@ -54,6 +56,11 @@ class (Eq e) => Unboxed e
     -- | newUnboxed e n# creates new MutableByteArray. First argument used as type variable.
     newUnboxed      :: e -> Int# -> State# s -> (# State# s, MutableByteArray# s #)
     
+    {-# INLINE newUnboxed' #-}
+    {- |
+      new Unboxed' is strict version of array, that use first argument as initial
+      value. May fail when trying to write error or undefined.
+    -}
     newUnboxed'     :: e -> Int# -> State# s -> (# State# s, MutableByteArray# s #)
     newUnboxed' e n# = \ s1# -> case newUnboxed e n# s1# of
       (# s2#, marr# #) -> case fillByteArray# marr# n# e s2# of s3# -> (# s3#, marr# #)
