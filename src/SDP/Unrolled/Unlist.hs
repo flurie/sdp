@@ -318,8 +318,8 @@ instance Indexed (Unlist e) Int e
     
     es !? n = inRange bs n ? Just (es !# offset bs n) $ Nothing where bs = bounds es
     
-    predicate .$ es = predicate .$ toList es
-    predicate *$ es = predicate *$ toList es
+    p .$ es = p .$ toList es
+    p *$ es = p *$ toList es
 
 --------------------------------------------------------------------------------
 

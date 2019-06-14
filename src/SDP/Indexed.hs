@@ -100,7 +100,7 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
     
     default (!?) :: (Bordered v i e) => v -> i -> Maybe e
     {-# INLINE (!?) #-}
-    (!?) dat     =  (not . indexOf dat) ?: (dat !)
+    (!?) dat     = \ i -> (not . indexOf dat) ?: (dat !) $ i
 
 -- |  Write one element to structure.
 {-# INLINE write #-}

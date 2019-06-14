@@ -20,15 +20,24 @@ simplest of them. However, such structures are required in 80-95% cases.
 
 What SDP provides?
 --------------------------------------------------------------------------------
-Currently there are only five data structures in SDP:
+Currently there are only six data structures in SDP:
+
 - standard lists ([])
+- binary trees   (BinTree)
+
 - lazy   immutable  boxed  arrays (Array)
 - strict immutable unboxed arrays (Bytes)
+
 - lazy   unrolled linked lists (Unrolled)
 - strict unrolled linked lists (ByteList)
 
-but matrices, bitmaps, trees, sequences, dictionaries, and prefix trees will
-also be added.
+And two service structures (may be infinite):
+
+- lazy   unrolled linked lists (Unlist)
+- strict unrolled linked lists (Ublist)
+
+But matrices, bitmaps, sequences, dictionaries, and prefix trees will also be
+added.
 
 How does SDP differ from other libraries?
 --------------------------------------------------------------------------------

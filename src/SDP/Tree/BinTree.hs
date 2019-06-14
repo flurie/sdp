@@ -24,12 +24,14 @@ import SDP.SafePrelude
 
 import Test.QuickCheck
 
+import SDP.Indexed
+
 import GHC.Show ( appPrec )
 
 import Text.Read
 import Text.Read.Lex ( expect )
 
-import SDP.Indexed
+import SDP.Unrolled.Unlist
 import SDP.Simple
 
 --------------------------------------------------------------------------------
@@ -170,7 +172,10 @@ instance Foldable BinTree
     foldl _ base Z = base
     foldl f base (BinNode l e _ _ r) = foldl f (f (foldl f base l) e) r
     
+    {-# INLINE length #-}
     length es = case es of {BinEmpty -> 0; BinNode _ _ n _ _ -> n}
+    
+    {-# INLINE null #-}
     null   es = case es of {BinEmpty -> True; _ -> False}
 
 -- instance Scan BinTree
@@ -185,6 +190,7 @@ instance Traversable BinTree
 
 instance Linear (BinTree e) e
   where
+    {-# INLINE isNull #-}
     isNull es = case es of {BinEmpty -> True; _ -> False}
     
     lzero = BinEmpty
@@ -258,6 +264,16 @@ instance Bordered (BinTree e) Int e
 
 instance Indexed (BinTree e) Int e
   where
+    -- BinTree assoc' uses Unlist assoc' as backend.
+    assoc' bnds defvalue ascs = fromUnlist $ assoc' bnds defvalue ascs
+      where
+        fromUnlist = fromFoldable :: Unlist e -> BinTree e
+    
+    -- BinTree (//) uses Unlist (//) as backend.
+    es // ies = fromFoldable $ (toUnlist es) // ies
+      where
+        toUnlist = fromFoldable :: BinTree e -> Unlist e
+    
     es@(BinNode _ _ s _ _) ! n
         | Z <- es = throw $ EmptyRange     msg
         | n  <  0 = throw $ IndexUnderflow msg
@@ -268,9 +284,8 @@ instance Indexed (BinTree e) Int e
     
     (BinNode l e _ _ r) .! n = let s = length l in case n <=> s of {LT -> l .! n; EQ -> e; GT -> r .! (n - s - 1)}
     
-    es !? n = (not . indexOf es) ?: (es !) $ n
-    
-    p *$ es = p *$ (toList es)
+    p .$ es = p .$ toList es
+    p *$ es = p *$ toList es
 
 --------------------------------------------------------------------------------
 
@@ -279,6 +294,8 @@ instance (Arbitrary e) => Arbitrary (BinTree e)
     arbitrary = fromList <$> arbitrary
 
 instance Default (BinTree e) where def = Z
+
+instance Estimate BinTree where xs <==> ys = length xs <=> length ys
 
 --------------------------------------------------------------------------------
 

@@ -53,3 +53,6 @@ version 0.0.0.10:
   ByteList (Unrolled + UArray) added.
   Added functions parts, partitions, stripPrefix and stripSuffix.
 
+version 0.0.0.11:
+  Binary trees added.
+
