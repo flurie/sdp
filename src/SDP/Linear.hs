@@ -272,6 +272,7 @@ class (Linear s e) => Split s e | s -> e
     -- | split is same as Some.Module.splitAt
     split      :: Int -> s -> (s, s)
     split n es =  (take n es, drop n es)
+    
     {- |
       splits is generalization of split, that breaks a line into sublines of a
       given sizes.
