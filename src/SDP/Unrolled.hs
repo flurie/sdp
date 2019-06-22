@@ -235,8 +235,10 @@ instance (Index i) => Indexed (Unrolled i e) i e
         filler = zip (range bnds) (replicate n e)
         n = size bnds
     
-    Z  // []   = Z
-    Z  // ascs = assoc (minimum ixs, maximum ixs) ascs where ixs = fsts ascs
+    Z  // ascs = null ascs ? Z $ assoc (l, u) ascs
+      where
+        l = fst $ minimumBy cmpfst ascs
+        u = fst $ maximumBy cmpfst ascs
     
     (Unrolled l u es) // ascs = Unrolled l' u' es'
       where
@@ -245,7 +247,7 @@ instance (Index i) => Indexed (Unrolled i e) i e
         l'  = unsafeIndex 0
     
     {-# INLINE (!) #-}
-    (!)  (Unrolled l u es) i = es !# (offset (l, u) i)
+    (!)  (Unrolled l u es) i = es ! (offset (l, u) i)
     
     p .$ (Unrolled l u es) = index (l, u) <$> (p .$ es)
     p *$ (Unrolled l u es) = index (l, u) <$> (p *$ es)

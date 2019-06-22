@@ -195,8 +195,8 @@ instance (Unboxed e) => Split (Ublist e) e
     isInfixOf  = isInfixOf  `on` listL
     isSuffixOf = isSuffixOf `on` listL
     
-    prefix f = prefix f . listL
-    suffix f = suffix f . listL
+    prefix f es = prefix f $ listL es
+    suffix f es = suffix f $ listL es
 
 instance (Unboxed e) => Bordered (Ublist e) Int e
   where
@@ -215,8 +215,8 @@ instance (Unboxed e) => Indexed (Ublist e) Int e
   where
     Z // ascs = isNull ascs ? Z $ assoc (l, u) ascs
       where
-        l = minimum $ fsts ascs
-        u = maximum $ fsts ascs
+        l = fst $ minimumBy cmpfst ascs
+        u = fst $ maximumBy cmpfst ascs
     
     es@(Ublist c@(I# c#) _ arrs) // ascs = runST $ thaw es (undEx "(//)") >>= writes (arrs // others)
       where
