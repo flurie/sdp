@@ -10,6 +10,7 @@
 
 module Test.SDP.Linear
 (
+  TestLinear1,
   TestLinear,
   TestSplit,
   
@@ -36,8 +37,11 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | TestLinear is service type synonym for more comfortable quickCheck using.
-type TestLinear l e = Int -> e -> l -> Bool
+-- | TestLinear  is service type synonym for more comfortable quickCheck using.
+type TestLinear  l e = Int -> e -> l -> Bool
+
+-- | TestLinear1 is service type synonym for more comfortable quickCheck using.
+type TestLinear1 f e = Int -> e -> f e -> Bool
 
 -- | basicLinearTest checks relations of isNull, lzero, single and fromList.
 basicLinearTest :: (Linear l e, Eq l) => e -> l -> Bool

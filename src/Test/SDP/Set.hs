@@ -11,6 +11,7 @@
 
 module Test.SDP.Set
 (
+  TestSet1,
   TestSet,
   
   setTest,
@@ -36,8 +37,11 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | TestSet is service type synonym for more comfortable quickCheck using.
-type TestSet s o = o -> s -> s -> Bool
+-- | TestSet  is service type synonym for more comfortable quickCheck using.
+type TestSet  s o = o -> s -> s -> Bool
+
+-- | TestSet1 is service type synonym for more comfortable quickCheck using.
+type TestSet1 s o = o -> s o -> s o -> Bool
 
 -- | basicSetTest checks relations of set and (set . set), (/?\) and (\?/).
 basicSetTest :: (Set s o, Ord s, Ord o) => s -> s -> Bool
