@@ -204,7 +204,7 @@ instance (Unboxed e) => Bordered (Ublist e) Int e
     upper  es = sizeOf es - 1
     
     {-# INLINE sizeOf #-}
-    sizeOf  es   = case es of {Z -> 0; Ublist n _ arrs -> n + sizeOf arrs}
+    sizeOf es = case es of {Z -> 0; Ublist n _ arrs -> n + sizeOf arrs}
     
     {-# INLINE indexOf #-}
     indexOf es i = i >= 0 && i < sizeOf es

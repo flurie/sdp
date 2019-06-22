@@ -105,21 +105,20 @@ instance (Index i, Unboxed e) => Linear (ByteList i e) e
     
     concat xss = ByteList l u res
       where
-        (n', res) = foldr f (0, Z) xss
-        
-        f = \ (ByteList _ _ xs) (len, ys) -> (len + sizeOf xs, xs ++ ys)
+        res = foldr  (\ (ByteList l' u' xs) ublist -> take (size (l', u')) xs ++ ublist) Z xss
+        n   = foldr' (\ (ByteList l' u' _) count -> size (l', u') + count) 0 xss
         
         l = unsafeIndex 0
-        u = unsafeIndex $ max 0 n' - 1
+        u = unsafeIndex $ max 0 n - 1
     
     intersperse e (ByteList _ _ es) = ByteList l1 u1 $ intersperse e es
       where
-        n1 = case n <=> 0 of {LT -> -2; EQ -> 0; GT -> 2 * n - 2}; n = sizeOf es
+        n1 = n > 0 ? 2 * n - 2 $ -1; n = sizeOf es
         u1 = unsafeIndex n1
         l1 = unsafeIndex 0
     
-    listL  (ByteList _ _ bytes) = listL bytes
-    listR  (ByteList _ _ bytes) = listR bytes
+    listL  (ByteList l u bytes) = listL $ take (size (l, u)) bytes
+    listR  (ByteList l u bytes) = listR $ take (size (l, u)) bytes
 
 instance (Index i, Unboxed e) => Split (ByteList i e) e
   where
@@ -142,9 +141,7 @@ instance (Index i, Unboxed e) => Split (ByteList i e) e
 
 instance (Index i, Unboxed e) => Bordered (ByteList i e) i e
   where
-    indices (ByteList l u _) = range (l, u)
     sizeOf  (ByteList l u _) = size (l, u)
-    bounds  (ByteList l u _) = (l, u)
     lower   (ByteList l _ _) = l
     upper   (ByteList _ u _) = u
 
@@ -186,5 +183,4 @@ instance (Index i) => Default (ByteList i e)
       where
         l = unsafeIndex 0
         u = unsafeIndex $ -1
-
 
