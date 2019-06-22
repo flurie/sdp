@@ -7,6 +7,7 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
+    Stability   :  experimental
     
     This module provides Sort (class of sortable one-parametric types).
 -}

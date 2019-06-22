@@ -7,6 +7,7 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
+    Stability   :  stable
     
     This module provides service type Unlist - lazy boxed unrolled linked list for SDP.Unrolled.
 -}
@@ -41,7 +42,7 @@ import GHC.Base
   )
 import GHC.ST   ( ST (..), STRep, runST )
 
-import SDP.Internal.MutableArrays ( STArray (..), fill )
+import SDP.Internal.MutableArrays ( STArray (..) )
 import SDP.Simple
 
 --------------------------------------------------------------------------------
@@ -340,6 +341,10 @@ _ !# _ = error "SDP.Unrolled.(!#) tried to find element in empty Unlist"
 -- | internal reader, not for export.
 (!^) :: Array# e -> Int# -> e
 arr# !^ i# = case indexArray# arr# i# of (# e #) -> e
+
+{-# INLINE fill #-}
+fill :: MutableArray# s e -> (Int, e) -> STRep s a -> STRep s a
+fill marr# (I# i#, e) nxt = \ s1# -> case writeArray# marr# i# e s1# of s2# -> nxt s2#
 
 {-# INLINE done #-}
 -- | just internal Unlist creation function.

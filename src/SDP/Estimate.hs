@@ -6,6 +6,7 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions: ExistentialQuantification)
+    Stability   :  stable
     
     This module is exported by "SDP.SafePrelude".
 -}

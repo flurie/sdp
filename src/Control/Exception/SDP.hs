@@ -4,6 +4,7 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
+    Stability   :  stable
 -}
 
 module Control.Exception.SDP

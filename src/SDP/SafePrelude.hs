@@ -6,6 +6,7 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (uses SDP.Estimate)
+    Stability   :  stable
   
   Module with simple common definitions.
   

@@ -7,6 +7,7 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
+    Stability   :  stable
   
   Index is service class that replaces the more practice-oriented, but limitary
   "Data.Ix".

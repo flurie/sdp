@@ -6,6 +6,7 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (imports SDP.Indexed)
+    Stability   :  experimental
     
     SDP.Tree.BinTree provides immutable lazy boxed tree.
     This implementation of a binary tree is self-balancing (when adding elements),
@@ -194,7 +195,8 @@ instance Linear (BinTree e) e
     isNull es = case es of {BinEmpty -> True; _ -> False}
     
     lzero = BinEmpty
-    listL = toList
+    
+    listL es = toList es
     
     {-# INLINE single #-}
     single x = BinNode Z x 1 1 Z

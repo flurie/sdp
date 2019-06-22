@@ -7,6 +7,7 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
+    Stability   :  stable
   
   Indexed is one of the main classes of SDP, designed to read and write immutable
   indexable data structures.

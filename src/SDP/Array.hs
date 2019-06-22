@@ -7,6 +7,7 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
+    Stability   :  stable
     
     SDP.Array provides immutable lazy boxed array type.
     This implementation of array no much different from Data.Array (array),
@@ -43,7 +44,7 @@ import GHC.ST   ( ST (..), STRep, runST )
 import Text.Read
 import Text.Read.Lex ( expect )
 
-import SDP.Internal.MutableArrays ( STArray (..), fill )
+import SDP.Internal.MutableArrays ( STArray (..) )
 import SDP.Indexed
 import SDP.Scan
 import SDP.Set
@@ -410,6 +411,10 @@ instance (Index i, Arbitrary e) => Arbitrary (Array i e)
 {-# INLINE (!#) #-}
 (!#) :: Array i e -> Int -> e
 (!#) (Array _ _ _ arr#) (I# i#) = case indexArray# arr# i# of (# e #) -> e
+
+{-# INLINE fill #-}
+fill :: MutableArray# s e -> (Int, e) -> STRep s a -> STRep s a
+fill marr# (I# i#, e) nxt = \ s1# -> case writeArray# marr# i# e s1# of s2# -> nxt s2#
 
 {-# INLINE done #-}
 done :: (i, i) -> Int -> MutableArray# s e -> STRep s (Array i e)

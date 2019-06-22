@@ -8,6 +8,7 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
+    Stability   :  stable
   
   Linear is a module that provides several convenient interfaces for working
   with various linear data structures.

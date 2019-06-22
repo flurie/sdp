@@ -1,6 +1,4 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-
--- For default definitions.
 {-# LANGUAGE TypeOperators, GADTs, DefaultSignatures #-}
 
 {- |
@@ -9,6 +7,7 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
+    Stability   :  experimental
   
     Set is a class that allows you to create sets and perform simple operations
   on them.

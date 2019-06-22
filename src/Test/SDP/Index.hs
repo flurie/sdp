@@ -6,6 +6,7 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
+    Stability   :  stable
     
     Test.SDP.Index provides simple set of test for SDP.Index class.
 -}

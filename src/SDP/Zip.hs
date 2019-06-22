@@ -4,6 +4,7 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
+    Stability   :  stable
   
   Zip is a very useful class that allows parallel application of functions
   to several lines of elements.
