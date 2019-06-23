@@ -156,8 +156,15 @@ instance (Unboxed e) => Linear (Ublist e) e
         reverse' tail' (Ublist c bytes# bytes) = reverse' (Ublist c rev# tail') bytes
           where
             !(Ublist _ rev# _) = toChunk' c err listR' `asTypeOf` bytes
+            
             listR' = [ bytes# !# i# | (I# i#) <- [ c - 1, c - 2 .. 0 ] ]
-            err = undEx "reverse"
+            err    = undEx "reverse"
+    
+    {-# INLINe partition #-}
+    partition p es = case partition p (listL es) of (x, y) -> (fromList x, fromList y)
+    
+    {-# INLINE partitions #-}
+    partitions ps es = fromList <$> (partitions ps $ listL es)
 
 instance (Unboxed e) => Split (Ublist e) e
   where

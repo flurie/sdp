@@ -74,7 +74,7 @@ instance (Show e) => Show (Unlist e)
   where
     showsPrec p unl = showParen (p > appPrec) shows'
       where
-        shows' = showString "unlist " . showChar ' ' . shows (assocs unl)
+        shows' = showString "unlist " . shows (assocs unl)
 
 --------------------------------------------------------------------------------
 
@@ -101,12 +101,12 @@ instance Foldable Unlist
     foldr _ base Z = base
     foldr f base (Unlist c arr# arrs) = go (foldr f base arrs) 0
       where
-        go b i@(I# i#) = i == c ? b $ f (arr# !^ i#) (go b $ i + 1)
+        go b i@(I# i#) = c == i ? b $ f (arr# !^ i#) (go b $ i + 1)
     
     foldr' _ base Z = base
     foldr' f base (Unlist c arr# arrs) = go (foldr' f base arrs) 0
       where
-        go b i@(I# i#) = i == c ? b $ f (arr# !^ i#) (go b $ i + 1)
+        go b i@(I# i#) = c == i ? b $ f (arr# !^ i#) (go b $ i + 1)
     
     foldl _ base Z = base
     foldl f base (Unlist c arr# arrs) = foldl f (go base $ c - 1) arrs
@@ -135,85 +135,93 @@ instance Linear (Unlist e) e
     {-# INLINE isNull #-}
     isNull es = null es
     
-    {-# INLINE listL #-}
-    listL  es = toList es
+    {-# INLINE lzero #-}
+    lzero = UNEmpty
     
-    {-# INLINE fromList #-}
-    fromList [] = UNEmpty
-    fromList es = foldr (\ x y -> toChunk' lim x ++ y) rest' chunks
+    {-# INLINE toHead #-}
+    toHead e Z = single e
+    toHead e (Unlist c arr# arrs) = c < lim ? res1 $ (Unlist 1 single# arrs)
       where
-        -- toChunk' generates byte arrays for concatMap
-        toChunk' :: Int -> [e] -> Unlist e
-        toChunk' n@(I# n#) chunk = runST $ ST $
-          \ s1# -> case newArray# n# err s1# of
-            (# s2#, marr# #) ->
-              let go x r = \ i# s3# -> case writeArray# marr# i# x s3# of
-                    s4# -> if isTrue# (i# ==# n# -# 1#)
-                              then s4#
-                              else r (i# +# 1#) s4#
-              in done n Z marr#
-              (
-                if n == 0 then s2# else foldr go (\ _ s# -> s#) chunk 0# s2#
-              )
-        
-        (chunks :< rest)  = take (count + 1) $ splits [ lim, lim .. ] es
-        (count, restSize) = length es `divMod` lim
-        
-        rest' = toChunk' restSize rest
-        lim   = _UNLIST_CHUNK_MAX_SIZE_
-        err   = undEx "fromList"
+        res1 = fromListN (max 0 c + 1) $ e : toList (Unlist c arr# Z)
+        !(Unlist 1 single# Z) = single e
     
+    {-# INLINE head #-}
     head Z  = throw $ EmptyRange "in SDP.Unrolled.(:>)"
     head es = es !# 0
     
-    last Z  = throw $ EmptyRange "in SDP.Unrolled.(:<)"
-    last es = es !# (length es - 1)
-    
+    {-# INLINE tail #-}
     tail Z  = throw $ EmptyRange "in SDP.Unrolled.(:<)"
     tail es@(Unlist _ _ Z)    = fromList . tail $ toList es
     tail (Unlist c arr# arrs) = Unlist c' new# arrs
       where
         !(Unlist c' new# _) = tail (Unlist c arr# Z)
     
-    init Z = throw $ EmptyRange "in SDP.Unrolled.(:>)"
-    init es@(Unlist _ _ Z)    = fromList . init $ toList es
-    init (Unlist c arr# arrs) = Unlist c arr# (init arrs)
-    
-    Z ++ ys = ys
-    xs ++ Z = xs
-    (Unlist c arr# arrs) ++ ys = Unlist c arr# (arrs ++ ys)
-    
-    replicate n e = copy count
-      where
-        copy c = case c <=> 0 of {LT -> Z; EQ -> rest; GT -> chunk ++ copy (c - 1)}
-        
-        chunk = runST $ ST $ \ s1# -> case newArray# l# e s1# of (# s2#, marr# #) -> done lim Z marr# s2#
-        rest  = runST $ ST $ \ s1# -> case newArray# r# e s1# of (# s2#, marr# #) -> done restSize Z marr# s2#
-        
-        !(count, restSize@(I# r#)) = n `divMod` lim
-        
-        !lim@(I# l#) = _UNLIST_CHUNK_MAX_SIZE_
-    
-    toHead e Z = single e
-    toHead e (Unlist c arr# arrs) = c < lim ? res1 $ (Unlist 1 single# arrs)
-      where
-        res1 = fromListN (max 0 c + 1) $ e : toList (Unlist c arr# Z)
-        !(Unlist 1 single# Z) = single e
-        
-        lim  = _UNLIST_CHUNK_MAX_SIZE_
-    
+    {-# INLINE toLast #-}
     toLast Z e = single e
     toLast es@(Unlist c _ Z) e = c < lim ? res1 $ (Unlist 1 single# Z)
       where
         res1 = fromListN (max 0 c + 1) $ foldr (:) [e] es
         !(Unlist 1 single# Z) = single e
-        
-        lim  = _UNLIST_CHUNK_MAX_SIZE_
     toLast (Unlist c arr# arrs) e = Unlist c arr# (toLast arrs e)
     
-    partition p es = (fromList x, fromList y)
+    {-# INLINE last #-}
+    last Z  = throw $ EmptyRange "in SDP.Unrolled.(:<)"
+    last es = es !# (length es - 1)
+    
+    {-# INLINE init #-}
+    init Z = throw $ EmptyRange "in SDP.Unrolled.(:>)"
+    init es@(Unlist _ _ Z)    = fromList . init $ toList es
+    init (Unlist c arr# arrs) = Unlist c arr# (init arrs)
+    
+    {-# INLINE single #-}
+    single e = runST $ ST $ \ s1# -> case newArray# 1# e s1# of (# s2#, marr# #) -> done 1 Z marr# s2#
+    
+    {-# INLINE listL #-}
+    listL es = toList es
+    
+    {-# INLINE fromList #-}
+    fromList es = fromFoldable es
+    
+    {-# INLINE fromFoldable #-}
+    fromFoldable es = foldr (\ x y -> toChunk' err lim x ++ y) rest' chunks
       where
-        (x, y) = partition p $ toList es
+        (chunks :< rest)  = take count [ lim, lim .. ] `splits` toList es
+        (count, restSize) = length es `divMod` lim
+        
+        rest' = toChunk' err restSize rest
+        err   = undEx "fromFoldable"
+    
+    Z ++ ys = ys
+    xs ++ Z = xs
+    (Unlist c arr# arrs) ++ ys = Unlist c arr# (arrs ++ ys)
+    
+    {-# INLINE replicate #-}
+    replicate n e = copy count
+      where
+        chunk = runST $ ST $ \ s1# -> case newArray# l# e s1# of (# s2#, marr# #) -> done lim Z marr# s2#
+        rest  = runST $ ST $ \ s1# -> case newArray# r# e s1# of (# s2#, marr# #) -> done restSize Z marr# s2#
+        copy c = case c <=> 0 of {LT -> Z; EQ -> rest; GT -> chunk ++ copy (c - 1)}
+        
+        !(count, restSize@(I# r#)) = n `divMod` lim
+        
+        !(I# l#) = lim
+    
+    reverse es' = reverse' Z es'
+      where
+        reverse' :: Unlist e -> Unlist e -> Unlist e
+        reverse' tail' Z = tail'
+        reverse' tail' (Unlist c bytes# bytes) = reverse' (Unlist c rev# tail') bytes
+          where
+            !(Unlist _ rev# _) = toChunk' err c listR'
+            
+            listR' = [ bytes# !^ i# | (I# i#) <- [ c - 1, c - 2 .. 0 ] ]
+            err    = undEx "reverse"
+    
+    {-# INLINe partition #-}
+    partition p es = case partition p (toList es) of (x, y) -> (fromList x, fromList y)
+    
+    {-# INLINE partitions #-}
+    partitions ps es = fromList <$> (partitions ps $ toList es)
 
 instance Split (Unlist e) e
   where
@@ -258,9 +266,13 @@ instance Split (Unlist e) e
 
 instance Bordered (Unlist e) Int e
   where
+    {-# INLINE lower #-}
     lower  _  = 0
+    
+    {-# INLINE upper #-}
     upper  es = length es - 1
     
+    {-# INLINE sizeOf #-}
     sizeOf es = length es
 
 --------------------------------------------------------------------------------
@@ -278,29 +290,21 @@ instance Indexed (Unlist e) Int e
         
         funs  = [ \ (i, _) -> i < l' | l' <- [ lim, 2 * lim .. count * lim ] ]
         rest' = toChunk restSize defvalue rest
-        
-        ies = filter (inRange bnds . fst) ascs
-        lim = _UNLIST_CHUNK_MAX_SIZE_
-        
-        toChunk n@(I# n#) e ies' = runST $ ST $ \ s1# -> case newArray# n# e s1# of
-          (# s2#, marr# #) -> foldr (fill marr#) (done n Z marr#) ies' s2#
+        ies   = filter (inRange bnds . fst) ascs
     
     Z // ascs = isNull ascs ? Z $ assoc (l, u) ascs
       where
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
     
-    es@(Unlist c@(I# c#) _ arrs) // ascs = runST $ thaw >>= (`writes` (arrs // others))
+    es@(Unlist c@(I# c#) _ arrs) // ascs = runST $ thaw >>= writes (arrs // others)
       where
-        writes (STArray l' u' n' marr#) rest = ST $ foldr (fill marr#) (done n' rest marr#) ies
-          where
-            ies = [ (offset (l', u') i, e) | (i, e) <- curr ]
+        writes rest (STArray l' u' n' marr#) = ST $ foldr (fill marr#) (done n' rest marr#) ies
+          where ies = [ (offset (l', u') i, e) | (i, e) <- curr ]
         
         thaw = ST $ \ s1# -> case newArray# c# (undEx "(//)") s1# of
           (# s2#, marr# #) ->
-            let copy i@(I# i#) s3# = if i == c
-                  then s3#
-                  else copy (i + 1) (writeArray# marr# i# (es !# i) s3#)
+            let copy i@(I# i#) s3# = if i == c then s3# else copy (i + 1) (writeArray# marr# i# (es !# i) s3#)
             in case copy 0 s2# of s3# -> (# s3#, STArray 0 (c - 1) c marr# #)
         
         (curr, others) = partition (\ (i, _) -> inRange (0, c - 1) i) ascs
@@ -308,14 +312,13 @@ instance Indexed (Unlist e) Int e
     es .! n = es !# (n + lower es)
     
     (!) es n = case inBounds bs n of
-        ER -> throw $ EmptyRange     "in SDP.Unrolled.(!)"
-        UR -> throw $ IndexOverflow  "in SDP.Unrolled.(!)"
-        OR -> throw $ IndexUnderflow "in SDP.Unrolled.(!)"
+        ER -> throw $ EmptyRange     msg
+        UR -> throw $ IndexOverflow  msg
+        OR -> throw $ IndexUnderflow msg
         IN -> es !# offset bs n
       where
-        bs = bounds es
-    
-    es !? n = inRange bs n ? Just (es !# offset bs n) $ Nothing where bs = bounds es
+        msg = "in SDP.Unrolled.(!)"
+        bs  = bounds es
     
     p .$ es = p .$ toList es
     p *$ es = p *$ toList es
@@ -332,13 +335,11 @@ instance (Arbitrary e) => Arbitrary (Unlist e) where arbitrary = fromList <$> ar
 --------------------------------------------------------------------------------
 
 {-# INLINE (!#) #-}
--- | internal reader, not for export.
 (!#) :: Unlist e -> Int -> e
 (Unlist c arr# arrs) !# i@(I# i#) = i < c ? (case indexArray# arr# i# of (# e #) -> e) $ arrs !# (i - c)
 _ !# _ = error "SDP.Unrolled.(!#) tried to find element in empty Unlist"
 
 {-# INLINE (!^) #-}
--- | internal reader, not for export.
 (!^) :: Array# e -> Int# -> e
 arr# !^ i# = case indexArray# arr# i# of (# e #) -> e
 
@@ -347,13 +348,23 @@ fill :: MutableArray# s e -> (Int, e) -> STRep s a -> STRep s a
 fill marr# (I# i#, e) nxt = \ s1# -> case writeArray# marr# i# e s1# of s2# -> nxt s2#
 
 {-# INLINE done #-}
--- | just internal Unlist creation function.
 done :: Int -> Unlist e -> MutableArray# s e -> STRep s (Unlist e)
 done c rest marr# = \ s1# -> case unsafeFreezeArray# marr# s1# of
   (# s2#, arr# #) -> (# s2#, Unlist c arr# rest #)
 
-_UNLIST_CHUNK_MAX_SIZE_ :: Int
-_UNLIST_CHUNK_MAX_SIZE_ =  1024
+toChunk :: Int -> e -> [(Int, e)] -> Unlist e
+toChunk n@(I# n#) e ies' = runST $ ST $ \ s1# -> case newArray# n# e s1# of
+  (# s2#, marr# #) -> foldr (fill marr#) (done n Z marr#) ies' s2#
+
+toChunk' :: (Foldable f) => e -> Int -> f e -> Unlist e
+toChunk' err n@(I# n#) chunk = runST $ ST $ \ s1# -> case newArray# n# err s1# of
+  (# s2#, marr# #) ->
+    let go x r = \ i# s3# -> case writeArray# marr# i# x s3# of
+          s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#
+    in done n Z marr# ( if n == 0 then s2# else foldr go (\ _ s# -> s#) chunk 0# s2# )
+
+lim :: Int
+lim =  1024
 
 undEx :: String -> a
 undEx msg = throw . UndefinedValue $ "in SDP.Unrolled.Unlist." ++ msg
