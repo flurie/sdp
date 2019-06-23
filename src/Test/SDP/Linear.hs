@@ -15,6 +15,7 @@ module Test.SDP.Linear
   TestLinear1,
   TestLinear,
   
+  TestSplit2,
   TestSplit1,
   TestSplit,
   
@@ -136,6 +137,9 @@ type TestSplit  s = Int -> s -> Bool
 
 -- | TestSplit1 is service type synonym for more comfortable quickCheck using.
 type TestSplit1 s e = Int -> s e -> Bool
+
+-- | TestSplit2 is service type synonym for more comfortable quickCheck using.
+type TestSplit2 s i e = Int -> s i e -> Bool
 
 {- |
   splitTest is pure, basic test of take, drop and split relations.

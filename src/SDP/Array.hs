@@ -31,6 +31,9 @@ import SDP.SafePrelude
 
 import Test.QuickCheck
 
+import Test.SDP.Linear
+import Test.SDP.Indexed
+
 import GHC.Base
   (
     MutableArray#, Array#, Int (..),
@@ -188,7 +191,7 @@ instance (Index i) => Foldable (Array i)
         go i = 0 == i ? e $ f (go $ i - 1) e where e = arr !# i
     
     {-# INLINE toList #-}
-    toList arr@(Array _ _ n _) = [ arr !# i | i <- [0 .. n - 1] ]
+    toList arr@(Array _ _ n _) = [ arr !# i | i <- [ 0 .. n - 1 ] ]
     
     {-# INLINE null #-}
     null       (Array _ _ n _) = n < 1
@@ -249,57 +252,60 @@ instance (Index i) => Linear (Array i e) e
     {-# INLINE isNull #-}
     isNull es = null es
     
+    {-# INLINE lzero #-}
+    lzero = runST $ ST $ \ s1# -> case newArray# 0# (undEx "lzero? that the hug!?") s1# of (# s2#, marr# #) -> done (unsafeBounds 0) 0 marr# s2#
+    
+    {-# INLINE toHead #-}
+    toHead e es = fromListN (n + 1) (e : toList es)    where n = length es
+    
+    {-# INLINE head #-}
+    head arr = arr !# 0
+    
+    {-# INLINE tail #-}
+    tail es = fromListN (length es - 1) . tail $ toList es
+    
+    {-# INLINE toLast #-}
+    toLast es e = fromListN (n + 1) $ foldr (:) [e] es where n = length es
+    
+    {-# INLINE last #-}
+    last arr = arr !# (length arr - 1)
+    
+    {-# INLINE init #-}
+    init es = fromListN (length es - 1) $ toList es
+    
     {-# INLINE fromList #-}
     fromList es = fromFoldable es
     
+    {-# INLINE fromListN #-}
     fromListN n es = runST $ ST $
         \ s1# -> case newArray# n# (undEx "fromList") s1# of
             (# s2#, marr# #) ->
               let go y r = \ i# s3# -> case writeArray# marr# i# y s3# of
-                    s4# -> if isTrue# (i# ==# n# -# 1#)
-                              then s4#
-                              else r (i# +# 1#) s4#
-              in done (l, u) n' marr#
-              (
-                if n' == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2#
-              )
+                    s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#
+              in done (l, u) n' marr# ( if n' == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2# )
       where
         !n'@(I# n#) = max 0 $ (es <. n) ? length es $ n
         (l, u) = unsafeBounds n'
     
+    {-# INLINE fromFoldable #-}
     fromFoldable es = runST $ ST $ \ s1# -> case newArray# n# err s1# of
         (# s2#, marr# #) ->
           let go y r = \ i# s3# -> case writeArray# marr# i# y s3# of
                 s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#
-          in done (l, u) n marr#
-          (
-            if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2#
-          )
+          in done (l, u) n marr# ( if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2# )
       where
         !n@(I# n#) = length es
         (l, u) = unsafeBounds n
         err    = undEx "fromList"
     
+    single e = runST $ ST $ \ s1# -> case newArray# 1# e s1# of (# s2#, marr# #) -> done (unsafeBounds 1) 1 marr# s2#
+    
+    {-# INLINE (++) #-}
     -- O(n + m) concatenation
     xs ++ ys = fromList $ (toList xs) ++ (toList ys)
     
-    {-# INLINE toHead #-}
-    toHead e es = fromListN (n + 1) (e : toList es)    where n = length es
-    
-    {-# INLINE toLast #-}
-    toLast es e = fromListN (n + 1) $ foldr (:) [e] es where n = length es
-    
-    {-# INLINE head #-}
-    head arr = arr !# 0
-    
-    {-# INLINE last #-}
-    last arr = arr !# (length arr - 1)
-    
-    {-# INLINE tail #-}
-    tail es = fromListN (length es - 1) . tail $ toList es
-    
-    {-# INLINE init #-}
-    init es = fromListN (length es - 1) $ toList es
+    {-# INLINE replicate #-}
+    replicate n e = runST $ ST $ \ s1# -> let !n'@(I# n#) = max 0 n in case newArray# n# e s1# of (# s2#, marr# #) -> done (unsafeBounds n') n' marr# s2#
     
     {-# INLINE reverse #-}
     -- O(n) reverse
@@ -307,11 +313,11 @@ instance (Index i) => Linear (Array i e) e
     
     {-# INLINE listL #-}
     -- O (n) right view.
-    listL   es = toList es
+    listL es = toList es
     
     {-# INLINE listR #-}
     -- O(n) right list view
-    listR   es = [ es !# i | i <- [ n - 1, n - 2 .. 0 ] ] where n = length es
+    listR es = [ es !# i | i <- [ n - 1, n - 2 .. 0 ] ] where n = length es
     
     {-# INLINE concatMap #-}
     -- O(n * m) concatenation
