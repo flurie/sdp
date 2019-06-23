@@ -96,27 +96,24 @@ instance (Index i, Unboxed e) => Linear (ByteList i e) e
     
     fromListN n es = ByteList l u $ fromListN n es
       where
-        l = unsafeIndex 0
-        u = unsafeIndex $ max 0 n - 1
+        (l, u) = unsafeBounds $ max 0 n
     
     replicate n e = ByteList l u $ replicate n e
       where
-        l = unsafeIndex 0
-        u = unsafeIndex $ max 0 n - 1
+        (l, u) = unsafeBounds $ max 0 n
     
     concat xss = ByteList l u res
       where
         res = foldr  (\ (ByteList l' u' xs) ublist -> take (size (l', u')) xs ++ ublist) Z xss
         n   = foldr' (\ (ByteList l' u' _) count -> size (l', u') + count) 0 xss
         
-        l = unsafeIndex 0
-        u = unsafeIndex $ max 0 n - 1
+        (l, u) = unsafeBounds $ max 0 n
     
     intersperse e (ByteList _ _ es) = ByteList l1 u1 $ intersperse e es
       where
-        n1 = n > 0 ? 2 * n - 2 $ -1; n = sizeOf es
-        u1 = unsafeIndex n1
-        l1 = unsafeIndex 0
+        n1 = case n <=> 0 of {LT -> -1; EQ -> 1; GT -> 2 * n - 1}; n = sizeOf es
+        
+        (l1, u1) = unsafeBounds $ max 0 n1
     
     listL  (ByteList l u bytes) = listL $ take (size (l, u)) bytes
     listR  (ByteList l u bytes) = listR $ take (size (l, u)) bytes
@@ -165,8 +162,8 @@ instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
     (ByteList l u es) // ascs = ByteList l' u' es'
       where
         es' = es // [ (offset (l, u) i, e) | (i, e) <- ascs ]
-        u'  = unsafeIndex $ upper es'
-        l'  = unsafeIndex 0
+        
+        (l', u') = unsafeBounds $ sizeOf es'
     
     (!)  (ByteList l u es) i = es ! (offset (l, u) i)
     p .$ (ByteList l u es)   = index (l, u) <$> (p .$ es)
@@ -174,14 +171,7 @@ instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
 
 --------------------------------------------------------------------------------
 
-instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (ByteList i e)
-  where
-    arbitrary = fromList <$> arbitrary
+instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (ByteList i e) where arbitrary = fromList <$> arbitrary
 
-instance (Index i) => Default (ByteList i e)
-  where
-    def = ByteList l u def
-      where
-        l = unsafeIndex 0
-        u = unsafeIndex $ -1
+instance (Index i) => Default (ByteList i e) where def = case unsafeBounds 0 of (l, u) -> ByteList l u def
 

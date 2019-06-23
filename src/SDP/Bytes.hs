@@ -126,8 +126,7 @@ instance (Unboxed e, Index i) => Linear (Bytes i e) e
             )
           where
             !n'@(I# n#) = max 0 $ (es <. n) ? length es $ n
-            l = unsafeIndex 0
-            u = unsafeIndex (n' - 1)
+            (l, u) = unsafeBounds n'
     
     xs  ++  ys = fromListN (sizeOf xs + sizeOf ys) $ (listL xs) ++ (listL ys)
     
@@ -230,8 +229,7 @@ instance (Index i) => Default (Bytes i e)
       (# s2#, marr# #) -> case unsafeFreezeByteArray# marr# s2# of
         (# s3#, arr# #) -> (# s3#, Bytes l u 0 arr# #)
       where
-        l = unsafeIndex 0
-        u = unsafeIndex $ -1
+        (l, u) = unsafeBounds 0
 
 instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (Bytes i e)
   where

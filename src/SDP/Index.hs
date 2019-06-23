@@ -22,7 +22,9 @@ module SDP.Index
   
   I2,   I3,  I4,  I5,  I6,  I7,  I8,  I9, I10 , I11, I12, I13, I14, I15, I16,
   ind2,  ind3,  ind4,  ind5,  ind6,  ind7,  ind8,  ind9,
-  ind10, ind11, ind12, ind13, ind14, ind15, ind16
+  ind10, ind11, ind12, ind13, ind14, ind15, ind16,
+  
+  unsafeBounds
 )
 where
 
@@ -42,11 +44,10 @@ default ()
 --------------------------------------------------------------------------------
 
 {- | InBounds - service type that specifies index and bounds status. -}
-data InBounds =
-              {- | Empty Range     -} ER |
-              {- | Underflow Range -} UR |
-              {- | Index IN range  -} IN |
-              {- | Overflow Range  -} OR deriving ( Eq, Enum )
+data InBounds = ER {- ^ Empty Range     -} |
+                UR {- ^ Underflow Range -} |
+                IN {- ^ Index IN range  -} |
+                OR {- ^ Overflow Range  -} deriving ( Eq, Enum )
 
 {- |
     Index is service class for Indexed and Bordered. It's the result of combining
@@ -944,9 +945,7 @@ ind16 a b c d e f g h i j k l m n o p = () :& a :& b :& c :& d :& e :& f :& g :&
     (d, m) = a `divMod` (size bnds)
 
 uns :: (Index i, Bounded i) => Int -> (Int, i)
-uns a = (d, unsafeIndex m)
-  where
-    (d, m) = a `divMod` maxBound
+uns a = case a `divMod` maxBound of (d, m) -> (d, unsafeIndex m)
 
 checkBounds :: (Index i) => (i, i) -> i -> res -> String -> res
 checkBounds bnds i res msg = case inBounds bnds i of
@@ -963,3 +962,6 @@ intOffset (l, u) i = checkBounds (l, u) i (fromEnum i - fromEnum l) "offset (def
 defUI   :: (Enum i) => Int -> i
 defUI o =  toEnum $ max 0 (succ o)
 
+{-# INLINE unsafeBounds #-}
+unsafeBounds :: (Index i) => Int -> (i, i)
+unsafeBounds n = (unsafeIndex 0, unsafeIndex $ n - 1)

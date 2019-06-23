@@ -244,7 +244,8 @@ instance (Index i) => Traversable (Array i)
 
 instance (Index i) => Linear (Array i e) e
   where
-    isNull = null
+    {-# INLINE isNull #-}
+    isNull es = null es
     
     {-# INLINE fromList #-}
     fromList es = fromFoldable es
@@ -262,8 +263,7 @@ instance (Index i) => Linear (Array i e) e
               )
       where
         !n'@(I# n#) = max 0 $ (es <. n) ? length es $ n
-        l = unsafeIndex 0
-        u = unsafeIndex (n' - 1)
+        (l, u) = unsafeBounds n'
     
     fromFoldable es = runST $ ST $
         \ s1# -> case newArray# n# (undEx "fromList") s1# of
@@ -278,8 +278,7 @@ instance (Index i) => Linear (Array i e) e
               )
       where
         !n@(I# n#) = length es
-        l = unsafeIndex 0
-        u = unsafeIndex $ n - 1
+        (l, u) = unsafeBounds n
     
     -- O(n + m) concatenation
     xs ++ ys = fromList $ (toList xs) ++ (toList ys)

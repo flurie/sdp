@@ -150,8 +150,7 @@ instance (Index i) => Linear (Unrolled i e) e
     
     fromListN n es = Unrolled l u $ fromListN n es
       where
-        l = unsafeIndex 0
-        u = unsafeIndex $ max 0 n - 1
+        (l, u) = unsafeBounds n
     
     uncons Z = throw $ EmptyRange "in SDP.Unrolled.(:>)"
     uncons (Unrolled l u es) = (x, es <. 2 ? Z $ Unrolled l1 u xs)
@@ -171,14 +170,12 @@ instance (Index i) => Linear (Unrolled i e) e
         
         f = \ (Unrolled _ _ xs) (len, ys) -> (len + length xs, xs ++ ys)
         
-        l = unsafeIndex 0
-        u = unsafeIndex $ max 0 n' - 1
+        (l, u) = unsafeBounds n'
     
     intersperse e (Unrolled _ _ es) = Unrolled l1 u1 (intersperse e es)
       where
-        n1 = case n <=> 0 of {LT -> -2; EQ -> 0; GT -> 2 * n - 2}; n = length es
-        u1 = unsafeIndex n1
-        l1 = unsafeIndex 0
+        n1 = case n <=> 0 of {LT -> -1; EQ -> 1; GT -> 2 * n - 1}; n = length es
+        (l1, u1) = unsafeBounds n1
 
 instance (Index i) => Split (Unrolled i e) e
   where
@@ -244,8 +241,7 @@ instance (Index i) => Indexed (Unrolled i e) i e
     (Unrolled l u es) // ascs = Unrolled l' u' es'
       where
         es' = es // [ (offset (l, u) i, e) | (i, e) <- ascs ]
-        u'  = unsafeIndex $ upper es'
-        l'  = unsafeIndex 0
+        (l', u') = unsafeBounds $ length es'
     
     {-# INLINE (!) #-}
     (!)  (Unrolled l u es) i = es ! (offset (l, u) i)
