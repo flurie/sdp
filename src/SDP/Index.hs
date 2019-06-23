@@ -962,6 +962,9 @@ intOffset (l, u) i = checkBounds (l, u) i (fromEnum i - fromEnum l) "offset (def
 defUI   :: (Enum i) => Int -> i
 defUI o =  toEnum $ max 0 (succ o)
 
+
 {-# INLINE unsafeBounds #-}
+-- | unsafeBounds n is shortcut for (unsafeIndex 0, unsafeIndex $ n - 1)
 unsafeBounds :: (Index i) => Int -> (i, i)
 unsafeBounds n = (unsafeIndex 0, unsafeIndex $ n - 1)
+

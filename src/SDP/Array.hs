@@ -18,6 +18,7 @@
 module SDP.Array
 (
   module SDP.Indexed,
+  module SDP.Sort,
   module SDP.Scan,
   module SDP.Set,
   
@@ -46,6 +47,7 @@ import Text.Read.Lex ( expect )
 
 import SDP.Internal.MutableArrays ( STArray (..) )
 import SDP.Indexed
+import SDP.Sort
 import SDP.Scan
 import SDP.Set
 
@@ -163,17 +165,17 @@ instance (Index i) => Foldable (Array i)
     {-# INLINE foldl #-}
     foldl  f base arr = go $ length arr - 1
       where
-        go i = i == -1 ? base $ f (go $ i - 1) (arr !# i)
+        go i = -1 == i ? base $ f (go $ i - 1) (arr !# i)
     
     {-# INLINE foldr' #-}
     foldr' f base arr = go (length arr - 1) base
       where
-        go i a = i == -1 ? a $ go (i - 1) (f (arr !# i) $! a)
+        go i !a = -1 == i ? a $ go (i - 1) (f (arr !# i) a)
     
     {-# INLINE foldl' #-}
     foldl' f base arr = go 0 base
       where
-        go i a = arr ==. i ? a $ go (i + 1) ((f $! a) $ arr !# i)
+        go i !a = arr ==. i ? a $ go (i + 1) (f a $ arr !# i)
     
     {-# INLINE foldr1 #-}
     foldr1 f arr = null arr ? undEx "foldr1" $ go 0
@@ -183,7 +185,7 @@ instance (Index i) => Foldable (Array i)
     {-# INLINE foldl1 #-}
     foldl1 f arr = null arr ? undEx "foldl1" $ go (length arr - 1)
       where
-        go i = i == 0 ? e $ f (go $ i - 1) e where e = arr !# i
+        go i = 0 == i ? e $ f (go $ i - 1) e where e = arr !# i
     
     {-# INLINE toList #-}
     toList arr@(Array _ _ n _) = [ arr !# i | i <- [0 .. n - 1] ]
@@ -265,46 +267,58 @@ instance (Index i) => Linear (Array i e) e
         !n'@(I# n#) = max 0 $ (es <. n) ? length es $ n
         (l, u) = unsafeBounds n'
     
-    fromFoldable es = runST $ ST $
-        \ s1# -> case newArray# n# (undEx "fromList") s1# of
-            (# s2#, marr# #) ->
-              let go y r = \ i# s3# -> case writeArray# marr# i# y s3# of
-                    s4# -> if isTrue# (i# ==# n# -# 1#)
-                              then s4#
-                              else r (i# +# 1#) s4#
-              in done (l, u) n marr#
-              (
-                if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2#
-              )
+    fromFoldable es = runST $ ST $ \ s1# -> case newArray# n# err s1# of
+        (# s2#, marr# #) ->
+          let go y r = \ i# s3# -> case writeArray# marr# i# y s3# of
+                s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#
+          in done (l, u) n marr#
+          (
+            if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2#
+          )
       where
         !n@(I# n#) = length es
         (l, u) = unsafeBounds n
+        err    = undEx "fromList"
     
     -- O(n + m) concatenation
     xs ++ ys = fromList $ (toList xs) ++ (toList ys)
     
-    toHead e es = fromList (e : toList es)
-    toLast es e = fromList (foldr (:) [e] es)
+    {-# INLINE toHead #-}
+    toHead e es = fromListN (n + 1) (e : toList es)    where n = length es
     
+    {-# INLINE toLast #-}
+    toLast es e = fromListN (n + 1) $ foldr (:) [e] es where n = length es
+    
+    {-# INLINE head #-}
     head arr = arr !# 0
+    
+    {-# INLINE last #-}
     last arr = arr !# (length arr - 1)
     
+    {-# INLINE tail #-}
     tail es = fromListN (length es - 1) . tail $ toList es
+    
+    {-# INLINE init #-}
     init es = fromListN (length es - 1) $ toList es
     
+    {-# INLINE reverse #-}
     -- O(n) reverse
     reverse es = fromListN (length es) (listR es)
     
+    {-# INLINE listL #-}
     -- O (n) right view.
     listL   es = toList es
     
+    {-# INLINE listR #-}
     -- O(n) right list view
-    listR   es = [ es !# i | i <- [n - 1, n - 2 .. 0] ] where n = length es
+    listR   es = [ es !# i | i <- [ n - 1, n - 2 .. 0 ] ] where n = length es
     
+    {-# INLINE concatMap #-}
     -- O(n * m) concatenation
-    concatMap f = concat . map f . toList
+    concatMap f ess = fromList $ foldr (\ a l -> toList (f a) ++ l) [] ess
     
-    concat = fromList . foldr (\ a l -> toList a ++ l) []
+    {-# INLINE concat #-}
+    concat ess = fromList $ foldr (\ a l -> toList a ++ l) [] ess
 
 instance (Index i) => Split (Array i e) e
   where
@@ -315,7 +329,7 @@ instance (Index i) => Split (Array i e) e
     drop n es
         | n <= 0 = es
         | n >= l = Z
-        |  True  = fromListN (l - n) [ es !# i | i <- [n .. l - 1] ]
+        |  True  = fromListN (l - n) [ es !# i | i <- [ n .. l - 1 ] ]
       where
         l = length es
     
@@ -330,13 +344,13 @@ instance (Index i) => Split (Array i e) e
     -- No more than O(n) comparing.
     isPrefixOf xs ys = xs .<=. ys && and equals
       where
-        equals = [ xs !# i == ys !# i | i <- [0 .. ly - 1] ]
+        equals = [ xs !# i == ys !# i | i <- [ 0 .. ly - 1 ] ]
         ly = length ys
     
     -- No more than O(n) comparing.
     isSuffixOf xs ys = xs .<=. ys && and equals
       where
-        equals  = [ xs !# i == xs !# (i + offset') | i <- [0 .. ly - 1] ]
+        equals  = [ xs !# i == xs !# (i + offset') | i <- [ 0 .. ly - 1 ] ]
         offset' = length xs - ly
         ly = length ys
 
@@ -377,33 +391,20 @@ instance (Index i) => Indexed (Array i e) i e
     
     (!)  arr@(Array l u _ _) i = arr !# offset (l, u) i
     
-    (.$) p es = find   (\ i -> p $ es ! i) $ indices es
-    (*$) p es = filter (\ i -> p $ es ! i) $ indices es
+    p .$ es = (\ i -> p $ es ! i)  `find`  indices es
+    p *$ es = (\ i -> p $ es ! i) `filter` indices es
 
 --------------------------------------------------------------------------------
 
-instance (Index i) => Estimate (Array i)
-  where
-    (Array _ _ n1 _) <==> (Array _ _ n2 _) = n1 <=> n2
-    (Array _ _ n1 _) .>.  (Array _ _ n2 _) = n1  >  n2
-    (Array _ _ n1 _) .<.  (Array _ _ n2 _) = n1  <  n2
-    (Array _ _ n1 _) .>=. (Array _ _ n2 _) = n1  >= n2
-    (Array _ _ n1 _) .<=. (Array _ _ n2 _) = n1  <= n2
-    
-    (Array _ _ n1 _) >.  n2 = n1 >  n2
-    (Array _ _ n1 _) <.  n2 = n1 <  n2
-    (Array _ _ n1 _) >=. n2 = n1 >= n2
-    (Array _ _ n1 _) <=. n2 = n1 <= n2
+instance (Index i) => Estimate (Array i) where xs <==> ys = length xs <=> length ys
 
--- instance (Index i) => Set (Array i)
+-- instance (Index i) => Set (Array i e) e
 
 instance (Index i) => LineS (Array i e) e where stream = stream . toList
 
 instance (Index i) => Default (Array i e) where def = Z
 
-instance (Index i, Arbitrary e) => Arbitrary (Array i e)
-  where
-    arbitrary = fromList <$> arbitrary
+instance (Index i, Arbitrary e) => Arbitrary (Array i e) where arbitrary = fromList <$> arbitrary
 
 --------------------------------------------------------------------------------
 

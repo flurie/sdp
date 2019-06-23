@@ -141,20 +141,20 @@ class Linear l e | l -> e
       Very powerful generalisation of fromList, but not comfortable to use -
       oftentimes needed type signatures.
     -}
-    fromFoldable  :: (Foldable f) => f e -> l
-    fromFoldable  =  fromList . toList
+    fromFoldable     :: (Foldable f) => f e -> l
+    fromFoldable es  =  fromList $ toList es
     
     -- | Generalization of Some.Module.concat.
-    concat        :: (Foldable f) => f l -> l
-    concat        =  foldr (++) lzero
+    concat           :: (Foldable f) => f l -> l
+    concat es        =  foldr (++) Z es
     
     -- | Generalization of Data.List.concatMap.
-    concatMap     :: (Foldable f) => (a -> l) -> f a -> l
-    concatMap  f  =  foldr' (\ x y -> f x ++ y) Z
+    concatMap        :: (Foldable f) => (a -> l) -> f a -> l
+    concatMap f es   =  foldr' (\ x y -> f x ++ y) Z es
     
     -- | Generalization of Data.List.intersperse. May be moved.
-    intersperse   :: e -> l -> l
-    intersperse e =  fromList . intersperse e . listL
+    intersperse      :: e -> l -> l
+    intersperse e es =  fromList . intersperse e $ listL es
     
     {- Filtering functions. -}
     
@@ -170,8 +170,8 @@ class Linear l e | l -> e
     partitions       :: (Foldable f) => f (e -> Bool) -> l -> [l]
     partitions ps' es = partitions' (toList ps') es
       where
-        partitions'    []    xs =  [xs]
-        partitions' (p : ps) xs =  case partition p xs of (y, ys) -> y : partitions' ps ys
+        partitions'    []    xs = [xs]
+        partitions' (p : ps) xs = case partition p xs of (y, ys) -> y : partitions' ps ys
     
     {- Special functions -}
     
@@ -183,7 +183,7 @@ class Linear l e | l -> e
     
     -- | Generalization of Some.Module.reverse.
     reverse    :: l -> l
-    reverse    =  fromList . reverse . listL
+    reverse es =  fromList . reverse $ listL es
     
     -- | Generalization of Data.List.subsequences. May be moved.
     subsequences     :: l -> [l]
@@ -192,8 +192,8 @@ class Linear l e | l -> e
         ss es = case es of {(x :> xs) -> single x : foldr (\ ys r -> ys : (x :> ys) : r) [] (ss xs); _ -> Z}
     
     -- | Generalization of Data.List.nubBy.
-    nubBy   :: (e -> e -> Bool) -> l -> l
-    nubBy f =  fromList . nubBy f . listL
+    nubBy      :: (e -> e -> Bool) -> l -> l
+    nubBy f es =  fromList . nubBy f $ listL es
 
 --------------------------------------------------------------------------------
 

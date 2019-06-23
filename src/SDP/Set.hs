@@ -135,7 +135,7 @@ class (Linear s o) => Set s o | s -> o
     default isContainedIn :: (((t o) ~~ s), Foldable t) => (o -> o -> Ordering) -> o -> s -> Bool
     isContainedIn f e es  = case find finder es of {Nothing -> False; _ -> True}
       where
-        finder x = case f e x of {EQ -> True; _ -> False}
+        finder = \ x -> case f e x of {EQ -> True; _ -> False}
 
 --------------------------------------------------------------------------------
 

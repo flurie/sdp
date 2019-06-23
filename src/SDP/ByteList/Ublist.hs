@@ -42,9 +42,6 @@ import GHC.Base
 import GHC.ST   ( ST (..), STRep, runST )
 import GHC.Show ( appPrec )
 
-import Text.Read
-import Text.Read.Lex ( expect )
-
 import SDP.Internal.MutableArrays ( STUArray (..) )
 import SDP.Simple
 
@@ -63,18 +60,13 @@ instance (Ord e, Unboxed e) => Ord (Ublist e) where compare xs ys = compare (lis
 
 --------------------------------------------------------------------------------
 
-{- Show and Read instances. -}
+{- Show instances. -}
 
 instance (Unboxed e, Show e) => Show (Ublist e)
   where
     showsPrec p arr = showParen (p > appPrec) shows'
       where
-        shows' = showString "ublist " . shows (bounds arr) . showChar ' ' . shows (assocs arr)
-
-instance (Unboxed e, Read e) => Read (Ublist e)
-  where
-    readList = readListDefault
-    readPrec = parens $ prec appPrec (lift . expect $ Ident "ublist") >> liftA2 assoc (step readPrec) (step readPrec)
+        shows' = showString "ublist " . shows (assocs arr)
 
 --------------------------------------------------------------------------------
 
@@ -85,41 +77,64 @@ instance (Unboxed e) => Linear (Ublist e) e
     {-# INLINE isNull #-}
     isNull es = case es of {UBEmpty -> True; Ublist c _ _ -> c < 1}
     
-    {-# INLINE fromList #-}
-    fromList [] = UBEmpty
-    fromList es = foldr (\ x y -> toChunk' lim err x ++ y) rest' chunks
-      where
-        (chunks :< rest)  = take (count + 1) $ splits [ lim, lim .. ] es
-        (count, restSize) = length es `divMod` lim
-        
-        rest' = toChunk' restSize err rest
-        err   = undEx "fromList"
-    
-    {-# INLINE listL #-}
-    listL es' = list' 0# es'
-      where
-        list' _ Z = []
-        list' i# es@(Ublist (I# n#) bytes# bytes) = isTrue# (i# <# n#) ? (bytes# !# i#) : list' (i# +# 1#) es $ list' 0# bytes
+    {-# INLINE lzero #-}
+    lzero = UBEmpty
     
     {-# INLINE head #-}
     head Z  = throw $ EmptyRange "in SDP.ByteList.(:>)"
     head es = es .! 0
     
-    {-# INLINE last #-}
-    last Z  = throw $ EmptyRange "in SDP.ByteList.(:<)"
-    last (Ublist (I# c#) bytes# bytes) = case bytes of {Z -> bytes# !# (c# -# 1#); _ -> last bytes}
-    
     {-# INLINE tail #-}
-    tail Z                       = throw $ EmptyRange "in SDP.ByteList.(:<)"
-    tail es@(Ublist c _ Z)       = fromListN (c - 1) . tail $ listL es
+    tail Z                          = throw $ EmptyRange "in SDP.ByteList.(:<)"
+    tail es@(Ublist c _ Z)          = fromListN (c - 1) . tail $ listL es
     tail es@(Ublist c bytes# bytes) = Ublist c' new# bytes
       where
         !(Ublist c' new# _) = (`asTypeOf` es) $ tail (Ublist c bytes# Z)
+    
+    toHead e Z = single e
+    toHead e (Ublist c arr# arrs) = c < lim ? res $ (Ublist 1 single# arrs)
+      where
+        res = fromListN (c + 1) $ e : listL (Ublist c arr# Z)
+        !(Ublist 1 single# Z) = single e
+    
+    {-# INLINE last #-}
+    last Z  = throw $ EmptyRange "in SDP.ByteList.(:<)"
+    last (Ublist (I# c#) bytes# bytes) = case bytes of {Z -> bytes# !# (c# -# 1#); _ -> last bytes}
     
     {-# INLINE init #-}
     init Z                    = throw $ EmptyRange "in SDP.ByteList.(:>)"
     init es@(Ublist c _ Z)    = fromListN (c - 1) . init $ listL es
     init (Ublist c arr# arrs) = Ublist c arr# (init arrs)
+    
+    toLast Z e = single e
+    toLast es@(Ublist c _ Z) e = c < lim ? res $ (Ublist 1 single# Z)
+      where
+        res = fromListN (max 0 c + 1) $ toLast (listL es) e
+        !(Ublist 1 single# Z) = single e
+    toLast (Ublist c arr# arrs) e = Ublist c arr# (toLast arrs e)
+    
+    single e = runST $ ST $ \ s1# -> case newUnboxed' e 1# s1# of (# s2#, marr# #) -> done 1 Z marr# s2#
+    
+    {-# INLINE fromList #-}
+    fromList es = fromFoldable es
+    
+    {-# INLINE fromFoldable #-}
+    fromFoldable es = foldr (\ x y -> toChunk' lim err x ++ y) rest' chunks
+      where
+        (chunks :< rest)  = take count [ lim, lim .. ] `splits` toList es
+        (count, restSize) = length es `divMod` lim
+        
+        rest' = toChunk' restSize err rest
+        err   = undEx "fromFoldable"
+    
+    {-# INLINE listL #-}
+    listL es' = list' 0# es'
+      where
+        list' _ Z = []
+        list' i# es@(Ublist (I# n#) bytes# bytes) = pred' ? res1 $ res2
+          where
+            res1  = (bytes# !# i#) : list' (i# +# 1#) es; res2 = list' 0# bytes
+            pred' = isTrue# (i# <# n#)
     
     Z ++ ys = ys
     xs ++ Z = xs
@@ -128,26 +143,21 @@ instance (Unboxed e) => Linear (Ublist e) e
     {-# INLINE replicate #-}
     replicate n e = copy count
       where
+        chunk  = runST $ ST $ \ s1# -> case newUnboxed' e l# s1# of (# s2#, marr# #) -> done lim Z marr# s2#
+        rest   = runST $ ST $ \ s1# -> case newUnboxed' e r# s1# of (# s2#, marr# #) -> done restSize Z marr# s2#
         copy c = case c <=> 0 of {LT -> Z; EQ -> rest; GT -> chunk ++ copy (c - 1)}
-        
-        chunk = runST $ ST $ \ s1# -> case newUnboxed' e l# s1# of (# s2#, marr# #) -> done lim Z marr# s2#
-        rest  = runST $ ST $ \ s1# -> case newUnboxed' e r# s1# of (# s2#, marr# #) -> done restSize Z marr# s2#
         
         !(count, restSize@(I# r#)) = n `divMod` lim
         !(I# l#) = lim
     
-    toHead e Z = single e
-    toHead e (Ublist c arr# arrs) = c < lim ? res $ (Ublist 1 single# arrs)
+    reverse es' = reverse' Z es'
       where
-        res = fromListN (c + 1) $ e : listL (Ublist c arr# Z)
-        !(Ublist 1 single# Z) = single e
-    
-    toLast Z e = single e
-    toLast es@(Ublist c _ Z) e = c < lim ? res $ (Ublist 1 single# Z)
-      where
-        res = fromListN (max 0 c + 1) $ toLast (listL es) e
-        !(Ublist 1 single# Z) = single e
-    toLast (Ublist c arr# arrs) e = Ublist c arr# (toLast arrs e)
+        reverse' tail' Z = tail'
+        reverse' tail' (Ublist c bytes# bytes) = reverse' (Ublist c rev# tail') bytes
+          where
+            !(Ublist _ rev# _) = toChunk' c err listR' `asTypeOf` bytes
+            listR' = [ bytes# !# i# | (I# i#) <- [ c - 1, c - 2 .. 0 ] ]
+            err = undEx "reverse"
 
 instance (Unboxed e) => Split (Ublist e) e
   where
@@ -204,8 +214,7 @@ instance (Unboxed e) => Indexed (Ublist e) Int e
     es@(Ublist c@(I# c#) _ arrs) // ascs = runST $ thaw es err >>= writes (arrs // others)
       where
         writes rest (STUArray l' u' n' marr#) = ST $ foldr (fill marr#) (done n' rest marr#) ies
-          where
-            ies = [ (offset (l', u') i, e) | (i, e) <- curr ]
+          where ies = [ (offset (l', u') i, e) | (i, e) <- curr ]
         
         -- [internal]: thaw uses (.!), but may be faster.
         thaw :: (Unboxed e) => Ublist e -> e -> ST s (STUArray s Int e)
@@ -285,7 +294,7 @@ toChunk :: (Unboxed e) => Int -> e -> [(Int, e)] -> Ublist e
 toChunk n@(I# n#) e ies' = runST $ ST $ \ s1# -> case newUnboxed e n# s1# of
   (# s2#, marr# #) -> foldr (fill marr#) (done n Z marr#) ies' s2#
 
-toChunk' :: (Unboxed e) => Int -> e -> [e] -> Ublist e
+toChunk' :: (Unboxed e, Foldable f) => Int -> e -> f e -> Ublist e
 toChunk' n@(I# n#) e chunk = runST $ ST $ \ s1# -> case newUnboxed e n# s1# of
   (# s2#, marr# #) ->
     let go x r = \ i# s3# -> case writeByteArray# marr# i# x s3# of
@@ -295,3 +304,4 @@ toChunk' n@(I# n#) e chunk = runST $ ST $ \ s1# -> case newUnboxed e n# s1# of
 -- | lim is internal constant - maximal size of chunk.
 lim :: Int
 lim =  1024
+
