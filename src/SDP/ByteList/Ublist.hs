@@ -75,7 +75,7 @@ instance (Unboxed e, Show e) => Show (Ublist e)
 instance (Unboxed e) => Linear (Ublist e) e
   where
     {-# INLINE isNull #-}
-    isNull es = case es of {UBEmpty -> True; Ublist c _ _ -> c < 1}
+    isNull es = case es of {Ublist c _ _ -> c < 1; _ -> True}
     
     {-# INLINE lzero #-}
     lzero = UBEmpty

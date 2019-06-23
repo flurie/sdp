@@ -11,8 +11,11 @@
 
 module Test.SDP.Linear
 (
+  TestLinear2,
   TestLinear1,
   TestLinear,
+  
+  TestSplit1,
   TestSplit,
   
   basicLinearTest,
@@ -43,6 +46,9 @@ type TestLinear  l e = Int -> e -> l -> Bool
 
 -- | TestLinear1 is service type synonym for more comfortable quickCheck using.
 type TestLinear1 f e = Int -> e -> f e -> Bool
+
+-- | TestLinear2 is service type synonym for more comfortable quickCheck using.
+type TestLinear2 f i e = Int -> e -> f i e -> Bool
 
 -- | basicLinearTest checks relations of isNull, lzero, single and fromList.
 basicLinearTest :: (Linear l e, Eq l) => e -> l -> Bool
@@ -125,8 +131,11 @@ linearTest n e line = and
     concatTest line
   ]
 
--- | TestSplit is service type synonym for more comfortable quickCheck using.
-type TestSplit s = Int -> s -> Bool
+-- | TestSplit  is service type synonym for more comfortable quickCheck using.
+type TestSplit  s = Int -> s -> Bool
+
+-- | TestSplit1 is service type synonym for more comfortable quickCheck using.
+type TestSplit1 s e = Int -> s e -> Bool
 
 {- |
   splitTest is pure, basic test of take, drop and split relations.

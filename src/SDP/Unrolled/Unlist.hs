@@ -124,7 +124,7 @@ instance Foldable Unlist
     toList (Unlist c arr# arrs) = [ arr# !^ i# | (I# i#) <- [0 .. c - 1] ] ++ toList arrs
     
     {-# INLINE null #-}
-    null es = case es of {Unlist c _ _ -> c < 0; _ -> True}
+    null es = case es of {Unlist c _ _ -> c < 1; _ -> True}
 
 --------------------------------------------------------------------------------
 

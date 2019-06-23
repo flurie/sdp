@@ -12,6 +12,7 @@
 module Test.SDP.Indexed
 (
   TestIndexed2,
+  TestIndexed1,
   TestIndexed,
   
   basicIndexedTest,
@@ -35,6 +36,9 @@ default ()
 
 -- | TestIndexed  is service type synonym for more comfortable quickCheck using.
 type TestIndexed  l i = i -> l -> Bool
+
+-- | TestIndexed1 is service type synonym for more comfortable quickCheck using.
+type TestIndexed1 l i e = i -> l e -> Bool
 
 -- | TestIndexed2 is service type synonym for more comfortable quickCheck using.
 type TestIndexed2 l i e = i -> l i e -> Bool
