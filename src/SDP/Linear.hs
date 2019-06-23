@@ -22,7 +22,6 @@ module SDP.Linear
   Bordered (..),
   Linear (..),
   Split (..),
-  LineS (..),
   
   pattern (:>), pattern (:<), pattern Z,
   
@@ -146,11 +145,11 @@ class Linear l e | l -> e
     
     -- | Generalization of Some.Module.concat.
     concat           :: (Foldable f) => f l -> l
-    concat es        =  foldr (++) Z es
+    concat ess       =  foldr (++) Z ess
     
     -- | Generalization of Data.List.concatMap.
     concatMap        :: (Foldable f) => (a -> l) -> f a -> l
-    concatMap f es   =  foldr' (\ x y -> f x ++ y) Z es
+    concatMap f ess  =  foldr' (\ x y -> f x ++ y) Z ess
     
     -- | Generalization of Data.List.intersperse. May be moved.
     intersperse      :: e -> l -> l
@@ -160,7 +159,7 @@ class Linear l e | l -> e
     
     -- | Generalization of Some.Module.filter.
     filter         :: (e -> Bool) -> l -> l
-    filter p       =  fromList . filter p . listL
+    filter p es    =  fromList . filter p $ listL es
     
     -- | Generalization of Some.Module.partition.
     partition      :: (e -> Bool) -> l -> (l, l)
@@ -234,22 +233,7 @@ class (Index i) => Bordered (b) i e | b -> i, b -> e
     indexOf es i = bounds es `inRange` i
     
     default assocs :: (Linear b e) => b -> [(i, e)]
-    assocs es    = zip (indices es) (listL es)
-
---------------------------------------------------------------------------------
-
-{- |
-  LineS is class of structures that can be coverted to stream.
-  It's generalization of ShowS (aka String -> String) to any Linear structure
-  and any type.
-  This class is separated from Linear for reasons of code observability.
--}
-
-class (Linear l e) => LineS l e | l -> e
-  where
-    -- | fromFoldable for stream
-    stream :: (Foldable f) => f e -> (l -> l)
-    stream =  flip $ foldr toHead
+    assocs es      =  zip (indices es) (listL es)
 
 --------------------------------------------------------------------------------
 
@@ -425,8 +409,6 @@ instance Bordered [e] Int e
     
     lower   _  = 0
     upper   es = length es - 1
-
-instance LineS [e] e
 
 instance Split [e] e
   where

@@ -31,9 +31,6 @@ import SDP.SafePrelude
 
 import Test.QuickCheck
 
-import Test.SDP.Linear
-import Test.SDP.Indexed
-
 import GHC.Base
   (
     MutableArray#, Array#, Int (..),
@@ -302,7 +299,7 @@ instance (Index i) => Linear (Array i e) e
     
     {-# INLINE (++) #-}
     -- O(n + m) concatenation
-    xs ++ ys = fromList $ (toList xs) ++ (toList ys)
+    xs ++ ys = fromListN (sizeOf xs + sizeOf ys) $ (listL xs) ++ (listL ys)
     
     {-# INLINE replicate #-}
     replicate n e = runST $ ST $ \ s1# -> let !n'@(I# n#) = max 0 n in case newArray# n# e s1# of (# s2#, marr# #) -> done (unsafeBounds n') n' marr# s2#
@@ -365,10 +362,6 @@ instance (Index i) => Bordered (Array i e) i e
     lower   (Array l _ _ _) = l
     upper   (Array _ u _ _) = u
     sizeOf  (Array _ _ n _) = n
-    bounds  (Array l u _ _) = (l, u)
-    indices (Array l u _ _) = range (l, u)
-    
-    assocs  arr = zip (indices arr) (toList arr)
 
 --------------------------------------------------------------------------------
 
@@ -405,8 +398,6 @@ instance (Index i) => Indexed (Array i e) i e
 instance (Index i) => Estimate (Array i) where xs <==> ys = length xs <=> length ys
 
 -- instance (Index i) => Set (Array i e) e
-
-instance (Index i) => LineS (Array i e) e where stream = stream . toList
 
 instance (Index i) => Default (Array i e) where def = Z
 

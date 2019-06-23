@@ -7,7 +7,7 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
-    Stability   :  stable
+    Stability   :  experimental
     
     SDP.Bytes provides immutable strict unboxed array type.
     This implementation of UArray no much different from Data.Array.Unboxed (array),
@@ -30,8 +30,6 @@ import SDP.SafePrelude
 
 import Test.QuickCheck
 
-import SDP.Internal.MutableArrays ( STUArray (..) )
-
 import SDP.Indexed
 import SDP.Unboxed
 import SDP.Set
@@ -41,7 +39,7 @@ import Text.Read.Lex ( expect )
 
 import GHC.Exts
   (
-    ByteArray#, newByteArray#, unsafeFreezeByteArray#,
+    ByteArray#, MutableByteArray#, newByteArray#, unsafeFreezeByteArray#,
     
     isTrue#, (+#), (-#), (==#)
   )
@@ -70,13 +68,13 @@ instance (Index i, Unboxed e) => Eq (Bytes i e)
   where
     xs@(Bytes l1 u1 n1 _) == ys@(Bytes l2 u2 n2 _) = n1 == n2 && (n1 == 0 || l1 == l2 && u1 == u2 && elemEq)
       where
-        elemEq = (listL xs) == (listL ys)
+        elemEq = listL xs == listL ys
 
 instance (Index i, Unboxed e, Ord e) => Ord (Bytes i e)
   where
     compare xs@(Bytes _ _ n1 _) ys@(Bytes _ _ n2 _) = n1 <=> n2 <> elemCmp
       where
-        elemCmp = (listL xs) <=> (listL ys)
+        elemCmp = listL xs <=> listL ys
 
 --------------------------------------------------------------------------------
 
@@ -97,66 +95,92 @@ instance (Index i, Read i, Unboxed e, Read e) => Read (Bytes i e)
 
 instance (Unboxed e, Index i) => Linear (Bytes i e) e
   where
+    {-# INLINE isNull #-}
     isNull es = sizeOf es == 0
     
-    uncons Z  = throw $ EmptyRange "in SDP.Bytes.uncons"
-    uncons es = (es ! l, drop 1 es) where l = lower es
+    {-# INLINE lzero #-}
+    lzero = def
     
-    unsnoc Z  = throw $ EmptyRange "in SDP.Bytes.unsnoc"
-    unsnoc es = (take n es, es ! u)
-      where
-        n = sizeOf es - 1
-        u = upper es
+    {-# INLINE head #-}
+    head Z  = undEx "(:>)"
+    head es = es .! lower es
     
-    fromListN = fromListN' (throw $ UndefinedValue "in SDP.Bytes.fromListN")
+    tail Z  = undEx "(:>)"
+    tail es = drop 1 es
+    
+    {-# INLINE last #-}
+    last Z  = undEx "(:<)"
+    last es = es .! upper es
+    
+    {-# INLINE init #-}
+    init Z  = undEx "(:<)"
+    init es = take (sizeOf es - 1) es
+    
+    {-# INLINE single #-}
+    single e = runST $ ST $ \ s1# -> case newUnboxed' e 1# s1# of (# s2#, marr# #) -> done (unsafeBounds 1) 1 marr# s2#
+    
+    {-# INLINE fromListN #-}
+    fromListN n es = fromListN' (undEx "fromListN")
       where
-        fromListN' :: (Index i, Unboxed e) => e -> Int -> [e] -> Bytes i e
-        fromListN' e n es = runST $ ST
-            (
-              \ s1# -> case newUnboxed e n# s1# of
-                  (# s2#, marr# #) ->
-                    let go y r = \ i# s3# -> case writeByteArray# marr# i# y s3# of
-                          s4# -> if isTrue# (i# ==# n# -# 1#)
-                                    then s4#
-                                    else r (i# +# 1#) s4#
-                    in done (STUArray l u n' marr#)
-                    (
-                      if n' == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2#
-                    )
-            )
+        fromListN' :: (Index i, Unboxed e) => e -> Bytes i e
+        fromListN' e = runST $ ST $ \ s1# -> case newUnboxed e n# s1# of
+          (# s2#, marr# #) ->
+            let go y r = \ i# s3# -> case writeByteArray# marr# i# y s3# of
+                  s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#
+            in done (unsafeBounds n') n' marr# ( if n' == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2# )
           where
             !n'@(I# n#) = max 0 $ (es <. n) ? length es $ n
-            (l, u) = unsafeBounds n'
     
-    xs  ++  ys = fromListN (sizeOf xs + sizeOf ys) $ (listL xs) ++ (listL ys)
+    {-# INLINE (++) #-}
+    Z  ++ ys = ys
+    xs ++  Z = xs
+    xs ++ ys = fromList $ listL xs ++ listL ys
     
-    filter  f  = fromList . filter f . listL
-    
+    {-# INLINE reverse #-}
     reverse es = fromListN (sizeOf es) (listR es)
     
+    {-# INLINE replicate #-}
+    replicate n e = runST $ ST $ \ s1# -> case newUnboxed' e n# s1# of
+        (# s2#, marr# #) -> done (unsafeBounds n') n' marr# s2#
+      where
+        !n'@(I# n#) = max 0 n
+    
+    {-# INLINE listL #-}
     listL (Bytes _ _ n bytes#) = [ bytes# !# i# | (I# i#) <- [0 .. n - 1] ]
+    
+    {-# INLINE listR #-}
     listR (Bytes _ _ n bytes#) = [ bytes# !# i# | (I# i#) <- [n - 1, n - 2 .. 0] ]
     
-    concatMap f = concat . map f . toList
+    {-# INLINE concatMap #-}
+    concatMap f ess = fromList $ foldr (\ a l -> listL (f a) ++ l) [] ess
+    
+    {-# INLINE concat #-}
+    concat ess = fromList $ foldr (\ a l -> listL a ++ l) [] ess
 
 instance (Index i, Unboxed e) => Split (Bytes i e) e
   where
-    take n = fromListN n . listL
-    drop n = fromList . drop n . listL
+    take n es = fromList . take n $ listL es
+    drop n es = fromList . drop n $ listL es
     
-    split n es = (fromListN n take', fromList drop')
+    isPrefixOf xs ys = n1 <= n2 && take n1 (listL xs) == take n2 (listL ys)        where n1 = sizeOf xs; n2 = sizeOf ys
+    isSuffixOf xs ys = n1 <= n2 && take n2 (listL xs) == take (n1 - n2) (listL ys) where n1 = sizeOf xs; n2 = sizeOf ys
+    
+    -- see SDP.Linear.suffix and SDP.Array.foldr
+    prefix p (Bytes _ _ n arr#) = go 0
       where
-        (take', drop') = split n (listL es)
+        go i@(I# i#) = n' == i ? 0 $ p (arr# !# i#) ? (go $ i + 1) + 1 $ 0
+        n' = max 0 n
     
-    prefix p = prefix p . listL
-    suffix p = suffix p . listL
+    -- see SDP.Linear.suffix and SDP.Array.foldl
+    suffix p (Bytes _ _ n arr#) = go $ max 0 n - 1
+      where
+        go i@(I# i#) = -1 == i ? 0 $ p (arr# !# i#) ? (go $ i - 1) + 1 $ 0
 
 instance (Index i, Unboxed e) => Bordered (Bytes i e) i e
   where
-    bounds (Bytes l u _ _) = (l, u)
     lower  (Bytes l _ _ _) = l
     upper  (Bytes _ u _ _) = u
-    sizeOf (Bytes _ _ n _) = n
+    sizeOf (Bytes _ _ n _) = max 0 n
 
 --------------------------------------------------------------------------------
 
@@ -164,21 +188,22 @@ instance (Index i, Unboxed e) => Bordered (Bytes i e) i e
 
 instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
   where
-    assoc' (l, u) defvalue ascs = runST $ ST $
-      \ s1# -> case newUnboxed' defvalue n# s1# of
-        (# s2#, marr# #) ->
-          let gowrite (i, y) r = \ i# s3# -> case writeByteArray# marr# (ix i) y s3# of
-                s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#
-          in case foldr gowrite (\ _ s# -> s#) ies 0# s2# of
-            s5# -> case unsafeFreezeByteArray# marr# s5# of
-              (# s6#, arr# #) -> (# s6#, Bytes l u n arr# #)
-        where
-          ies = filter (inRange (l, u) . fst) ascs
-          ix i = case offset (l, u) i of (I# i#) -> i#
-          !n@(I# n#) = size (l, u)
+    assoc bnds ascs = writes (undEx "assoc") bnds $ filter (inRange bnds . fst) ascs
+      where
+        writes :: (Unboxed e, Index i) => e -> (i, i) -> [(i, e)] -> Bytes i e
+        writes err bs ies = runST $ ST $ \ s1# -> case newUnboxed err n# s1# of
+          (# s2#, marr# #) -> foldr (fill marr#) (done bs n marr#) [ (offset bs i, e) | (i, e) <- ies ] s2#
+        
+        !n@(I# n#) = size bnds
     
-    -- I spent half a day on this code. It was a fun time...
-    -- Now I need to understand what I wrote.
+    assoc' bnds defvalue ascs = writes defvalue bnds $ filter (inRange bnds . fst) ascs
+      where
+        writes :: (Unboxed e, Index i) => e -> (i, i) -> [(i, e)] -> Bytes i e
+        writes dv bs ies = runST $ ST $ \ s1# -> case newUnboxed' dv n# s1# of
+          (# s2#, marr# #) -> foldr (fill marr#) (done bs n marr#) [ (offset bs i, e) | (i, e) <- ies ] s2#
+        
+        !n@(I# n#) = size bnds
+    
     Z // ascs = null ascs ? Z $ assoc (l, u) ascs
       where
         l = fst $ minimumBy cmpfst ascs
@@ -186,58 +211,50 @@ instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
     es'@(Bytes l' u' _ _) // ascs = writecopy' es' err ies'
       where
         writecopy' :: (Index i, Unboxed e) => Bytes i e -> e -> [(i, e)] -> Bytes i e
-        writecopy' es@(Bytes l u n@(I# n#) _) err' ies = runST $ ST $
-          \ s1# -> case newUnboxed err' n# s1# of
-            -- new mutable array created
-            (# s2#, marr# #) ->
-              -- [begin] copying
-              let gocopy y r = \ i# s3# -> case writeByteArray# marr# i# y s3# of
-                    s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#
-              in case foldr gocopy (\ _ s# -> s#) (listL es) 0# s2# of
-              -- [end] copyng
-                s5# ->
-                  -- [begin] writing
-                  let gowrite (i, y) r = \ i# s6# -> case writeByteArray# marr# (ix i) y s6# of
-                        s7# -> if isTrue# (i# ==# n# -# 1#) then s7# else r (i# +# 1#) s7#
-                  in case foldr gowrite (\ _ s# -> s#) ies 0# s5# of
-                  -- [end] writing
-                    s8# -> case unsafeFreezeByteArray# marr# s8# of
-                      (# s9#, arr# #) -> (# s9#, Bytes l u n arr# #)
-                      -- array freezed
+        writecopy' es@(Bytes l u n@(I# n#) _) err' ies = runST $ ST $ \ s1# -> case newUnboxed err' n# s1# of
+          (# s2#, marr# #) ->
+            -- [begin] copying
+            let gocopy y r = \ i# s3# -> case writeByteArray# marr# i# y s3# of
+                  s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#
+            in case foldr gocopy (\ _ s# -> s#) (listL es) 0# s2# of
+            -- [end] copyng
+              s5# ->
+                -- [begin] writing
+                let gowrite (i, y) r = \ i# s6# -> case writeByteArray# marr# (ix i) y s6# of
+                      s7# -> if isTrue# (i# ==# n# -# 1#) then s7# else r (i# +# 1#) s7#
+                in case foldr gowrite (\ _ s# -> s#) ies 0# s5# of s8# -> done (l, u) n marr# s8#
+                -- [end] writing
           where
             ix i = case offset (l, u) i of (I# i#) -> i#
         
         ies' = filter (inRange (l', u') . fst) ascs
-        err  = throw $ UndefinedValue "in SDP.Bytes.(//)"
+        err  = undEx "(//)"
     
     (!)  (Bytes l u _ bytes#) i = case offset (l, u) i of (I# i#) -> bytes# !# i#
     
-    (.$) p es@(Bytes l u _ _)   = index (l, u) <$> p .$ (listL es)
-    (*$) p es@(Bytes l u _ _)   = index (l, u) <$> p *$ (listL es)
+    p .$ es@(Bytes l u _ _) = index (l, u) <$> p .$ listL es
+    p *$ es@(Bytes l u _ _) = index (l, u) <$> p *$ listL es
 
 --------------------------------------------------------------------------------
 
 -- instance (Index i, Unboxed e) => Set (Bytes i e) e
 
-instance (Index i, Unboxed e) => LineS (Bytes i e) e
-  where
-    stream = stream . toList
-
 instance (Index i) => Default (Bytes i e)
   where
-    def = runST $ ST $ \ s1# -> case newByteArray# 0# s1# of
-      (# s2#, marr# #) -> case unsafeFreezeByteArray# marr# s2# of
-        (# s3#, arr# #) -> (# s3#, Bytes l u 0 arr# #)
-      where
-        (l, u) = unsafeBounds 0
+    def = runST $ ST $ \ s1# -> case newByteArray# 0# s1# of (# s2#, marr# #) -> done (unsafeBounds 0) 0 marr# s2#
 
-instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (Bytes i e)
-  where
-    arbitrary = fromList <$> arbitrary
+instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (Bytes i e) where arbitrary = fromList <$> arbitrary
 
 --------------------------------------------------------------------------------
 
-done :: (Index i, Unboxed e) => STUArray s i e -> STRep s (Bytes i e)
-done (STUArray l u n marr#) = \ s1# -> case unsafeFreezeByteArray# marr# s1# of
-  (# s2#, bytes# #) -> (# s2#, Bytes l u n bytes# #)
+{-# INLINE done #-}
+done :: (Index i) => (i, i) -> Int -> MutableByteArray# s -> STRep s (Bytes i e)
+done (l, u) n marr# = \ s1# -> case unsafeFreezeByteArray# marr# s1# of (# s2#, bytes# #) -> (# s2#, Bytes l u n bytes# #)
+
+{-# INLINE fill #-}
+fill :: (Unboxed e) => MutableByteArray# s -> (Int, e) -> STRep s a -> STRep s a
+fill marr# (I# i#, e) nxt = \ s1# -> case writeByteArray# marr# i# e s1# of s2# -> nxt s2#
+
+undEx :: String -> a
+undEx msg = throw . UndefinedValue $ "in SDP.Bytes." ++ msg
 

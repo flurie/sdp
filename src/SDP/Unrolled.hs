@@ -264,6 +264,4 @@ instance (Index i) => Estimate (Unrolled i)
         s1 = size (l1, u1)
         s2 = size (l2, u2)
 
-instance (Index i) => LineS (Unrolled i e) e where stream = stream . toList
-
 instance (Index i) => Default (Unrolled i e) where def = Z
