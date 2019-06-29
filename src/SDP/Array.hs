@@ -71,12 +71,9 @@ instance (Index i, Eq e) => Eq (Array i e) where (==) = eq1
 
 instance (Index i) => Eq1 (Array i)
   where
-    liftEq eq xs ys = n1 == n2 && (n1 == 0 || l1 == l2 && u1 == u2 && elemsEq)
+    liftEq eq xs ys = liftEq eq' (assocs xs) (assocs ys)
       where
-        elemsEq = and [ (xs !# i) `eq` (ys !# i) | i <- [0 .. n1 - 1] ]
-        
-        (Array l1 u1 n1 _) = xs
-        (Array l2 u2 n2 _) = ys
+        eq' (i1, x) (i2, y) = i1 == i2 && eq x y
 
 --------------------------------------------------------------------------------
 
@@ -96,9 +93,10 @@ instance (Index i) => Ord1 (Array i)
 
 instance (Index i, Show i, Show e) => Show (Array i e)
   where
-    showsPrec p arr@(Array l u _ _) = showParen (p > appPrec) shows'
-      where
-        shows' = showString "array " . shows (l, u) . showChar ' ' . shows (assocs arr)
+    showsPrec p arr@(Array l u _ _) = showParen (p > appPrec) $ showString "array "
+                                                              . shows (l, u)
+                                                              . showChar ' '
+                                                              . shows (assocs arr)
 
 instance (Index i, Read i, Read e) => Read (Array i e)
   where
@@ -112,7 +110,7 @@ instance (Index i, Read i, Read e) => Read (Array i e)
 instance (Index i) => Functor (Array i)
   where
     fmap f arr@(Array l u n@(I# n#) _) = runST $ ST $ \ s1# ->
-      case newArray# n# (undEx "fmap") s1# of
+      case newArray# n# (unreachEx "fmap") s1# of
         (# s2#, marr# #) ->
           let go i s# = if i == n
               then done (l, u) n marr# s#
@@ -178,12 +176,12 @@ instance (Index i) => Foldable (Array i)
         go i !a = arr ==. i ? a $ go (i + 1) (f a $ arr !# i)
     
     {-# INLINE foldr1 #-}
-    foldr1 f arr = null arr ? undEx "foldr1" $ go 0
+    foldr1 f arr = null arr ? pfailEx "foldr1" $ go 0
       where
         go i = arr ==. (i + 1) ? e $ f e (go $ i + 1) where e = arr !# i
     
     {-# INLINE foldl1 #-}
-    foldl1 f arr = null arr ? undEx "foldl1" $ go (length arr - 1)
+    foldl1 f arr = null arr ? pfailEx "foldl1" $ go (length arr - 1)
       where
         go i = 0 == i ? e $ f (go $ i - 1) e where e = arr !# i
     
@@ -220,7 +218,7 @@ instance (Index i) => Scan (Array i)
           where
             nxt = f curr (es !# n)
     
-    scanl1 f es = null es ? undEx "scanl1" $ fromListN l (res w 0)
+    scanl1 f es = null es ? pfailEx "scanl1" $ fromListN l (res w 0)
       where
         l = length es
         w = head es
@@ -228,7 +226,7 @@ instance (Index i) => Scan (Array i)
           where
             nxt = f curr (es !# n)
     
-    scanr1 f es = null es ? undEx "scanr1" $ fromList (res w (l - 2) [w])
+    scanr1 f es = null es ? pfailEx "scanr1" $ fromList (res w (l - 2) [w])
       where
         l = length es
         w = last es
@@ -236,9 +234,7 @@ instance (Index i) => Scan (Array i)
           where
             prv = f (es !# n) curr
 
-instance (Index i) => Traversable (Array i)
-  where
-    traverse f arr = fromList <$> traverse f (toList arr)
+instance (Index i) => Traversable (Array i) where traverse f arr = fromList <$> traverse f (toList arr)
 
 --------------------------------------------------------------------------------
 
@@ -250,39 +246,33 @@ instance (Index i) => Linear (Array i e) e
     isNull es = null es
     
     {-# INLINE lzero #-}
-    lzero = runST $ ST $ \ s1# -> case newArray# 0# (undEx "lzero? that the hug!?") s1# of (# s2#, marr# #) -> done (unsafeBounds 0) 0 marr# s2#
+    lzero = runST $ ST $ \ s1# -> case newArray# 0# (unreachEx "lzero") s1# of
+      (# s2#, marr# #) -> done (unsafeBounds 0) 0 marr# s2#
     
     {-# INLINE toHead #-}
     toHead e es = fromListN (n + 1) (e : toList es)    where n = length es
     
     {-# INLINE head #-}
-    head arr = arr !# 0
+    head Z  = pfailEx "(:>)"
+    head es = es !# 0
     
     {-# INLINE tail #-}
+    tail Z  = pfailEx "(:>)"
     tail es = fromListN (length es - 1) . tail $ toList es
     
     {-# INLINE toLast #-}
     toLast es e = fromListN (n + 1) $ foldr (:) [e] es where n = length es
     
     {-# INLINE last #-}
+    last Z  = pfailEx "(:<)"
     last arr = arr !# (length arr - 1)
     
     {-# INLINE init #-}
+    init Z  = pfailEx "(:<)"
     init es = fromListN (length es - 1) $ toList es
     
     {-# INLINE fromList #-}
     fromList es = fromFoldable es
-    
-    {-# INLINE fromListN #-}
-    fromListN n es = runST $ ST $
-        \ s1# -> case newArray# n# (undEx "fromList") s1# of
-            (# s2#, marr# #) ->
-              let go y r = \ i# s3# -> case writeArray# marr# i# y s3# of
-                    s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#
-              in done (l, u) n' marr# ( if n' == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2# )
-      where
-        !n'@(I# n#) = max 0 $ (es <. n) ? length es $ n
-        (l, u) = unsafeBounds n'
     
     {-# INLINE fromFoldable #-}
     fromFoldable es = runST $ ST $ \ s1# -> case newArray# n# err s1# of
@@ -293,16 +283,18 @@ instance (Index i) => Linear (Array i e) e
       where
         !n@(I# n#) = length es
         (l, u) = unsafeBounds n
-        err    = undEx "fromList"
+        err    = unreachEx "fromList"
     
     single e = runST $ ST $ \ s1# -> case newArray# 1# e s1# of (# s2#, marr# #) -> done (unsafeBounds 1) 1 marr# s2#
     
     {-# INLINE (++) #-}
-    -- O(n + m) concatenation
-    xs ++ ys = fromListN (sizeOf xs + sizeOf ys) $ (listL xs) ++ (listL ys)
+    xs ++ ys = fromListN (sizeOf xs + sizeOf ys) $ listL xs ++ listL ys
     
     {-# INLINE replicate #-}
-    replicate n e = runST $ ST $ \ s1# -> let !n'@(I# n#) = max 0 n in case newArray# n# e s1# of (# s2#, marr# #) -> done (unsafeBounds n') n' marr# s2#
+    replicate n e = runST $ ST $ \ s1# -> case newArray# n# e s1# of
+        (# s2#, marr# #) -> done (unsafeBounds n') n' marr# s2#
+      where
+        !n'@(I# n#) = max 0 n
     
     {-# INLINE reverse #-}
     -- O(n) reverse
@@ -325,10 +317,8 @@ instance (Index i) => Linear (Array i e) e
 
 instance (Index i) => Split (Array i e) e
   where
-    -- O (n) take.
     take n es = fromListN n $ toList es
     
-    -- O (n) drop.
     drop n es
         | n <= 0 = es
         | n >= l = Z
@@ -344,18 +334,14 @@ instance (Index i) => Split (Array i e) e
         (take', drop') = split n $ toList es
         l = length es
     
-    -- No more than O(n) comparing.
-    isPrefixOf xs ys = xs .<=. ys && and equals
+    isPrefixOf xs ys = xs .<=. ys && equals
       where
-        equals = [ xs !# i == ys !# i | i <- [ 0 .. ly - 1 ] ]
-        ly = length ys
+        equals = and [ xs !# i == ys !# i | i <- [ 0 .. length xs - 1 ] ]
     
-    -- No more than O(n) comparing.
     isSuffixOf xs ys = xs .<=. ys && and equals
       where
-        equals  = [ xs !# i == xs !# (i + offset') | i <- [ 0 .. ly - 1 ] ]
-        offset' = length xs - ly
-        ly = length ys
+        equals  = [ xs !# i == xs !# (i + offset') | i <- [ 0 .. length xs - 1 ] ]
+        offset' = length ys - length xs
 
 instance (Index i) => Bordered (Array i e) i e
   where
@@ -369,7 +355,8 @@ instance (Index i) => Bordered (Array i e) i e
 
 instance (Index i) => Indexed (Array i e) i e
   where
-    assoc' bnds defvalue ascs = runST $ ST $ \ s1# -> case newArray# n# defvalue s1# of (# s2#, marr# #) -> writes marr# s2#
+    assoc' bnds defvalue ascs = runST $ ST $ \ s1# -> case newArray# n# defvalue s1# of
+        (# s2#, marr# #) -> writes marr# s2#
       where
         writes marr# = foldr (fill marr#) (done bnds n marr#) [ (offset bnds i, e) | (i, e) <- ascs ]
         !n@(I# n#)   = size bnds
@@ -378,6 +365,7 @@ instance (Index i) => Indexed (Array i e) i e
       where
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
+    
     arr@(Array l u n@(I# n#) _) // ascs = runST $ thaw >>= writes
       where
         writes (STArray l' u' n' marr#) = ST $ foldr (fill marr#) (done (l', u') n' marr#) ies
@@ -388,7 +376,7 @@ instance (Index i) => Indexed (Array i e) i e
             let copy i@(I# i#) s3# = if i == n then s3# else copy (i + 1) (writeArray# marr# i# (arr !# i) s3#)
             in case copy 0 s2# of s3# -> (# s3#, STArray l u n marr# #)
     
-    (!)  arr@(Array l u _ _) i = arr !# offset (l, u) i
+    (!) arr@(Array l u _ _) i = arr !# offset (l, u) i
     
     p .$ es = (\ i -> p $ es ! i)  `find`  indices es
     p *$ es = (\ i -> p $ es ! i) `filter` indices es
@@ -418,6 +406,15 @@ done :: (i, i) -> Int -> MutableArray# s e -> STRep s (Array i e)
 done (l, u) n marr# = \s1# -> case unsafeFreezeArray# marr# s1# of
   (# s2#, arr# #) -> (# s2#, Array l u n arr# #)
 
+pfailEx       :: String -> a
+pfailEx   msg =  throw . PatternMatchFail $ "in SDP.Array." ++ msg
+
+unreachEx     :: String -> a
+unreachEx msg =  throw . UnreachableException $ "in SDP.Array." ++ msg
+
 undEx :: String -> a
 undEx msg = throw . UndefinedValue $ "in SDP.Array." ++ msg
+
+
+
 

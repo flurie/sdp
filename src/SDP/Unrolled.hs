@@ -15,7 +15,7 @@
 module SDP.Unrolled
 (
   Unrolled (..),
-  Unlist, -- type Unlist is abstract.
+  Unlist, -- type Unlist exported as abstract.
   
   module SDP.Indexed,
   module SDP.Scan,
@@ -25,6 +25,7 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
+
 import Test.QuickCheck
 
 import GHC.Base ( Int (..) )
@@ -59,11 +60,9 @@ instance (Eq e, Index i) => Eq (Unrolled i e) where (==) = eq1
 
 instance (Index i) => Eq1 (Unrolled i)
   where
-    liftEq f unr1@(Unrolled l1 u1 xs) unr2@(Unrolled l2 u2 ys) = res
+    liftEq eq xs ys = liftEq eq' (assocs xs) (assocs ys)
       where
-        res = null xs && null ys || l1 == l2 && u1 == u2 && liftEq f xs' ys'
-        xs' = toList unr1
-        ys' = toList unr2
+        eq' (i1, x) (i2, y) = i1 == i2 && eq x y
 
 --------------------------------------------------------------------------------
 
@@ -73,7 +72,7 @@ instance (Ord e, Index i) => Ord (Unrolled i e) where compare = compare1
 
 instance (Index i) => Ord1 (Unrolled i)
   where
-    liftCompare cmp unr1 unr2 = liftCompare cmp' (assocs unr1) (assocs unr2)
+    liftCompare cmp xs ys = liftCompare cmp' (assocs xs) (assocs ys)
       where
         cmp' (ix, x) (iy, y) = (ix <=> iy) <> (cmp x y)
 
@@ -83,9 +82,10 @@ instance (Index i) => Ord1 (Unrolled i)
 
 instance (Index i, Show i, Show e) => Show (Unrolled i e)
   where
-    showsPrec p unr@(Unrolled l u _) = showParen (p > appPrec) shows'
-      where
-        shows' = showString "unrolled " . shows (l, u) . showChar ' ' . shows (assocs unr)
+    showsPrec p unr@(Unrolled l u _) = showParen (p > appPrec) $ showString "unrolled "
+                                                               . shows (l, u)
+                                                               . showChar ' '
+                                                               . shows (assocs unr)
 
 instance (Index i, Read i, Read e) => Read (Unrolled i e)
   where
@@ -96,9 +96,7 @@ instance (Index i, Read i, Read e) => Read (Unrolled i e)
 
 {- Functor, Zip and Applicative instances -}
 
-instance (Index i) => Functor (Unrolled i)
-  where
-    fmap f (Unrolled l u es) = Unrolled l u (f <$> es)
+instance (Index i) => Functor (Unrolled i) where fmap f (Unrolled l u es) = Unrolled l u (f <$> es)
 
 instance (Index i) => Zip (Unrolled i)
   where
@@ -119,25 +117,39 @@ instance (Index i) => Applicative (Unrolled i)
 
 instance (Index i) => Foldable (Unrolled i)
   where
+    {-# INLINE foldr #-}
     foldr  f base (Unrolled l u es) = foldr  f base $ take (size (l, u)) es
+    
+    {-# INLINE foldl #-}
     foldl  f base (Unrolled l u es) = foldl  f base $ take (size (l, u)) es
     
+    {-# INLINE foldr' #-}
     foldr' f base (Unrolled l u es) = foldr' f base $ take (size (l, u)) es
+    
+    {-# INLINE foldl' #-}
     foldl' f base (Unrolled l u es) = foldl' f base $ take (size (l, u)) es
     
+    {-# INLINE foldr1 #-}
     foldr1 f (Unrolled l u es) = foldr1 f $ take (size (l, u)) es
+    
+    {-# INLINE foldl1 #-}
     foldl1 f (Unrolled l u es) = foldl1 f $ take (size (l, u)) es
     
-    toList   (Unrolled l u es) = take n $ toList es where n = size (l, u)
-    elem e   (Unrolled l u es) = elem e $ take (size (l, u)) es
-    null     (Unrolled l u es) = null es || isEmpty (l, u)
+    {-# INLINE toList #-}
+    toList   (Unrolled l u es) = size (l, u) `take` toList es
+    
+    {-# INLINE elem #-}
+    elem e   (Unrolled l u es) = elem e $ size (l, u) `take` es
+    
+    {-# INLINE null #-}
+    null     (Unrolled l u es) = isEmpty (l, u) || null es
+    
+    {-# INLINE length #-}
     length   (Unrolled l u  _) = size (l, u)
 
 -- instance (Index i) => Scan (Unrolled i)
 
-instance (Index i) => Traversable (Unrolled i)
-  where
-    traverse f arr = fromList <$> traverse f (toList arr)
+instance (Index i) => Traversable (Unrolled i) where traverse f arr = fromList <$> traverse f (toList arr)
 
 --------------------------------------------------------------------------------
 
@@ -145,20 +157,24 @@ instance (Index i) => Traversable (Unrolled i)
 
 instance (Index i) => Linear (Unrolled i e) e
   where
-    isNull = null
-    listL  = toList
+    {-# INLINE isNull #-}
+    isNull es = null   es
     
-    fromListN n es = Unrolled l u $ fromListN n es
-      where
-        (l, u) = unsafeBounds n
+    {-# INLINE listL #-}
+    listL  es = toList es
     
-    uncons Z = throw $ EmptyRange "in SDP.Unrolled.(:>)"
+    {-# INLINE fromListN #-}
+    fromListN n es = let (l, u) = unsafeBounds n in Unrolled l u $ fromListN n es
+    
+    {-# INLINE uncons #-}
+    uncons Z = throw $ PatternMatchFail "in SDP.Unrolled.(:>)"
     uncons (Unrolled l u es) = (x, es <. 2 ? Z $ Unrolled l1 u xs)
       where
         (x, xs) = uncons es
         l1 = next (l, u) l
     
-    unsnoc Z = throw $ EmptyRange "in SDP.Unrolled.(:<)"
+    {-# INLINE unsnoc #-}
+    unsnoc Z = throw $ PatternMatchFail "in SDP.Unrolled.(:<)"
     unsnoc (Unrolled l u es) = (es <. 2 ? Z $ Unrolled l u1 xs, x)
       where
         (xs, x) = unsnoc es
@@ -166,15 +182,14 @@ instance (Index i) => Linear (Unrolled i e) e
     
     concat xss = Unrolled l u res
       where
-        (n', res) = foldr f (0, Z) xss
+        res = foldr (\ (Unrolled l' u' xs) ys -> size (l', u') `take` xs ++ ys) Z xss
+        n   = foldr (\ es count -> sizeOf es + count) 0 xss
         
-        f = \ (Unrolled _ _ xs) (len, ys) -> (len + length xs, xs ++ ys)
-        
-        (l, u) = unsafeBounds n'
+        (l, u) = unsafeBounds n
     
     intersperse e (Unrolled _ _ es) = Unrolled l1 u1 (intersperse e es)
       where
-        n1 = case n <=> 0 of {LT -> -1; EQ -> 1; GT -> 2 * n - 1}; n = length es
+        n1 = case n <=> 0 of {LT -> 0; EQ -> 1; GT -> 2 * n - 1}; n = length es
         (l1, u1) = unsafeBounds n1
 
 instance (Index i) => Split (Unrolled i e) e
@@ -206,17 +221,15 @@ instance (Index i) => Split (Unrolled i e) e
         
         (take', drop') = split n es
     
-    prefix f = prefix f . toList
-    suffix f = suffix f . toList
+    prefix f es = prefix f $ toList es
+    suffix f es = suffix f $ toList es
     
-    isPrefixOf = isPrefixOf `on` toList
-    isInfixOf  = isInfixOf  `on` toList
-    isSuffixOf = isSuffixOf `on` toList
+    isPrefixOf xs ys = toList xs `isPrefixOf` toList ys
+    isInfixOf  xs ys = toList xs `isInfixOf`  toList ys
+    isSuffixOf xs ys = toList xs `isSuffixOf` toList ys
 
 instance (Index i) => Bordered (Unrolled i e) i e
   where
-    indices (Unrolled l u _) = range (l, u)
-    bounds  (Unrolled l u _) = (l, u)
     lower   (Unrolled l _ _) = l
     upper   (Unrolled _ u _) = u
     
@@ -246,22 +259,17 @@ instance (Index i) => Indexed (Unrolled i e) i e
     {-# INLINE (!) #-}
     (!)  (Unrolled l u es) i = es ! (offset (l, u) i)
     
-    p .$ (Unrolled l u es) = index (l, u) <$> (p .$ es)
-    p *$ (Unrolled l u es) = index (l, u) <$> (p *$ es)
+    p .$ (Unrolled l u es) = index (l, u) <$> p .$ es
+    p *$ (Unrolled l u es) = index (l, u) <$> p *$ es
 
 --------------------------------------------------------------------------------
 
-instance (Index i, Arbitrary e) => Arbitrary (Unrolled i e)
-  where
-    arbitrary = fromList <$> arbitrary
+instance (Index i, Arbitrary e) => Arbitrary (Unrolled i e) where arbitrary = fromList <$> arbitrary
 
 --------------------------------------------------------------------------------
 
-instance (Index i) => Estimate (Unrolled i)
-  where
-    (Unrolled l1 u1 _) <==> (Unrolled l2 u2 _) = compare s1 s2
-      where
-        s1 = size (l1, u1)
-        s2 = size (l2, u2)
+instance (Index i) => Estimate (Unrolled i) where xs <==> ys = length xs <=> length ys
 
 instance (Index i) => Default (Unrolled i e) where def = Z
+
+

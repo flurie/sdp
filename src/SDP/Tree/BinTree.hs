@@ -110,7 +110,8 @@ instance Functor BinTree
 
 instance Zip BinTree
   where
-    zipWith  f (BinNode l1 e1 n1 _ r1) (BinNode l2 e2 n2 _ r2) = BinNode l (f e1 e2) n h r
+    zipWith  f (BinNode l1 e1 n1 _ r1)
+               (BinNode l2 e2 n2 _ r2) = BinNode l (f e1 e2) n h r
       where
         l = zipWith  f l1 l2
         r = zipWith  f r1 r2
@@ -118,7 +119,9 @@ instance Zip BinTree
         h = 1 + max (height l) (height r)
     zipWith  _ _ _ = Z
     
-    zipWith3 f (BinNode l1 e1 n1 _ r1) (BinNode l2 e2 n2 _ r2) (BinNode l3 e3 n3 _ r3) = BinNode l (f e1 e2 e3) n h r
+    zipWith3 f (BinNode l1 e1 n1 _ r1)
+               (BinNode l2 e2 n2 _ r2)
+               (BinNode l3 e3 n3 _ r3) = BinNode l (f e1 e2 e3) n h r
       where
         l = zipWith3 f l1 l2 l3
         r = zipWith3 f r1 r2 r3
@@ -126,7 +129,10 @@ instance Zip BinTree
         h = 1 + max (height l) (height r)
     zipWith3 _ _ _ _ = Z
     
-    zipWith4 f (BinNode l1 e1 n1 _ r1) (BinNode l2 e2 n2 _ r2) (BinNode l3 e3 n3 _ r3) (BinNode l4 e4 n4 _ r4) = BinNode l (f e1 e2 e3 e4) n h r
+    zipWith4 f (BinNode l1 e1 n1 _ r1)
+               (BinNode l2 e2 n2 _ r2)
+               (BinNode l3 e3 n3 _ r3)
+               (BinNode l4 e4 n4 _ r4) = BinNode l (f e1 e2 e3 e4) n h r
       where
         l = zipWith4 f l1 l2 l3 l4
         r = zipWith4 f r1 r2 r3 r4
@@ -134,7 +140,11 @@ instance Zip BinTree
         h = 1 + max (height l) (height r)
     zipWith4 _ _ _ _ _ = Z
     
-    zipWith5 f (BinNode l1 e1 n1 _ r1) (BinNode l2 e2 n2 _ r2) (BinNode l3 e3 n3 _ r3) (BinNode l4 e4 n4 _ r4) (BinNode l5 e5 n5 _ r5) = BinNode l (f e1 e2 e3 e4 e5) n h r
+    zipWith5 f (BinNode l1 e1 n1 _ r1)
+               (BinNode l2 e2 n2 _ r2)
+               (BinNode l3 e3 n3 _ r3)
+               (BinNode l4 e4 n4 _ r4)
+               (BinNode l5 e5 n5 _ r5) = BinNode l (f e1 e2 e3 e4 e5) n h r
       where
         l = zipWith5 f l1 l2 l3 l4 l5
         r = zipWith5 f r1 r2 r3 r4 r5
@@ -142,7 +152,12 @@ instance Zip BinTree
         h = 1 + max (height l) (height r)
     zipWith5 _ _ _ _ _ _ = Z
     
-    zipWith6 f (BinNode l1 e1 n1 _ r1) (BinNode l2 e2 n2 _ r2) (BinNode l3 e3 n3 _ r3) (BinNode l4 e4 n4 _ r4) (BinNode l5 e5 n5 _ r5) (BinNode l6 e6 n6 _ r6) = BinNode l (f e1 e2 e3 e4 e5 e6) n h r
+    zipWith6 f (BinNode l1 e1 n1 _ r1)
+               (BinNode l2 e2 n2 _ r2)
+               (BinNode l3 e3 n3 _ r3)
+               (BinNode l4 e4 n4 _ r4)
+               (BinNode l5 e5 n5 _ r5)
+               (BinNode l6 e6 n6 _ r6) = BinNode l (f e1 e2 e3 e4 e5 e6) n h r
       where
         l = zipWith6 f l1 l2 l3 l4 l5 l6
         r = zipWith6 f r1 r2 r3 r4 r5 r6
@@ -181,9 +196,7 @@ instance Foldable BinTree
 
 -- instance Scan BinTree
 
-instance Traversable BinTree
-  where
-    traverse f tree = fromList <$> traverse f (toList tree)
+instance Traversable BinTree where traverse f tree = fromList <$> traverse f (toList tree)
 
 --------------------------------------------------------------------------------
 
@@ -192,7 +205,7 @@ instance Traversable BinTree
 instance Linear (BinTree e) e
   where
     {-# INLINE isNull #-}
-    isNull es = case es of {BinEmpty -> True; _ -> False}
+    isNull es = null es
     
     lzero = BinEmpty
     
@@ -211,13 +224,13 @@ instance Linear (BinTree e) e
         add e Z = single e
         add e (BinNode l e' n _ r) = let r' = add e r in BinNode l e' (n + 1) (height' l r') r'
     
-    uncons Z = empEx "(:>)"
+    uncons Z = pfailEx "(:>)"
     uncons (BinNode Z e _ _ r) = (e, r)
     uncons (BinNode l e n _ r) = (head', BinNode l' e (n - 1) (height' l' r) r)
       where
         (head', l') = uncons l
     
-    unsnoc Z = empEx "(:<)"
+    unsnoc Z = pfailEx "(:<)"
     unsnoc (BinNode l e _ _ Z) = (l, e)
     unsnoc (BinNode l e n _ r) = (BinNode l e (n - 1) (height' l r') r', last')
       where
@@ -225,26 +238,29 @@ instance Linear (BinTree e) e
     
     replicate n x = fromList $ replicate n x
     
-    head Z = empEx "(:>)"
+    {-# INLINE head #-}
+    head Z = pfailEx "(:>)"
     head (BinNode l e _ _ _) = case l of {Z -> e; _ -> head l}
     
-    last Z = empEx "(:<)"
+    {-# INLINE last #-}
+    last Z = pfailEx "(:<)"
     last (BinNode _ e _ _ r) = case r of {Z -> e; _ -> last r}
     
-    tail Z = empEx "(:>)"
-    tail (BinNode l e n _ r) = case l of {Z -> r; _ -> BinNode l' e (n - 1) (height' l' r) r}
-      where
-        l' = tail l
+    {-# INLINE tail #-}
+    tail Z = pfailEx "(:>)"
+    tail (BinNode l e n _ r) = let l' = tail l in case l of {Z -> r; _ -> BinNode l' e (n - 1) (height' l' r) r}
     
-    init Z = empEx "(:<)"
-    init (BinNode l e n _ r) = case r of {Z -> l; _ -> BinNode l e (n - 1) (height' l r') r'}
-      where
-        r' = init r
+    {-# INLINE init #-}
+    init Z = pfailEx "(:<)"
+    init (BinNode l e n _ r) = let r' = init r in case r of {Z -> l; _ -> BinNode l e (n - 1) (height' l r') r'}
     
     reverse Z = Z
     reverse (BinNode l e n h r) = BinNode (reverse r) e n h (reverse l)
     
-    fromList     es = foldr (:>) Z es
+    {-# INLINE fromList #-}
+    fromList     es = fromFoldable es
+    
+    {-# INLINE fromFoldable #-}
     fromFoldable es = foldr (:>) Z es
 
 instance Split (BinTree e) e
@@ -254,11 +270,10 @@ instance Split (BinTree e) e
 
 instance Bordered (BinTree e) Int e
   where
-    assocs  tree = zip (indices tree) (toList tree)
-    indices tree = [0 .. length tree - 1]
-    bounds  tree = (0, length tree - 1)
-    lower    _   = 0
-    upper   tree = length tree - 1
+    lower  _    = 0
+    upper  tree = length tree - 1
+    
+    sizeOf tree = length tree
 
 --------------------------------------------------------------------------------
 
@@ -291,9 +306,7 @@ instance Indexed (BinTree e) Int e
 
 --------------------------------------------------------------------------------
 
-instance (Arbitrary e) => Arbitrary (BinTree e)
-  where
-    arbitrary = fromList <$> arbitrary
+instance (Arbitrary e) => Arbitrary (BinTree e) where arbitrary = fromList <$> arbitrary
 
 instance Default (BinTree e) where def = Z
 
@@ -366,5 +379,7 @@ height' l r = 1 + max (height l) (height r)
 length' :: BinTree e -> BinTree e -> Int
 length' l r = length l + length r + 1
 
-empEx     :: String -> a
-empEx msg =  throw . EmptyRange $ "in SDP.Tree.BinTree." ++ msg
+pfailEx     :: String -> a
+pfailEx msg =  throw . PatternMatchFail $ "in SDP.Tree.BinTree." ++ msg
+
+

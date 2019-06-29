@@ -9,7 +9,8 @@
     Portability :  non-portable (GHC Extensions)
     Stability   :  stable
     
-    This module provides service type Ublist - strict boxed unrolled linked list for SDP.Unrolled.
+    This module provides service type Ublist - strict boxed unrolled linked list
+    for SDP.Unrolled.
 -}
 
 module SDP.ByteList.Ublist
@@ -54,9 +55,9 @@ data Ublist e = UBEmpty | Ublist {-# UNPACK #-} !Int (ByteArray#) (Ublist e)
 
 {- Eq and Ord instances. -}
 
-instance (Eq e,  Unboxed e) => Eq  (Ublist e) where xs == ys = (listL xs) == (listL ys)
+instance (Eq e,  Unboxed e) => Eq  (Ublist e) where xs == ys = listL xs == listL ys
 
-instance (Ord e, Unboxed e) => Ord (Ublist e) where compare xs ys = compare (listL xs) (listL ys)
+instance (Ord e, Unboxed e) => Ord (Ublist e) where compare xs ys = listL xs <=> listL ys
 
 --------------------------------------------------------------------------------
 
@@ -64,9 +65,8 @@ instance (Ord e, Unboxed e) => Ord (Ublist e) where compare xs ys = compare (lis
 
 instance (Unboxed e, Show e) => Show (Ublist e)
   where
-    showsPrec p arr = showParen (p > appPrec) shows'
-      where
-        shows' = showString "ublist " . shows (assocs arr)
+    showsPrec p ubl = showParen (p > appPrec) $ showString "ublist "
+                                              . shows (assocs ubl)
 
 --------------------------------------------------------------------------------
 
@@ -81,11 +81,11 @@ instance (Unboxed e) => Linear (Ublist e) e
     lzero = UBEmpty
     
     {-# INLINE head #-}
-    head Z  = throw $ EmptyRange "in SDP.ByteList.(:>)"
+    head Z  = pfailEx ".(:>)"
     head es = es .! 0
     
     {-# INLINE tail #-}
-    tail Z                          = throw $ EmptyRange "in SDP.ByteList.(:<)"
+    tail Z                          = pfailEx "(:<)"
     tail es@(Ublist c _ Z)          = fromListN (c - 1) . tail $ listL es
     tail es@(Ublist c bytes# bytes) = Ublist c' new# bytes
       where
@@ -98,11 +98,11 @@ instance (Unboxed e) => Linear (Ublist e) e
         !(Ublist 1 single# Z) = single e
     
     {-# INLINE last #-}
-    last Z  = throw $ EmptyRange "in SDP.ByteList.(:<)"
+    last Z  = pfailEx "(:<)"
     last (Ublist (I# c#) bytes# bytes) = case bytes of {Z -> bytes# !# (c# -# 1#); _ -> last bytes}
     
     {-# INLINE init #-}
-    init Z                    = throw $ EmptyRange "in SDP.ByteList.(:>)"
+    init Z                    = pfailEx "(:>)"
     init es@(Ublist c _ Z)    = fromListN (c - 1) . init $ listL es
     init (Ublist c arr# arrs) = Ublist c arr# (init arrs)
     
@@ -125,7 +125,7 @@ instance (Unboxed e) => Linear (Ublist e) e
         (count, restSize) = length es `divMod` lim
         
         rest' = toChunk' restSize err rest
-        err   = undEx "fromFoldable"
+        err   = unreachEx "fromFoldable"
     
     {-# INLINE listL #-}
     listL es' = list' 0# es'
@@ -158,7 +158,7 @@ instance (Unboxed e) => Linear (Ublist e) e
             !(Ublist _ rev# _) = toChunk' c err listR' `asTypeOf` bytes
             
             listR' = [ bytes# !# i# | (I# i#) <- [ c - 1, c - 2 .. 0 ] ]
-            err    = undEx "reverse"
+            err    = unreachEx "reverse"
     
     {-# INLINe partition #-}
     partition p es = case partition p (listL es) of (x, y) -> (fromList x, fromList y)
@@ -234,7 +234,7 @@ instance (Unboxed e) => Indexed (Ublist e) Int e
         
         (curr, others) = partition (\ (i, _) -> inRange (0, c - 1) i) ascs
         
-        err = undEx "(//)"
+        err = unreachEx "(//)"
     
     assoc bnds ascs = isEmpty bnds ? UBEmpty $ res
       where
@@ -249,7 +249,7 @@ instance (Unboxed e) => Indexed (Ublist e) Int e
         rest' = toChunk restSize err rest
         
         ies = filter (inRange bnds . fst) ascs
-        err = undEx "assoc"
+        err = unreachEx "assoc"
     
     assoc' bnds defvalue ascs = isEmpty bnds ? UBEmpty $ res
       where
@@ -266,11 +266,11 @@ instance (Unboxed e) => Indexed (Ublist e) Int e
     -- | Note: Ublist allows reading by negative offset.
     (Ublist n bytes# arrs) .! i@(I# i#) = i < n ? bytes# !# i# $ arrs .! (n - i)
     
-    (!) Z _ = throw $ EmptyRange "in SDP.ByteList.(!)"
+    (!) Z _ = throw $ EmptyRange "in SDP.ByteList.Ublist.(!)"
     (!) (Ublist n bytes# arrs) i@(I# i#)
-      |    i < 0    = throw $ IndexUnderflow "in SDP.ByteList.(!)"
+      |    i < 0    = throw $ IndexUnderflow "in SDP.ByteList.Ublist.(!)"
       |    i < n    = bytes# !# i#
-      | isNull arrs = throw $ IndexOverflow  "in SDP.ByteList.(!)"
+      | isNull arrs = throw $ IndexOverflow  "in SDP.ByteList.Ublist.(!)"
       |     True    = arrs ! (n - 1)
     
     p .$ es = p .$ listL es
@@ -284,8 +284,11 @@ instance Default (Ublist e) where def = UBEmpty
 
 --------------------------------------------------------------------------------
 
-undEx :: String -> a
-undEx msg = throw . UndefinedValue $ "in SDP.ByteList.Ublist." ++ msg
+pfailEx       :: String -> a
+pfailEx msg   =  throw . PatternMatchFail $ "in SDP.ByteList.Ublist." ++ msg
+
+unreachEx     :: String -> a
+unreachEx msg =  throw . UnreachableException $ "in SDP.ByteList.Ublist." ++ msg
 
 {-# INLINE fill #-}
 -- | internal mutable byte array filler.

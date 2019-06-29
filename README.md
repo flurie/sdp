@@ -3,7 +3,8 @@
 That is it?
 --------------------------------------------------------------------------------
 This is a library for simple data processing and my sandbox for working with
-language extensions. However, I hope that sense will come of it, and I can use it in more serious projects.
+language extensions. However, I hope that sense will come of it, and I can use
+it in more serious projects.
 SDP was created under the influence of containers, it is not based on
 collections (abandoned 2010), collections-api (most likely abandoned),
 EdisonAPI (alive as of 2018) or any such library - it's independent project.

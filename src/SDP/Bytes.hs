@@ -64,17 +64,9 @@ type role Bytes nominal nominal
 
 {- Eq and Ord instances. -}
 
-instance (Index i, Unboxed e) => Eq (Bytes i e)
-  where
-    xs@(Bytes l1 u1 n1 _) == ys@(Bytes l2 u2 n2 _) = n1 == n2 && (n1 == 0 || l1 == l2 && u1 == u2 && elemEq)
-      where
-        elemEq = listL xs == listL ys
+instance (Index i, Unboxed e) => Eq (Bytes i e)         where xs == ys = listL xs == listL ys
 
-instance (Index i, Unboxed e, Ord e) => Ord (Bytes i e)
-  where
-    compare xs@(Bytes _ _ n1 _) ys@(Bytes _ _ n2 _) = n1 <=> n2 <> elemCmp
-      where
-        elemCmp = listL xs <=> listL ys
+instance (Index i, Unboxed e, Ord e) => Ord (Bytes i e) where compare xs ys = listL xs <=> listL ys
 
 --------------------------------------------------------------------------------
 
@@ -82,7 +74,10 @@ instance (Index i, Unboxed e, Ord e) => Ord (Bytes i e)
 
 instance (Index i, Show i, Unboxed e, Show e) => Show (Bytes i e)
   where
-    show es@(Bytes l u _ _) = showString "bytes " . shows (l, u) . showChar ' ' $ show (assocs es)
+    showsPrec p es@(Bytes l u _ _) = showParen (p > appPrec) $ showString "bytes "
+                                                             . shows (l, u)
+                                                             . showChar ' '
+                                                             . shows (assocs es)
 
 instance (Index i, Read i, Unboxed e, Read e) => Read (Bytes i e)
   where
@@ -102,25 +97,25 @@ instance (Unboxed e, Index i) => Linear (Bytes i e) e
     lzero = def
     
     {-# INLINE head #-}
-    head Z  = undEx "(:>)"
+    head Z  = pfailEx "(:>)"
     head es = es .! lower es
     
-    tail Z  = undEx "(:>)"
+    tail Z  = pfailEx "(:>)"
     tail es = drop 1 es
     
     {-# INLINE last #-}
-    last Z  = undEx "(:<)"
+    last Z  = pfailEx "(:<)"
     last es = es .! upper es
     
     {-# INLINE init #-}
-    init Z  = undEx "(:<)"
+    init Z  = pfailEx "(:<)"
     init es = take (sizeOf es - 1) es
     
     {-# INLINE single #-}
     single e = runST $ ST $ \ s1# -> case newUnboxed' e 1# s1# of (# s2#, marr# #) -> done (unsafeBounds 1) 1 marr# s2#
     
     {-# INLINE fromListN #-}
-    fromListN n es = fromListN' (undEx "fromListN")
+    fromListN n es = fromListN' (unreachEx "fromListN")
       where
         fromListN' :: (Index i, Unboxed e) => e -> Bytes i e
         fromListN' e = runST $ ST $ \ s1# -> case newUnboxed e n# s1# of
@@ -208,6 +203,7 @@ instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
       where
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
+    
     es'@(Bytes l' u' _ _) // ascs = writecopy' es' err ies'
       where
         writecopy' :: (Index i, Unboxed e) => Bytes i e -> e -> [(i, e)] -> Bytes i e
@@ -230,7 +226,7 @@ instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
         ies' = filter (inRange (l', u') . fst) ascs
         err  = undEx "(//)"
     
-    (!)  (Bytes l u _ bytes#) i = case offset (l, u) i of (I# i#) -> bytes# !# i#
+    (!) (Bytes l u _ bytes#) i = case offset (l, u) i of (I# i#) -> bytes# !# i#
     
     p .$ es@(Bytes l u _ _) = index (l, u) <$> p .$ listL es
     p *$ es@(Bytes l u _ _) = index (l, u) <$> p *$ listL es
@@ -241,7 +237,8 @@ instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
 
 instance (Index i) => Default (Bytes i e)
   where
-    def = runST $ ST $ \ s1# -> case newByteArray# 0# s1# of (# s2#, marr# #) -> done (unsafeBounds 0) 0 marr# s2#
+    def = runST $ ST $ \ s1# -> case newByteArray# 0# s1# of
+      (# s2#, marr# #) -> done (unsafeBounds 0) 0 marr# s2#
 
 instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (Bytes i e) where arbitrary = fromList <$> arbitrary
 
@@ -255,6 +252,12 @@ done (l, u) n marr# = \ s1# -> case unsafeFreezeByteArray# marr# s1# of (# s2#, 
 fill :: (Unboxed e) => MutableByteArray# s -> (Int, e) -> STRep s a -> STRep s a
 fill marr# (I# i#, e) nxt = \ s1# -> case writeByteArray# marr# i# e s1# of s2# -> nxt s2#
 
-undEx :: String -> a
-undEx msg = throw . UndefinedValue $ "in SDP.Bytes." ++ msg
+unreachEx     :: String -> a
+unreachEx msg =  throw . UnreachableException $ "in SDP.Array." ++ msg
+
+pfailEx       :: String -> a
+pfailEx   msg =  throw . PatternMatchFail $ "in SDP.Bytes." ++ msg
+
+undEx         :: String -> a
+undEx     msg =  throw . UndefinedValue $ "in SDP.Bytes." ++ msg
 

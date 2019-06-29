@@ -100,10 +100,10 @@ class (Foldable e, Ord1 e) => Estimate e
     -- | Left-side comparsion with known length by (/=).
     (/=.) :: e o -> Int -> Bool
     
-    -- | Same as min `on` length.
+    -- | Same as on min length.
     emin :: e a -> e b -> Int
     
-    -- | Same as max `on` length.
+    -- | Same as on max length.
     emax :: e a -> e b -> Int
     
     -- | Composition of length with minimum.

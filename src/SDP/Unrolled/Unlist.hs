@@ -72,9 +72,8 @@ instance Ord1 Unlist where liftCompare f xs ys = liftCompare f (toList xs) (toLi
 
 instance (Show e) => Show (Unlist e)
   where
-    showsPrec p unl = showParen (p > appPrec) shows'
-      where
-        shows' = showString "unlist " . shows (assocs unl)
+    showsPrec p unl = showParen (p > appPrec) $ showString "unlist "
+                                              . shows (assocs unl)
 
 --------------------------------------------------------------------------------
 
@@ -84,12 +83,11 @@ instance Functor Unlist
   where
     fmap _ UNEmpty = UNEmpty
     fmap f arr@(Unlist n@(I# n#) _ arrs) = runST $ ST $ \ s1# ->
-      case newArray# n# (undEx "fmap") s1# of
+      case newArray# n# (unreachEx "fmap") s1# of
         (# s2#, marr# #) ->
-          let go i s3# = if i == n
-              then case unsafeFreezeArray# marr# s3# of
-                (# s4#, arr# #) -> (# s4#, Unlist n arr# (f <$> arrs) #)
-              else fill marr# (i, f $ arr !# i) (go $ i + 1) s3#
+          let go i s# = if i == n
+              then done n (f <$> arrs) marr# s#
+              else fill marr# (i, f $ arr !# i) (go $ i + 1) s#
           in go 0 s2#
 
 --------------------------------------------------------------------------------
@@ -118,7 +116,7 @@ instance Foldable Unlist
       where
         go b i@(I# i#) = -1 == i ? b $ f (go b $ i - 1) (arr# !^ i#)
     
-    length es = case es of {Unlist c _ arrs -> c + length arrs; _ -> 0}
+    length es = case es of {Unlist c _ arrs -> max 0 c + length arrs; _ -> 0}
     
     toList UNEmpty = []
     toList (Unlist c arr# arrs) = [ arr# !^ i# | (I# i#) <- [0 .. c - 1] ] ++ toList arrs
@@ -146,11 +144,11 @@ instance Linear (Unlist e) e
         !(Unlist 1 single# Z) = single e
     
     {-# INLINE head #-}
-    head Z  = throw $ EmptyRange "in SDP.Unrolled.(:>)"
+    head Z  = pfailEx "(:>)"
     head es = es !# 0
     
     {-# INLINE tail #-}
-    tail Z  = throw $ EmptyRange "in SDP.Unrolled.(:<)"
+    tail Z  = pfailEx "(:<)"
     tail es@(Unlist _ _ Z)    = fromList . tail $ toList es
     tail (Unlist c arr# arrs) = Unlist c' new# arrs
       where
@@ -165,11 +163,11 @@ instance Linear (Unlist e) e
     toLast (Unlist c arr# arrs) e = Unlist c arr# (toLast arrs e)
     
     {-# INLINE last #-}
-    last Z  = throw $ EmptyRange "in SDP.Unrolled.(:<)"
+    last Z  = pfailEx "(:<)"
     last es = es !# (length es - 1)
     
     {-# INLINE init #-}
-    init Z = throw $ EmptyRange "in SDP.Unrolled.(:>)"
+    init Z = pfailEx "(:>)"
     init es@(Unlist _ _ Z)    = fromList . init $ toList es
     init (Unlist c arr# arrs) = Unlist c arr# (init arrs)
     
@@ -189,7 +187,7 @@ instance Linear (Unlist e) e
         (count, restSize) = length es `divMod` lim
         
         rest' = toChunk' err restSize rest
-        err   = undEx "fromFoldable"
+        err   = unreachEx "fromFoldable"
     
     Z ++ ys = ys
     xs ++ Z = xs
@@ -215,7 +213,7 @@ instance Linear (Unlist e) e
             !(Unlist _ rev# _) = toChunk' err c listR'
             
             listR' = [ bytes# !^ i# | (I# i#) <- [ c - 1, c - 2 .. 0 ] ]
-            err    = undEx "reverse"
+            err    = unreachEx "reverse"
     
     {-# INLINe partition #-}
     partition p es = case partition p (toList es) of (x, y) -> (fromList x, fromList y)
@@ -257,9 +255,9 @@ instance Split (Unlist e) e
             !(Unlist c1 arr1# _) = fromList take'
             !(Unlist c2 arr2# _) = fromList drop'
     
-    isPrefixOf = isPrefixOf `on` toList
-    isInfixOf  = isInfixOf  `on` toList
-    isSuffixOf = isSuffixOf `on` toList
+    isPrefixOf xs ys = toList xs `isPrefixOf` toList ys
+    isInfixOf  xs ys = toList xs `isInfixOf`  toList ys
+    isSuffixOf xs ys = toList xs `isSuffixOf` toList ys
     
     prefix f es = prefix f $ toList es
     suffix f es = suffix f $ toList es
@@ -302,7 +300,7 @@ instance Indexed (Unlist e) Int e
         writes rest (STArray l' u' n' marr#) = ST $ foldr (fill marr#) (done n' rest marr#) ies
           where ies = [ (offset (l', u') i, e) | (i, e) <- curr ]
         
-        thaw = ST $ \ s1# -> case newArray# c# (undEx "(//)") s1# of
+        thaw = ST $ \ s1# -> case newArray# c# (unreachEx "(//)") s1# of
           (# s2#, marr# #) ->
             let copy i@(I# i#) s3# = if i == c then s3# else copy (i + 1) (writeArray# marr# i# (es !# i) s3#)
             in case copy 0 s2# of s3# -> (# s3#, STArray 0 (c - 1) c marr# #)
@@ -366,6 +364,12 @@ toChunk' err n@(I# n#) chunk = runST $ ST $ \ s1# -> case newArray# n# err s1# o
 lim :: Int
 lim =  1024
 
-undEx :: String -> a
-undEx msg = throw . UndefinedValue $ "in SDP.Unrolled.Unlist." ++ msg
+pfailEx       :: String -> a
+pfailEx   msg =  throw . PatternMatchFail $ "in SDP.Unrolled.Unlist." ++ msg
+
+unreachEx     :: String -> a
+unreachEx msg =  throw . UnreachableException $ "in SDP.Unrolled.Unlist." ++ msg
+
+
+
 
