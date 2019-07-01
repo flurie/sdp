@@ -945,7 +945,7 @@ ind16 a b c d e f g h i j k l m n o p = () :& a :& b :& c :& d :& e :& f :& g :&
     (d, m) = a `divMod` (size bnds)
 
 uns :: (Index i, Bounded i) => Int -> (Int, i)
-uns a = case a `divMod` maxBound of (d, m) -> (d, unsafeIndex m)
+uns a = let (d, m) = a `divMod` maxBound in (d, unsafeIndex m)
 
 checkBounds :: (Index i) => (i, i) -> i -> res -> String -> res
 checkBounds bnds i res msg = case inBounds bnds i of
@@ -962,9 +962,9 @@ intOffset (l, u) i = checkBounds (l, u) i (fromEnum i - fromEnum l) "offset (def
 defUI   :: (Enum i) => Int -> i
 defUI o =  toEnum $ max 0 (succ o)
 
-
 {-# INLINE unsafeBounds #-}
 -- | unsafeBounds n is shortcut for (unsafeIndex 0, unsafeIndex $ n - 1)
 unsafeBounds :: (Index i) => Int -> (i, i)
 unsafeBounds n = (unsafeIndex 0, unsafeIndex $ n - 1)
+
 

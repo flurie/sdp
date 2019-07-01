@@ -34,8 +34,8 @@ import SDP.Set
 import GHC.Base ( Int (..) )
 import GHC.Show ( appPrec )
 
-import Text.Read
-import Text.Read.Lex ( expect )
+import Text.Read hiding ( pfail )
+import Text.Read.Lex    ( expect )
 
 import SDP.ByteList.Ublist
 import SDP.Simple
@@ -79,41 +79,77 @@ instance (Index i, Unboxed e) => Linear (ByteList i e) e
   where
     isNull (ByteList l u bytes) = isEmpty (l, u) || isNull bytes
     
-    uncons Z = throw $ PatternMatchFail "in SDP.ByteList.(:>)"
-    uncons (ByteList l u es) = (x, sizeOf es < 2 ? Z $ ByteList l1 u xs)
+    lzero = def
+    
+    toHead e (ByteList l u es) = ByteList l' u' (e :> take n es)
+      where
+        (l', u') = unsafeBounds $ n + 1
+        n = size (l, u)
+    
+    uncons Z = pfail "(:>)"
+    uncons (ByteList l u es) = (x, sizeOf es < 2 ? Z $ ByteList l' u xs)
       where
         (x, xs) = uncons es
-        l1 = next (l, u) l
+        l' = next (l, u) l
     
-    unsnoc Z = throw $ PatternMatchFail "in SDP.ByteList.(:<)"
-    unsnoc (ByteList l u es) = (sizeOf es < 2 ? Z $ ByteList l u1 xs, x)
+    head Z = pfail "(:>)"
+    head (ByteList _ _ es) = head es
+    
+    tail Z = pfail "(:>)"
+    tail (ByteList l u es) = ByteList l' u $ tail es where l' = next (l, u) l
+    
+    toLast (ByteList l u es) e = ByteList l' u' (take n es :< e)
+      where
+        (l', u') = unsafeBounds $ n + 1
+        n = size (l, u)
+    
+    unsnoc Z = pfail "(:<)"
+    unsnoc (ByteList l u es) = (sizeOf es < 2 ? Z $ ByteList l u' xs, x)
       where
         (xs, x) = unsnoc es
-        u1 = prev (l, u) u
+        u' = prev (l, u) u
+    
+    last Z = pfail "(:<)"
+    last (ByteList _ _ es) = last es
+    
+    init Z = pfail "(:<)"
+    init (ByteList l u es) = ByteList l u' $ init es where u' = prev (l, u) u
     
     fromListN n es = ByteList l u $ fromListN n es
       where
         (l, u) = unsafeBounds $ max 0 n
     
+    fromFoldable es = ByteList l u $ fromFoldable es
+      where
+        (l, u) = unsafeBounds $ length es
+    
     replicate n e = ByteList l u $ replicate n e
       where
         (l, u) = unsafeBounds $ max 0 n
     
-    concat xss = ByteList l u res
+    concat xss = ByteList l' u' res
       where
-        res = foldr  (\ (ByteList l' u' xs) ublist -> take (size (l', u')) xs ++ ublist) Z xss
-        n   = foldr' (\ (ByteList l' u' _) count -> size (l', u') + count) 0 xss
+        res = foldr  (\ (ByteList l u xs) ublist -> size (l, u) `take` xs ++ ublist) Z xss
+        n   = foldr' (\ (ByteList l u _) count -> size (l, u) + count) 0 xss
         
-        (l, u) = unsafeBounds $ max 0 n
+        (l', u') = unsafeBounds $ max 0 n
     
-    intersperse e (ByteList _ _ es) = ByteList l1 u1 $ intersperse e es
+    intersperse e (ByteList _ _ es) = ByteList l u $ intersperse e es
       where
         n1 = case n <=> 0 of {LT -> 0; EQ -> 1; GT -> 2 * n - 1}; n = sizeOf es
         
-        (l1, u1) = unsafeBounds n1
+        (l, u) = unsafeBounds n1
     
-    listL  (ByteList l u bytes) = listL $ take (size (l, u)) bytes
-    listR  (ByteList l u bytes) = listR $ take (size (l, u)) bytes
+    Z  ++ ys = ys
+    xs ++  Z = xs
+    (ByteList l1 u1 xs) ++ (ByteList l2 u2 ys) = ByteList l u $ xs ++ ys
+      where
+        (l, u) = unsafeBounds $ size (l1, u1) + size (l2, u2)
+    
+    listL  (ByteList l u bytes) = listL $ size (l, u) `take` bytes
+    listR  (ByteList l u bytes) = listR $ size (l, u) `take` bytes
+    
+    partitions ps es = fromList <$> partitions ps (listL es)
 
 instance (Index i, Unboxed e) => Split (ByteList i e) e
   where
@@ -125,14 +161,18 @@ instance (Index i, Unboxed e) => Split (ByteList i e) e
         | n >= size (l, u) = list
         |       True       = ByteList l u' $ take n es
       where
-        u' = prev (l, u) u
+        u' = index (l, u) $ n - 1
     
     drop n list@(ByteList l u es)
         | n <= 0 = list
         | n >= size (l, u) = Z
         | True = ByteList l' u $ drop n es
       where
-        l' = next (l, u) l
+        l' = index (l, u) n
+    
+    isPrefixOf xs ys = listL xs `isPrefixOf` listL ys
+    isInfixOf  xs ys = listL xs `isInfixOf`  listL ys
+    isSuffixOf xs ys = listL xs `isSuffixOf` listL ys
 
 instance (Index i, Unboxed e) => Bordered (ByteList i e) i e
   where
@@ -171,5 +211,10 @@ instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
 instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (ByteList i e) where arbitrary = fromList <$> arbitrary
 
 instance (Index i) => Default (ByteList i e) where def = case unsafeBounds 0 of (l, u) -> ByteList l u def
+
+--------------------------------------------------------------------------------
+
+pfail     :: String -> a
+pfail msg =  throw . PatternMatchFail $ "in SDP.ByteList." ++ msg
 
 

@@ -50,5 +50,5 @@ instance Sort [a] a
   where
     sortBy     f es = L.sortBy f es
     
-    mathsortBy f es = L.sortBy f $ L.nubBy (\ x y -> case f x y of EQ -> True; _ -> False) es
+    mathsortBy f es = L.sortBy f $ L.nubBy (\ x y -> f x y == EQ) es
 

@@ -177,22 +177,22 @@ instance Applicative BinTree
 instance Foldable BinTree
   where
     fold Z = mempty
-    fold (BinNode l e _ _ r) = (fold l) <> e <> (fold r)
+    fold (BinNode l e _ _ r) = fold l <> e <> fold r
     
     foldMap _    Z = mempty
-    foldMap f    (BinNode l e _ _ r) = (foldMap f l) <> f e <> (foldMap f r)
+    foldMap f    (BinNode l e _ _ r) = foldMap f l <> f e <> foldMap f r
     
     foldr _ base Z = base
     foldr f base (BinNode l e _ _ r) = foldr f (f e $ foldr f base r) l
     
     foldl _ base Z = base
-    foldl f base (BinNode l e _ _ r) = foldl f (f (foldl f base l) e) r
+    foldl f base (BinNode l e _ _ r) = foldl f (foldl f base l `f` e) r
     
     {-# INLINE length #-}
-    length es = case es of {BinEmpty -> 0; BinNode _ _ n _ _ -> n}
+    length es = case es of {BinNode _ _ n _ _ -> max 0 n; _ -> 0}
     
     {-# INLINE null #-}
-    null   es = case es of {BinEmpty -> True; _ -> False}
+    null   es = case es of {BinNode _ _ n h _ -> n < 1 || h < 0; _ -> True}
 
 -- instance Scan BinTree
 
@@ -214,29 +214,16 @@ instance Linear (BinTree e) e
     {-# INLINE single #-}
     single x = BinNode Z x 1 1 Z
     
-    toHead x xs = balance $ add x xs
-      where
-        add e Z = single e
-        add e (BinNode l e' n _ r) = let l' = add e l in BinNode l' e' (n + 1) (height' l' r) r
-    
-    toLast xs x = balance $ add x xs
-      where
-        add e Z = single e
-        add e (BinNode l e' n _ r) = let r' = add e r in BinNode l e' (n + 1) (height' l r') r'
-    
     uncons Z = pfailEx "(:>)"
     uncons (BinNode Z e _ _ r) = (e, r)
     uncons (BinNode l e n _ r) = (head', BinNode l' e (n - 1) (height' l' r) r)
       where
         (head', l') = uncons l
     
-    unsnoc Z = pfailEx "(:<)"
-    unsnoc (BinNode l e _ _ Z) = (l, e)
-    unsnoc (BinNode l e n _ r) = (BinNode l e (n - 1) (height' l r') r', last')
+    toHead x xs = balance $ add x xs
       where
-        (r', last') = unsnoc r
-    
-    replicate n x = fromList $ replicate n x
+        add e Z = single e
+        add e (BinNode l e' n _ r) = let l' = add e l in BinNode l' e' (n + 1) (height' l' r) r
     
     {-# INLINE head #-}
     head Z = pfailEx "(:>)"
@@ -246,6 +233,17 @@ instance Linear (BinTree e) e
     last Z = pfailEx "(:<)"
     last (BinNode _ e _ _ r) = case r of {Z -> e; _ -> last r}
     
+    unsnoc Z = pfailEx "(:<)"
+    unsnoc (BinNode l e _ _ Z) = (l, e)
+    unsnoc (BinNode l e n _ r) = (BinNode l e (n - 1) (height' l r') r', last')
+      where
+        (r', last') = unsnoc r
+    
+    toLast xs x = balance $ add x xs
+      where
+        add e Z = single e
+        add e (BinNode l e' n _ r) = let r' = add e r in BinNode l e' (n + 1) (height' l r') r'
+    
     {-# INLINE tail #-}
     tail Z = pfailEx "(:>)"
     tail (BinNode l e n _ r) = let l' = tail l in case l of {Z -> r; _ -> BinNode l' e (n - 1) (height' l' r) r}
@@ -253,6 +251,8 @@ instance Linear (BinTree e) e
     {-# INLINE init #-}
     init Z = pfailEx "(:<)"
     init (BinNode l e n _ r) = let r' = init r in case r of {Z -> l; _ -> BinNode l e (n - 1) (height' l r') r'}
+    
+    replicate n x = fromList $ replicate n x
     
     reverse Z = Z
     reverse (BinNode l e n h r) = BinNode (reverse r) e n h (reverse l)
@@ -267,6 +267,20 @@ instance Split (BinTree e) e
   where
     take n es = fromList . take n $ toList es
     drop n es = fromList . drop n $ toList es
+    
+    prefix _ Z = 0
+    prefix p (BinNode l e _ _ r) = p e && pl == sl ? sl + pr + 1 $ prefix p l
+      where
+        pl = prefix p l
+        pr = prefix p r
+        sl = length l
+    
+    suffix _ Z = 0
+    suffix p (BinNode l e _ _ r) = p e && pr == sr ? pl + sr + 1 $ suffix p r
+      where
+        pl = suffix p l
+        pr = suffix p r
+        sr = length r
 
 instance Bordered (BinTree e) Int e
   where

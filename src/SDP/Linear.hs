@@ -170,7 +170,7 @@ class Linear l e | l -> e
     partitions ps' es = partitions' (toList ps') es
       where
         partitions'    []    xs = [xs]
-        partitions' (p : ps) xs = case partition p xs of (y, ys) -> y : partitions' ps ys
+        partitions' (p : ps) xs = let (y, ys) = partition p xs in y : partitions' ps ys
     
     {- Special functions -}
     
@@ -266,7 +266,7 @@ class (Linear s e) => Split s e | s -> e
     splits ints es =  splits' (toList ints) es
       where
         splits'    []    xs = [xs]
-        splits' (i : is) xs = case split i xs of (y, ys) -> y : splits is ys
+        splits' (i : is) xs = let (y, ys) = split i xs in y : splits is ys
     
     {- |
       parts is generalization of split, that breaks a sublines into sublines
@@ -276,7 +276,7 @@ class (Linear s e) => Split s e | s -> e
     parts ints es  =  parts' 0 (toList ints) es
       where
         parts' _ [] xs = [xs]
-        parts' c (i : is) xs = case split (i - c) xs of (y, ys) -> y : parts' i is ys
+        parts' c (i : is) xs = let (y, ys) = split (i - c) xs in y : parts' i is ys
     
     {- Subsequence checkers. -}
     

@@ -91,7 +91,7 @@ instance (Index i, Read i, Unboxed e, Read e) => Read (Bytes i e)
 instance (Unboxed e, Index i) => Linear (Bytes i e) e
   where
     {-# INLINE isNull #-}
-    isNull es = sizeOf es == 0
+    isNull (Bytes l u n _) = isEmpty (l, u) || n < 1
     
     {-# INLINE lzero #-}
     lzero = def

@@ -189,10 +189,10 @@ instance (Index i) => Foldable (Array i)
     toList arr@(Array _ _ n _) = [ arr !# i | i <- [ 0 .. n - 1 ] ]
     
     {-# INLINE null #-}
-    null       (Array _ _ n _) = n < 1
+    null       (Array l u n _) = isEmpty (l, u) || n < 1
     
     {-# INLINE length #-}
-    length     (Array _ _ n _) = n
+    length     (Array _ _ n _) = max 0 n
 
 instance (Index i) => Scan (Array i)
   where

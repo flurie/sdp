@@ -116,7 +116,7 @@ instance Foldable Unlist
       where
         go b i@(I# i#) = -1 == i ? b $ f (go b $ i - 1) (arr# !^ i#)
     
-    length es = case es of {Unlist c _ arrs -> max 0 c + length arrs; _ -> 0}
+    length es = case es of {Unlist n _ arrs -> max 0 n + length arrs; _ -> 0}
     
     toList UNEmpty = []
     toList (Unlist c arr# arrs) = [ arr# !^ i# | (I# i#) <- [0 .. c - 1] ] ++ toList arrs
@@ -196,8 +196,8 @@ instance Linear (Unlist e) e
     {-# INLINE replicate #-}
     replicate n e = copy count
       where
-        chunk = runST $ ST $ \ s1# -> case newArray# l# e s1# of (# s2#, marr# #) -> done lim Z marr# s2#
-        rest  = runST $ ST $ \ s1# -> case newArray# r# e s1# of (# s2#, marr# #) -> done restSize Z marr# s2#
+        chunk  = runST $ ST $ \ s1# -> case newArray# l# e s1# of (# s2#, marr# #) -> done lim Z marr# s2#
+        rest   = runST $ ST $ \ s1# -> case newArray# r# e s1# of (# s2#, marr# #) -> done restSize Z marr# s2#
         copy c = case c <=> 0 of {LT -> Z; EQ -> rest; GT -> chunk ++ copy (c - 1)}
         
         !(count, restSize@(I# r#)) = n `divMod` lim
@@ -216,7 +216,7 @@ instance Linear (Unlist e) e
             err    = unreachEx "reverse"
     
     {-# INLINe partition #-}
-    partition p es = case partition p (toList es) of (x, y) -> (fromList x, fromList y)
+    partition p es = let (x, y) = partition p $ toList es in (fromList x, fromList y)
     
     {-# INLINE partitions #-}
     partitions ps es = fromList <$> (partitions ps $ toList es)
@@ -229,9 +229,10 @@ instance Split (Unlist e) e
         |   True   = take' n es
       where
         take' _ Z = Z
-        take' n' (Unlist c arr# arrs) = n' > c ? take' (n' - c) arrs $ Unlist c1 arr1# arrs
+        take' n' (Unlist c arr# arrs) = n' >= c ? Unlist c arr# other $ fromListN n' rest
           where
-            !(Unlist c1 arr1# _) = fromList . take n' . toList $ Unlist c arr# Z
+            rest  = [ arr# !^ i# | (I# i#) <- [0 .. n' - 1] ]
+            other = take' (n' - c) arrs
     
     drop n es
         |  n <=  0 = es
@@ -239,28 +240,17 @@ instance Split (Unlist e) e
         |   True   = drop' n es
       where
         drop' _ Z = Z
-        drop' n' (Unlist c arr# arrs) = n' > c ? drop' (n' - c) arrs $ Unlist c1 arr1# arrs
+        drop' n' (Unlist c arr# arrs) = n' >= c ? rest $ other ++ arrs
           where
-            !(Unlist c1 arr1# _) = fromList . drop n' . toList $ Unlist c arr# Z
-    
-    split n es
-        |  n <= 0  = (Z, es)
-        | es <=. n = (es, Z)
-        |   True   = split' n es
-      where
-        split' _  Z = (Z, Z)
-        split' n' (Unlist c arr# arrs) = n' > c ? split' (n' - c) arrs $ (Unlist c1 arr1# arrs, Unlist c2 arr2# arrs)
-          where
-            (take', drop')       = split n' . toList $ Unlist c arr# Z
-            !(Unlist c1 arr1# _) = fromList take'
-            !(Unlist c2 arr2# _) = fromList drop'
+            rest  = drop' (n' - c) arrs
+            other = fromListN (c - n') [ arr# !^ i# | (I# i#) <- [n' .. c - 1] ]
     
     isPrefixOf xs ys = toList xs `isPrefixOf` toList ys
     isInfixOf  xs ys = toList xs `isInfixOf`  toList ys
     isSuffixOf xs ys = toList xs `isSuffixOf` toList ys
     
-    prefix f es = prefix f $ toList es
-    suffix f es = suffix f $ toList es
+    prefix p es = prefix p $ toList es
+    suffix p es = suffix p $ toList es
 
 instance Bordered (Unlist e) Int e
   where

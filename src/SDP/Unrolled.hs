@@ -31,8 +31,8 @@ import Test.QuickCheck
 import GHC.Base ( Int (..) )
 import GHC.Show ( appPrec )
 
-import Text.Read
-import Text.Read.Lex ( expect )
+import Text.Read hiding ( pfail )
+import Text.Read.Lex    ( expect )
 
 import SDP.Indexed
 
@@ -118,22 +118,22 @@ instance (Index i) => Applicative (Unrolled i)
 instance (Index i) => Foldable (Unrolled i)
   where
     {-# INLINE foldr #-}
-    foldr  f base (Unrolled l u es) = foldr  f base $ take (size (l, u)) es
+    foldr  f base (Unrolled l u es) = foldr  f base $ size (l, u) `take` es
     
     {-# INLINE foldl #-}
-    foldl  f base (Unrolled l u es) = foldl  f base $ take (size (l, u)) es
+    foldl  f base (Unrolled l u es) = foldl  f base $ size (l, u) `take` es
     
     {-# INLINE foldr' #-}
-    foldr' f base (Unrolled l u es) = foldr' f base $ take (size (l, u)) es
+    foldr' f base (Unrolled l u es) = foldr' f base $ size (l, u) `take` es
     
     {-# INLINE foldl' #-}
-    foldl' f base (Unrolled l u es) = foldl' f base $ take (size (l, u)) es
+    foldl' f base (Unrolled l u es) = foldl' f base $ size (l, u) `take` es
     
     {-# INLINE foldr1 #-}
-    foldr1 f (Unrolled l u es) = foldr1 f $ take (size (l, u)) es
+    foldr1 f (Unrolled l u es) = foldr1 f $ size (l, u) `take` es
     
     {-# INLINE foldl1 #-}
-    foldl1 f (Unrolled l u es) = foldl1 f $ take (size (l, u)) es
+    foldl1 f (Unrolled l u es) = foldl1 f $ size (l, u) `take` es
     
     {-# INLINE toList #-}
     toList   (Unrolled l u es) = size (l, u) `take` toList es
@@ -158,27 +158,46 @@ instance (Index i) => Traversable (Unrolled i) where traverse f arr = fromList <
 instance (Index i) => Linear (Unrolled i e) e
   where
     {-# INLINE isNull #-}
-    isNull es = null   es
-    
-    {-# INLINE listL #-}
-    listL  es = toList es
-    
-    {-# INLINE fromListN #-}
-    fromListN n es = let (l, u) = unsafeBounds n in Unrolled l u $ fromListN n es
+    isNull es = null es
     
     {-# INLINE uncons #-}
-    uncons Z = throw $ PatternMatchFail "in SDP.Unrolled.(:>)"
+    uncons Z = pfail "(:>)"
     uncons (Unrolled l u es) = (x, es <. 2 ? Z $ Unrolled l1 u xs)
       where
         (x, xs) = uncons es
         l1 = next (l, u) l
     
+    head Z = pfail "(:>)"
+    head (Unrolled _ _ es) = head es
+    
+    tail Z = pfail "(:>)"
+    tail (Unrolled l u es) = Unrolled l' u $ tail es where l' = next (l, u) l
+    
     {-# INLINE unsnoc #-}
-    unsnoc Z = throw $ PatternMatchFail "in SDP.Unrolled.(:<)"
+    unsnoc Z = pfail "(:<)"
     unsnoc (Unrolled l u es) = (es <. 2 ? Z $ Unrolled l u1 xs, x)
       where
         (xs, x) = unsnoc es
         u1 = prev (l, u) u
+    
+    last Z = pfail "(:<)"
+    last (Unrolled _ _ es) = last es
+    
+    init Z = pfail "(:<)"
+    init (Unrolled l u es) = Unrolled l u' $ init es where u' = prev (l, u) u
+    
+    {-# INLINE fromListN #-}
+    fromListN n es = let (l, u) = unsafeBounds n in Unrolled l u $ fromListN n es
+    
+    fromFoldable es = Unrolled l u $ fromFoldable es
+      where
+        (l, u) = unsafeBounds $ length es
+    
+    Z  ++ ys = ys
+    xs ++  Z = xs
+    (Unrolled l1 u1 xs) ++ (Unrolled l2 u2 ys) = Unrolled l u $ xs ++ ys
+      where
+        (l, u) = unsafeBounds $ size (l1, u1) + size (l2, u2)
     
     concat xss = Unrolled l u res
       where
@@ -191,6 +210,11 @@ instance (Index i) => Linear (Unrolled i e) e
       where
         n1 = case n <=> 0 of {LT -> 0; EQ -> 1; GT -> 2 * n - 1}; n = length es
         (l1, u1) = unsafeBounds n1
+    
+    listL  (Unrolled l u bytes) = listL $ size (l, u) `take` bytes
+    listR  (Unrolled l u bytes) = listR $ size (l, u) `take` bytes
+    
+    partitions ps es = fromList <$> partitions ps (toList es)
 
 instance (Index i) => Split (Unrolled i e) e
   where
@@ -221,8 +245,8 @@ instance (Index i) => Split (Unrolled i e) e
         
         (take', drop') = split n es
     
-    prefix f es = prefix f $ toList es
-    suffix f es = suffix f $ toList es
+    prefix p (Unrolled l u es) = prefix p es `min` size (l, u)
+    suffix p (Unrolled l u es) = prefix p es `min` size (l, u)
     
     isPrefixOf xs ys = toList xs `isPrefixOf` toList ys
     isInfixOf  xs ys = toList xs `isInfixOf`  toList ys
@@ -271,5 +295,10 @@ instance (Index i, Arbitrary e) => Arbitrary (Unrolled i e) where arbitrary = fr
 instance (Index i) => Estimate (Unrolled i) where xs <==> ys = length xs <=> length ys
 
 instance (Index i) => Default (Unrolled i e) where def = Z
+
+--------------------------------------------------------------------------------
+
+pfail     :: String -> a
+pfail msg =  throw . PatternMatchFail $ "in SDP.Unrolled." ++ msg
 
 

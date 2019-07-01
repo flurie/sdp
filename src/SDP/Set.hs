@@ -30,6 +30,8 @@ import SDP.SafePrelude
 
 import SDP.Linear
 
+import Data.Maybe ( isJust )
+
 import GHC.Types
 
 --------------------------------------------------------------------------------
@@ -133,9 +135,7 @@ class (Linear s o) => Set s o | s -> o
     isSubsetWith f xs ys  =  any (\ es -> isContainedIn f es ys) xs
     
     default isContainedIn :: (((t o) ~~ s), Foldable t) => (o -> o -> Ordering) -> o -> s -> Bool
-    isContainedIn f e es  = case find finder es of {Nothing -> False; _ -> True}
-      where
-        finder = \ x -> case f e x of {EQ -> True; _ -> False}
+    isContainedIn f e es  = isJust $ find (\ x -> f e x == EQ) es
 
 --------------------------------------------------------------------------------
 

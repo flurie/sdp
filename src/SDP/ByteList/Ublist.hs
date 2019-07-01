@@ -131,13 +131,13 @@ instance (Unboxed e) => Linear (Ublist e) e
     listL es' = list' 0# es'
       where
         list' _ Z = []
-        list' i# es@(Ublist (I# n#) bytes# bytes) = pred' ? res1 $ res2
+        list' i# es@(Ublist (I# n#) bytes# bytes) = isTrue# (i# <# n#) ? begin $ rest
           where
-            res1  = (bytes# !# i#) : list' (i# +# 1#) es; res2 = list' 0# bytes
-            pred' = isTrue# (i# <# n#)
+            begin = (bytes# !# i#) : list' (i# +# 1#) es
+            rest  = list' 0# bytes
     
-    Z ++ ys = ys
-    xs ++ Z = xs
+    Z  ++ ys = ys
+    xs ++  Z = xs
     (Ublist c arr# arrs) ++ ys = Ublist c arr# (arrs ++ ys)
     
     {-# INLINE replicate #-}
@@ -160,9 +160,6 @@ instance (Unboxed e) => Linear (Ublist e) e
             listR' = [ bytes# !# i# | (I# i#) <- [ c - 1, c - 2 .. 0 ] ]
             err    = unreachEx "reverse"
     
-    {-# INLINe partition #-}
-    partition p es = case partition p (listL es) of (x, y) -> (fromList x, fromList y)
-    
     {-# INLINE partitions #-}
     partitions ps es = fromList <$> (partitions ps $ listL es)
 
@@ -174,10 +171,10 @@ instance (Unboxed e) => Split (Ublist e) e
         |      True      = take' n es
       where
         take' _ Z = Z
-        take' n' (Ublist c arr# arrs) = n' > c ? res1 $ res2
+        take' n' (Ublist c arr# arrs) = n' >= c ? Ublist c arr# other $ fromListN n' rest
           where
-            res1 = Ublist c arr# $ take' (n' - c) arrs
-            res2 = fromListN n' [ arr# !# i# | (I# i#) <- [ 0 .. n' - 1 ] ]
+            rest  = [ arr# !# i# | (I# i#) <- [0 .. n' - 1] ]
+            other = take' (n' - c) arrs
     
     drop n es
         |     n <=  0    = es
@@ -185,16 +182,17 @@ instance (Unboxed e) => Split (Ublist e) e
         |      True      = drop' n es
       where
         drop' _ Z = Z
-        drop' n' (Ublist c arr# arrs) = n' > c ? drop' (n' - c) arrs $ res
+        drop' n' (Ublist c arr# arrs) = n' >= c ? rest $ other ++ arrs
           where
-            res = fromListN (c - n') [ arr# !# i# | (I# i#) <- [ n' .. c - 1 ] ]
+            rest  = drop' (n' - c) arrs
+            other = fromListN (c - n') [ arr# !# i# | (I# i#) <- [n' .. c - 1] ]
     
-    isPrefixOf = isPrefixOf `on` listL
-    isInfixOf  = isInfixOf  `on` listL
-    isSuffixOf = isSuffixOf `on` listL
+    isPrefixOf xs ys = listL xs `isPrefixOf` listL ys
+    isInfixOf  xs ys = listL xs `isInfixOf`  listL ys
+    isSuffixOf xs ys = listL xs `isSuffixOf` listL ys
     
-    prefix f es = prefix f $ listL es
-    suffix f es = suffix f $ listL es
+    prefix p es = prefix p $ listL es
+    suffix p es = suffix p $ listL es
 
 instance (Unboxed e) => Bordered (Ublist e) Int e
   where
@@ -314,4 +312,7 @@ toChunk' n@(I# n#) e chunk = runST $ ST $ \ s1# -> case newUnboxed e n# s1# of
 -- | lim is internal constant - maximal size of chunk.
 lim :: Int
 lim =  1024
+
+
+
 
