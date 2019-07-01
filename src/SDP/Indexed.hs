@@ -33,6 +33,8 @@ import SDP.Set
 
 import SDP.Simple
 
+default ()
+
 --------------------------------------------------------------------------------
 
 -- | Class of indexed data structures.

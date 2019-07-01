@@ -29,6 +29,8 @@ import GHC.Ptr  ( nullPtr, nullFunPtr )
 
 #include "MachDeps.h"
 
+default ()
+
 --------------------------------------------------------------------------------
 
 {- |

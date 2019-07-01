@@ -45,6 +45,8 @@ import GHC.ST   ( ST (..), STRep, runST )
 import SDP.Internal.MutableArrays ( STArray (..) )
 import SDP.Simple
 
+default ()
+
 --------------------------------------------------------------------------------
 
 -- | Unlist is internal (abstract) type.

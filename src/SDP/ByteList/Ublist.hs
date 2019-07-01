@@ -46,6 +46,8 @@ import GHC.Show ( appPrec )
 import SDP.Internal.MutableArrays ( STUArray (..) )
 import SDP.Simple
 
+default ()
+
 --------------------------------------------------------------------------------
 
 -- | Ublist is internal data representation.

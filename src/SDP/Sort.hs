@@ -19,6 +19,10 @@ import SDP.SafePrelude
 
 import qualified Data.List as L
 
+default ()
+
+--------------------------------------------------------------------------------
+
 -- | Sort - is class of types that can be sorted.
 class Sort s e | s -> e
   where

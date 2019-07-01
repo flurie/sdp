@@ -35,6 +35,8 @@ import Text.Read.Lex ( expect )
 import SDP.Unrolled.Unlist
 import SDP.Simple
 
+default ()
+
 --------------------------------------------------------------------------------
 
 -- | BinTree is just binary tree implementation.

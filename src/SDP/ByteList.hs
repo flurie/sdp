@@ -40,6 +40,8 @@ import Text.Read.Lex    ( expect )
 import SDP.ByteList.Ublist
 import SDP.Simple
 
+default ()
+
 --------------------------------------------------------------------------------
 
 -- | Bordered strict unboxed unrolled linked list.

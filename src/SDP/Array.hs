@@ -45,13 +45,15 @@ import GHC.ST   ( ST (..), STRep, runST )
 import Text.Read
 import Text.Read.Lex ( expect )
 
-import SDP.Internal.MutableArrays ( STArray (..) )
 import SDP.Indexed
 import SDP.Sort
 import SDP.Scan
 import SDP.Set
 
+import SDP.Internal.MutableArrays ( STArray (..) )
 import SDP.Simple
+
+default ()
 
 --------------------------------------------------------------------------------
 

@@ -65,11 +65,11 @@ class (Linear s o) => Set s o | s -> o
     
     -- | Adding element to set.
     insertWith :: (o -> o -> Ordering) -> o -> s -> s
-    insertWith f e es = intersectionWith f es (single e)
+    insertWith f e es = intersectionWith f es $ single e
     
     -- | Deleting element from set.
     deleteWith :: (o -> o -> Ordering) -> o -> s -> s
-    deleteWith f e es = differenceWith   f es (single e)
+    deleteWith f e es = differenceWith   f es $ single e
     
     {- Basic operations on sets. -}
     
@@ -90,19 +90,19 @@ class (Linear s o) => Set s o | s -> o
     
     -- | Generalization of intersection on Foldable.
     intersectionsWith   :: (Foldable f) => (o -> o -> Ordering) -> f s -> s
-    intersectionsWith f =  foldl (intersectionWith f) Z
+    intersectionsWith f =  intersectionWith f `foldl` Z
     
     -- | Generalization of difference on Foldable.
     differencesWith     :: (Foldable f) => (o -> o -> Ordering) -> f s -> s
-    differencesWith   f =  foldl (differenceWith f) Z
+    differencesWith   f =  differenceWith f `foldl` Z
     
     -- | Generalization of union on Foldable.
     unionsWith          :: (Foldable f) => (o -> o -> Ordering) -> f s -> s
-    unionsWith        f =  foldl (unionWith f) Z
+    unionsWith        f =  unionWith f `foldl` Z
     
     -- | Generalization of symdiff on Foldable.
     symdiffsWith        :: (Foldable f) => (o -> o -> Ordering) -> f s -> s
-    symdiffsWith      f =  foldl (symdiffWith f) Z
+    symdiffsWith      f =  symdiffWith f `foldl` Z
     
     {- Сomparison operations -}
     
@@ -128,13 +128,13 @@ class (Linear s o) => Set s o | s -> o
     default subsets :: (Ord s, Ord o) => s -> [s]
     subsets         =  set . subsequences . set
     
-    default setWith :: (((t o) ~~ s), Foldable t) => (o -> o -> Ordering) -> s -> s
+    default setWith :: (t o ~~ s, Foldable t) => (o -> o -> Ordering) -> s -> s
     setWith f es    =  foldl (flip $ insertWith f) Z es
     
-    default isSubsetWith  :: (((t o) ~~ s), Foldable t) => (o -> o -> Ordering) -> s -> s -> Bool
-    isSubsetWith f xs ys  =  any (\ es -> isContainedIn f es ys) xs
+    default isSubsetWith  :: (t o ~~ s, Foldable t) => (o -> o -> Ordering) -> s -> s -> Bool
+    isSubsetWith f xs ys  =  any (\ e -> isContainedIn f e ys) xs
     
-    default isContainedIn :: (((t o) ~~ s), Foldable t) => (o -> o -> Ordering) -> o -> s -> Bool
+    default isContainedIn :: (t o ~~ s, Foldable t) => (o -> o -> Ordering) -> o -> s -> Bool
     isContainedIn f e es  = isJust $ find (\ x -> f e x == EQ) es
 
 --------------------------------------------------------------------------------

@@ -32,6 +32,8 @@ import Data.Bool
 import Data.Ord 
 import Data.Eq
 
+default ()
+
 -- conditional toMaybe
 (?:)  :: (a -> Bool) -> (a -> b) -> a -> Maybe b
 (?:) predicate f = \ a -> if predicate a then Nothing else Just (f a)

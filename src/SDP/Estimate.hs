@@ -30,6 +30,8 @@ import Prelude
 
 import Data.Functor.Classes
 
+default ()
+
 --------------------------------------------------------------------------------
 
 -- | "spaceship operator" - infix version of compare.
