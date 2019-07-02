@@ -29,7 +29,10 @@ class Sort s e | s -> e
     -- | sortBy function is common sorting algorithm.
     sortBy :: (e -> e -> Ordering) -> s -> s
     
-    -- | mathsortBy function is sort that discards duplicate elements.
+    {- |
+      mathsortBy is a sortBy modification that counts duplicate elements, sorts
+      a set of vectors and merges them.
+    -}
     mathsortBy :: (e -> e -> Ordering) -> s -> s
 
 -- | sort is just synonym for sortBy compare
@@ -53,6 +56,10 @@ mathsortOn f es = mathsortBy (\ x y -> f x `compare` f y) es
 instance Sort [a] a
   where
     sortBy     f es = L.sortBy f es
-    
-    mathsortBy f es = L.sortBy f $ L.nubBy (\ x y -> f x y == EQ) es
+    mathsortBy f es = L.concat sorted
+      where
+        sorted = sortBy (\ x y -> L.head x `f` L.head y) $ split' es
+        
+        split' [] = []
+        split' xs@(x : _) = let (y, ys) = L.partition (\ e -> x `f` e == EQ) xs in y : split' ys
 

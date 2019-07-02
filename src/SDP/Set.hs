@@ -104,7 +104,7 @@ class (Linear s o) => Set s o | s -> o
     symdiffsWith        :: (Foldable f) => (o -> o -> Ordering) -> f s -> s
     symdiffsWith      f =  symdiffWith f `foldl` Z
     
-    {- Сomparison operations -}
+    {- Сomparsion operations. -}
     
     -- | Compares sets on intersection.
     isIntersectsWith         :: (o -> o -> Ordering) -> s -> s -> Bool
@@ -126,7 +126,7 @@ class (Linear s o) => Set s o | s -> o
     {- Default definitions. -}
     
     default subsets :: (Ord s, Ord o) => s -> [s]
-    subsets         =  set . subsequences . set
+    subsets es      =  set . subsequences $ set es
     
     default setWith :: (t o ~~ s, Foldable t) => (o -> o -> Ordering) -> s -> s
     setWith f es    =  foldl (flip $ insertWith f) Z es

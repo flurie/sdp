@@ -322,6 +322,54 @@ instance Indexed (BinTree e) Int e
 
 --------------------------------------------------------------------------------
 
+instance Set (BinTree e) e
+  where
+    intersectionWith f xs ys = fromList $ intersectionWith f (toList xs) (toList ys)
+    
+    unionWith f xs ys = fromList $ unionWith f (toList xs) (toList ys)
+    
+    differenceWith f xs ys = fromList $ differenceWith f (toList xs) (toList ys)
+    
+    insertWith f e es' = balance $ insert' e es'
+      where
+        insert' e0 Z = single e0
+        insert' e0 es@(BinNode l e1 _ _ r) = balance $ case e0 `f` e1 of
+          LT -> BinNode l' e1 s1 h1 r
+          EQ -> es
+          GT -> BinNode l  e1 s2 h2 r'
+          where
+            l' = insert' e0 l
+            r' = insert' e0 r
+            
+            s1 = length' l' r; h1 = height' l' r
+            s2 = length' r' l; h2 = height' r' l
+    
+    deleteWith f e es' = balance $ delete' e es'
+      where
+        delete' _ Z = Z
+        delete' e0 (BinNode l e1 _ _ r) = case e0 `f` e1 of
+            LT -> deleteL
+            EQ -> height l >= height r ? replaceL $ replaceR
+            GT -> deleteR
+          where
+            -- delete elem from left  branch
+            deleteL = let l' = deleteWith f e0 l in BinNode l' e0 (length' l' r) (height' l' r) r
+            -- delete elem from right branch
+            deleteR = let r' = deleteWith f e0 r in BinNode l  e0 (length' r' l) (height' r' l) r'
+            
+            -- lift adjacent elem from left branch
+            replaceL = let (l' :< e2) = l in BinNode l' e2 (length' l' r) (height' l' r) r
+            -- lift adjecent elem from right branch
+            replaceR = let (e2 :> r') = r in BinNode l  e2 (length' r' l) (height' r' l) r'
+    
+    isContainedIn _ _ Z = False
+    isContainedIn f e0 (BinNode l e1 _ _ r) = case e0 `f` e1 of
+      LT -> isContainedIn f e0 l
+      EQ -> True
+      GT -> isContainedIn f e0 r
+
+--------------------------------------------------------------------------------
+
 instance (Arbitrary e) => Arbitrary (BinTree e) where arbitrary = fromList <$> arbitrary
 
 instance Default (BinTree e) where def = Z
@@ -397,5 +445,6 @@ length' l r = length l + length r + 1
 
 pfailEx     :: String -> a
 pfailEx msg =  throw . PatternMatchFail $ "in SDP.Tree.BinTree." ++ msg
+
 
 
