@@ -48,6 +48,8 @@ data BinTree a = BinEmpty
                 {-# UNPACK #-} !Int {-    height    -}
                 !(BinTree a)        {- right branch -}
 
+{-# COMPLETE Z, BinNode #-}
+
 --------------------------------------------------------------------------------
 
 {- Eq and Eq1 instances. -}
@@ -307,6 +309,7 @@ instance Indexed (BinTree e) Int e
       where
         toUnlist = fromFoldable :: BinTree e -> Unlist e
     
+    Z ! _ = throw $ EmptyRange "in SDP.BinTree"
     es@(BinNode _ _ s _ _) ! n
         | Z <- es = throw $ EmptyRange     msg
         | n  <  0 = throw $ IndexUnderflow msg
@@ -316,6 +319,7 @@ instance Indexed (BinTree e) Int e
         msg = "in SDP.BinTree"
     
     (BinNode l e _ _ r) .! n = let s = length l in case n <=> s of {LT -> l .! n; EQ -> e; GT -> r .! (n - s - 1)}
+    _ .! _ = error "wrong using of (.!) from SDP.Tree.BinTree"
     
     p .$ es = p .$ toList es
     p *$ es = p *$ toList es
@@ -324,6 +328,8 @@ instance Indexed (BinTree e) Int e
 
 instance Set (BinTree e) e
   where
+    setWith f es = fromList . setWith f $ toList es
+    
     intersectionWith f xs ys = fromList $ intersectionWith f (toList xs) (toList ys)
     
     unionWith f xs ys = fromList $ unionWith f (toList xs) (toList ys)
@@ -349,20 +355,22 @@ instance Set (BinTree e) e
         delete' _ Z = Z
         delete' e0 (BinNode l e1 _ _ r) = case e0 `f` e1 of
             LT -> deleteL
-            EQ -> height l >= height r ? replaceL $ replaceR
+            EQ | height l < height r -> replaceR
+               |       null  l       -> r
+               |         True        -> replaceL
             GT -> deleteR
           where
             -- delete elem from left  branch
-            deleteL = let l' = deleteWith f e0 l in BinNode l' e0 (length' l' r) (height' l' r) r
+            deleteL = let l' = deleteWith f e0 l in BinNode l' e1 (length' l' r) (height' l' r) r
             -- delete elem from right branch
-            deleteR = let r' = deleteWith f e0 r in BinNode l  e0 (length' r' l) (height' r' l) r'
+            deleteR = let r' = deleteWith f e0 r in BinNode l  e1 (length' r' l) (height' r' l) r'
             
             -- lift adjacent elem from left branch
             replaceL = let (l' :< e2) = l in BinNode l' e2 (length' l' r) (height' l' r) r
-            -- lift adjecent elem from right branch
+            -- lift adjacent elem from right branch
             replaceR = let (e2 :> r') = r in BinNode l  e2 (length' r' l) (height' r' l) r'
     
-    isContainedIn _ _ Z = False
+    isContainedIn _ _           Z           = False
     isContainedIn f e0 (BinNode l e1 _ _ r) = case e0 `f` e1 of
       LT -> isContainedIn f e0 l
       EQ -> True
@@ -393,8 +401,13 @@ balance (BinNode l e n _ r)
     r'  = balance r
 
 rotateLeft  :: BinTree e -> BinTree e
-rotateLeft  (BinNode l a _ _ (BinNode (BinNode m c _ _ n) b _ _ r)) = BinNode (BinNode l a sa ha m) c sc hc (BinNode n b sb hb r)
+rotateLeft  (BinNode l a _ _ (BinNode (BinNode m c _ _ n) b _ _ r)) = acb
   where
+    acb = BinNode lam c sc hc nbr
+    
+    lam = BinNode l a sa ha m
+    nbr = BinNode n b sb hb r
+    
     sa = length l + length m + 1
     sb = length n + length r + 1
     sc = sa + sb + 1
@@ -402,6 +415,7 @@ rotateLeft  (BinNode l a _ _ (BinNode (BinNode m c _ _ n) b _ _ r)) = BinNode (B
     ha = height' l m
     hb = height' n r
     hc = ha + hb + 1
+rotateLeft _ = throw $ UnreachableException "in SDP.Tree.BinTree.rotateLeft"
 
 rotateRight :: BinTree e -> BinTree e
 rotateRight (BinNode (BinNode l b _ _ c') a _ _ r) = height c' > height l ? big $ small
@@ -417,6 +431,7 @@ rotateRight (BinNode (BinNode l b _ _ c') a _ _ r) = height c' > height l ? big 
       where
         sa = length' c' r; sb = length l + sa + 1
         ha = height' c' r; hb = 1 + max (height l) ha
+rotateRight _ = throw $ UnreachableException "in SDP.Tree.BinTree.rotateRight"
 
 {-
 
@@ -445,6 +460,7 @@ length' l r = length l + length r + 1
 
 pfailEx     :: String -> a
 pfailEx msg =  throw . PatternMatchFail $ "in SDP.Tree.BinTree." ++ msg
+
 
 
 

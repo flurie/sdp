@@ -56,7 +56,7 @@ import GHC.Types
 
 class (Linear s o) => Set s o | s -> o
   where
-    {-# MINIMAL intersectionWith, unionWith, differenceWith #-}
+    {-# MINIMAL setWith, intersectionWith, unionWith, differenceWith #-}
     
     {- Creation functions. -}
     
@@ -88,19 +88,19 @@ class (Linear s o) => Set s o | s -> o
     
     {- Generalization of basic set operations on foldable. -}
     
-    -- | Generalization of intersection on Foldable.
+    -- | Fold by intersectionWith.
     intersectionsWith   :: (Foldable f) => (o -> o -> Ordering) -> f s -> s
     intersectionsWith f =  intersectionWith f `foldl` Z
     
-    -- | Generalization of difference on Foldable.
+    -- | Fold by differenceWith.
     differencesWith     :: (Foldable f) => (o -> o -> Ordering) -> f s -> s
     differencesWith   f =  differenceWith f `foldl` Z
     
-    -- | Generalization of union on Foldable.
+    -- | Fold by unionWith.
     unionsWith          :: (Foldable f) => (o -> o -> Ordering) -> f s -> s
     unionsWith        f =  unionWith f `foldl` Z
     
-    -- | Generalization of symdiff on Foldable.
+    -- | Fold by symdiffWith.
     symdiffsWith        :: (Foldable f) => (o -> o -> Ordering) -> f s -> s
     symdiffsWith      f =  symdiffWith f `foldl` Z
     
@@ -127,9 +127,6 @@ class (Linear s o) => Set s o | s -> o
     
     default subsets :: (Ord s, Ord o) => s -> [s]
     subsets es      =  set . subsequences $ set es
-    
-    default setWith :: (t o ~~ s, Foldable t) => (o -> o -> Ordering) -> s -> s
-    setWith f es    =  foldl (flip $ insertWith f) Z es
     
     default isSubsetWith  :: (t o ~~ s, Foldable t) => (o -> o -> Ordering) -> s -> s -> Bool
     isSubsetWith f xs ys  =  any (\ e -> isContainedIn f e ys) xs
@@ -227,17 +224,16 @@ instance Set [e] e
       It selects ordered sequences of elements and merges them.  For an ordered
       list, it has complexity O(n) and O (n ^ 2) for an reversed.
     -}
+    
     setWith _ [] = []
     setWith f xs = dumbMergeList ordered (setWith f rest)
       where
         (ordered, rest) = splitSeq xs
         
-        splitSeq (e1 : e2 : es) = case f e1 e2 of
-            LT -> (e1 : initseq, others)
-            EQ -> (initseq, others)
-            GT -> ([e1], e2 : es)
-          where
-            (initseq, others) = splitSeq (e2 : es)
+        splitSeq (e1 : e2 : es) = let (initseq, others) = splitSeq (e2 : es) in case f e1 e2 of
+          LT -> (e1 : initseq, others)
+          EQ -> (initseq, others)
+          GT -> ([e1], e2 : es)
         splitSeq es = (es, [])
         
         dumbMergeList    []       bs    = bs

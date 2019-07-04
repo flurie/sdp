@@ -32,7 +32,7 @@ Library
     data-default >= 0.7  && < 0.8,
     QuickCheck   >= 2.12
   
-  ghc-options: -O2 -Wall -Wno-incomplete-patterns
+  ghc-options: -O2 -Wall
   
   exposed-modules:
     

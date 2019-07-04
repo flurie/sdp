@@ -53,6 +53,8 @@ default ()
 -- | Ublist is internal data representation.
 data Ublist e = UBEmpty | Ublist {-# UNPACK #-} !Int (ByteArray#) (Ublist e)
 
+{-# COMPLETE Z, Ublist #-}
+
 --------------------------------------------------------------------------------
 
 {- Eq and Ord instances. -}
@@ -265,6 +267,7 @@ instance (Unboxed e) => Indexed (Ublist e) Int e
     
     -- | Note: Ublist allows reading by negative offset.
     (Ublist n bytes# arrs) .! i@(I# i#) = i < n ? bytes# !# i# $ arrs .! (n - i)
+    Z .! _ = error "wrong using of (.!) from SDP.ByteList.Ublist"
     
     (!) Z _ = throw $ EmptyRange "in SDP.ByteList.Ublist.(!)"
     (!) (Ublist n bytes# arrs) i@(I# i#)

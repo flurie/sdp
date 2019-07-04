@@ -370,6 +370,10 @@ pattern xs :< x <- ((isNull ?: unsnoc) -> Just (xs, x)) where (:<) = toLast
 
 --------------------------------------------------------------------------------
 
+{-# COMPLETE Z,  (:)  #-}
+{-# COMPLETE [], (:>) #-}
+{-# COMPLETE [], (:<) #-}
+
 instance Linear [e] e
   where
     isNull = null

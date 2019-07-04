@@ -45,10 +45,10 @@ type TestSet  s o = o -> s -> s -> Bool
 type TestSet1 s o = o -> s o -> s o -> Bool
 
 -- | basicSetTest checks relations of set and (set . set), (/?\) and (\?/).
-basicSetTest :: (Set s o, Ord s, Ord o) => s -> s -> Bool
-basicSetTest sx sy = and
+basicSetTest :: (Set s o, Ord s, Ord o) => s -> Bool
+basicSetTest sx = and
     [
-      isNull sx == isNull sx' && isNull sy == isNull sy',
+      isNull sx == isNull sx',
       
       set sx' == sx',
       
@@ -56,7 +56,6 @@ basicSetTest sx sy = and
     ]
   where
     sx' = set sx
-    sy' = set sy
 
 -- | insdelSetTest checks rules of insert and delete.
 insdelSetTest :: (Set s o, Eq s, Ord o) => o -> s -> Bool
@@ -88,7 +87,7 @@ diffSetTest :: (Set s o, Ord o) => s -> s -> Bool
 diffSetTest sx sy = and
     [
       (cp `isSubseqOf` sx') && (isNull cp || not (cp `isSubseqOf` sy')) && (cp `isSubseqOf` un),
-      (isNull sd && isNull is || (sd /?\ is)) && (sd `isSubseqOf` un)
+      (isNull sd && isNull is || sd /?\ is) && (sd `isSubseqOf` un)
     ]
   where
     sx' = set sx
@@ -115,7 +114,7 @@ elemSetTest e sx = and
 setTest :: (Ord o, Ord s, Set s o) => o -> s -> s -> Bool
 setTest e sx sy = and
   [
-    basicSetTest sx sy,
+    basicSetTest sx,
     
     insdelSetTest e sx,
     

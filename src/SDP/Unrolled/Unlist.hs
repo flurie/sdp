@@ -52,6 +52,8 @@ default ()
 -- | Unlist is internal (abstract) type.
 data Unlist e = UNEmpty | Unlist {-# UNPACK #-} !Int (Array# e) (Unlist e)
 
+{-# COMPLETE Z, Unlist #-}
+
 --------------------------------------------------------------------------------
 
 {- Eq and Eq1 instances. -}
