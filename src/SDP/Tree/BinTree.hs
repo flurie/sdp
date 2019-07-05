@@ -32,6 +32,8 @@ import GHC.Show ( appPrec )
 import Text.Read
 import Text.Read.Lex ( expect )
 
+import Data.String ( IsString (..) )
+
 import SDP.Unrolled.Unlist
 import SDP.Simple
 
@@ -387,6 +389,8 @@ instance Set (BinTree e) e
       GT -> isContainedIn f e0 r
 
 --------------------------------------------------------------------------------
+
+instance IsString (BinTree Char) where fromString es = fromList es
 
 instance (Arbitrary e) => Arbitrary (BinTree e) where arbitrary = fromList <$> arbitrary
 

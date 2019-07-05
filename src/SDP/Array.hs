@@ -29,6 +29,11 @@ where
 import Prelude ()
 import SDP.SafePrelude
 
+import SDP.Indexed
+import SDP.Sort
+import SDP.Scan
+import SDP.Set
+
 import Test.QuickCheck
 
 import GHC.Base
@@ -45,10 +50,7 @@ import GHC.ST   ( ST (..), STRep, runST )
 import Text.Read
 import Text.Read.Lex ( expect )
 
-import SDP.Indexed
-import SDP.Sort
-import SDP.Scan
-import SDP.Set
+import Data.String ( IsString (..) )
 
 import SDP.Internal.MutableArrays ( STArray (..) )
 import SDP.Simple
@@ -394,6 +396,8 @@ instance (Index i) => Indexed (Array i e) i e
     p *$ es = (\ i -> p $ es ! i) `filter` indices es
 
 --------------------------------------------------------------------------------
+
+instance (Index i) => IsString (Array i Char) where fromString es = fromList es
 
 instance (Index i) => Estimate (Array i) where xs <==> ys = length xs <=> length ys
 

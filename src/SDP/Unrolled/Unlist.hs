@@ -42,6 +42,8 @@ import GHC.Base
   )
 import GHC.ST   ( ST (..), STRep, runST )
 
+import Data.String ( IsString (..) )
+
 import SDP.Internal.MutableArrays ( STArray (..) )
 import SDP.Simple
 
@@ -326,6 +328,8 @@ instance Indexed (Unlist e) Int e
     p *$ es = p *$ toList es
 
 --------------------------------------------------------------------------------
+
+instance IsString (Unlist Char) where fromString es = fromList es
 
 instance Estimate Unlist
   where

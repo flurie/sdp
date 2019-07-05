@@ -43,6 +43,8 @@ import GHC.Base
 import GHC.ST   ( ST (..), STRep, runST )
 import GHC.Show ( appPrec )
 
+import Data.String ( IsString (..) )
+
 import SDP.Internal.MutableArrays ( STUArray (..) )
 import SDP.Simple
 
@@ -290,6 +292,8 @@ instance (Unboxed e) => Indexed (Ublist e) Int e
     p *$ es = p *$ listL es
 
 --------------------------------------------------------------------------------
+
+instance IsString (Ublist Char) where fromString es = fromList es
 
 instance (Unboxed e, Arbitrary e) => Arbitrary (Ublist e) where arbitrary = fromList <$> arbitrary
 

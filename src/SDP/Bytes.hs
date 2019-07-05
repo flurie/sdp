@@ -47,6 +47,8 @@ import GHC.Show ( appPrec )
 import GHC.Int  ( Int (..) )
 import GHC.ST   ( ST(..), STRep, runST )
 
+import Data.String ( IsString (..) )
+
 import SDP.Simple
 
 default ()
@@ -247,6 +249,8 @@ instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
     p *$ es@(Bytes l u _ _) = index (l, u) <$> p *$ listL es
 
 --------------------------------------------------------------------------------
+
+instance (Index i) => IsString (Bytes i Char) where fromString es = fromList es
 
 instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (Bytes i e) where arbitrary = fromList <$> arbitrary
 

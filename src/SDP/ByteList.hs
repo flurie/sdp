@@ -25,17 +25,19 @@ where
 import Prelude ()
 import SDP.SafePrelude
 
-import Test.QuickCheck
-
 import SDP.Indexed
 import SDP.Unboxed
 import SDP.Set
+
+import Test.QuickCheck
 
 import GHC.Base ( Int (..) )
 import GHC.Show ( appPrec )
 
 import Text.Read hiding ( pfail )
 import Text.Read.Lex    ( expect )
+
+import Data.String ( IsString (..) )
 
 import SDP.ByteList.Ublist
 import SDP.Simple
@@ -219,6 +221,8 @@ instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
     p *$ (ByteList l u es)   = index (l, u) <$> p *$ es
 
 --------------------------------------------------------------------------------
+
+instance (Index i) => IsString (ByteList i Char) where fromString es = fromList es
 
 instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (ByteList i e) where arbitrary = fromList <$> arbitrary
 

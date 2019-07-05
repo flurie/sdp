@@ -26,6 +26,10 @@ where
 import Prelude ()
 import SDP.SafePrelude
 
+import SDP.Indexed
+import SDP.Scan
+import SDP.Set
+
 import Test.QuickCheck
 
 import GHC.Base ( Int (..) )
@@ -34,13 +38,9 @@ import GHC.Show ( appPrec )
 import Text.Read hiding ( pfail )
 import Text.Read.Lex    ( expect )
 
-import SDP.Indexed
+import Data.String ( IsString (..) )
 
 import SDP.Unrolled.Unlist
-
-import SDP.Scan
-import SDP.Set
-
 import SDP.Simple
 
 default ()
@@ -298,11 +298,11 @@ instance (Index i) => Indexed (Unrolled i e) i e
 
 --------------------------------------------------------------------------------
 
-instance (Index i, Arbitrary e) => Arbitrary (Unrolled i e) where arbitrary = fromList <$> arbitrary
-
---------------------------------------------------------------------------------
+instance (Index i) => IsString (Unrolled i Char) where fromString es = fromList es
 
 instance (Index i) => Estimate (Unrolled i) where xs <==> ys = length xs <=> length ys
+
+instance (Index i, Arbitrary e) => Arbitrary (Unrolled i e) where arbitrary = fromList <$> arbitrary
 
 --------------------------------------------------------------------------------
 
