@@ -72,6 +72,16 @@ instance Ord1 BinTree
 
 --------------------------------------------------------------------------------
 
+{- Semigroup, Monoid and Default instances. -}
+
+instance Semigroup (BinTree e) where xs <> ys = xs ++ ys
+
+instance Monoid    (BinTree e) where mempty = BinEmpty
+
+instance Default   (BinTree e) where def = BinEmpty
+
+--------------------------------------------------------------------------------
+
 {- Show and Read instances. -}
 
 instance (Show a) => Show (BinTree a)
@@ -380,8 +390,6 @@ instance Set (BinTree e) e
 
 instance (Arbitrary e) => Arbitrary (BinTree e) where arbitrary = fromList <$> arbitrary
 
-instance Default (BinTree e) where def = Z
-
 instance Estimate BinTree where xs <==> ys = length xs <=> length ys
 
 --------------------------------------------------------------------------------
@@ -460,7 +468,6 @@ length' l r = length l + length r + 1
 
 pfailEx     :: String -> a
 pfailEx msg =  throw . PatternMatchFail $ "in SDP.Tree.BinTree." ++ msg
-
 
 
 

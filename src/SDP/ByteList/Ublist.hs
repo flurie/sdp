@@ -74,6 +74,16 @@ instance (Unboxed e, Show e) => Show (Ublist e)
 
 --------------------------------------------------------------------------------
 
+{- Semigroup, Monoid and Default instances. -}
+
+instance (Unboxed e) => Semigroup (Ublist e) where xs <> ys = xs ++ ys
+
+instance (Unboxed e) => Monoid    (Ublist e) where mempty = UBEmpty
+
+instance Default (Ublist e) where def = UBEmpty
+
+--------------------------------------------------------------------------------
+
 {- Linear, Split and Bordered instances. -}
 
 instance (Unboxed e) => Linear (Ublist e) e
@@ -282,8 +292,6 @@ instance (Unboxed e) => Indexed (Ublist e) Int e
 --------------------------------------------------------------------------------
 
 instance (Unboxed e, Arbitrary e) => Arbitrary (Ublist e) where arbitrary = fromList <$> arbitrary
-
-instance Default (Ublist e) where def = UBEmpty
 
 --------------------------------------------------------------------------------
 

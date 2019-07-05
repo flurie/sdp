@@ -94,6 +94,16 @@ instance (Index i, Read i, Read e) => Read (Unrolled i e)
 
 --------------------------------------------------------------------------------
 
+{- Semigroup, Monoid and Default instances. -}
+
+instance (Index i) => Semigroup (Unrolled i e) where xs <> ys = xs ++ ys
+
+instance (Index i) => Monoid    (Unrolled i e) where mempty = Z
+
+instance (Index i) => Default   (Unrolled i e) where def = Z
+
+--------------------------------------------------------------------------------
+
 {- Functor, Zip and Applicative instances -}
 
 instance (Index i) => Functor (Unrolled i) where fmap f (Unrolled l u es) = Unrolled l u (f <$> es)
@@ -293,8 +303,6 @@ instance (Index i, Arbitrary e) => Arbitrary (Unrolled i e) where arbitrary = fr
 --------------------------------------------------------------------------------
 
 instance (Index i) => Estimate (Unrolled i) where xs <==> ys = length xs <=> length ys
-
-instance (Index i) => Default (Unrolled i e) where def = Z
 
 --------------------------------------------------------------------------------
 

@@ -81,6 +81,16 @@ instance (Show e) => Show (Unlist e)
 
 --------------------------------------------------------------------------------
 
+{- Semigroup, Monoid and Default instances. -}
+
+instance Semigroup (Unlist e) where xs <> ys = xs ++ ys
+
+instance Monoid    (Unlist e) where mempty = UNEmpty
+
+instance Default   (Unlist e) where def = UNEmpty
+
+--------------------------------------------------------------------------------
+
 {- Functor instance. -}
 
 instance Functor Unlist

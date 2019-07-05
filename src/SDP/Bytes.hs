@@ -88,6 +88,19 @@ instance (Index i, Read i, Unboxed e, Read e) => Read (Bytes i e)
 
 --------------------------------------------------------------------------------
 
+{- Semigroup, Monoid and Default instances. -}
+
+instance (Index i, Unboxed e) => Semigroup (Bytes i e) where xs <> ys = xs ++ ys
+
+instance (Index i, Unboxed e) => Monoid    (Bytes i e) where mempty = Z
+
+instance (Index i) => Default (Bytes i e)
+  where
+    def = runST $ ST $ \ s1# -> case newByteArray# 0# s1# of
+      (# s2#, marr# #) -> done (unsafeBounds 0) 0 marr# s2#
+
+--------------------------------------------------------------------------------
+
 {- Linear, Split and Bordered instances. -}
 
 instance (Unboxed e, Index i) => Linear (Bytes i e) e
@@ -235,14 +248,9 @@ instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
 
 --------------------------------------------------------------------------------
 
--- instance (Index i, Unboxed e) => Set (Bytes i e) e
-
-instance (Index i) => Default (Bytes i e)
-  where
-    def = runST $ ST $ \ s1# -> case newByteArray# 0# s1# of
-      (# s2#, marr# #) -> done (unsafeBounds 0) 0 marr# s2#
-
 instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (Bytes i e) where arbitrary = fromList <$> arbitrary
+
+-- instance (Index i, Unboxed e) => Set (Bytes i e) e
 
 --------------------------------------------------------------------------------
 

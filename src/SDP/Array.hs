@@ -107,6 +107,16 @@ instance (Index i, Read i, Read e) => Read (Array i e)
 
 --------------------------------------------------------------------------------
 
+{- Semigroup, Monoid and Default instances. -}
+
+instance (Index i) => Semigroup (Array i e) where xs <> ys = xs ++ ys
+
+instance (Index i) => Monoid    (Array i e) where mempty = Z
+
+instance (Index i) => Default   (Array i e) where def = Z
+
+--------------------------------------------------------------------------------
+
 {- Functor, Zip and Applicative instances. -}
 
 instance (Index i) => Functor (Array i)
@@ -388,8 +398,6 @@ instance (Index i) => Indexed (Array i e) i e
 instance (Index i) => Estimate (Array i) where xs <==> ys = length xs <=> length ys
 
 -- instance (Index i) => Set (Array i e) e
-
-instance (Index i) => Default (Array i e) where def = Z
 
 instance (Index i, Arbitrary e) => Arbitrary (Array i e) where arbitrary = fromList <$> arbitrary
 

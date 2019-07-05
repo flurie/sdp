@@ -75,6 +75,16 @@ instance (Index i, Read i, Unboxed e, Read e) => Read (ByteList i e)
 
 --------------------------------------------------------------------------------
 
+{- Semigroup, Monoid and Default instances. -}
+
+instance (Index i, Unboxed e) => Semigroup (ByteList i e) where xs <> ys = xs ++ ys
+
+instance (Index i, Unboxed e) => Monoid    (ByteList i e) where mempty = Z
+
+instance (Index i) => Default (ByteList i e) where def = case unsafeBounds 0 of (l, u) -> ByteList l u def
+
+--------------------------------------------------------------------------------
+
 {- Linear, Split and Bordered instances. -}
 
 instance (Index i, Unboxed e) => Linear (ByteList i e) e
@@ -211,8 +221,6 @@ instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
 --------------------------------------------------------------------------------
 
 instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (ByteList i e) where arbitrary = fromList <$> arbitrary
-
-instance (Index i) => Default (ByteList i e) where def = case unsafeBounds 0 of (l, u) -> ByteList l u def
 
 --------------------------------------------------------------------------------
 
