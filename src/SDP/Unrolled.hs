@@ -1,6 +1,8 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 {-# LANGUAGE Unsafe, RoleAnnotations #-}
 
+{-# LANGUAGE TypeFamilies #-}
+
 {- |
     Module      :  SDP.Unrolled
     Copyright   :  (c) Andrey Mulik 2019
@@ -38,6 +40,7 @@ import GHC.Show ( appPrec )
 import Text.Read hiding ( pfail )
 import Text.Read.Lex    ( expect )
 
+import qualified GHC.Exts as E
 import Data.String ( IsString (..) )
 
 import SDP.Unrolled.Unlist
@@ -297,6 +300,14 @@ instance (Index i) => Indexed (Unrolled i e) i e
     p *$ (Unrolled l u es) = index (l, u) <$> p *$ es
 
 --------------------------------------------------------------------------------
+
+instance (Index i) => E.IsList (Unrolled i e)
+  where
+    type Item (Unrolled i e) = e
+    
+    fromList    es = fromList    es
+    fromListN n es = fromListN n es
+    toList      es = toList      es
 
 instance (Index i) => IsString (Unrolled i Char) where fromString es = fromList es
 

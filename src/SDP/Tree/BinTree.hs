@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses, TypeFamilies, FunctionalDependencies, FlexibleInstances #-}
 
 {- |
     Module      :  SDP.Tree.BinTree
@@ -32,6 +32,7 @@ import GHC.Show ( appPrec )
 import Text.Read
 import Text.Read.Lex ( expect )
 
+import qualified GHC.Exts as E
 import Data.String ( IsString (..) )
 
 import SDP.Unrolled.Unlist
@@ -389,6 +390,13 @@ instance Set (BinTree e) e
       GT -> isContainedIn f e0 r
 
 --------------------------------------------------------------------------------
+
+instance E.IsList (BinTree e)
+  where
+    type Item (BinTree e) = e
+    
+    fromList es = fromList es
+    toList   es = toList   es
 
 instance IsString (BinTree Char) where fromString es = fromList es
 

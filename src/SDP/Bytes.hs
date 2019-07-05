@@ -1,6 +1,8 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 {-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, RoleAnnotations #-}
 
+{-# LANGUAGE TypeFamilies #-}
+
 {- |
     Module      :  SDP.Bytes
     Copyright   :  (c) Andrey Mulik 2019
@@ -47,6 +49,7 @@ import GHC.Show ( appPrec )
 import GHC.Int  ( Int (..) )
 import GHC.ST   ( ST(..), STRep, runST )
 
+import qualified GHC.Exts as E
 import Data.String ( IsString (..) )
 
 import SDP.Simple
@@ -249,6 +252,14 @@ instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
     p *$ es@(Bytes l u _ _) = index (l, u) <$> p *$ listL es
 
 --------------------------------------------------------------------------------
+
+instance (Index i, Unboxed e) => E.IsList (Bytes i e)
+  where
+    type Item (Bytes i e) = e
+    
+    fromList    es = fromList    es
+    fromListN n es = fromListN n es
+    toList      es = listL       es
 
 instance (Index i) => IsString (Bytes i Char) where fromString es = fromList es
 

@@ -1,6 +1,8 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 {-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, RoleAnnotations #-}
 
+{-# LANGUAGE TypeFamilies #-}
+
 {- |
     Module      :  SDP.Unrolled
     Copyright   :  (c) Andrey Mulik 2019
@@ -37,6 +39,7 @@ import GHC.Show ( appPrec )
 import Text.Read hiding ( pfail )
 import Text.Read.Lex    ( expect )
 
+import qualified GHC.Exts as E
 import Data.String ( IsString (..) )
 
 import SDP.ByteList.Ublist
@@ -221,6 +224,14 @@ instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
     p *$ (ByteList l u es)   = index (l, u) <$> p *$ es
 
 --------------------------------------------------------------------------------
+
+instance (Index i, Unboxed e) => E.IsList (ByteList i e)
+  where
+    type Item (ByteList i e) = e
+    
+    fromList    es = fromList    es
+    fromListN n es = fromListN n es
+    toList      es = listL       es
 
 instance (Index i) => IsString (ByteList i Char) where fromString es = fromList es
 

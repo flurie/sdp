@@ -1,6 +1,8 @@
 {-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, RoleAnnotations #-}
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 
+{-# LANGUAGE TypeFamilies #-}
+
 {- |
     Module      :  SDP.Array
     Copyright   :  (c) Andrey Mulik 2019
@@ -50,9 +52,9 @@ import GHC.ST   ( ST (..), STRep, runST )
 import Text.Read
 import Text.Read.Lex ( expect )
 
+import qualified GHC.Exts as E
 import Data.String ( IsString (..) )
 
-import SDP.Internal.MutableArrays ( STArray (..) )
 import SDP.Simple
 
 default ()
@@ -370,25 +372,23 @@ instance (Index i) => Bordered (Array i e) i e
 instance (Index i) => Indexed (Array i e) i e
   where
     assoc' bnds defvalue ascs = runST $ ST $ \ s1# -> case newArray# n# defvalue s1# of
-        (# s2#, marr# #) -> writes marr# s2#
+        (# s2#, marr# #) -> foldr (fill marr#) (done bnds n marr#) ies s2#
       where
-        writes marr# = foldr (fill marr#) (done bnds n marr#) [ (offset bnds i, e) | (i, e) <- ascs ]
-        !n@(I# n#)   = size bnds
+        ies = [ (offset bnds i, e) | (i, e) <- ascs ]
+        !n@(I# n#) = size bnds
     
     Z // ascs = null ascs ? Z $ assoc (l, u) ascs
       where
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
     
-    arr@(Array l u n@(I# n#) _) // ascs = runST $ thaw >>= writes
+    arr@(Array l u n@(I# n#) _) // ascs = runST $ ST $ \ s1# -> case newArray# n# err s1# of
+      (# s2#, marr# #) ->
+        let copy i@(I# i#) s# = if i == n then s# else copy (i + 1) (writeArray# marr# i# (arr !# i) s#)
+        in  case copy 0 s2# of s3# -> foldr (fill marr#) (done (l, u) n marr#) ies s3#
       where
-        writes (STArray l' u' n' marr#) = ST $ foldr (fill marr#) (done (l', u') n' marr#) ies
-          where ies = [ (offset (l', u') i, e) | (i, e) <- ascs ]
-        
-        thaw = ST $ \ s1# -> case newArray# n# (undEx "(//)") s1# of
-          (# s2#, marr# #) ->
-            let copy i@(I# i#) s3# = if i == n then s3# else copy (i + 1) (writeArray# marr# i# (arr !# i) s3#)
-            in case copy 0 s2# of s3# -> (# s3#, STArray l u n marr# #)
+        ies = [ (offset (l, u) i, e) | (i, e) <- ascs ]
+        err = undEx "(//)"
     
     (!) arr@(Array l u _ _) i = arr !# offset (l, u) i
     
@@ -396,6 +396,13 @@ instance (Index i) => Indexed (Array i e) i e
     p *$ es = (\ i -> p $ es ! i) `filter` indices es
 
 --------------------------------------------------------------------------------
+
+instance (Index i) => E.IsList (Array i e)
+  where
+    type Item (Array i e) = e
+    fromList    es = fromList    es
+    fromListN n es = fromListN n es
+    toList      es = toList      es
 
 instance (Index i) => IsString (Array i Char) where fromString es = fromList es
 
