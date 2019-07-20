@@ -70,6 +70,11 @@ version 0.0.1.2:
   Added IsList instances.
 
 version 0.0.2.0:
+  Fixed old bug in SDP.Index.inBounds ("wrong" Ord for default declaration).
+  Added service class IndexEQ for trivial index declarations.
+  Added Index instances for 2- .. 15-dimensional tuples.
+  
   Added BorderedM, LinearM and IndexedM classes.
   Added STArray, STBytes, STUnrolled, STByteList, STUnlist and STUblist.
+
 
