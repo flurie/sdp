@@ -69,3 +69,6 @@ version 0.0.1.2:
   Added IsString instances.
   Added IsList instances.
 
+version 0.0.2.0:
+  Added BorderedM, LinearM and IndexedM classes.
+

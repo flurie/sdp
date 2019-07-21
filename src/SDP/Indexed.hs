@@ -35,15 +35,14 @@ import SDP.Simple
 
 default ()
 
+infixl 9 .!, !, !?
+
 --------------------------------------------------------------------------------
 
 -- | Class of indexed data structures.
-
 class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
   where
     {-# MINIMAL assoc', (//), ((!)|(!?)), (*$) #-}
-    
-    {- Create functions. -}
     
     {- |
       assoc creates new structure from list of associations [(index, element)],
@@ -52,12 +51,10 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
     assoc :: (i, i) -> [(i, e)] -> v
     assoc bnds =  assoc' bnds err
       where
-        err = throw $ IndexOverflow "in SDP.Indexed.assoc (List)"
+        err = throw $ UndefinedValue "in SDP.Indexed.assoc (default)"
     
     -- | assoc' is safe version of assoc.
     assoc' :: (i, i) -> e -> [(i, e)] -> v
-    
-    {- Read functions. -}
     
     {- |
       (.!) is unsafe, but on bit faster version of (!).
@@ -67,10 +64,7 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
     (.!) :: v -> i -> e
     dat .! ix = dat ! ix
     
-    {- |
-      (!) is pretty safe function, that returns elements by index.
-      Throws IndexException.
-    -}
+    -- | (!) is pretty safe function, that returns elements by index. Must throw IndexException.
     {-# INLINE (!) #-}
     (!)  :: v -> i -> e
     (!) dat ix = fromMaybe err $ dat !? ix
@@ -80,16 +74,12 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
     -- | (!?) is completely safe, but so boring function.
     (!?) :: v -> i -> Maybe e
     
-    {- Write and update functions -}
-    
     -- | Writes elements to (immutable) structure.
     (//) :: v -> [(i, e)] -> v
     
     -- | Update function. Uses (!) and may throw IndexException.
     (/>) :: v -> [i] -> (i -> e -> e) -> v
     (/>) es is f = es // [ (i, f i (es ! i)) | i <- is ]
-    
-    {- Search functions. -}
     
     -- | Searches the index of first matching element.
     (.$) :: (e -> Bool) -> v -> Maybe i
@@ -105,15 +95,7 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
     {-# INLINE (!?) #-}
     (!?) dat     = \ i -> (not . indexOf dat) ?: (dat !) $ i
 
--- |  Write one element to structure.
-{-# INLINE write #-}
-write :: (Indexed v i e) => v -> i -> e -> v
-write es i e = es // [(i, e)]
-
--- | Update one element in structure.
-{-# INLINE (>/>) #-}
-(>/>) :: (Indexed v i e) => v -> [i] -> (e -> e) -> v
-(>/>) es is = (es /> is) . const
+--------------------------------------------------------------------------------
 
 instance Indexed [e] Int e
   where
@@ -151,3 +133,14 @@ instance Indexed [e] Int e
     p *$ es = findIndices p es
 
 --------------------------------------------------------------------------------
+
+-- |  Write one element to structure.
+{-# INLINE write #-}
+write :: (Indexed v i e) => v -> i -> e -> v
+write es i e = es // [(i, e)]
+
+-- | Update one element in structure.
+{-# INLINE (>/>) #-}
+(>/>) :: (Indexed v i e) => v -> [i] -> (e -> e) -> v
+(>/>) es is = (es /> is) . const
+

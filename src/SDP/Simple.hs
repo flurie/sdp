@@ -5,7 +5,7 @@
 
 module SDP.Simple
 (
-  (?:), fsts, snds,
+  (?:), (?>), fsts, snds,
   cmpfst, cmpsnd, eqfst, eqsnd,
   
   module Control.Exception.SDP,
@@ -35,12 +35,16 @@ import Data.Eq
 default ()
 
 -- conditional toMaybe
-(?:)  :: (a -> Bool) -> (a -> b) -> a -> Maybe b
-(?:) predicate f = \ a -> if predicate a then Nothing else Just (f a)
+(?:) :: (a -> Bool) -> (a -> b) -> a -> Maybe b
+p ?: f = \ a -> if p a then Nothing else Just (f a)
 -- >>> odd ?: (`div` 2) $ 1
 -- Nothing
 -- >>> odd ?: (`div` 2) $ 2
 -- Just 1
+
+-- monadic conditional toMaybe
+(?>) :: (Monad m) => (a -> m Bool) -> (a -> m b) -> a -> m (Maybe b)
+p ?> f = \ a -> p a >>= \ b -> if b then Just <$> f a else return Nothing
 
 -- gives all first elements
 fsts :: (Functor f) => f (a, b) -> f a
