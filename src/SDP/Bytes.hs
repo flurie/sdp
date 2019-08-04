@@ -9,7 +9,7 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
-    Stability   :  experimental
+    Stability   :  stable
     
     SDP.Bytes provides immutable strict unboxed array type.
     This implementation of UArray no much different from Data.Array.Unboxed (array),
@@ -39,19 +39,15 @@ import SDP.Set
 import Text.Read
 import Text.Read.Lex ( expect )
 
-import GHC.Exts
-  (
-    ByteArray#, MutableByteArray#, newByteArray#, unsafeFreezeByteArray#,
-    
-    isTrue#, (+#), (-#), (==#)
-  )
+import GHC.Exts ( ByteArray#, newByteArray#, unsafeFreezeByteArray# )
 import GHC.Show ( appPrec )
 import GHC.Int  ( Int (..) )
-import GHC.ST   ( ST(..), STRep, runST )
+import GHC.ST   ( runST, ST (..) )
 
 import qualified GHC.Exts as E
 import Data.String ( IsString (..) )
 
+import SDP.Bytes.ST
 import SDP.Simple
 
 default ()
@@ -59,13 +55,13 @@ default ()
 --------------------------------------------------------------------------------
 
 {- |
-  This UArray type definition is no different from the standard Data.Array.Base,
+  This Bytes type definition is no different from the standard Data.Array.Unboxed,
   but I have to redefine it because of the limitation of the Ix class.
 -}
 
 data Bytes i e = Bytes !i !i {-# UNPACK #-} !Int ByteArray#
 
-type role Bytes nominal nominal
+type role Bytes nominal representational
 
 --------------------------------------------------------------------------------
 
@@ -101,8 +97,10 @@ instance (Index i, Unboxed e) => Monoid    (Bytes i e) where mempty = Z
 
 instance (Index i) => Default (Bytes i e)
   where
-    def = runST $ ST $ \ s1# -> case newByteArray# 0# s1# of
-      (# s2#, marr# #) -> done (unsafeBounds 0) 0 marr# s2#
+    def = let (l, u) = unsafeBounds 0 in runST $ ST $
+      \ s1# -> case newByteArray# 0# s1# of
+        (# s2#, marr# #) -> case unsafeFreezeByteArray# marr# s2# of
+          (# s3#, bytes# #) -> (# s3#, Bytes l u 0 bytes# #)
 
 --------------------------------------------------------------------------------
 
@@ -132,19 +130,16 @@ instance (Unboxed e, Index i) => Linear (Bytes i e) e
     init es = take (sizeOf es - 1) es
     
     {-# INLINE single #-}
-    single e = runST $ ST $ \ s1# -> case newUnboxed' e 1# s1# of (# s2#, marr# #) -> done (unsafeBounds 1) 1 marr# s2#
+    single e = let (l, u) = unsafeBounds 1 in runST $ ST $
+      \ s1# -> case newUnboxed' e 1# s1# of
+        (# s2#, marr# #) -> case unsafeFreezeByteArray# marr# s2# of
+          (# s3#, bytes# #) -> (# s3#, Bytes l u 1 bytes# #)
     
-    {-# INLINE fromListN #-}
-    fromListN n es = fromListN' (unreachEx "fromListN")
-      where
-        fromListN' :: (Index i, Unboxed e) => e -> Bytes i e
-        fromListN' e = runST $ ST $ \ s1# -> case newUnboxed e n# s1# of
-          (# s2#, marr# #) ->
-            let go y r = \ i# s3# -> case writeByteArray# marr# i# y s3# of
-                  s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#
-            in done (unsafeBounds n') n' marr# ( if n' == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2# )
-          where
-            !n'@(I# n#) = max 0 $ (es <. n) ? length es $ n
+    {-# INLINE fromList #-}
+    fromList es = fromFoldable es
+    
+    {-# INLINE fromFoldable #-}
+    fromFoldable es = runST $ fromFoldableM es >>= done
     
     {-# INLINE (++) #-}
     Z  ++ ys = ys
@@ -155,10 +150,7 @@ instance (Unboxed e, Index i) => Linear (Bytes i e) e
     reverse es = fromListN (sizeOf es) (listR es)
     
     {-# INLINE replicate #-}
-    replicate n e = runST $ ST $ \ s1# -> case newUnboxed' e n# s1# of
-        (# s2#, marr# #) -> done (unsafeBounds n') n' marr# s2#
-      where
-        !n'@(I# n#) = max 0 n
+    replicate n e = runST $ filled n e >>= done
     
     {-# INLINE listL #-}
     listL (Bytes _ _ n bytes#) = [ bytes# !# i# | (I# i#) <- [0 .. n - 1] ]
@@ -203,48 +195,16 @@ instance (Index i, Unboxed e) => Bordered (Bytes i e) i e
 
 instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
   where
-    assoc bnds ascs = writes (undEx "assoc") bnds $ filter (inRange bnds . fst) ascs
-      where
-        writes :: (Unboxed e, Index i) => e -> (i, i) -> [(i, e)] -> Bytes i e
-        writes err bs ies = runST $ ST $ \ s1# -> case newUnboxed err n# s1# of
-          (# s2#, marr# #) -> foldr (fill marr#) (done bs n marr#) [ (offset bs i, e) | (i, e) <- ies ] s2#
-        
-        !n@(I# n#) = size bnds
+    assoc bnds ascs = runST $ fromAssocs bnds ascs >>= done
     
-    assoc' bnds defvalue ascs = writes defvalue bnds $ filter (inRange bnds . fst) ascs
-      where
-        writes :: (Unboxed e, Index i) => e -> (i, i) -> [(i, e)] -> Bytes i e
-        writes dv bs ies = runST $ ST $ \ s1# -> case newUnboxed' dv n# s1# of
-          (# s2#, marr# #) -> foldr (fill marr#) (done bs n marr#) [ (offset bs i, e) | (i, e) <- ies ] s2#
-        
-        !n@(I# n#) = size bnds
+    assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
     
     Z // ascs = null ascs ? Z $ assoc (l, u) ascs
       where
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
     
-    es'@(Bytes l' u' _ _) // ascs = writecopy' es' err ies'
-      where
-        writecopy' :: (Index i, Unboxed e) => Bytes i e -> e -> [(i, e)] -> Bytes i e
-        writecopy' es@(Bytes l u n@(I# n#) _) err' ies = runST $ ST $ \ s1# -> case newUnboxed err' n# s1# of
-          (# s2#, marr# #) ->
-            -- [begin] copying
-            let gocopy y r = \ i# s3# -> case writeByteArray# marr# i# y s3# of
-                  s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#
-            in case foldr gocopy (\ _ s# -> s#) (listL es) 0# s2# of
-            -- [end] copyng
-              s5# ->
-                -- [begin] writing
-                let gowrite (i, y) r = \ i# s6# -> case writeByteArray# marr# (ix i) y s6# of
-                      s7# -> if isTrue# (i# ==# n# -# 1#) then s7# else r (i# +# 1#) s7#
-                in case foldr gowrite (\ _ s# -> s#) ies 0# s5# of s8# -> done (l, u) n marr# s8#
-                -- [end] writing
-          where
-            ix i = case offset (l, u) i of (I# i#) -> i#
-        
-        ies' = filter (inRange (l', u') . fst) ascs
-        err  = undEx "(//)"
+    arr // ascs = runST $ newLinear (listL arr) >>= (`overwrite` ascs) >>= done
     
     (!) (Bytes l u _ bytes#) i = case offset (l, u) i of (I# i#) -> bytes# !# i#
     
@@ -270,19 +230,11 @@ instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (Bytes i e) where arbitr
 --------------------------------------------------------------------------------
 
 {-# INLINE done #-}
-done :: (Index i) => (i, i) -> Int -> MutableByteArray# s -> STRep s (Bytes i e)
-done (l, u) n marr# = \ s1# -> case unsafeFreezeByteArray# marr# s1# of (# s2#, bytes# #) -> (# s2#, Bytes l u n bytes# #)
+done :: (Index i) => STBytes s i e -> ST s (Bytes i e)
+done (STBytes l u n mbytes#) = ST $ \ s1# -> case unsafeFreezeByteArray# mbytes# s1# of
+  (# s2#, bytes# #) -> (# s2#, Bytes l u n bytes# #)
 
-{-# INLINE fill #-}
-fill :: (Unboxed e) => MutableByteArray# s -> (Int, e) -> STRep s a -> STRep s a
-fill marr# (I# i#, e) nxt = \ s1# -> case writeByteArray# marr# i# e s1# of s2# -> nxt s2#
+pfailEx :: String -> a
+pfailEx msg = throw . PatternMatchFail $ "in SDP.Bytes." ++ msg
 
-unreachEx     :: String -> a
-unreachEx msg =  throw . UnreachableException $ "in SDP.Array." ++ msg
-
-pfailEx       :: String -> a
-pfailEx   msg =  throw . PatternMatchFail $ "in SDP.Bytes." ++ msg
-
-undEx         :: String -> a
-undEx     msg =  throw . UndefinedValue $ "in SDP.Bytes." ++ msg
 

@@ -9,7 +9,7 @@
     Portability :  non-portable (GHC Extensions)
     Stability   :  stable
     
-    SDP.Array provides mutable lazy boxed array type.
+    SDP.Array.ST provides mutable lazy boxed array type.
     This implementation of array no much different from Data.Array.ST (array),
     but incopatible with it.
     The main difference is the Index class instead of Ix.
@@ -23,7 +23,7 @@ module SDP.Array.ST
 )
 where
 
-import Prelude ( (++), filter, reverse )
+import Prelude ( (++), zip, filter, reverse )
 import SDP.SafePrelude
 
 import SDP.IndexedM
@@ -76,11 +76,11 @@ instance (Index i) => BorderedM (ST s) (STArray s i e) i e
     {-# INLINE getSizeOf #-}
     getSizeOf (STArray _ _ n _) = return $ max 0 n
     
-    {-# INLINE getIndexOf #-}
-    getIndexOf (STArray l u _ _) i = return $ inRange (l, u) i
-    
     {-# INLINE getIndices #-}
     getIndices (STArray l u _ _) = return $ range (l, u)
+    
+    {-# INLINE getIndexOf #-}
+    getIndexOf (STArray l u _ _) i = return $ inRange (l, u) i
 
 instance (Index i) => LinearM (ST s) (STArray s i e) e
   where
@@ -99,13 +99,13 @@ instance (Index i) => LinearM (ST s) (STArray s i e) e
         err    = unreachEx "fromFoldableM"
     
     {-# INLINE getRight #-}
-    getRight es@(STArray l u _ _) = sequence [ es >! i | i <- range (l, u) ]
+    getRight es@(STArray l u _ _) = sequence [ es >! i | i <- reverse $ range (l, u) ]
     
     {-# INLINE getLeft #-}
-    getLeft  es@(STArray l u _ _) = sequence [ es >! i | i <- reverse $ range (l, u) ]
+    getLeft  es@(STArray l u _ _) = sequence [ es >! i | i <- range (l, u) ]
     
     {-# INLINE reversed #-}
-    reversed es = overwrite es <$> getAssocs es >> return ()
+    reversed es = liftA2 (\ bnds -> zip $ range bnds) (getBounds es) (getRight es) >>= overwrite es
     
     filled n e = let !n'@(I# n#) = max 0 n in ST $ \ s1# -> case newArray# n# e s1# of
       (# s2#, marr# #) -> done (unsafeBounds n') n' marr# s2#
@@ -134,10 +134,9 @@ instance (Index i) => IndexedM (ST s) (STArray s i e) i e
         msg = "in SDP.Array.ST.(!>)"
     
     {-# INLINE overwrite #-}
-    overwrite (STArray l u n marr#) ascs = ST $
-        \ s1# -> foldr (fill marr#) (done (unsafeBounds n) n marr#) ies s1#
+    overwrite (STArray l u n marr#) ascs = ST $ foldr (fill marr#) (done (l, u) n marr#) ies
       where
-        ies = (\ (i, e) -> (offset (l, u) i, e)) <$> filter (inRange (l, u) . fst) ascs
+        ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
     
     {-# INLINE (!?>) #-}
     es !?> i = getIndexOf es ?> (es >!) $ i

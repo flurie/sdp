@@ -104,7 +104,7 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     getRight es =  reverse <$> getLeft es
     
     -- | In-place reverse of line.
-    reversed :: l -> m ()
+    reversed :: l -> m l
     
     -- | Monadic version of replicate.
     filled   :: Int -> e -> m l

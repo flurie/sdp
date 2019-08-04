@@ -38,10 +38,7 @@ import SDP.Set
 
 import Test.QuickCheck
 
-import GHC.Base
-  (
-    Array#, Int (..), newArray#, unsafeFreezeArray#, writeArray#, indexArray#
-  )
+import GHC.Base ( Array#, Int (..), newArray#, unsafeFreezeArray#, writeArray#, indexArray# )
 import GHC.Show ( appPrec )
 import GHC.ST   ( ST (..), runST )
 
@@ -393,7 +390,7 @@ instance (Index i, Arbitrary e) => Arbitrary (Array i e) where arbitrary = fromL
 (!#) :: Array i e -> Int -> e
 (!#) (Array _ _ _ arr#) (I# i#) = case indexArray# arr# i# of (# e #) -> e
 
-{-# INLINE done' #-}
+{-# INLINE done #-}
 done :: STArray s i e -> ST s (Array i e)
 done (STArray l u n marr#) = ST $ \ s1# -> case unsafeFreezeArray# marr# s1# of
   (# s2#, arr# #) -> (# s2#, Array l u n arr# #)
@@ -403,4 +400,3 @@ pfailEx   msg =  throw . PatternMatchFail $ "in SDP.Array." ++ msg
 
 unreachEx     :: String -> a
 unreachEx msg =  throw . UnreachableException $ "in SDP.Array." ++ msg
-
