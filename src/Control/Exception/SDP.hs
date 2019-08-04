@@ -31,10 +31,10 @@ import Data.Typeable
   to indicate in the documentation.
 -}
 
-data IndexException = UndefinedValue  String
-                    | EmptyRange      String
-                    | IndexUnderflow  String
-                    | IndexOverflow   String
+data IndexException = UndefinedValue String
+                    | EmptyRange     String
+                    | IndexUnderflow String
+                    | IndexOverflow  String
   deriving (Eq, Typeable)
 
 instance Show IndexException
@@ -50,7 +50,7 @@ instance Exception IndexException
 
 {-|
     UnreachableCodeException exception type is used in expressions that should
-    never be evaluated.
+    never be evaluated. Is soft version of assert.
 -}
 
 data UnreachableException = UnreachableException String

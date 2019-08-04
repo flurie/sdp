@@ -1,11 +1,11 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, DefaultSignatures #-}
 
 {- |
     Module      :  SDP.LinearM
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  portable
+    Portability :  non-portable (GHC-extensions)
     Stability   :  stable
   
   LinearM is a module that provides several convenient interfaces for working
@@ -21,7 +21,7 @@ module SDP.LinearM
   )
 where
 
-import Prelude ( take, reverse )
+import Prelude ( zip, take, reverse )
 import SDP.SafePrelude
 
 import SDP.Index
@@ -33,7 +33,7 @@ default ()
 -- | BorderedM is Bordered version for mutable data structures.
 class (Monad m, Index i) => BorderedM m b i e | b -> m, b -> i, b -> e
   where
-    {-# MINIMAL (getBounds|getLower, getUpper), getAssocs #-}
+    {-# MINIMAL (getBounds|getLower, getUpper) #-}
     
     -- | getBounds returns bounds of mutable data structure.
     {-# INLINE getBounds #-}
@@ -67,6 +67,9 @@ class (Monad m, Index i) => BorderedM m b i e | b -> m, b -> i, b -> e
     
     -- | getAssocs returns assocs of mutable data structure.
     getAssocs  :: b -> m [(i, e)]
+    
+    default getAssocs :: (LinearM m b e) => b -> m [(i, e)]
+    getAssocs es = liftA2 zip (getIndices es) (getLeft es)
 
 --------------------------------------------------------------------------------
 
@@ -103,7 +106,7 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     -- | In-place reverse of line.
     reversed :: l -> m ()
     
-    -- | Fills mutable structure by element.
-    filled   :: l -> e -> m ()
+    -- | Monadic version of replicate.
+    filled   :: Int -> e -> m l
 
 --------------------------------------------------------------------------------

@@ -65,6 +65,9 @@ Library
     SDP.Unrolled.Unlist
     SDP.ByteList.Ublist
     
+    SDP.Array.ST
+    SDP.Bytes.ST
+    
     -- some dispensable classes
     
     SDP.Sort

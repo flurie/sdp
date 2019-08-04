@@ -40,14 +40,10 @@ import Test.QuickCheck
 
 import GHC.Base
   (
-    MutableArray#, Array#, Int (..),
-    
-    newArray#, unsafeFreezeArray#, writeArray#, indexArray#,
-    
-    isTrue#, (+#), (-#), (==#)
+    Array#, Int (..), newArray#, unsafeFreezeArray#, writeArray#, indexArray#
   )
 import GHC.Show ( appPrec )
-import GHC.ST   ( ST (..), STRep, runST )
+import GHC.ST   ( ST (..), runST )
 
 import Text.Read
 import Text.Read.Lex ( expect )
@@ -55,6 +51,7 @@ import Text.Read.Lex ( expect )
 import qualified GHC.Exts as E
 import Data.String ( IsString (..) )
 
+import SDP.Array.ST
 import SDP.Simple
 
 default ()
@@ -128,9 +125,9 @@ instance (Index i) => Functor (Array i)
     fmap f arr@(Array l u n@(I# n#) _) = runST $ ST $ \ s1# ->
       case newArray# n# (unreachEx "fmap") s1# of
         (# s2#, marr# #) ->
-          let go i s# = if i == n
-              then done (l, u) n marr# s#
-              else fill marr# (i, f $ arr !# i) (go $ i + 1) s#
+          let go i@(I# i#) s3# = if i == n
+              then case unsafeFreezeArray# marr# s3# of (# s4#, arr# #) -> (# s4#, Array l u n arr# #)
+              else case writeArray# marr# i# (f $ arr !# i) s3# of s5# -> go (i + 1) s5#
           in go 0 s2#
 
 instance (Index i) => Zip (Array i)
@@ -262,8 +259,7 @@ instance (Index i) => Linear (Array i e) e
     isNull es = null es
     
     {-# INLINE lzero #-}
-    lzero = runST $ ST $ \ s1# -> case newArray# 0# (unreachEx "lzero") s1# of
-      (# s2#, marr# #) -> done (unsafeBounds 0) 0 marr# s2#
+    lzero = runST $ filled 0 (unreachEx "lzero") >>= done
     
     {-# INLINE toHead #-}
     toHead e es = fromListN (n + 1) (e : toList es)    where n = length es
@@ -277,7 +273,7 @@ instance (Index i) => Linear (Array i e) e
     tail es = fromListN (length es - 1) . tail $ toList es
     
     {-# INLINE toLast #-}
-    toLast es e = fromListN (n + 1) $ foldr (:) [e] es where n = length es
+    toLast es e = fromListN (length es + 1) $ foldr (:) [e] es
     
     {-# INLINE last #-}
     last Z  = pfailEx "(:<)"
@@ -291,30 +287,19 @@ instance (Index i) => Linear (Array i e) e
     fromList es = fromFoldable es
     
     {-# INLINE fromFoldable #-}
-    fromFoldable es = runST $ ST $ \ s1# -> case newArray# n# err s1# of
-        (# s2#, marr# #) ->
-          let go y r = \ i# s3# -> case writeArray# marr# i# y s3# of
-                s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#
-          in done (l, u) n marr# ( if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2# )
-      where
-        !n@(I# n#) = length es
-        (l, u) = unsafeBounds n
-        err    = unreachEx "fromList"
+    fromFoldable es = runST $ fromFoldableM es >>= done
     
-    single e = runST $ ST $ \ s1# -> case newArray# 1# e s1# of (# s2#, marr# #) -> done (unsafeBounds 1) 1 marr# s2#
+    single e = runST $ filled 1 e >>= done
     
     {-# INLINE (++) #-}
     xs ++ ys = fromListN (sizeOf xs + sizeOf ys) $ listL xs ++ listL ys
     
     {-# INLINE replicate #-}
-    replicate n e = runST $ ST $ \ s1# -> case newArray# n# e s1# of
-        (# s2#, marr# #) -> done (unsafeBounds n') n' marr# s2#
-      where
-        !n'@(I# n#) = max 0 n
+    replicate n e = runST $ filled n e >>= done
     
     {-# INLINE reverse #-}
     -- O(n) reverse
-    reverse es = fromListN (length es) (listR es)
+    reverse es = length es `fromListN` listR es
     
     {-# INLINE listL #-}
     -- O (n) right view.
@@ -371,24 +356,14 @@ instance (Index i) => Bordered (Array i e) i e
 
 instance (Index i) => Indexed (Array i e) i e
   where
-    assoc' bnds defvalue ascs = runST $ ST $ \ s1# -> case newArray# n# defvalue s1# of
-        (# s2#, marr# #) -> foldr (fill marr#) (done bnds n marr#) ies s2#
-      where
-        ies = [ (offset bnds i, e) | (i, e) <- ascs ]
-        !n@(I# n#) = size bnds
+    assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
     
     Z // ascs = null ascs ? Z $ assoc (l, u) ascs
       where
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
     
-    arr@(Array l u n@(I# n#) _) // ascs = runST $ ST $ \ s1# -> case newArray# n# err s1# of
-      (# s2#, marr# #) ->
-        let copy i@(I# i#) s# = if i == n then s# else copy (i + 1) (writeArray# marr# i# (arr !# i) s#)
-        in  case copy 0 s2# of s3# -> foldr (fill marr#) (done (l, u) n marr#) ies s3#
-      where
-        ies = [ (offset (l, u) i, e) | (i, e) <- ascs ]
-        err = undEx "(//)"
+    arr // ascs = runST $ fromFoldableM arr >>= (`overwrite` ascs) >>= done
     
     (!) arr@(Array l u _ _) i = arr !# offset (l, u) i
     
@@ -418,13 +393,9 @@ instance (Index i, Arbitrary e) => Arbitrary (Array i e) where arbitrary = fromL
 (!#) :: Array i e -> Int -> e
 (!#) (Array _ _ _ arr#) (I# i#) = case indexArray# arr# i# of (# e #) -> e
 
-{-# INLINE fill #-}
-fill :: MutableArray# s e -> (Int, e) -> STRep s a -> STRep s a
-fill marr# (I# i#, e) nxt = \ s1# -> case writeArray# marr# i# e s1# of s2# -> nxt s2#
-
-{-# INLINE done #-}
-done :: (i, i) -> Int -> MutableArray# s e -> STRep s (Array i e)
-done (l, u) n marr# = \s1# -> case unsafeFreezeArray# marr# s1# of
+{-# INLINE done' #-}
+done :: STArray s i e -> ST s (Array i e)
+done (STArray l u n marr#) = ST $ \ s1# -> case unsafeFreezeArray# marr# s1# of
   (# s2#, arr# #) -> (# s2#, Array l u n arr# #)
 
 pfailEx       :: String -> a
@@ -432,10 +403,4 @@ pfailEx   msg =  throw . PatternMatchFail $ "in SDP.Array." ++ msg
 
 unreachEx     :: String -> a
 unreachEx msg =  throw . UnreachableException $ "in SDP.Array." ++ msg
-
-undEx :: String -> a
-undEx msg = throw . UndefinedValue $ "in SDP.Array." ++ msg
-
-
-
 

@@ -14,6 +14,8 @@
 
 module SDP.IndexedM
   (
+    module SDP.LinearM,
+    
     IndexedM (..)
   )
 where
@@ -32,15 +34,15 @@ default ()
 -- | Class for work with mutable indexed structures.
 class (Monad m, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
   where
-    {-# MINIMAL fromAssoc', overwrite, (!?>), (*?) #-}
+    {-# MINIMAL fromAssocs', overwrite, (!?>), (*?) #-}
     
-    {-# INLINE fromAssoc #-}
+    {-# INLINE fromAssocs #-}
     -- | fromAssocs returns new mutable structure created from assocs.
-    fromAssoc :: (i, i) -> [(i, e)] -> m v
-    fromAssoc bnds ascs =  fromAssoc' bnds (undEx "fromAssoc") ascs
+    fromAssocs :: (i, i) -> [(i, e)] -> m v
+    fromAssocs bnds ascs =  fromAssocs' bnds (undEx "fromAssocs") ascs
     
     -- | fromAssocs' return new mutable structure created from assocs and default element
-    fromAssoc' :: (i, i) -> e -> [(i, e)] -> m v
+    fromAssocs' :: (i, i) -> e -> [(i, e)] -> m v
     
     -- | (>!) is unsafe monadic reader.
     {-# INLINE (>!) #-}
@@ -59,10 +61,10 @@ class (Monad m, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
     es !?> i = getIndexOf es ?> (es !>) $ i
     
     -- | overwrite rewrites mutable structure using assocs.
-    overwrite :: v -> [(i, e)] -> m ()
+    overwrite :: v -> [(i, e)] -> m v
     
     -- | updateM updates elements with specified indices by function.
-    updateM :: v -> [i] -> (i -> e -> e) -> m ()
+    updateM :: v -> [i] -> (i -> e -> e) -> m v
     updateM es is f = sequence [ do e <- es !> i; return (i, f i e) | i <- is ] >>= overwrite es
     
     -- | (.?) is monadic version of (.$).
