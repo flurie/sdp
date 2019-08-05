@@ -173,6 +173,7 @@ instance (Index i, Unboxed e) => Split (ByteList i e) e
     prefix p (ByteList l u es) = prefix p es `min` size (l, u)
     suffix p (ByteList l u es) = prefix p es `min` size (l, u)
     
+    {-# INLINE take #-}
     take n list@(ByteList l u es)
         |      n <= 0      = Z
         | n >= size (l, u) = list
@@ -180,6 +181,7 @@ instance (Index i, Unboxed e) => Split (ByteList i e) e
       where
         u' = index (l, u) $ n - 1
     
+    {-# INLINE drop #-}
     drop n list@(ByteList l u es)
         | n <= 0 = list
         | n >= size (l, u) = Z
@@ -201,6 +203,7 @@ instance (Index i, Unboxed e) => Bordered (ByteList i e) i e
 
 instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
   where
+    {-# INLINE assoc' #-}
     -- [internal]: it's correct, but completly inneficient (Set []), rewrite.
     assoc' bnds e ies = fromListN n sorted
       where
@@ -208,6 +211,7 @@ instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
         filler = zip (range bnds) (replicate n e)
         n = size bnds
     
+    {-# INLINE (//) #-}
     Z  // ascs = isNull ascs ? Z $ assoc (l, u) ascs
       where
         l = fst $ minimumBy cmpfst ascs
@@ -219,9 +223,11 @@ instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
         
         (l', u') = unsafeBounds $ sizeOf es'
     
-    (!)  (ByteList l u es) i = es ! offset (l, u) i
-    p .$ (ByteList l u es)   = index (l, u) <$> p .$ es
-    p *$ (ByteList l u es)   = index (l, u) <$> p *$ es
+    {-# INLINE (!) #-}
+    (!) (ByteList l u es) i = es ! offset (l, u) i
+    
+    p .$ (ByteList l u es) = index (l, u) <$> p .$ es
+    p *$ (ByteList l u es) = index (l, u) <$> p *$ es
 
 --------------------------------------------------------------------------------
 
@@ -241,5 +247,4 @@ instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (ByteList i e) where arb
 
 pfail     :: String -> a
 pfail msg =  throw . PatternMatchFail $ "in SDP.ByteList." ++ msg
-
 

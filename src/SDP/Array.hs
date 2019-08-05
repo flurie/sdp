@@ -286,6 +286,7 @@ instance (Index i) => Linear (Array i e) e
     {-# INLINE fromFoldable #-}
     fromFoldable es = runST $ fromFoldableM es >>= done
     
+    {-# INLINE single #-}
     single e = runST $ filled 1 e >>= done
     
     {-# INLINE (++) #-}
@@ -295,19 +296,15 @@ instance (Index i) => Linear (Array i e) e
     replicate n e = runST $ filled n e >>= done
     
     {-# INLINE reverse #-}
-    -- O(n) reverse
     reverse es = length es `fromListN` listR es
     
     {-# INLINE listL #-}
-    -- O (n) right view.
     listL es = toList es
     
     {-# INLINE listR #-}
-    -- O(n) right list view
     listR es = [ es !# i | i <- [ n - 1, n - 2 .. 0 ] ] where n = length es
     
     {-# INLINE concatMap #-}
-    -- O(n * m) concatenation
     concatMap f ess = fromList $ foldr (\ a l -> toList (f a) ++ l) [] ess
     
     {-# INLINE concat #-}
@@ -315,8 +312,14 @@ instance (Index i) => Linear (Array i e) e
 
 instance (Index i) => Split (Array i e) e
   where
-    take n es = fromListN n $ toList es
+    take n es
+        | n <= 0 = Z
+        | n >= l = es
+        |  True  = fromList [ es !# i | i <- [ 0 .. n - 1 ] ]
+      where
+        l = length es
     
+    {-# INLINE drop #-}
     drop n es
         | n <= 0 = es
         | n >= l = Z
@@ -324,6 +327,7 @@ instance (Index i) => Split (Array i e) e
       where
         l = length es
     
+    {-# INLINE split #-}
     split n es
         | n <= 0 = (Z, es)
         | n >= l = (es, Z)
@@ -353,8 +357,10 @@ instance (Index i) => Bordered (Array i e) i e
 
 instance (Index i) => Indexed (Array i e) i e
   where
+    {-# INLINE assoc' #-}
     assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
     
+    {-# INLINE (//) #-}
     Z // ascs = null ascs ? Z $ assoc (l, u) ascs
       where
         l = fst $ minimumBy cmpfst ascs
@@ -362,6 +368,7 @@ instance (Index i) => Indexed (Array i e) i e
     
     arr // ascs = runST $ fromFoldableM arr >>= (`overwrite` ascs) >>= done
     
+    {-# INLINE (!) #-}
     (!) arr@(Array l u _ _) i = arr !# offset (l, u) i
     
     p .$ es = (\ i -> p $ es ! i)  `find`  indices es
@@ -400,3 +407,4 @@ pfailEx   msg =  throw . PatternMatchFail $ "in SDP.Array." ++ msg
 
 unreachEx     :: String -> a
 unreachEx msg =  throw . UnreachableException $ "in SDP.Array." ++ msg
+

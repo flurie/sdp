@@ -108,24 +108,19 @@ instance (Index i) => Default (Bytes i e)
 
 instance (Unboxed e, Index i) => Linear (Bytes i e) e
   where
-    {-# INLINE isNull #-}
     isNull (Bytes l u n _) = isEmpty (l, u) || n < 1
     
-    {-# INLINE lzero #-}
     lzero = def
     
-    {-# INLINE head #-}
     head Z  = pfailEx "(:>)"
     head es = es .! lower es
     
     tail Z  = pfailEx "(:>)"
     tail es = drop 1 es
     
-    {-# INLINE last #-}
     last Z  = pfailEx "(:<)"
     last es = es .! upper es
     
-    {-# INLINE init #-}
     init Z  = pfailEx "(:<)"
     init es = take (sizeOf es - 1) es
     
@@ -135,13 +130,11 @@ instance (Unboxed e, Index i) => Linear (Bytes i e) e
         (# s2#, marr# #) -> case unsafeFreezeByteArray# marr# s2# of
           (# s3#, bytes# #) -> (# s3#, Bytes l u 1 bytes# #)
     
-    {-# INLINE fromList #-}
     fromList es = fromFoldable es
     
     {-# INLINE fromFoldable #-}
     fromFoldable es = runST $ fromFoldableM es >>= done
     
-    {-# INLINE (++) #-}
     Z  ++ ys = ys
     xs ++  Z = xs
     xs ++ ys = fromList $ listL xs ++ listL ys
@@ -152,10 +145,7 @@ instance (Unboxed e, Index i) => Linear (Bytes i e) e
     {-# INLINE replicate #-}
     replicate n e = runST $ filled n e >>= done
     
-    {-# INLINE listL #-}
     listL (Bytes _ _ n bytes#) = [ bytes# !# i# | (I# i#) <- [0 .. n - 1] ]
-    
-    {-# INLINE listR #-}
     listR (Bytes _ _ n bytes#) = [ bytes# !# i# | (I# i#) <- [n - 1, n - 2 .. 0] ]
     
     {-# INLINE concatMap #-}
@@ -172,12 +162,14 @@ instance (Index i, Unboxed e) => Split (Bytes i e) e
     isPrefixOf xs ys = n1 <= n2 && take n1 (listL xs) == take n2 (listL ys)        where n1 = sizeOf xs; n2 = sizeOf ys
     isSuffixOf xs ys = n1 <= n2 && take n2 (listL xs) == take (n1 - n2) (listL ys) where n1 = sizeOf xs; n2 = sizeOf ys
     
+    {-# INLINE prefix #-}
     -- see SDP.Linear.suffix and SDP.Array.foldr
     prefix p (Bytes _ _ n arr#) = go 0
       where
         go i@(I# i#) = n' == i ? 0 $ p (arr# !# i#) ? (go $ i + 1) + 1 $ 0
         n' = max 0 n
     
+    {-# INLINE suffix #-}
     -- see SDP.Linear.suffix and SDP.Array.foldl
     suffix p (Bytes _ _ n arr#) = go $ max 0 n - 1
       where
@@ -195,10 +187,13 @@ instance (Index i, Unboxed e) => Bordered (Bytes i e) i e
 
 instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
   where
+    {-# INLINE assoc #-}
     assoc bnds ascs = runST $ fromAssocs bnds ascs >>= done
     
+    {-# INLINE assoc' #-}
     assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
     
+    {-# INLINE (//) #-}
     Z // ascs = null ascs ? Z $ assoc (l, u) ascs
       where
         l = fst $ minimumBy cmpfst ascs
@@ -206,6 +201,7 @@ instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
     
     arr // ascs = runST $ newLinear (listL arr) >>= (`overwrite` ascs) >>= done
     
+    {-# INLINE (!) #-}
     (!) (Bytes l u _ bytes#) i = case offset (l, u) i of (I# i#) -> bytes# !# i#
     
     p .$ es@(Bytes l u _ _) = index (l, u) <$> p .$ listL es
@@ -236,5 +232,4 @@ done (STBytes l u n mbytes#) = ST $ \ s1# -> case unsafeFreezeByteArray# mbytes#
 
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Bytes." ++ msg
-
 

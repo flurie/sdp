@@ -10,7 +10,7 @@
     Stability   :  stable
     
     This module provides service type Ublist - strict boxed unrolled linked list
-    for SDP.Unrolled.
+    for SDP.ByteList.
 -}
 
 module SDP.ByteList.Ublist
@@ -45,7 +45,7 @@ import GHC.Show ( appPrec )
 
 import Data.String ( IsString (..) )
 
-import SDP.Internal.MutableArrays ( STUArray (..) )
+import SDP.ByteList.STUblist
 import SDP.Simple
 
 default ()
@@ -90,17 +90,13 @@ instance Default (Ublist e) where def = UBEmpty
 
 instance (Unboxed e) => Linear (Ublist e) e
   where
-    {-# INLINE isNull #-}
     isNull es = case es of {Ublist c _ _ -> c < 1; _ -> True}
     
-    {-# INLINE lzero #-}
     lzero = UBEmpty
     
-    {-# INLINE head #-}
     head Z  = pfailEx ".(:>)"
     head es = es .! 0
     
-    {-# INLINE tail #-}
     tail Z                          = pfailEx "(:<)"
     tail es@(Ublist c _ Z)          = fromListN (c - 1) . tail $ listL es
     tail es@(Ublist c bytes# bytes) = Ublist c' new# bytes
@@ -113,11 +109,9 @@ instance (Unboxed e) => Linear (Ublist e) e
         res = fromListN (c + 1) $ e : listL (Ublist c arr# Z)
         !(Ublist 1 single# Z) = single e
     
-    {-# INLINE last #-}
     last Z  = pfailEx "(:<)"
     last (Ublist (I# c#) bytes# bytes) = case bytes of {Z -> bytes# !# (c# -# 1#); _ -> last bytes}
     
-    {-# INLINE init #-}
     init Z                    = pfailEx "(:>)"
     init es@(Ublist c _ Z)    = fromListN (c - 1) . init $ listL es
     init (Ublist c arr# arrs) = Ublist c arr# (init arrs)
@@ -129,19 +123,13 @@ instance (Unboxed e) => Linear (Ublist e) e
         !(Ublist 1 single# Z) = single e
     toLast (Ublist c arr# arrs) e = Ublist c arr# (toLast arrs e)
     
-    single e = runST $ ST $ \ s1# -> case newUnboxed' e 1# s1# of (# s2#, marr# #) -> done 1 Z marr# s2#
+    {-# INLINE single #-}
+    single e = runST $ filled 1 e >>= done'
     
-    {-# INLINE fromList #-}
     fromList es = fromFoldable es
     
     {-# INLINE fromFoldable #-}
-    fromFoldable es = foldr (\ x y -> toChunk' lim err x ++ y) rest' chunks
-      where
-        (chunks :< rest)  = take count [ lim, lim .. ] `splits` toList es
-        (count, restSize) = length es `divMod` lim
-        
-        rest' = toChunk' restSize err rest
-        err   = unreachEx "fromFoldable"
+    fromFoldable es = runST $ fromFoldableM es >>= done'
     
     {-# INLINE listL #-}
     listL es' = list' 0# es'
@@ -166,21 +154,29 @@ instance (Unboxed e) => Linear (Ublist e) e
         !(count, restSize@(I# r#)) = n `divMod` lim
         !(I# l#) = lim
     
+    {-# INLINE reverse #-}
     reverse es' = reverse' Z es'
       where
         reverse' tail' Z = tail'
-        reverse' tail' (Ublist c bytes# bytes) = reverse' (Ublist c rev# tail') bytes
+        reverse' tail' (Ublist n@(I# n#) bytes# bytes) = reverse' (Ublist n rev# tail') bytes
           where
-            !(Ublist _ rev# _) = toChunk' c err listR' `asTypeOf` bytes
+            !(Ublist _ rev# _) = toChunk err chunk `asTypeOf` bytes
             
-            listR' = [ bytes# !# i# | (I# i#) <- [ c - 1, c - 2 .. 0 ] ]
-            err    = unreachEx "reverse"
+            toChunk :: (Unboxed e) => e -> [e] -> Ublist e
+            toChunk e es = runST $ ST $ \ s1# -> case newUnboxed e n# s1# of
+              (# s2#, marr# #) ->
+                let go x r = \ i# s3# -> case writeByteArray# marr# i# x s3# of
+                      s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#
+                in done n Z marr# ( if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2# )
+            
+            chunk = [ bytes# !# i# | (I# i#) <- [ n - 1, n - 2 .. 0 ] ]
+            err    = throw . UnreachableException $ "in SDP.ByteList.Ublist.reverse"
     
-    {-# INLINE partitions #-}
     partitions ps es = fromList <$> (partitions ps $ listL es)
 
 instance (Unboxed e) => Split (Ublist e) e
   where
+    {-# INLINE take #-}
     take n es
         |     n <= 0     = Z
         | sizeOf es <= n = es
@@ -192,6 +188,7 @@ instance (Unboxed e) => Split (Ublist e) e
             rest  = [ arr# !# i# | (I# i#) <- [0 .. n' - 1] ]
             other = take' (n' - c) arrs
     
+    {-# INLINE drop #-}
     drop n es
         |     n <=  0    = es
         | sizeOf es <= n = Z
@@ -212,72 +209,32 @@ instance (Unboxed e) => Split (Ublist e) e
 
 instance (Unboxed e) => Bordered (Ublist e) Int e
   where
-    {-# INLINE lower #-}
     lower  _  = 0
-    {-# INLINE upper #-}
     upper  es = sizeOf es - 1
-    
-    {-# INLINE sizeOf #-}
     sizeOf es = case es of {Ublist n _ arrs -> max 0 n + sizeOf arrs; _ -> 0}
     
-    {-# INLINE indexOf #-}
     indexOf es i = i >= 0 && i < sizeOf es
 
 --------------------------------------------------------------------------------
 
 instance (Unboxed e) => Indexed (Ublist e) Int e
   where
+    {-# INLINE assoc  #-}
+    assoc  bnds ascs = runST $ fromAssocs bnds ascs >>= done'
+    
+    {-# INLINE assoc' #-}
+    assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done'
+    
+    {-# INLINE (//) #-}
     Z // ascs = isNull ascs ? Z $ assoc (l, u) ascs
       where
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
     
-    es@(Ublist c@(I# c#) _ arrs) // ascs = runST $ thaw es err >>= writes (arrs // others)
-      where
-        writes rest (STUArray l' u' n' marr#) = ST $ foldr (fill marr#) (done n' rest marr#) ies
-          where ies = [ (offset (l', u') i, e) | (i, e) <- curr ]
-        
-        -- [internal]: thaw uses (.!), but may be faster.
-        thaw :: (Unboxed e) => Ublist e -> e -> ST s (STUArray s Int e)
-        thaw es' e = ST $ \ s1# -> case newUnboxed e c# s1# of
-          (# s2#, marr# #) ->
-            let copy i@(I# i#) s3# = if i == c
-                  then s3#
-                  else copy (i + 1) (writeByteArray# marr# i# (es' .! i) s3#)
-            in case copy 0 s2# of s3# -> (# s3#, STUArray 0 (c - 1) c marr# #)
-        
-        (curr, others) = partition (\ (i, _) -> inRange (0, c - 1) i) ascs
-        
-        err = unreachEx "(//)"
+    es // ascs = isNull ascs ? es $ runST $ newLinear (listL es) >>= flip overwrite ascs >>= done'
     
-    assoc bnds ascs = isEmpty bnds ? UBEmpty $ res
-      where
-        -- This fold is the default concatMap with rest' as last element.
-        res = foldr (\ x y -> toChunk lim err x ++ y) rest' chunks
-        
-        -- count of full (size of lim) chunks.
-        (count, restSize) = size bnds `divMod` lim
-        (chunks :< rest)  = partitions funs ies
-        
-        funs  = [ \ (i, _) -> i < l' | l' <- [ lim, 2 * lim .. count * lim ] ]
-        rest' = toChunk restSize err rest
-        
-        ies = filter (inRange bnds . fst) ascs
-        err = unreachEx "assoc"
-    
-    assoc' bnds defvalue ascs = isEmpty bnds ? UBEmpty $ res
-      where
-        res = foldr (\ x y -> toChunk lim defvalue x ++ y) rest' chunks
-        
-        (count, restSize) = size bnds `divMod` lim
-        (chunks :< rest)  = partitions funs ies
-        
-        funs  = [ \ (i, _) -> i < l' | l' <- [ lim, 2 * lim .. count * lim ] ]
-        rest' = toChunk restSize defvalue rest
-        
-        ies = filter (inRange bnds . fst) ascs
-    
-    -- | Note: Ublist allows reading by negative offset.
+    {-# INLINE (.!) #-}
+    -- | Note: ByteArray primitive allows reading by negative offset.
     (Ublist n bytes# arrs) .! i@(I# i#) = i < n ? bytes# !# i# $ arrs .! (n - i)
     Z .! _ = error "wrong using of (.!) from SDP.ByteList.Ublist"
     
@@ -299,37 +256,25 @@ instance (Unboxed e, Arbitrary e) => Arbitrary (Ublist e) where arbitrary = from
 
 --------------------------------------------------------------------------------
 
-pfailEx       :: String -> a
-pfailEx msg   =  throw . PatternMatchFail $ "in SDP.ByteList.Ublist." ++ msg
-
-unreachEx     :: String -> a
-unreachEx msg =  throw . UnreachableException $ "in SDP.ByteList.Ublist." ++ msg
-
-{-# INLINE fill #-}
--- | internal mutable byte array filler.
-fill :: (Unboxed e) => MutableByteArray# s -> (Int, e) -> STRep s a -> STRep s a
-fill marr# (I# i#, e) nxt = \ s1# -> case writeByteArray# marr# i# e s1# of s2# -> nxt s2#
-
+{-# INLINE done #-}
 -- | internal Ublist creator.
 done :: (Unboxed e) => Int -> Ublist e -> MutableByteArray# s -> STRep s (Ublist e)
 done c arrs marr# = \ s1# -> case unsafeFreezeByteArray# marr# s1# of
   (# s2#, arr# #) -> (# s2#, Ublist c arr# arrs #)
 
-toChunk :: (Unboxed e) => Int -> e -> [(Int, e)] -> Ublist e
-toChunk n@(I# n#) e ies' = runST $ ST $ \ s1# -> case newUnboxed e n# s1# of
-  (# s2#, marr# #) -> foldr (fill marr#) (done n Z marr#) ies' s2#
+{-# INLINE done' #-}
+done' :: STUblist s e -> ST s (Ublist e)
+done'        STUBEmpty        = return UBEmpty
+done' (STUblist n marr# marr) = done' marr >>= \ arr -> ST $
+  \ s1# -> case unsafeFreezeByteArray# marr# s1# of
+    (# s2#, arr# #) -> (# s2#, Ublist n arr# arr #)
 
-toChunk' :: (Unboxed e, Foldable f) => Int -> e -> f e -> Ublist e
-toChunk' n@(I# n#) e chunk = runST $ ST $ \ s1# -> case newUnboxed e n# s1# of
-  (# s2#, marr# #) ->
-    let go x r = \ i# s3# -> case writeByteArray# marr# i# x s3# of
-          s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#
-    in done n Z marr# ( if n == 0 then s2# else foldr go (\ _ s# -> s#) chunk 0# s2# )
+pfailEx       :: String -> a
+pfailEx msg   =  throw . PatternMatchFail $ "in SDP.ByteList.Ublist." ++ msg
 
 -- | lim is internal constant - maximal size of chunk.
 lim :: Int
 lim =  1024
-
 
 
 

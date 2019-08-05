@@ -34,7 +34,7 @@ default ()
 -- | Class for work with mutable indexed structures.
 class (Monad m, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
   where
-    {-# MINIMAL fromAssocs', overwrite, (!?>), (*?) #-}
+    {-# MINIMAL fromAssocs', overwrite, ((!>)|(!?>)), (*?) #-}
     
     {-# INLINE fromAssocs #-}
     -- | fromAssocs returns new mutable structure created from assocs.

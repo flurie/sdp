@@ -68,6 +68,9 @@ Library
     SDP.Array.ST
     SDP.Bytes.ST
     
+    SDP.Unrolled.STUnlist
+    SDP.ByteList.STUblist
+    
     -- some dispensable classes
     
     SDP.Sort
@@ -85,7 +88,5 @@ Library
     Test.SDP.Set
   
   other-modules:
-    SDP.Internal.MutableArrays
-    
     SDP.Simple
 

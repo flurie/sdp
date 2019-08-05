@@ -66,24 +66,15 @@ instance (Index i, Unboxed e) => Eq (STBytes s i e)
 
 instance (Index i, Unboxed e) => BorderedM (ST s) (STBytes s i e) i e
   where
-    {-# INLINE getLower  #-}
     getLower  (STBytes l _ _ _) = return l
-    
-    {-# INLINE getUpper  #-}
     getUpper  (STBytes _ u _ _) = return u
-    
-    {-# INLINE getSizeOf #-}
     getSizeOf (STBytes _ _ n _) = return $ max 0 n
     
-    {-# INLINE getIndices #-}
-    getIndices (STBytes l u _ _) = return $ range (l, u)
-    
-    {-# INLINE getIndexOf #-}
+    getIndices (STBytes l u _ _)   = return $ range   (l, u)
     getIndexOf (STBytes l u _ _) i = return $ inRange (l, u) i
 
 instance (Index i, Unboxed e) => LinearM (ST s) (STBytes s i e) e
   where
-    {-# INLINE newLinear #-}
     newLinear es = fromFoldableM es
     
     {-# INLINE fromFoldableM #-}
@@ -98,15 +89,13 @@ instance (Index i, Unboxed e) => LinearM (ST s) (STBytes s i e) e
         
         !n@(I# n#) = length es
     
-    {-# INLINE getRight #-}
-    getRight es@(STBytes l u _ _) = sequence [ es >! i | i <- range (l, u) ]
-    
-    {-# INLINE getLeft #-}
     getLeft  es@(STBytes l u _ _) = sequence [ es >! i | i <- reverse $ range (l, u) ]
+    getRight es@(STBytes l u _ _) = sequence [ es >! i | i <- range (l, u) ]
     
     {-# INLINE reversed #-}
     reversed es = liftA2 (\ bnds -> zip $ range bnds) (getBounds es) (getRight es) >>= overwrite es
     
+    {-# INLINE filled #-}
     filled n e = ST $ \ s1# -> case newUnboxed' e n# s1# of (# s2#, marr# #) -> (# s2#, STBytes l u n' marr# #)
       where
         (l, u) = unsafeBounds n'
@@ -134,7 +123,6 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STBytes s i e) i e
     {-# INLINE (>!) #-}
     (STBytes l u _ marr#) >! i = case offset (l, u) i of (I# i#) -> ST $ marr# !># i#
     
-    {-# INLINE (!>) #-}
     es@(STBytes l u _ _) !> i = case inBounds (l, u) i of
       ER -> throw $ EmptyRange     msg
       UR -> throw $ IndexUnderflow msg
@@ -148,10 +136,6 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STBytes s i e) i e
       where
         ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
     
-    {-# INLINE (!?>) #-}
-    es !?> i = getIndexOf es ?> (es >!) $ i
-    
-    {-# INLINE (*?) #-}
     p *? marr = fsts . filter (p . snd) <$> getAssocs marr
 
 --------------------------------------------------------------------------------
@@ -166,5 +150,6 @@ fill marr# (I# i#, e) nxt = \ s1# -> case writeByteArray# marr# i# e s1# of s2# 
 
 unreachEx     :: String -> a
 unreachEx msg =  throw . UnreachableException $ "in SDP.Bytes.ST." ++ msg
+
 
 

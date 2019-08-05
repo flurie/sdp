@@ -1,7 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Unsafe, RoleAnnotations #-}
-
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE Unsafe, TypeFamilies, RoleAnnotations #-}
 
 {- |
     Module      :  SDP.Unrolled
@@ -170,10 +168,8 @@ instance (Index i) => Traversable (Unrolled i) where traverse f arr = fromList <
 
 instance (Index i) => Linear (Unrolled i e) e
   where
-    {-# INLINE isNull #-}
     isNull es = null es
     
-    {-# INLINE uncons #-}
     uncons Z = pfail "(:>)"
     uncons (Unrolled l u es) = (x, es <. 2 ? Z $ Unrolled l1 u xs)
       where
@@ -186,7 +182,6 @@ instance (Index i) => Linear (Unrolled i e) e
     tail Z = pfail "(:>)"
     tail (Unrolled l u es) = Unrolled l' u $ tail es where l' = next (l, u) l
     
-    {-# INLINE unsnoc #-}
     unsnoc Z = pfail "(:<)"
     unsnoc (Unrolled l u es) = (es <. 2 ? Z $ Unrolled l u1 xs, x)
       where
@@ -199,7 +194,6 @@ instance (Index i) => Linear (Unrolled i e) e
     init Z = pfail "(:<)"
     init (Unrolled l u es) = Unrolled l u' $ init es where u' = prev (l, u) u
     
-    {-# INLINE fromListN #-}
     fromListN n es = let (l, u) = unsafeBounds n in Unrolled l u $ fromListN n es
     
     fromFoldable es = Unrolled l u $ fromFoldable es
@@ -231,6 +225,7 @@ instance (Index i) => Linear (Unrolled i e) e
 
 instance (Index i) => Split (Unrolled i e) e
   where
+    {-# INLINE take #-}
     take n unr@(Unrolled l u es)
         | n <= 0 = Z
         | n >= c = unr
@@ -239,6 +234,7 @@ instance (Index i) => Split (Unrolled i e) e
         u' = index (l, u) $ n - 1
         c  = size  (l, u)
     
+    {-# INLINE drop #-}
     drop n unr@(Unrolled l u es)
         | n <= 0 = unr
         | n >= c = Z
@@ -247,6 +243,7 @@ instance (Index i) => Split (Unrolled i e) e
         l' = index (l, u) n
         c  = size  (l, u)
     
+    {-# INLINE split #-}
     split n unr@(Unrolled l u es)
         | n <= 0 = (Z, unr)
         | n >= c = (unr, Z)
@@ -267,15 +264,15 @@ instance (Index i) => Split (Unrolled i e) e
 
 instance (Index i) => Bordered (Unrolled i e) i e
   where
-    lower   (Unrolled l _ _) = l
-    upper   (Unrolled _ u _) = u
-    
-    sizeOf  (Unrolled l u _) = size (l, u)
+    lower  (Unrolled l _ _) = l
+    upper  (Unrolled _ u _) = u
+    sizeOf (Unrolled l u _) = size (l, u)
 
 --------------------------------------------------------------------------------
 
 instance (Index i) => Indexed (Unrolled i e) i e
   where
+    {-# INLINE assoc' #-}
     -- [internal]: it's correct, but completly inneficient (Set []). Rewrite.
     assoc' bnds e ies = fromListN n sorted
       where
@@ -283,7 +280,8 @@ instance (Index i) => Indexed (Unrolled i e) i e
         filler = zip (range bnds) (replicate n e)
         n = size bnds
     
-    Z  // ascs = null ascs ? Z $ assoc (l, u) ascs
+    {-# INLINE (//) #-}
+    Z // ascs = null ascs ? Z $ assoc (l, u) ascs
       where
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
@@ -294,7 +292,7 @@ instance (Index i) => Indexed (Unrolled i e) i e
         (l', u') = unsafeBounds $ length es'
     
     {-# INLINE (!) #-}
-    (!)  (Unrolled l u es) i = es ! (offset (l, u) i)
+    (!) (Unrolled l u es) i = es ! (offset (l, u) i)
     
     p .$ (Unrolled l u es) = index (l, u) <$> p .$ es
     p *$ (Unrolled l u es) = index (l, u) <$> p *$ es
@@ -319,5 +317,4 @@ instance (Index i, Arbitrary e) => Arbitrary (Unrolled i e) where arbitrary = fr
 
 pfail     :: String -> a
 pfail msg =  throw . PatternMatchFail $ "in SDP.Unrolled." ++ msg
-
 

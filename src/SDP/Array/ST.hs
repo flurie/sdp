@@ -67,24 +67,15 @@ instance (Index i, Eq e) => Eq (STArray s i e)
 
 instance (Index i) => BorderedM (ST s) (STArray s i e) i e
   where
-    {-# INLINE getLower  #-}
     getLower  (STArray l _ _ _) = return l
-    
-    {-# INLINE getUpper  #-}
     getUpper  (STArray _ u _ _) = return u
-    
-    {-# INLINE getSizeOf #-}
     getSizeOf (STArray _ _ n _) = return $ max 0 n
     
-    {-# INLINE getIndices #-}
-    getIndices (STArray l u _ _) = return $ range (l, u)
-    
-    {-# INLINE getIndexOf #-}
+    getIndices (STArray l u _ _)   = return $ range   (l, u)
     getIndexOf (STArray l u _ _) i = return $ inRange (l, u) i
 
 instance (Index i) => LinearM (ST s) (STArray s i e) e
   where
-    {-# INLINE newLinear #-}
     newLinear es = fromFoldableM es
     
     {-# INLINE fromFoldableM #-}
@@ -98,15 +89,13 @@ instance (Index i) => LinearM (ST s) (STArray s i e) e
         (l, u) = unsafeBounds n
         err    = unreachEx "fromFoldableM"
     
-    {-# INLINE getRight #-}
-    getRight es@(STArray l u _ _) = sequence [ es >! i | i <- reverse $ range (l, u) ]
-    
-    {-# INLINE getLeft #-}
     getLeft  es@(STArray l u _ _) = sequence [ es >! i | i <- range (l, u) ]
+    getRight es@(STArray l u _ _) = sequence [ es >! i | i <- reverse $ range (l, u) ]
     
     {-# INLINE reversed #-}
     reversed es = liftA2 (\ bnds -> zip $ range bnds) (getBounds es) (getRight es) >>= overwrite es
     
+    {-# INLINE filled #-}
     filled n e = let !n'@(I# n#) = max 0 n in ST $ \ s1# -> case newArray# n# e s1# of
       (# s2#, marr# #) -> done (unsafeBounds n') n' marr# s2#
 
@@ -116,6 +105,7 @@ instance (Index i) => LinearM (ST s) (STArray s i e) e
 
 instance (Index i) => IndexedM (ST s) (STArray s i e) i e
   where
+    {-# INLINE fromAssocs' #-}
     fromAssocs' bnds defvalue ascs = newArr >>= (`overwrite` ascs)
       where
         newArr = ST $ \ s1# -> case newArray# n# defvalue s1# of (# s2#, marr# #) -> done bnds n marr# s2#
@@ -124,7 +114,6 @@ instance (Index i) => IndexedM (ST s) (STArray s i e) i e
     {-# INLINE (>!) #-}
     (STArray l u _ marr#) >! i = case offset (l, u) i of (I# i#) -> ST $ readArray# marr# i#
     
-    {-# INLINE (!>) #-}
     es@(STArray l u _ _) !> i = case inBounds (l, u) i of
       ER -> throw $ EmptyRange     msg
       UR -> throw $ IndexUnderflow msg
@@ -138,10 +127,6 @@ instance (Index i) => IndexedM (ST s) (STArray s i e) i e
       where
         ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
     
-    {-# INLINE (!?>) #-}
-    es !?> i = getIndexOf es ?> (es >!) $ i
-    
-    {-# INLINE (*?) #-}
     p *? marr = fsts . filter (p . snd) <$> getAssocs marr
 
 --------------------------------------------------------------------------------
@@ -156,4 +141,5 @@ fill marr# (I# i#, e) nxt = \ s1# -> case writeArray# marr# i# e s1# of s2# -> n
 
 unreachEx     :: String -> a
 unreachEx msg =  throw . UnreachableException $ "in SDP.Array.ST." ++ msg
+
 
