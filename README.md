@@ -26,16 +26,16 @@ Currently there are only six data structures in SDP:
 - standard lists ([])
 - binary trees   (BinTree)
 
-- lazy   immutable  boxed  arrays (Array)
-- strict immutable unboxed arrays (Bytes)
+- lazy   immutable  boxed  arrays (Array, STArray)
+- strict immutable unboxed arrays (Bytes, STBytes)
 
-- lazy   unrolled linked lists (Unrolled)
-- strict unrolled linked lists (ByteList)
+- lazy   unrolled linked lists (Unrolled, STUnrolled)
+- strict unrolled linked lists (ByteList, STByteList)
 
 And two service structures (may be infinite):
 
-- lazy   unrolled linked lists (Unlist)
-- strict unrolled linked lists (Ublist)
+- lazy   unrolled linked lists (Unlist, STUnlist)
+- strict unrolled linked lists (Ublist, STUblist)
 
 But matrices, bitmaps, sequences, dictionaries, and prefix trees will also be
 added.

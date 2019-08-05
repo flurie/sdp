@@ -71,4 +71,5 @@ version 0.0.1.2:
 
 version 0.0.2.0:
   Added BorderedM, LinearM and IndexedM classes.
+  Added STArray, STBytes, STUnrolled, STByteList, STUnlist and STUblist.
 
