@@ -43,7 +43,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | This STUblist type definition is mutable version of Ublist.
+-- | This STUblist is mutable version of Ublist.
 data STUblist s e = STUBEmpty | STUblist {-# UNPACK #-} !Int (MutableByteArray# s) (STUblist s e)
 
 type role STUblist nominal representational

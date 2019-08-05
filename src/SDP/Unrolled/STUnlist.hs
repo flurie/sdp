@@ -44,7 +44,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | This STUnlist type definition is mutable version of Unlist.
+-- | This STUnlist is mutable version of Unlist.
 data STUnlist s e = STUNEmpty | STUnlist {-# UNPACK #-} !Int (MutableArray# s e) (STUnlist s e)
 
 type role STUnlist nominal representational

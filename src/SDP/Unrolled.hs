@@ -146,16 +146,9 @@ instance (Index i) => Foldable (Unrolled i)
     {-# INLINE foldl1 #-}
     foldl1 f (Unrolled l u es) = foldl1 f $ size (l, u) `take` es
     
-    {-# INLINE toList #-}
-    toList   (Unrolled l u es) = size (l, u) `take` toList es
-    
-    {-# INLINE elem #-}
     elem e   (Unrolled l u es) = elem e $ size (l, u) `take` es
-    
-    {-# INLINE null #-}
+    toList   (Unrolled l u es) = size (l, u) `take` toList es
     null     (Unrolled l u es) = isEmpty (l, u) || null es
-    
-    {-# INLINE length #-}
     length   (Unrolled l u  _) = size (l, u)
 
 -- instance (Index i) => Scan (Unrolled i)
@@ -317,4 +310,6 @@ instance (Index i, Arbitrary e) => Arbitrary (Unrolled i e) where arbitrary = fr
 
 pfail     :: String -> a
 pfail msg =  throw . PatternMatchFail $ "in SDP.Unrolled." ++ msg
+
+
 

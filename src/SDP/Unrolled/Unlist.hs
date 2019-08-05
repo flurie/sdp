@@ -50,7 +50,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | Unlist is internal (abstract) type.
+-- | Unlist is internal data representation.
 data Unlist e = UNEmpty | Unlist {-# UNPACK #-} !Int (Array# e) (Unlist e)
 
 type role Unlist representational

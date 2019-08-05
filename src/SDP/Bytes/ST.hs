@@ -44,10 +44,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
-{- |
-  This STBytes type definition is no different from the standard GHC.Arr,
-  but I have to redefine it because of the limitation of the Ix class.
--}
+-- | STBytes is mutable version of Bytes.
 data STBytes s i e = STBytes !i !i {-# UNPACK #-} !Int (MutableByteArray# s)
 
 type role STBytes nominal nominal representational

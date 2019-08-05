@@ -1,0 +1,116 @@
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
+{-# LANGUAGE Unsafe, RoleAnnotations #-}
+
+{- |
+    Module      :  SDP.STUblist
+    Copyright   :  (c) Andrey Mulik 2019
+    License     :  BSD-style
+    Maintainer  :  work.a.mulik@gmail.com
+    Portability :  non-portable (GHC Extensions)
+    Stability   :  stable
+    
+    This module provides service type STByteList - mutable version of
+    SDP.ByteList.
+-}
+
+module SDP.ByteList.ST
+(
+  module SDP.IndexedM,
+  
+  STByteList (..)
+)
+where
+
+import Prelude ()
+import SDP.SafePrelude
+
+import SDP.IndexedM
+import SDP.Unboxed
+import SDP.Linear
+
+import GHC.Base ( Int (..) )
+
+import GHC.ST ( ST (..) )
+
+import SDP.ByteList.STUblist
+import SDP.Simple
+
+default ()
+
+--------------------------------------------------------------------------------
+
+-- | STByteList is mutable version of ByteList.
+data STByteList s i e = STByteList !i !i (STUblist s e)
+
+type role STByteList nominal nominal representational
+
+--------------------------------------------------------------------------------
+
+{- Eq instance. -}
+
+instance (Index i, Unboxed e) => Eq (STByteList s i e)
+  where
+    (STByteList l1 u1 xs) == (STByteList l2 u2 ys) = (isEmpty (l1, u1) && isEmpty (l2, u2)) || xs == ys
+
+--------------------------------------------------------------------------------
+
+{- BorderedM and LinearM instances. -}
+
+instance (Index i, Unboxed e) => BorderedM (ST s) (STByteList s i e) i e
+  where
+    getLower (STByteList l _ _) = return l
+    getUpper (STByteList _ u _) = return u
+    
+    getSizeOf  (STByteList l u _) = return $ size  (l, u)
+    getIndices (STByteList l u _) = return $ range (l, u)
+    
+    getIndexOf (STByteList l u _) i = return $ inRange (l, u) i
+
+instance (Index i, Unboxed e) => LinearM (ST s) (STByteList s i e) e
+  where
+    newLinear es = fromFoldableM es
+    
+    fromFoldableM es = STByteList l u <$> fromFoldableM es
+      where
+        (l, u) = unsafeBounds $ length es
+    
+    getLeft  (STByteList l u es) = take (size (l, u)) <$> getLeft es
+    getRight (STByteList l u es) = liftA2 (\ s r -> drop (s - size (l, u)) r) (getSizeOf es) (getRight es)
+    
+    {-# INLINE reversed #-}
+    reversed es = liftA2 (\ bnds -> zip $ range bnds) (getBounds es) (getRight es) >>= overwrite es
+    
+    {-# INLINE filled #-}
+    filled n e = STByteList l u <$> filled n e where (l, u) = unsafeBounds n
+
+--------------------------------------------------------------------------------
+
+{- IndexedM instance. -}
+
+instance (Index i, Unboxed e) => IndexedM (ST s) (STByteList s i e) i e
+  where
+    {-# INLINE fromAssocs' #-}
+    fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
+    
+    (STByteList l u es) >! i = es >! offset (l, u) i
+    
+    (STByteList l u es) !> i = case inBounds (l, u) i of
+        ER -> throw $ EmptyRange     msg
+        UR -> throw $ IndexUnderflow msg
+        IN -> es >! offset (l, u) i
+        OR -> throw $ IndexOverflow  msg
+      where
+        msg = "in SDP.ByteList.ST.(!>)"
+    
+    overwrite es [] = return es
+    overwrite (STByteList l u es) ascs
+      | isEmpty (l, u) = fromAssocs (l', u') ascs
+      | True = STByteList l u <$> overwrite es ies
+      where
+        l' = fst $ minimumBy cmpfst ascs
+        u' = fst $ maximumBy cmpfst ascs
+        
+        ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
+    
+    p *? marr = fsts . filter (p . snd) <$> getAssocs marr
+

@@ -45,10 +45,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
-{- |
-  This STArray type definition is no different from the standard Data.Array.ST,
-  but I have to redefine it because of the limitation of the Ix class.
--}
+-- | STArray is mutable version of Array.
 data STArray s i e = STArray !i !i {-# UNPACK #-} !Int (MutableArray# s e)
 
 type role STArray nominal nominal representational

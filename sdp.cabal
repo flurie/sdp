@@ -62,11 +62,14 @@ Library
     
     -- service structures
     
-    SDP.Unrolled.Unlist
-    SDP.ByteList.Ublist
-    
     SDP.Array.ST
     SDP.Bytes.ST
+    
+    SDP.Unrolled.ST
+    SDP.ByteList.ST
+    
+    SDP.Unrolled.Unlist
+    SDP.ByteList.Ublist
     
     SDP.Unrolled.STUnlist
     SDP.ByteList.STUblist
