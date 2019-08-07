@@ -60,8 +60,13 @@ class (Monad m, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
     default (!?>) :: (BorderedM m v i e) => v -> i -> m (Maybe e)
     es !?> i = getIndexOf es ?> (es !>) $ i
     
+    default writeM :: (BorderedM m v i e) => v -> i -> e -> m ()
+    writeM :: v -> i -> e -> m ()
+    writeM es i e = do b <- getIndexOf es i; when b $ overwrite es [(i, e)] >> return ()
+    
     -- | overwrite rewrites mutable structure using assocs.
     overwrite :: v -> [(i, e)] -> m v
+    overwrite es ies = mapM_ (uncurry $ writeM es) ies >> return es
     
     -- | updateM updates elements with specified indices by function.
     updateM :: v -> [i] -> (i -> e -> e) -> m v

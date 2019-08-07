@@ -128,6 +128,9 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STBytes s i e) i e
       where
         msg = "in SDP.Bytes.ST.(!>)"
     
+    writeM (STBytes l u _ mbytes#) i e = let !(I# i#) = offset (l, u) i in ST $
+      \ s1# -> case writeByteArray# mbytes# i# e s1# of s2# -> (# s2#, () #)
+    
     {-# INLINE overwrite #-}
     overwrite (STBytes l u n marr#) ascs = ST $ foldr (fill marr#) (done (l, u) n marr#) ies
       where
@@ -147,6 +150,4 @@ fill marr# (I# i#, e) nxt = \ s1# -> case writeByteArray# marr# i# e s1# of s2# 
 
 unreachEx     :: String -> a
 unreachEx msg =  throw . UnreachableException $ "in SDP.Bytes.ST." ++ msg
-
-
 

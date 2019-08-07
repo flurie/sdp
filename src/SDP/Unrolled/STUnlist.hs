@@ -137,6 +137,12 @@ instance IndexedM (ST s) (STUnlist s e) Int e
       where
         msg = "in SDP.STUnlist.(!>)"
     
+    writeM STUNEmpty _ _ = return ()
+    writeM (STUnlist n marr# marr) i@(I# i#) e
+      | i < 0 = return ()
+      | i < n = ST $ \ s1# -> case writeArray# marr# i# e s1# of s2# -> (# s2#, () #)
+      | True  = writeM marr (i - n) e
+    
     {-# INLINE overwrite #-}
     overwrite STUNEmpty ascs = isNull ascs ? return STUNEmpty $ fromAssocs (l, u) ascs
       where

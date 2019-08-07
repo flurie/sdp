@@ -56,10 +56,17 @@ mathsortOn f es = mathsortBy (\ x y -> f x `compare` f y) es
 instance Sort [a] a
   where
     sortBy     f es = L.sortBy f es
+    
+    {- |
+      This version of mathsort doesn't create duplicates, just split list on
+      subsequences of equals.
+    -}
     mathsortBy f es = L.concat sorted
       where
         sorted = sortBy (\ x y -> L.head x `f` L.head y) $ split' es
         
         split' [] = []
-        split' xs@(x : _) = let (y, ys) = L.partition (\ e -> x `f` e == EQ) xs in y : split' ys
+        split' xs@(x : _) = y : split' ys
+          where
+            (y, ys) = L.partition (\ e -> x `f` e == EQ) xs
 

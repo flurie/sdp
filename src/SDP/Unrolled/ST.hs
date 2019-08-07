@@ -101,6 +101,8 @@ instance (Index i) => IndexedM (ST s) (STUnrolled s i e) i e
       where
         msg = "in SDP.Unrolled.ST.(!>)"
     
+    writeM (STUnrolled l u es) i = writeM es $ offset (l, u) i
+    
     overwrite es [] = return es
     overwrite (STUnrolled l u es) ascs
       | isEmpty (l, u) = fromAssocs (l', u') ascs

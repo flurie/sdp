@@ -102,6 +102,8 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STByteList s i e) i e
       where
         msg = "in SDP.ByteList.ST.(!>)"
     
+    writeM (STByteList l u es) i = writeM es $ offset (l, u) i
+    
     overwrite es [] = return es
     overwrite (STByteList l u es) ascs
       | isEmpty (l, u) = fromAssocs (l', u') ascs

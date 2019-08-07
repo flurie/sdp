@@ -111,6 +111,9 @@ instance (Index i) => IndexedM (ST s) (STArray s i e) i e
     {-# INLINE (>!) #-}
     (STArray l u _ marr#) >! i = case offset (l, u) i of (I# i#) -> ST $ readArray# marr# i#
     
+    writeM (STArray l u _ marr#) i e = let !(I# i#) = offset (l, u) i in ST $
+      \ s1# -> case writeArray# marr# i# e s1# of s2# -> (# s2#, () #)
+    
     es@(STArray l u _ _) !> i = case inBounds (l, u) i of
       ER -> throw $ EmptyRange     msg
       UR -> throw $ IndexUnderflow msg
@@ -138,5 +141,8 @@ fill marr# (I# i#, e) nxt = \ s1# -> case writeArray# marr# i# e s1# of s2# -> n
 
 unreachEx     :: String -> a
 unreachEx msg =  throw . UnreachableException $ "in SDP.Array.ST." ++ msg
+
+
+
 
 

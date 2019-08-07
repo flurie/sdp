@@ -151,6 +151,12 @@ instance (Unboxed e) => IndexedM (ST s) (STUblist s e) Int e
       where
         msg = "in SDP.ByteList.STUnlist.(!>)"
     
+    writeM STUBEmpty _ _ = return ()
+    writeM (STUblist n marr# marr) i@(I# i#) e
+      | i < 0 = return ()
+      | i < n = ST $ \ s1# -> case writeByteArray# marr# i# e s1# of s2# -> (# s2#, () #)
+      | True  = writeM marr (i - n) e
+    
     {-# INLINE overwrite #-}
     overwrite STUBEmpty ascs = isNull ascs ? return STUBEmpty $ fromAssocs (l, u) ascs
       where
