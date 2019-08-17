@@ -23,10 +23,11 @@ module SDP.Array.ST
 )
 where
 
-import Prelude ( (++), zip, filter, reverse )
+import Prelude ()
 import SDP.SafePrelude
 
 import SDP.IndexedM
+import SDP.Linear
 
 import GHC.Base
   (
@@ -64,10 +65,9 @@ instance (Index i, Eq e) => Eq (STArray s i e)
 
 instance (Index i) => BorderedM (ST s) (STArray s i e) i e
   where
-    getLower  (STArray l _ _ _) = return l
-    getUpper  (STArray _ u _ _) = return u
-    getSizeOf (STArray _ _ n _) = return $ max 0 n
-    
+    getLower   (STArray l _ _ _)   = return l
+    getUpper   (STArray _ u _ _)   = return u
+    getSizeOf  (STArray _ _ n _)   = return $ max 0 n
     getIndices (STArray l u _ _)   = return $ range   (l, u)
     getIndexOf (STArray l u _ _) i = return $ inRange (l, u) i
 
@@ -115,15 +115,7 @@ instance (Index i) => IndexedM (ST s) (STArray s i e) i e
         !n@(I# n#) = size bnds
     
     (STArray _ _ _ marr#) !#> (I# i#) = ST $ readArray# marr# i#
-    
-    {-# INLINE (>!) #-}
     (STArray l u _ marr#) >! i = case offset (l, u) i of (I# i#) -> ST $ readArray# marr# i#
-    
-    writeM_ (STArray _ _ _ marr#) (I# i#) e = ST $
-      \ s1# -> case writeArray# marr# i# e s1# of s2# -> (# s2#, () #)
-    
-    writeM (STArray l u _ marr#) i e = let !(I# i#) = offset (l, u) i in ST $
-      \ s1# -> case writeArray# marr# i# e s1# of s2# -> (# s2#, () #)
     
     es@(STArray l u _ _) !> i = case inBounds (l, u) i of
       ER -> throw $ EmptyRange     msg
@@ -132,6 +124,12 @@ instance (Index i) => IndexedM (ST s) (STArray s i e) i e
       OR -> throw $ IndexOverflow  msg
       where
         msg = "in SDP.Array.ST.(!>)"
+    
+    writeM_ (STArray _ _ _ marr#) (I# i#) e = ST $
+      \ s1# -> case writeArray# marr# i# e s1# of s2# -> (# s2#, () #)
+    
+    writeM (STArray l u _ marr#) i e = let !(I# i#) = offset (l, u) i in ST $
+      \ s1# -> case writeArray# marr# i# e s1# of s2# -> (# s2#, () #)
     
     {-# INLINE overwrite #-}
     overwrite es@(STArray l u _ _) ascs = mapM_ (uncurry $ writeM_ es) ies >> return es
@@ -148,4 +146,5 @@ done (l, u) n marr# = \ s1# -> (# s1#, STArray l u n marr# #)
 
 unreachEx     :: String -> a
 unreachEx msg =  throw . UnreachableException $ "in SDP.Array.ST." ++ msg
+
 

@@ -36,10 +36,9 @@ import GHC.Base
   (
     ByteArray#, MutableByteArray#, Int (..),
     
-    unsafeFreezeByteArray#,
-    
-    isTrue#, (+#), (-#), (==#), (<#)
+    unsafeFreezeByteArray#, isTrue#, (+#), (-#), (==#), (<#)
   )
+
 import GHC.ST   ( ST (..), STRep, runST )
 import GHC.Show ( appPrec )
 
@@ -275,6 +274,7 @@ pfailEx msg   =  throw . PatternMatchFail $ "in SDP.ByteList.Ublist." ++ msg
 -- | lim is internal constant - maximal size of chunk.
 lim :: Int
 lim =  1024
+
 
 
 

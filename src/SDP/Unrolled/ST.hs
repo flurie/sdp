@@ -57,12 +57,10 @@ instance (Index i, Eq e) => Eq (STUnrolled s i e)
 
 instance (Index i) => BorderedM (ST s) (STUnrolled s i e) i e
   where
-    getLower (STUnrolled l _ _) = return l
-    getUpper (STUnrolled _ u _) = return u
-    
-    getSizeOf  (STUnrolled l u _) = return $ size  (l, u)
-    getIndices (STUnrolled l u _) = return $ range (l, u)
-    
+    getLower   (STUnrolled l _ _)   = return l
+    getUpper   (STUnrolled _ u _)   = return u
+    getSizeOf  (STUnrolled l u _)   = return $ size  (l, u)
+    getIndices (STUnrolled l u _)   = return $ range (l, u)
     getIndexOf (STUnrolled l u _) i = return $ inRange (l, u) i
 
 instance (Index i) => LinearM (ST s) (STUnrolled s i e) e
@@ -95,10 +93,8 @@ instance (Index i) => IndexedM (ST s) (STUnrolled s i e) i e
     fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
     
     (STUnrolled _ _ es) !#> i = es !#> i
-    
-    (STUnrolled l u es) >! i = es >! offset (l, u) i
-    
-    (STUnrolled l u es) !> i = case inBounds (l, u) i of
+    (STUnrolled l u es) >!  i = es >! offset (l, u) i
+    (STUnrolled l u es) !>  i = case inBounds (l, u) i of
         ER -> throw $ EmptyRange     msg
         UR -> throw $ IndexUnderflow msg
         IN -> es >! offset (l, u) i
@@ -106,7 +102,8 @@ instance (Index i) => IndexedM (ST s) (STUnrolled s i e) i e
       where
         msg = "in SDP.Unrolled.ST.(!>)"
     
-    writeM (STUnrolled l u es) i = writeM es $ offset (l, u) i
+    writeM_ (STUnrolled _ _ es) i = writeM es i
+    writeM  (STUnrolled l u es) i = writeM es $ offset (l, u) i
     
     overwrite es [] = return es
     overwrite (STUnrolled l u es) ascs
@@ -119,4 +116,5 @@ instance (Index i) => IndexedM (ST s) (STUnrolled s i e) i e
         ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
     
     p *? marr = fsts . filter (p . snd) <$> getAssocs marr
+
 

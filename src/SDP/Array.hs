@@ -258,35 +258,27 @@ instance (Index i) => Traversable (Array i) where traverse f arr = fromList <$> 
 
 instance (Index i) => Linear (Array i e) e
   where
-    {-# INLINE isNull #-}
     isNull es = null es
     
     {-# INLINE lzero #-}
     lzero = runST $ filled 0 (unreachEx "lzero") >>= done
     
-    {-# INLINE toHead #-}
     toHead e es = fromListN (n + 1) (e : toList es)    where n = length es
     
-    {-# INLINE head #-}
     head Z  = pfailEx "(:>)"
     head es = es !# 0
     
-    {-# INLINE tail #-}
     tail Z  = pfailEx "(:>)"
     tail es = fromListN (length es - 1) . tail $ toList es
     
-    {-# INLINE toLast #-}
     toLast es e = fromListN (length es + 1) $ foldr (:) [e] es
     
-    {-# INLINE last #-}
     last Z  = pfailEx "(:<)"
     last arr = arr !# (length arr - 1)
     
-    {-# INLINE init #-}
     init Z  = pfailEx "(:<)"
     init es = fromListN (length es - 1) $ toList es
     
-    {-# INLINE fromList #-}
     fromList es = fromFoldable es
     
     {-# INLINE fromFoldable #-}
@@ -295,7 +287,6 @@ instance (Index i) => Linear (Array i e) e
     {-# INLINE single #-}
     single e = runST $ filled 1 e >>= done
     
-    {-# INLINE (++) #-}
     xs ++ ys = fromListN (sizeOf xs + sizeOf ys) $ listL xs ++ listL ys
     
     {-# INLINE replicate #-}
@@ -304,7 +295,6 @@ instance (Index i) => Linear (Array i e) e
     {-# INLINE reverse #-}
     reverse es = length es `fromListN` listR es
     
-    {-# INLINE listL #-}
     listL es = toList es
     
     {-# INLINE listR #-}
@@ -318,6 +308,7 @@ instance (Index i) => Linear (Array i e) e
 
 instance (Index i) => Split (Array i e) e
   where
+    {-#  INLINE take #-}
     take n es
         | n <= 0 = Z
         | n >= l = es
@@ -413,4 +404,7 @@ pfailEx   msg =  throw . PatternMatchFail $ "in SDP.Array." ++ msg
 
 unreachEx     :: String -> a
 unreachEx msg =  throw . UnreachableException $ "in SDP.Array." ++ msg
+
+
+
 

@@ -23,10 +23,11 @@ module SDP.Bytes.ST
 )
 where
 
-import Prelude ( (++), zip, filter, reverse )
+import Prelude ()
 import SDP.SafePrelude
 
 import SDP.IndexedM
+import SDP.Linear
 import SDP.Unboxed
 
 import GHC.Base
@@ -66,7 +67,6 @@ instance (Index i, Unboxed e) => BorderedM (ST s) (STBytes s i e) i e
     getLower   (STBytes l _ _ _)   = return l
     getUpper   (STBytes _ u _ _)   = return u
     getSizeOf  (STBytes _ _ n _)   = return $ max 0 n
-    
     getIndices (STBytes l u _ _)   = return $ range   (l, u)
     getIndexOf (STBytes l u _ _) i = return $ inRange (l, u) i
 
@@ -122,14 +122,16 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STBytes s i e) i e
     
     {-# INLINE (>!) #-}
     (STBytes l u _ marr#) >! i = case offset (l, u) i of (I# i#) -> ST $ marr# !># i#
-    
-    es@(STBytes l u _ _) !> i = case inBounds (l, u) i of
+    es@(STBytes l u _ _)  !> i = case inBounds (l, u) i of
       ER -> throw $ EmptyRange     msg
       UR -> throw $ IndexUnderflow msg
       IN -> es >! i
       OR -> throw $ IndexOverflow  msg
       where
         msg = "in SDP.Bytes.ST.(!>)"
+    
+    writeM_ (STBytes _ _ _ mbytes#) (I# i#) e = ST $
+      \ s1# -> case writeByteArray# mbytes# i# e s1# of s2# -> (# s2#, () #)
     
     writeM (STBytes l u _ mbytes#) i e = let !(I# i#) = offset (l, u) i in ST $
       \ s1# -> case writeByteArray# mbytes# i# e s1# of s2# -> (# s2#, () #)
@@ -157,5 +159,7 @@ fill marr# (I# i#, e) nxt = \ s1# -> case writeByteArray# marr# i# e s1# of s2# 
 
 unreachEx     :: String -> a
 unreachEx msg =  throw . UnreachableException $ "in SDP.Bytes.ST." ++ msg
+
+
 
 

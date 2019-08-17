@@ -77,6 +77,7 @@ Library
     
     -- some dispensable classes
     
+    SDP.SortM
     SDP.Sort
     SDP.Scan
     SDP.Zip

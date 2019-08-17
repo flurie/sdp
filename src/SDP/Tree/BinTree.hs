@@ -59,9 +59,7 @@ data BinTree a = BinEmpty
 
 instance (Eq e) => Eq (BinTree e) where (==) = eq1
 
-instance Eq1 BinTree
-  where
-    liftEq f xs ys = liftEq f (toList xs) (toList ys)
+instance Eq1 BinTree where liftEq f xs ys = liftEq f (toList xs) (toList ys)
 
 --------------------------------------------------------------------------------
 
@@ -69,9 +67,7 @@ instance Eq1 BinTree
 
 instance (Ord e) => Ord (BinTree e) where compare = compare1
 
-instance Ord1 BinTree
-  where
-    liftCompare f xs ys = liftCompare f (toList xs) (toList ys)
+instance Ord1 BinTree where liftCompare f xs ys = liftCompare f (toList xs) (toList ys)
 
 --------------------------------------------------------------------------------
 
@@ -312,16 +308,19 @@ instance Bordered (BinTree e) Int e
 
 instance Indexed (BinTree e) Int e
   where
+    {-# INLINE assoc' #-}
     -- BinTree assoc' uses Unlist assoc' as backend.
     assoc' bnds defvalue ascs = fromUnlist $ assoc' bnds defvalue ascs
       where
         fromUnlist = fromFoldable :: Unlist e -> BinTree e
     
+    {-# INLINE (//) #-}
     -- BinTree (//) uses Unlist (//) as backend.
     es // ies = fromFoldable $ (toUnlist es) // ies
       where
         toUnlist = fromFoldable :: BinTree e -> Unlist e
     
+    {-# INLINE (!) #-}
     Z ! _ = throw $ EmptyRange "in SDP.BinTree"
     es@(BinNode _ _ s _ _) ! n
         | Z <- es = throw $ EmptyRange     msg
@@ -424,7 +423,6 @@ rotateLeft  :: BinTree e -> BinTree e
 rotateLeft  (BinNode l a _ _ (BinNode (BinNode m c _ _ n) b _ _ r)) = acb
   where
     acb = BinNode lam c sc hc nbr
-    
     lam = BinNode l a sa ha m
     nbr = BinNode n b sb hb r
     
@@ -462,24 +460,21 @@ height_ (BinNode l _ _ _ r) = 1 + max (height_ l) (height_ r)
 
 -}
 
--- cached height, not bad and fast: O(1).
 {-# INLINE height #-}
+-- cached height, not bad and fast: O(1).
 height :: BinTree e -> Int
-height Z  = 0
-height (BinNode _ _ _ h _) = h
+height es = case es of {Z -> 0; BinNode _ _ _ h _ -> h}
 
--- better version of cached height for internal use.
 {-# INLINE height' #-}
+-- better version of cached height for internal use.
 height' :: BinTree e -> BinTree e -> Int
 height' l r = 1 + max (height l) (height r)
 
--- service version of length for internal use.
 {-# INLINE length' #-}
+-- service version of length for internal use.
 length' :: BinTree e -> BinTree e -> Int
 length' l r = length l + length r + 1
 
 pfailEx     :: String -> a
 pfailEx msg =  throw . PatternMatchFail $ "in SDP.Tree.BinTree." ++ msg
-
-
 

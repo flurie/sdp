@@ -39,7 +39,8 @@ import GHC.Base
     
     newArray#, unsafeFreezeArray#, writeArray#, indexArray#
   )
-import GHC.ST   ( ST (..), STRep, runST )
+
+import GHC.ST ( ST (..), STRep, runST )
 
 import Data.String ( IsString (..) )
 

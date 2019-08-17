@@ -141,6 +141,8 @@ instance (Unboxed e) => IndexedM (ST s) (STUblist s e) Int e
       where
         msg = "in SDP.ByteList.STUnlist.(!>)"
     
+    writeM_ = writeM
+    
     writeM STUBEmpty _ _ = return ()
     writeM (STUblist n marr# marr) i@(I# i#) e
       | i < 0 = return ()
@@ -203,4 +205,6 @@ unreachEx msg =  throw . UnreachableException $ "in SDP.STUnlist." ++ msg
 
 lim :: Int
 lim =  1024
+
+
 

@@ -29,8 +29,7 @@ import SDP.Unboxed
 import SDP.Linear
 
 import GHC.Base ( Int (..) )
-
-import GHC.ST ( ST (..) )
+import GHC.ST   ( ST  (..) )
 
 import SDP.ByteList.STUblist
 import SDP.Simple
@@ -58,12 +57,10 @@ instance (Index i, Unboxed e) => Eq (STByteList s i e)
 
 instance (Index i, Unboxed e) => BorderedM (ST s) (STByteList s i e) i e
   where
-    getLower   (STByteList l _ _) = return l
-    getUpper   (STByteList _ u _) = return u
-    
-    getSizeOf  (STByteList l u _) = return $ size  (l, u)
-    getIndices (STByteList l u _) = return $ range (l, u)
-    
+    getLower   (STByteList l _ _)   = return l
+    getUpper   (STByteList _ u _)   = return u
+    getSizeOf  (STByteList l u _)   = return $ size  (l, u)
+    getIndices (STByteList l u _)   = return $ range (l, u)
     getIndexOf (STByteList l u _) i = return $ inRange (l, u) i
 
 instance (Index i, Unboxed e) => LinearM (ST s) (STByteList s i e) e
@@ -96,10 +93,8 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STByteList s i e) i e
     fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
     
     (STByteList _ _ es) !#> i = es !#> i
-    
-    (STByteList l u es) >! i = es >! offset (l, u) i
-    
-    (STByteList l u es) !> i = case inBounds (l, u) i of
+    (STByteList l u es) >!  i = es >! offset (l, u) i
+    (STByteList l u es) !>  i = case inBounds (l, u) i of
         ER -> throw $ EmptyRange     msg
         UR -> throw $ IndexUnderflow msg
         IN -> es >! offset (l, u) i
@@ -107,7 +102,8 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STByteList s i e) i e
       where
         msg = "in SDP.ByteList.ST.(!>)"
     
-    writeM (STByteList l u es) i = writeM es $ offset (l, u) i
+    writeM_ (STByteList _ _ es) i = writeM es i
+    writeM  (STByteList l u es) i = writeM es $ offset (l, u) i
     
     overwrite es [] = return es
     overwrite (STByteList l u es) ascs
@@ -120,4 +116,5 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STByteList s i e) i e
         ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
     
     p *? marr = fsts . filter (p . snd) <$> getAssocs marr
+
 
