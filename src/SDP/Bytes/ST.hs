@@ -39,6 +39,9 @@ import GHC.Base
 
 import GHC.ST ( ST (..), STRep )
 
+import SDP.SortM
+import SDP.SortM.Stuff
+
 import SDP.Simple
 
 default ()
@@ -145,6 +148,17 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STBytes s i e) i e
 
 --------------------------------------------------------------------------------
 
+{- SortM instance. -}
+
+instance (Index i, Unboxed e) => SortM (ST s) (STBytes s i e) e
+  where
+    sortMBy cmp es = timSortMBy cmp es
+    
+    -- timSort works well on data with a lot of repetitions.
+    mathsortMBy cmp es = timSortMBy cmp es
+
+--------------------------------------------------------------------------------
+
 filled_ :: (Index i, Unboxed e) => Int -> (i, i) -> e -> ST s (STBytes s i e)
 filled_ n@(I# n#) (l, u) e = ST $ \ s1# -> case newUnboxed e n# s1# of
   (# s2#, marr# #) -> (# s2#, STBytes l u n marr# #)
@@ -159,6 +173,7 @@ fill marr# (I# i#, e) nxt = \ s1# -> case writeByteArray# marr# i# e s1# of s2# 
 
 unreachEx     :: String -> a
 unreachEx msg =  throw . UnreachableException $ "in SDP.Bytes.ST." ++ msg
+
 
 
 
