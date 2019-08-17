@@ -42,7 +42,7 @@ import GHC.Base
   (
     Array#, Int (..),
     
-    newArray#, unsafeFreezeArray#, writeArray#, indexArray#
+    newArray#, thawArray#, unsafeFreezeArray#, writeArray#, indexArray#
   )
 
 import GHC.Show ( appPrec )
@@ -54,7 +54,9 @@ import Text.Read.Lex ( expect )
 import qualified GHC.Exts as E
 import Data.String ( IsString (..) )
 
+import SDP.SortM.Stuff
 import SDP.Array.ST
+
 import SDP.Simple
 
 default ()
@@ -390,6 +392,12 @@ instance (Index i, Arbitrary e) => Arbitrary (Array i e) where arbitrary = fromL
 
 --------------------------------------------------------------------------------
 
+instance (Index i) => Sort (Array i e) e
+  where
+    sortBy cmp es = runST $ do es' <- thaw es; timSortBy cmp es'; done es'
+
+--------------------------------------------------------------------------------
+
 {-# INLINE (!#) #-}
 (!#) :: Array i e -> Int -> e
 (!#) (Array _ _ _ arr#) (I# i#) = case indexArray# arr# i# of (# e #) -> e
@@ -399,11 +407,18 @@ done :: STArray s i e -> ST s (Array i e)
 done (STArray l u n marr#) = ST $ \ s1# -> case unsafeFreezeArray# marr# s1# of
   (# s2#, arr# #) -> (# s2#, Array l u n arr# #)
 
+thaw :: Array i e -> ST s (STArray s i e)
+thaw (Array l u n arr#) = ST $ \ s1# -> case thawArray# arr# 0# n# s1# of
+    (# s2#, marr# #) -> (# s2#, STArray l u n marr# #)
+  where
+    !(I# n#) = max 0 n
+
 pfailEx       :: String -> a
 pfailEx   msg =  throw . PatternMatchFail $ "in SDP.Array." ++ msg
 
 unreachEx     :: String -> a
 unreachEx msg =  throw . UnreachableException $ "in SDP.Array." ++ msg
+
 
 
 

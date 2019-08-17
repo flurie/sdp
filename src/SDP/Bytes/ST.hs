@@ -18,6 +18,7 @@
 module SDP.Bytes.ST
 (
   module SDP.IndexedM,
+  module SDP.SortM,
   
   STBytes (..)
 )
@@ -152,10 +153,7 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STBytes s i e) i e
 
 instance (Index i, Unboxed e) => SortM (ST s) (STBytes s i e) e
   where
-    sortMBy cmp es = timSortMBy cmp es
-    
-    -- timSort works well on data with a lot of repetitions.
-    mathsortMBy cmp es = timSortMBy cmp es
+    sortMBy cmp es = timSortBy cmp es
 
 --------------------------------------------------------------------------------
 
@@ -173,8 +171,5 @@ fill marr# (I# i#, e) nxt = \ s1# -> case writeByteArray# marr# i# e s1# of s2# 
 
 unreachEx     :: String -> a
 unreachEx msg =  throw . UnreachableException $ "in SDP.Bytes.ST." ++ msg
-
-
-
 
 

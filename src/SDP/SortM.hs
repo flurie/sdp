@@ -24,6 +24,8 @@ default ()
 
 class SortM m s e | s -> m, s -> e
   where
+    {-# MINIMAL sortMBy #-}
+    
     -- | sortMBy is common sorting algorithm.
     sortMBy :: Compare e -> s -> m ()
     
@@ -32,6 +34,7 @@ class SortM m s e | s -> m, s -> e
       data with a lot of repetitions.
     -}
     mathsortMBy :: Compare e -> s -> m ()
+    mathsortMBy cmp es = sortMBy cmp es
 
 -- | sortM is just synonym for sortMBy compare
 sortM   :: (SortM m s e, Ord e) => s -> m ()
@@ -48,8 +51,5 @@ mathsortM es = mathsortMBy compare es
 -- | Math sort by comparing the results of a key function applied to each element.
 mathsortMOn :: (SortM m s e, Ord o) => (e -> o) -> s -> m ()
 mathsortMOn f es = mathsortMBy (compare `on` f) es
-
-
-
 
 

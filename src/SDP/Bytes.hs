@@ -34,20 +34,23 @@ import Test.QuickCheck
 
 import SDP.Indexed
 import SDP.Unboxed
+import SDP.Sort
 import SDP.Set
 
 import Text.Read
 import Text.Read.Lex ( expect )
 
-import GHC.Exts ( ByteArray#, newByteArray#, unsafeFreezeByteArray# )
+import GHC.Base ( Int (..), ByteArray#, newByteArray#, unsafeFreezeByteArray# )
 import GHC.Show ( appPrec )
-import GHC.Int  ( Int (..) )
+
 import GHC.ST   ( runST, ST (..) )
 
 import qualified GHC.Exts as E
 import Data.String ( IsString (..) )
 
+import SDP.SortM.Stuff
 import SDP.Bytes.ST
+
 import SDP.Simple
 
 default ()
@@ -224,6 +227,18 @@ instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (Bytes i e) where arbitr
 -- instance (Index i, Unboxed e) => Set (Bytes i e) e
 
 --------------------------------------------------------------------------------
+
+instance (Index i, Unboxed e) => Sort (Bytes i e) e
+  where
+    sortBy cmp es = runST $ do es' <- thaw es; timSortBy cmp es'; done es'
+
+--------------------------------------------------------------------------------
+
+thaw :: (Index i, Unboxed e) => Bytes i e -> ST s (STBytes s i e)
+thaw es@(Bytes l u n _) = ST $ \ s1# -> case rep s1# of
+    (# s2#, es'@(STBytes _ _ _ marr#) #) -> (# s2#, (STBytes l u n marr#) `asTypeOf` es' #)
+  where
+    (ST rep) = newLinear $ listL es
 
 {-# INLINE done #-}
 done :: (Index i) => STBytes s i e -> ST s (Bytes i e)

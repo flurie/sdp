@@ -28,6 +28,8 @@ default ()
 -- | Sort - is class of types that can be sorted.
 class Sort s e | s -> e
   where
+    {-# MINIMAL sortBy #-}
+    
     -- | sortBy function is common sorting algorithm.
     sortBy :: Compare e -> s -> s
     
@@ -36,6 +38,7 @@ class Sort s e | s -> e
       data with a lot of repetitions.
     -}
     mathsortBy :: Compare e -> s -> s
+    mathsortBy cmp es = sortBy cmp es
 
 -- | sort is just synonym for sortBy compare
 sort   :: (Sort s e, Ord e) => s -> s
@@ -71,5 +74,7 @@ instance Sort [a] a
         split' xs@(x : _) = y : split' ys
           where
             (y, ys) = L.partition (\ e -> x `f` e == EQ) xs
+
+
 
 

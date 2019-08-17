@@ -4,7 +4,7 @@ module SDP.SortM.Stuff
 (
   insertionSort, insertionSortBy, insertionSortOn,
   
-  timSortM, timSortMBy, timSortMOn,
+  timSort, timSortBy, timSortOn,
   
   sorted, sortedM, ascending,
   
@@ -32,13 +32,11 @@ insertionSort :: (BorderedM m v i e, IndexedM m v i e, Ord e) => v -> m ()
 insertionSort es = insertionSortBy compare es
 
 insertionSortOn :: (BorderedM m v i e, IndexedM m v i e, Ord o) => (e -> o) -> v -> m ()
-insertionSortOn f es = insertionSortBy (on compare f) es
+insertionSortOn f es = insertionSortBy (compare `on` f) es
 
-{-# INLINE insertionSortBy #-}
 insertionSortBy :: (BorderedM m v i e, IndexedM m v i e) => Compare e -> v -> m ()
 insertionSortBy cmp es = do n <- getSizeOf es; insertionSort_ cmp es 0 0 (n - 1)
 
-{-# INLINE insertionSort_ #-}
 insertionSort_ :: (IndexedM m v i e) => Compare e -> v -> Int -> Int -> Int -> m ()
 insertionSort_ cmp es b s e' = mapM_ insert [s + 1 .. e']
   where
@@ -51,14 +49,14 @@ insertionSort_ cmp es b s e' = mapM_ insert [s + 1 .. e']
 
 {- Monadic TimSort. -}
 
-timSortM :: (LinearM m v e, BorderedM m v i e, IndexedM m v i e, Ord e) => v -> m ()
-timSortM es = timSortMBy compare es
+timSort :: (LinearM m v e, BorderedM m v i e, IndexedM m v i e, Ord e) => v -> m ()
+timSort es = timSortBy compare es
 
-timSortMOn :: (LinearM m v e, BorderedM m v i e, IndexedM m v i e, Ord o) => (e -> o) -> v -> m ()
-timSortMOn f es = timSortMBy (on compare f) es
+timSortOn :: (LinearM m v e, BorderedM m v i e, IndexedM m v i e, Ord o) => (e -> o) -> v -> m ()
+timSortOn f es = timSortBy (compare `on` f) es
 
-timSortMBy :: (BorderedM m v i e, LinearM m v e, IndexedM m v i e) => Compare e -> v -> m ()
-timSortMBy cmp es = getSizeOf es >>= timSort'
+timSortBy :: (BorderedM m v i e, LinearM m v e, IndexedM m v i e) => Compare e -> v -> m ()
+timSortBy cmp es = getSizeOf es >>= timSort'
   where
     timSort' n
       | n <  0 = return ()

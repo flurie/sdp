@@ -18,6 +18,7 @@
 module SDP.Array.ST
 (
   module SDP.IndexedM,
+  module SDP.SortM,
   
   STArray (..)
 )
@@ -147,10 +148,7 @@ instance (Index i) => IndexedM (ST s) (STArray s i e) i e
 
 instance (Index i) => SortM (ST s) (STArray s i e) e
   where
-    sortMBy cmp es = timSortMBy cmp es
-    
-    -- timSort works well on data with a lot of repetitions.
-    mathsortMBy cmp es = timSortMBy cmp es
+    sortMBy cmp es = timSortBy cmp es
 
 --------------------------------------------------------------------------------
 
@@ -160,6 +158,8 @@ done (l, u) n marr# = \ s1# -> (# s1#, STArray l u n marr# #)
 
 unreachEx     :: String -> a
 unreachEx msg =  throw . UnreachableException $ "in SDP.Array.ST." ++ msg
+
+
 
 
 
