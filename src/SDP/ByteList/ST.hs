@@ -58,8 +58,8 @@ instance (Index i, Unboxed e) => Eq (STByteList s i e)
 
 instance (Index i, Unboxed e) => BorderedM (ST s) (STByteList s i e) i e
   where
-    getLower (STByteList l _ _) = return l
-    getUpper (STByteList _ u _) = return u
+    getLower   (STByteList l _ _) = return l
+    getUpper   (STByteList _ u _) = return u
     
     getSizeOf  (STByteList l u _) = return $ size  (l, u)
     getIndices (STByteList l u _) = return $ range (l, u)
@@ -72,10 +72,13 @@ instance (Index i, Unboxed e) => LinearM (ST s) (STByteList s i e) e
     
     fromFoldableM es = STByteList l u <$> fromFoldableM es
       where
-        (l, u) = unsafeBounds $ length es
+        (l, u) = unsafeBounds (length es)
     
     getLeft  (STByteList l u es) = take (size (l, u)) <$> getLeft es
     getRight (STByteList l u es) = liftA2 (\ s r -> drop (s - size (l, u)) r) (getSizeOf es) (getRight es)
+    
+    copied  (STByteList l u es)       = STByteList l u <$> copied  es
+    copied' (STByteList l u es) l' u' = STByteList l u <$> copied' es l' u'
     
     {-# INLINE reversed #-}
     reversed es = liftA2 (\ bnds -> zip $ range bnds) (getBounds es) (getRight es) >>= overwrite es
@@ -91,6 +94,8 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STByteList s i e) i e
   where
     {-# INLINE fromAssocs' #-}
     fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
+    
+    (STByteList _ _ es) !#> i = es !#> i
     
     (STByteList l u es) >! i = es >! offset (l, u) i
     

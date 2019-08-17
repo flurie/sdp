@@ -122,10 +122,10 @@ instance IndexedM (ST s) (STUnlist s e) Int e
     {-# INLINE fromAssocs' #-}
     fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
     
+    es !#> i = es >! i
+    
     {-# INLINE (>!) #-}
-    (STUnlist n marr# marr) >! i@(I# i#)
-      | i >= n = marr !> (i - n)
-      |  True  = ST $ readArray# marr# i#
+    (STUnlist n marr# marr) >! i@(I# i#) = i >= n ? marr !> (i - n) $ ST (readArray# marr# i#)
     _ >! _ = error "SDP.Unrolled.STUnlist.(>!) tried to find element in empty STUnlist"
     
     STUNEmpty           !> _ = throw $ EmptyRange "in SDP.Unrolled.STUnlist.(!>)"

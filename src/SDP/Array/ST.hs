@@ -89,6 +89,12 @@ instance (Index i) => LinearM (ST s) (STArray s i e) e
     getLeft  es@(STArray l u _ _) = sequence [ es >! i | i <- range (l, u) ]
     getRight es@(STArray l u _ _) = sequence [ es >! i | i <- reverse $ range (l, u) ]
     
+    copied (STArray _ _ n marr#) = do
+      copy@(STArray _ _ _ marr1#) <- filled n $ unreachEx "copied"
+      forM_ [0 .. n - 1] $ \ (I# i#) -> ST $ \ s1# -> case readArray# marr# i# s1# of
+        (# s2#, e #) -> case writeArray# marr1# i# e s2# of s3# -> (# s3#, () #)
+      return copy
+    
     {-# INLINE reversed #-}
     reversed es = liftA2 (\ bnds -> zip $ range bnds) (getBounds es) (getRight es) >>= overwrite es
     
@@ -108,8 +114,13 @@ instance (Index i) => IndexedM (ST s) (STArray s i e) i e
         newArr = ST $ \ s1# -> case newArray# n# defvalue s1# of (# s2#, marr# #) -> done bnds n marr# s2#
         !n@(I# n#) = size bnds
     
+    (STArray _ _ _ marr#) !#> (I# i#) = ST $ readArray# marr# i#
+    
     {-# INLINE (>!) #-}
     (STArray l u _ marr#) >! i = case offset (l, u) i of (I# i#) -> ST $ readArray# marr# i#
+    
+    writeM_ (STArray _ _ _ marr#) (I# i#) e = ST $
+      \ s1# -> case writeArray# marr# i# e s1# of s2# -> (# s2#, () #)
     
     writeM (STArray l u _ marr#) i e = let !(I# i#) = offset (l, u) i in ST $
       \ s1# -> case writeArray# marr# i# e s1# of s2# -> (# s2#, () #)
@@ -123,7 +134,7 @@ instance (Index i) => IndexedM (ST s) (STArray s i e) i e
         msg = "in SDP.Array.ST.(!>)"
     
     {-# INLINE overwrite #-}
-    overwrite (STArray l u n marr#) ascs = ST $ foldr (fill marr#) (done (l, u) n marr#) ies
+    overwrite es@(STArray l u _ _) ascs = mapM_ (uncurry $ writeM_ es) ies >> return es
       where
         ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
     
@@ -135,14 +146,6 @@ instance (Index i) => IndexedM (ST s) (STArray s i e) i e
 done :: (i, i) -> Int -> MutableArray# s e -> STRep s (STArray s i e)
 done (l, u) n marr# = \ s1# -> (# s1#, STArray l u n marr# #)
 
-{-# INLINE fill #-}
-fill :: MutableArray# s e -> (Int, e) -> STRep s a -> STRep s a
-fill marr# (I# i#, e) nxt = \ s1# -> case writeArray# marr# i# e s1# of s2# -> nxt s2#
-
 unreachEx     :: String -> a
 unreachEx msg =  throw . UnreachableException $ "in SDP.Array.ST." ++ msg
-
-
-
-
 

@@ -15,7 +15,7 @@ module SDP.Estimate
 (
   module Data.Functor.Classes,
   
-  Estimate (..), EL (..), (<=>), min_, max_
+  Estimate (..), EL (..), min_, max_
 )
 where
 
@@ -33,10 +33,6 @@ import Data.Functor.Classes
 default ()
 
 --------------------------------------------------------------------------------
-
--- | "spaceship operator" - infix version of compare.
-(<=>) :: (Ord a) => a -> a -> Ordering
-(<=>) = compare
 
 {- |
     Type EL allows you to consistently represent all kinds of structures

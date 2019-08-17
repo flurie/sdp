@@ -21,7 +21,7 @@ module SDP.LinearM
   )
 where
 
-import Prelude ( zip, take, reverse )
+import Prelude ( zip, take, drop, reverse )
 import SDP.SafePrelude
 
 import SDP.Index
@@ -102,6 +102,16 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     {-# INLINE getRight #-}
     getRight    :: l -> m [e]
     getRight es =  reverse <$> getLeft es
+    
+    copied    :: l -> m l
+    copied es = getLeft es >>= newLinear
+    
+    {- |
+      copied' es l u (where l - begining, u - count of elements)
+      returns the slice of line.
+    -}
+    copied' :: l -> Int -> Int -> m l
+    copied' es l u = getLeft es >>= newLinear . take u . drop l
     
     -- | In-place reverse of line.
     reversed :: l -> m l

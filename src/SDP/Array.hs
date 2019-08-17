@@ -38,7 +38,13 @@ import SDP.Set
 
 import Test.QuickCheck
 
-import GHC.Base ( Array#, Int (..), newArray#, unsafeFreezeArray#, writeArray#, indexArray# )
+import GHC.Base
+  (
+    Array#, Int (..),
+    
+    newArray#, unsafeFreezeArray#, writeArray#, indexArray#
+  )
+
 import GHC.Show ( appPrec )
 import GHC.ST   ( ST (..), runST )
 

@@ -22,7 +22,7 @@ module SDP.SafePrelude
   module SDP.Estimate,
   module Prelude,
   
-  (?)
+  (?), (<=>)
 )
 where
 
@@ -47,15 +47,19 @@ import Control.Monad
 import Data.Foldable hiding ( concat, concatMap )
 import SDP.Estimate
 
-infixr 1 ? -- Lowest priority, compatible with infixr 0 $
+infixr 1  ?  -- Lowest priority, compatible with infixr 0 $
+infixl 4 <=> -- Priority of (==), (>), etc.
 
--- |
--- Ternary operator.
+-- | Ternary operator.
 -- >>> odd 1 ? "is True" $ "is False"
 -- "is True"
 
 {-# INLINE (?) #-}
 (?)   :: Bool -> a -> a -> a
 (?) p t e = if p then t else e
+
+-- | "spaceship operator" - infix version of compare.
+(<=>) :: (Ord a) => a -> a -> Ordering
+(<=>) = compare
 
 

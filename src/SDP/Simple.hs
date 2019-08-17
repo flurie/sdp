@@ -26,19 +26,17 @@ module SDP.Simple
   
   cmpfst, cmpsnd, eqfst, eqsnd,
   
-  (?>), bindM2, bindM3, bindM4,
-  
-  minrunTS
+  (?>), bindM2, bindM3, bindM4
 )
 
 where
 
 import Control.Exception.SDP
+import Control.Monad
 
 import Data.Function
 import Data.Default
 import Data.Maybe
-import Data.Bits
 import Data.Bool
 import Data.Ord
 import Data.Eq
@@ -98,30 +96,20 @@ eqsnd = on (==) snd
 (?>) :: (Monad m) => (a -> m Bool) -> (a -> m b) -> a -> m (Maybe b)
 p ?> f = \ a -> p a >>= \ b -> if b then Just <$> f a else return Nothing
 
--- Composition of liftM2 and (>>=).
+-- Composition of liftM2 and join.
 bindM2 :: (Monad m) => m a -> m b -> (a -> b -> m c) -> m c
-bindM2 ma mb kl2 = do a <- ma; b <- mb; kl2 a b
+bindM2 ma mb kl2 = join $ liftM2 kl2 ma mb
 
 -- Composition of liftM3 and (>>=).
 bindM3 :: (Monad m) => m a -> m b -> m c -> (a -> b -> c -> m d) -> m d
-bindM3 ma mb mc kl3 = do a <- ma; b <- mb; c <- mc; kl3 a b c
+bindM3 ma mb mc kl3 = join $ liftM3 kl3 ma mb mc
 
 -- Composition of liftM4 and (>>=).
 bindM4 :: (Monad m) => m a -> m b -> m c -> m d -> (a -> b -> c -> d -> m e) -> m e
-bindM4 ma mb mc md kl4 = do a <- ma; b <- mb; c <- mc; d <- md; kl4 a b c d
+bindM4 ma mb mc md kl4 = join $ liftM4 kl4 ma mb mc md
 
 --------------------------------------------------------------------------------
 
+-- Just typedef.
 type Compare e = e -> e -> Ordering
-
---------------------------------------------------------------------------------
-
-{- Sorting stuff. -}
-
--- nimrunTS returns Timsort chunk size.
-minrunTS :: Int -> Int
-minrunTS i = mr i 0
-  where
-    mr :: Int -> Int -> Int
-    mr n r = if n >= 64 then mr (n `shiftR` 1) (n .&. 1) else n + r
 

@@ -121,25 +121,15 @@ instance (Unboxed e) => IndexedM (ST s) (STUblist s e) Int e
     {-# INLINE fromAssocs #-}
     fromAssocs bnds ascs = size bnds `filled_` err >>= (`overwrite` ascs)
       where
-        filled_ :: (Unboxed e) => Int -> e -> ST s (STUblist s e)
-        filled_ n e
-            | n <  1  = return STUBEmpty
-            | n < lim = ST $ \ s1# -> case newUnboxed e l# s1# of
-              (# s2#, marr# #) -> (# s2#, STUblist n marr# STUBEmpty #)
-            |  True   = filled_ (n - lim) e >>= \ marr -> ST $
-              \ s1# -> case newUnboxed e l# s1# of
-                (# s2#, marr# #) -> (# s2#, STUblist n marr# marr #)
-        
-        err      = throw $ UndefinedValue "in SDP.ByteList.STUblist.fromAssocs"
-        !(I# l#) = lim
+        err = throw $ UndefinedValue "in SDP.ByteList.STUblist.fromAssocs"
     
     {-# INLINE fromAssocs' #-}
     fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
     
+    es !#> i = es >! i
+    
     {-# INLINE (>!) #-}
-    (STUblist n marr# marr) >! i@(I# i#)
-      | i >= n = marr !> (i - n)
-      |  True  = ST $ marr# !># i#
+    (STUblist n marr# marr) >! i@(I# i#) = i >= n ? marr !> (i - n) $ ST (marr# !># i#)
     _ >! _ = error "SDP.ByteList.STUblist.(>!) tried to find element in empty STUblist"
     
     STUBEmpty           !> _ = throw $ EmptyRange "in SDP.ByteList.STUnlist.(!>)"
@@ -189,6 +179,17 @@ xs' .++ ys' = liftA2 cat xs' ys'
     cat (STUblist n1 marr1# marr1) y = STUblist n1 marr1# (cat marr1 y)
     cat STUBEmpty y = y
 
+filled_ :: (Unboxed e) => Int -> e -> ST s (STUblist s e)
+filled_ n e
+    | n <  1  = return STUBEmpty
+    | n < lim = ST $ \ s1# -> case newUnboxed e l# s1# of
+      (# s2#, marr# #) -> (# s2#, STUblist n marr# STUBEmpty #)
+    |  True   = filled_ (n - lim) e >>= \ marr -> ST $
+      \ s1# -> case newUnboxed e l# s1# of
+        (# s2#, marr# #) -> (# s2#, STUblist n marr# marr #)
+  where
+    !(I# l#) = lim
+
 {-# INLINE done #-}
 done :: Int -> MutableByteArray# s -> STUblist s e -> STRep s (STUblist s e)
 done n marr# rest = \ s1# -> (# s1#, STUblist n marr# rest #)
@@ -202,5 +203,4 @@ unreachEx msg =  throw . UnreachableException $ "in SDP.STUnlist." ++ msg
 
 lim :: Int
 lim =  1024
-
 

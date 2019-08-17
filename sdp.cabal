@@ -40,6 +40,7 @@ Library
     
     Control.Exception.SDP
     SDP.SafePrelude
+    SDP.SortM.Stuff
     SDP.Estimate
     SDP.Unboxed
     SDP.Index

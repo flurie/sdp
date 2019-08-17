@@ -76,6 +76,9 @@ instance (Index i) => LinearM (ST s) (STUnrolled s i e) e
     getLeft  (STUnrolled l u es) = take (size (l, u)) <$> getLeft es
     getRight (STUnrolled l u es) = liftA2 (\ s r -> drop (s - size (l, u)) r) (getSizeOf es) (getRight es)
     
+    copied  (STUnrolled l u es)       = STUnrolled l u <$> copied  es
+    copied' (STUnrolled l u es) l' u' = STUnrolled l u <$> copied' es l' u'
+    
     {-# INLINE reversed #-}
     reversed es = liftA2 (\ bnds -> zip $ range bnds) (getBounds es) (getRight es) >>= overwrite es
     
@@ -90,6 +93,8 @@ instance (Index i) => IndexedM (ST s) (STUnrolled s i e) i e
   where
     {-# INLINE fromAssocs' #-}
     fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
+    
+    (STUnrolled _ _ es) !#> i = es !#> i
     
     (STUnrolled l u es) >! i = es >! offset (l, u) i
     
