@@ -8,7 +8,7 @@
     Portability :  non-portable (GHC Extensions)
     Stability   :  stable
     
-    SDP.SortM provides SortM - class of sortable immutable structures.
+    SDP.SortM provides SortM - class of sortable mutable structures.
 -}
 
 module SDP.SortM ( SortM (..), sortM, sortMOn, mathsortM, mathsortMOn ) where
@@ -22,18 +22,19 @@ default ()
 
 --------------------------------------------------------------------------------
 
+-- | SortM is class class of sortable mutable structures.
 class SortM m s e | s -> m, s -> e
   where
     {-# MINIMAL sortMBy #-}
     
     -- | sortMBy is common sorting algorithm.
-    sortMBy :: Compare e -> s -> m ()
+    sortMBy :: (e -> e -> Ordering) -> s -> m ()
     
     {- |
       mathsortMBy is sortMBy modiffication, that which is optimized for sorting
       data with a lot of repetitions.
     -}
-    mathsortMBy :: Compare e -> s -> m ()
+    mathsortMBy :: (e -> e -> Ordering) -> s -> m ()
     mathsortMBy cmp es = sortMBy cmp es
 
 -- | sortM is just synonym for sortMBy compare

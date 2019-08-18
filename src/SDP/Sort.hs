@@ -31,13 +31,13 @@ class Sort s e | s -> e
     {-# MINIMAL sortBy #-}
     
     -- | sortBy function is common sorting algorithm.
-    sortBy :: Compare e -> s -> s
+    sortBy :: (e -> e -> Ordering) -> s -> s
     
     {- |
       mathsortBy is sortBy modiffication, that which is optimized for sorting
       data with a lot of repetitions.
     -}
-    mathsortBy :: Compare e -> s -> s
+    mathsortBy :: (e -> e -> Ordering) -> s -> s
     mathsortBy cmp es = sortBy cmp es
 
 -- | sort is just synonym for sortBy compare

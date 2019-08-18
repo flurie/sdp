@@ -95,6 +95,12 @@ class (Monad m, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
 --------------------------------------------------------------------------------
 
 {-# INLINE arrcopy #-}
+{- |
+  arrcopy is a utility function that copies a fragment of the first array to the
+  second array. This function is not intended for copying to an adjacent memory
+  area. The first 2 Int arguments are the offsets in the first and second
+  arrays, respectively, the third is the number of elements to be copied.
+-}
 arrcopy :: (IndexedM m v i e) => v -> v -> Int -> Int -> Int -> m ()
 arrcopy xs ys ix iy count = copy ix iy (max 0 count)
   where

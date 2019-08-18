@@ -28,16 +28,30 @@ default ()
 
 {- Insertion sort. -}
 
+-- | insertionSort is just synonym for insertionSortBy compare.
 insertionSort :: (BorderedM m v i e, IndexedM m v i e, Ord e) => v -> m ()
 insertionSort es = insertionSortBy compare es
 
+{- |
+  insertionSortOn is a version of insertionSortBy that uses a cast function to
+  compare elements.
+-}
 insertionSortOn :: (BorderedM m v i e, IndexedM m v i e, Ord o) => (e -> o) -> v -> m ()
 insertionSortOn f es = insertionSortBy (compare `on` f) es
 
-insertionSortBy :: (BorderedM m v i e, IndexedM m v i e) => Compare e -> v -> m ()
+{- |
+  insertionSortBy is naive service sorting procedure, that have O(n) complexity
+  in all cases.
+-}
+insertionSortBy :: (BorderedM m v i e, IndexedM m v i e) => (e -> e -> Ordering) -> v -> m ()
 insertionSortBy cmp es = do n <- getSizeOf es; insertionSort_ cmp es 0 0 (n - 1)
 
-insertionSort_ :: (IndexedM m v i e) => Compare e -> v -> Int -> Int -> Int -> m ()
+{-
+  insertionSort_ cmp es b s e is internal sorting procedure, where
+  cmp - comparator, es - data structure, [b .. s] - sorted fragment,
+  [b .. e] - sortable fragment.
+-}
+insertionSort_ :: (IndexedM m v i e) => (e -> e -> Ordering) -> v -> Int -> Int -> Int -> m ()
 insertionSort_ cmp es b s e' = mapM_ insert [s + 1 .. e']
   where
     insert u = do j <- snext (b, u - 1) u; mapM_ (swap es u) [j .. u - 1]
@@ -49,13 +63,23 @@ insertionSort_ cmp es b s e' = mapM_ insert [s + 1 .. e']
 
 {- Monadic TimSort. -}
 
+-- | timsort is just synonym for timSortBy compare
 timSort :: (LinearM m v e, BorderedM m v i e, IndexedM m v i e, Ord e) => v -> m ()
 timSort es = timSortBy compare es
 
+{- |
+  timSortOn is a version of timSortBy that uses a cast function to compare
+  elements.
+-}
 timSortOn :: (LinearM m v e, BorderedM m v i e, IndexedM m v i e, Ord o) => (e -> o) -> v -> m ()
 timSortOn f es = timSortBy (compare `on` f) es
 
-timSortBy :: (BorderedM m v i e, LinearM m v e, IndexedM m v i e) => Compare e -> v -> m ()
+{- |
+  timSortBy is a sorting procedure for mutable random access data structures
+  using any comparison function and having O (nlogn) complexity in the worst
+  case.
+-}
+timSortBy :: (BorderedM m v i e, LinearM m v e, IndexedM m v i e) => (e -> e -> Ordering) -> v -> m ()
 timSortBy cmp es = getSizeOf es >>= timSort'
   where
     timSort' n
@@ -110,7 +134,7 @@ timSortBy cmp es = getSizeOf es >>= timSort'
 --------------------------------------------------------------------------------
 
 {-# INLINE minrunTS #-}
--- minrunTS returns Timsort chunk size.
+-- | minrunTS returns Timsort chunk size.
 minrunTS :: Int -> Int
 minrunTS i = mr i 0 where mr n r = n >= 64 ? mr (shiftR n 1) (n .&. 1) $ n + r
 
@@ -118,16 +142,23 @@ minrunTS i = mr i 0 where mr n r = n >= 64 ? mr (shiftR n 1) (n .&. 1) $ n + r
 swap :: (IndexedM m v i e) => v -> Int -> Int -> m ()
 swap es i j = do a <- es !#> i; b <- es !#> j; writeM_ es j a; writeM_ es i b
 
+-- | sorted is a function that checks for sorting.
 sorted :: (Linear l e, Ord e) => l -> Bool
 sorted Z  = True
 sorted es = and $ zipWith (<=) es' (tail es') where es' = listL es
 
+-- | sortedM is a procedure that checks for sorting.
 sortedM :: (LinearM m l e, Ord e) => l -> m Bool
 sortedM es = do
   left <- getLeft es
   return $ case left of {[] -> True; _ -> and $ zipWith (<=) left (tail left)}
 
+{- |
+  ascending is a function that checks if sequences of elements given in pairs
+  (start, length) are sorted in ascending order.
+-}
 ascending :: (Split s e, Ord e) => s -> [(Int, Int)] -> Bool
 ascending es ss = sorted `all` splits (snds ss) es
+
 
 
