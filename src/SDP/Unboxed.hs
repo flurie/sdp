@@ -7,7 +7,6 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
-    Stability   :  stable
   
   This module provide service class Unboxed, that needed for SDP.UArray.
   This module partially based on code Data.Array.Base (array).
@@ -47,17 +46,17 @@ default ()
 
 class (Eq e) => Unboxed e
   where
-    -- | (bytes# !# i#) reads element of bytes# with index i#.
+    -- | Unsafe ByteList reader with overloaded result type.
     (!#)            :: ByteArray# -> Int# -> e
     
-    -- | (mbytes# !># i#) reads element of mbytes# with index i#.
+    -- | Unsafe MutableByteArray reader with overloaded result type.
     (!>#)           :: MutableByteArray# s -> Int# -> STRep s e
     
-    -- | writeByteArray# marr# i# e writes e to marr# with index i#.
+    -- | Unsafe MutableByteArray writer.
     writeByteArray# :: MutableByteArray# s -> Int# -> e -> State# s -> State# s
     
     {-# INLINE fillByteArray# #-}
-    -- | fillByteArray# fills byte array.
+    -- | Procedure for filling the array with the default value (like calloc).
     fillByteArray#  :: MutableByteArray# s -> Int# -> e -> State# s -> State# s
     fillByteArray# marr# n# e = \ s1# -> case sequence_
         [
@@ -66,7 +65,10 @@ class (Eq e) => Unboxed e
         ]
         of ST rep -> case rep s1# of (# s2#, () #) -> s2#
     
-    -- | newUnboxed e n# creates new MutableByteArray. First argument used as type variable.
+    {- |
+      newUnboxed creates new MutableByteArray.
+      First argument used as type variable.
+    -}
     newUnboxed      :: e -> Int# -> State# s -> (# State# s, MutableByteArray# s #)
     
     {-# INLINE newUnboxed' #-}

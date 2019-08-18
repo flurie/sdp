@@ -6,12 +6,10 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC-extensions)
-    Stability   :  stable
   
   LinearM is a module that provides several convenient interfaces for working
   with mutable linear data structures.
 -}
-
 module SDP.LinearM
   (
     module SDP.Index,

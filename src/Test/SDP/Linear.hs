@@ -4,11 +4,9 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
-    Stability   :  stable
     
     Test.SDP.Linear provides simple set of test for SDP.Linear class.
 -}
-
 module Test.SDP.Linear
 (
   TestLinear2,

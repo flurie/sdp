@@ -6,7 +6,6 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
-    Stability   :  stable
     
     SDP.SortM provides SortM - class of sortable mutable structures.
 -}

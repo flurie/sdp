@@ -7,7 +7,6 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
-    Stability   :  stable
     
     This module provides service type Unlist - lazy boxed unrolled linked list
     for SDP.Unrolled.

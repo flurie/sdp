@@ -1,4 +1,5 @@
-{-# LANGUAGE MultiParamTypeClasses, TypeFamilies, FunctionalDependencies, FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
+{-# LANGUAGE Trustworthy, TypeFamilies #-}
 
 {- |
     Module      :  SDP.Tree.BinTree
@@ -6,7 +7,6 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (imports SDP.Indexed)
-    Stability   :  experimental
     
     SDP.Tree.BinTree provides immutable lazy boxed tree.
     This implementation of a binary tree is self-balancing (when adding elements),

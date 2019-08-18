@@ -1,5 +1,14 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 
+{- |
+    Module      :  SDP.SortM.Stuff
+    Copyright   :  (c) Andrey Mulik 2019
+    License     :  BSD-style
+    Maintainer  :  work.a.mulik@gmail.com
+    Portability :  non-portable (GHC Extensions)
+    
+    SDP.SortM.Stuff provides some sorting algorithms.
+-}
 module SDP.SortM.Stuff
 (
   insertionSort, insertionSortBy, insertionSortOn,

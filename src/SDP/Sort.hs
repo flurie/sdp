@@ -7,7 +7,6 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
-    Stability   :  experimental
     
     SDP.Sort provides Sort - class of sortable immutable structures.
 -}

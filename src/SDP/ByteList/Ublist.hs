@@ -7,7 +7,6 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
-    Stability   :  stable
     
     This module provides service type Ublist - strict boxed unrolled linked list
     for SDP.ByteList.

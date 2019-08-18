@@ -6,7 +6,6 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC-extensions)
-    Stability   :  stable
   
   IndexedM is service class of SDP, designed to read and write mutable indexable
   data structures.
@@ -29,9 +28,9 @@ import SDP.LinearM
 
 import SDP.Simple
 
-default ()
-
 infixl 5 !#>
+
+default ()
 
 --------------------------------------------------------------------------------
 
@@ -112,4 +111,5 @@ arrcopy xs ys ix iy count = copy ix iy (max 0 count)
 
 undEx :: String -> a
 undEx msg = throw . UndefinedValue $ "in SDP.IndexedM" ++ msg
+
 

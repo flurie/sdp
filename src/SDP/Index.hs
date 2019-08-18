@@ -8,7 +8,6 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
-    Stability   :  stable
   
   Index is service class that replaces the more practice-oriented, but limitary
   "Data.Ix".
@@ -865,3 +864,7 @@ instance (Index i, Enum i, Bounded i) => Index (i, i, i, i, i, i, i, i, i, i, i,
     offset      bs i = toBounds bs `offset` toIndex i
     index       bs c = fromIndex $ toBounds bs `index` c
     unsafeIndex    c = fromIndex $ unsafeIndex c
+
+
+
+

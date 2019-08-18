@@ -1,5 +1,5 @@
-{-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, RoleAnnotations #-}
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
+{-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, RoleAnnotations #-}
 
 {-# LANGUAGE TypeFamilies #-}
 
@@ -9,7 +9,6 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
-    Stability   :  stable
     
     SDP.Array provides immutable lazy boxed array type.
     This implementation of array no much different from Data.Array (array),
@@ -418,8 +417,4 @@ pfailEx   msg =  throw . PatternMatchFail $ "in SDP.Array." ++ msg
 
 unreachEx     :: String -> a
 unreachEx msg =  throw . UnreachableException $ "in SDP.Array." ++ msg
-
-
-
-
 

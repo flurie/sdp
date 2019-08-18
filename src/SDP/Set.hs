@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE TypeOperators, GADTs, DefaultSignatures #-}
+{-# LANGUAGE Trustworthy, TypeOperators, GADTs, DefaultSignatures #-}
 
 {- |
     Module      :  SDP.Set
@@ -7,7 +7,6 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
-    Stability   :  experimental
   
     Set is a class that allows you to create sets and perform simple operations
   on them.
@@ -33,6 +32,8 @@ import SDP.Linear
 import Data.Maybe ( isJust )
 
 import GHC.Types
+
+default ()
 
 --------------------------------------------------------------------------------
 

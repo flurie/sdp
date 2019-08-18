@@ -6,7 +6,6 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (uses SDP.Estimate)
-    Stability   :  stable
   
   Module with simple common definitions.
   
@@ -28,7 +27,6 @@ where
 
 import Prelude hiding
   (
-  
     -- defined in SDP.Zip and Data.List (originally in GHC.List)
     zip, zip3, zipWith, zipWith3,
     
@@ -38,7 +36,6 @@ import Prelude hiding
     -- defined in SDP.Linear and Data.List (originally in GHC.List)
     head, tail, init, last, take, drop, (++), reverse, filter,
     concat, concatMap, replicate, takeWhile, dropWhile
-  
   )
 
 import Control.Applicative
@@ -50,10 +47,13 @@ import SDP.Estimate
 infixr 1  ?  -- Lowest priority, compatible with infixr 0 $
 infixl 4 <=> -- Priority of (==), (>), etc.
 
+default ()
+
+--------------------------------------------------------------------------------
+
 -- | Ternary operator.
 -- >>> odd 1 ? "is True" $ "is False"
 -- "is True"
-
 {-# INLINE (?) #-}
 (?)   :: Bool -> a -> a -> a
 (?) p t e = if p then t else e

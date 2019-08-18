@@ -9,18 +9,17 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
-    Stability   :  stable
     
     This module provides ByteList - strict boxed unrolled linked list.
 -}
 
 module SDP.ByteList
 (
-  ByteList (..),
-  Ublist, -- type Ublist exported as abstract.
-  
   module SDP.Indexed,
-  module SDP.Set
+  module SDP.Set,
+  
+  ByteList (..),
+  Ublist -- type Ublist exported as abstract.
 )
 where
 
@@ -247,4 +246,5 @@ instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (ByteList i e) where arb
 
 pfail     :: String -> a
 pfail msg =  throw . PatternMatchFail $ "in SDP.ByteList." ++ msg
+
 

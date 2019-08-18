@@ -7,7 +7,6 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
-    Stability   :  stable
     
     SDP.Bytes.ST provides mutable lazy boxed array type.
     This implementation of array no much different from Data.Array.ST (array),

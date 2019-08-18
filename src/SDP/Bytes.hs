@@ -9,7 +9,6 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
-    Stability   :  stable
     
     SDP.Bytes provides immutable strict unboxed array type.
     This implementation of UArray no much different from Data.Array.Unboxed (array),
@@ -247,4 +246,5 @@ done (STBytes l u n mbytes#) = ST $ \ s1# -> case unsafeFreezeByteArray# mbytes#
 
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Bytes." ++ msg
+
 

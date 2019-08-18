@@ -4,7 +4,6 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
-    Stability   :  stable
   
   This module provides Scan class that doesn't so needed for practical use, but
   good for generalization.
@@ -16,6 +15,8 @@ import Prelude ()
 import SDP.SafePrelude
 
 import qualified Data.List as L ( scanl, scanr, scanl', scanl1, scanr1 )
+
+default ()
 
 --------------------------------------------------------------------------------
 

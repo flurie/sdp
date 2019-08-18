@@ -4,7 +4,6 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
-    Stability   :  stable
 -}
 
 module Control.Exception.SDP
@@ -50,7 +49,7 @@ instance Exception IndexException
 
 {-|
     UnreachableCodeException exception type is used in expressions that should
-    never be evaluated. Is soft version of assert.
+    never be evaluated. Is soft version of 'AssertionFailed'.
 -}
 
 data UnreachableException = UnreachableException String

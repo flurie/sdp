@@ -1,6 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 {-# LANGUAGE TypeOperators, GADTs, DefaultSignatures #-}
 {-# LANGUAGE PatternSynonyms, ViewPatterns #-}
+{-# LANGUAGE Trustworthy #-}
 
 {- |
     Module      :  SDP.Linear
@@ -8,12 +9,10 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
-    Stability   :  stable
   
   Linear is a module that provides several convenient interfaces for working
   with various linear data structures.
 -}
-
 module SDP.Linear
 (
   module SDP.Index,
@@ -32,17 +31,17 @@ module SDP.Linear
 
 where
 
---------------------------------------------------------------------------------
-
 import Prelude ()
+import SDP.SafePrelude
+
 import qualified Data.List as L
 
-import SDP.SafePrelude
-import SDP.Simple
 import SDP.Index
 import SDP.Zip
 
 import GHC.Types
+
+import SDP.Simple
 
 default ()
 
