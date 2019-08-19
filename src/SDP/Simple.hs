@@ -16,8 +16,6 @@ module SDP.Simple
   
   Bounded (..), Enum (..),
   
-  Compare,
-  
   fst, snd,
   
   (?:), minMax,
@@ -107,9 +105,4 @@ bindM3 ma mb mc kl3 = join $ liftM3 kl3 ma mb mc
 -- Composition of liftM4 and (>>=).
 bindM4 :: (Monad m) => m a -> m b -> m c -> m d -> (a -> b -> c -> d -> m e) -> m e
 bindM4 ma mb mc md kl4 = join $ liftM4 kl4 ma mb mc md
-
---------------------------------------------------------------------------------
-
--- Just typedef.
-type Compare e = e -> e -> Ordering
 
