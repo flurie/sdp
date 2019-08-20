@@ -283,8 +283,11 @@ instance (Index i) => Indexed (Unrolled i e) i e
         es' = es // [ (offset (l, u) i, e) | (i, e) <- ascs ]
         (l', u') = unsafeBounds $ length es'
     
+    {-# INLINE (!^) #-}
+    (Unrolled _ _ es) !^ i = es !^ i
+    
     {-# INLINE (!) #-}
-    (!) (Unrolled l u es) i = es ! (offset (l, u) i)
+    (!) (Unrolled l u es) i = es ! offset (l, u) i
     
     p .$ (Unrolled l u es) = index (l, u) <$> p .$ es
     p *$ (Unrolled l u es) = index (l, u) <$> p *$ es
@@ -309,6 +312,4 @@ instance (Index i, Arbitrary e) => Arbitrary (Unrolled i e) where arbitrary = fr
 
 pfail     :: String -> a
 pfail msg =  throw . PatternMatchFail $ "in SDP.Unrolled." ++ msg
-
-
 

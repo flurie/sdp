@@ -104,7 +104,7 @@ instance Functor Unlist
         (# s2#, marr# #) ->
           let go i@(I# i#) s# = if i == n
               then done n (f <$> arrs) marr# s#
-              else fill marr# (i, f $ arr# !^ i#) (go $ i + 1) s#
+              else fill marr# (i, f $ arr# !# i#) (go $ i + 1) s#
           in go 0 s2#
 
 --------------------------------------------------------------------------------
@@ -116,27 +116,27 @@ instance Foldable Unlist
     foldr _ base Z = base
     foldr f base (Unlist c arr# arrs) = go (foldr f base arrs) 0
       where
-        go b i@(I# i#) = c == i ? b $ f (arr# !^ i#) (go b $ i + 1)
+        go b i@(I# i#) = c == i ? b $ f (arr# !# i#) (go b $ i + 1)
     
     foldr' _ base Z = base
     foldr' f base (Unlist c arr# arrs) = go (foldr' f base arrs) 0
       where
-        go b i@(I# i#) = c == i ? b $ f (arr# !^ i#) (go b $ i + 1)
+        go b i@(I# i#) = c == i ? b $ f (arr# !# i#) (go b $ i + 1)
     
     foldl _ base Z = base
     foldl f base (Unlist c arr# arrs) = foldl f (go base $ c - 1) arrs
       where
-        go b i@(I# i#) = -1 == i ? b $ f (go b $ i - 1) (arr# !^ i#)
+        go b i@(I# i#) = -1 == i ? b $ f (go b $ i - 1) (arr# !# i#)
     
     foldl' _ base Z = base
     foldl' f base (Unlist c arr# arrs) = foldl' f (go base c) arrs
       where
-        go b i@(I# i#) = -1 == i ? b $ f (go b $ i - 1) (arr# !^ i#)
+        go b i@(I# i#) = -1 == i ? b $ f (go b $ i - 1) (arr# !# i#)
     
     length es = case es of {Unlist n _ arrs -> max 0 n + length arrs; _ -> 0}
     
     toList UNEmpty = []
-    toList (Unlist c arr# arrs) = [ arr# !^ i# | (I# i#) <- [0 .. c - 1] ] ++ toList arrs
+    toList (Unlist c arr# arrs) = [ arr# !# i# | (I# i#) <- [0 .. c - 1] ] ++ toList arrs
     
     null es = case es of {Unlist c _ _ -> c < 1; _ -> True}
 
@@ -157,7 +157,7 @@ instance Linear (Unlist e) e
         !(Unlist 1 single# Z) = single e
     
     head Z  = pfailEx "(:>)"
-    head es = es !# 0
+    head es = es !^ 0
     
     tail Z  = pfailEx "(:<)"
     tail es@(Unlist _ _ Z)    = fromList . tail $ toList es
@@ -173,7 +173,7 @@ instance Linear (Unlist e) e
     toLast (Unlist c arr# arrs) e = Unlist c arr# (toLast arrs e)
     
     last Z  = pfailEx "(:<)"
-    last es = es !# (length es - 1)
+    last es = es !^ (length es - 1)
     
     init Z = pfailEx "(:>)"
     init es@(Unlist _ _ Z)    = fromList . init $ toList es
@@ -215,7 +215,7 @@ instance Linear (Unlist e) e
           where
             !(Unlist _ rev# _) = runST $ newLinear chunk >>= done'
             
-            chunk = [ bytes# !^ i# | (I# i#) <- [ n - 1, n - 2 .. 0 ] ]
+            chunk = [ bytes# !# i# | (I# i#) <- [ n - 1, n - 2 .. 0 ] ]
     
     partition  p  es = let (x, y) = partition p $ toList es in (fromList x, fromList y)
     partitions ps es = fromList <$> (partitions ps $ toList es)
@@ -231,7 +231,7 @@ instance Split (Unlist e) e
         take' _ Z = Z
         take' n' (Unlist c arr# arrs) = n' >= c ? Unlist c arr# other $ fromListN n' rest
           where
-            rest  = [ arr# !^ i# | (I# i#) <- [0 .. n' - 1] ]
+            rest  = [ arr# !# i# | (I# i#) <- [0 .. n' - 1] ]
             other = take' (n' - c) arrs
     
     {-# INLINE drop #-}
@@ -244,7 +244,7 @@ instance Split (Unlist e) e
         drop' n' (Unlist c arr# arrs) = n' >= c ? rest $ other ++ arrs
           where
             rest  = drop' (n' - c) arrs
-            other = fromListN (c - n') [ arr# !^ i# | (I# i#) <- [n' .. c - 1] ]
+            other = fromListN (c - n') [ arr# !# i# | (I# i#) <- [n' .. c - 1] ]
     
     isPrefixOf xs ys = toList xs `isPrefixOf` toList ys
     isInfixOf  xs ys = toList xs `isInfixOf`  toList ys
@@ -276,14 +276,19 @@ instance Indexed (Unlist e) Int e
     
     es // ascs = isNull ascs ? es $ runST $ fromFoldableM es >>= flip overwrite ascs >>= done'
     
+    Z !^ _ = error "in SDP.Unrolled.Unlist.(!^)"
+    (Unlist c arr# arrs) !^ i@(I# i#) = i < c ? e $ arrs !^ (i - c)
+      where
+        (# e #) = indexArray# arr# i#
+    
     {-# INLINE (.!) #-}
-    es .! n = es !# (n - lower es)
+    es .! n = es !^ (n - lower es)
     
     (!) es n = case inBounds bs n of
         ER -> throw $ EmptyRange     msg
         UR -> throw $ IndexOverflow  msg
         OR -> throw $ IndexUnderflow msg
-        IN -> es !# offset bs n
+        IN -> es !^ offset bs n
       where
         msg = "in SDP.Unrolled.(!)"
         bs  = bounds es
@@ -305,13 +310,8 @@ instance (Arbitrary e) => Arbitrary (Unlist e) where arbitrary = fromList <$> ar
 --------------------------------------------------------------------------------
 
 {-# INLINE (!#) #-}
-(!#) :: Unlist e -> Int -> e
-(Unlist c arr# arrs) !# i@(I# i#) = i < c ? (case indexArray# arr# i# of (# e #) -> e) $ arrs !# (i - c)
-_ !# _ = error "SDP.Unrolled.(!#) tried to find element in empty Unlist"
-
-{-# INLINE (!^) #-}
-(!^) :: Array# e -> Int# -> e
-arr# !^ i# = case indexArray# arr# i# of (# e #) -> e
+(!#) :: Array# e -> Int# -> e
+arr# !# i# = case indexArray# arr# i# of (# e #) -> e
 
 {-# INLINE fill #-}
 fill :: MutableArray# s e -> (Int, e) -> STRep s a -> STRep s a

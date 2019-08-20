@@ -320,6 +320,9 @@ instance Indexed (BinTree e) Int e
       where
         toUnlist = fromFoldable :: BinTree e -> Unlist e
     
+    Z !^ _ = error "in SDP.Tree.BinTree.(!^)"
+    (BinNode l e _ _ r) !^ n = let s = length l in case n <=> s of {LT -> l !^ n; EQ -> e; GT -> r !^ (n - s - 1)}
+    
     {-# INLINE (!) #-}
     Z ! _ = throw $ EmptyRange "in SDP.BinTree"
     es@(BinNode _ _ s _ _) ! n
@@ -330,8 +333,8 @@ instance Indexed (BinTree e) Int e
       where
         msg = "in SDP.BinTree"
     
+    Z .! _ = error "in SDP.Tree.BinTree.(.!)"
     (BinNode l e _ _ r) .! n = let s = length l in case n <=> s of {LT -> l .! n; EQ -> e; GT -> r .! (n - s - 1)}
-    _ .! _ = error "wrong using of (.!) from SDP.Tree.BinTree"
     
     p .$ es = p .$ toList es
     p *$ es = p *$ toList es

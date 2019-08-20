@@ -207,11 +207,10 @@ instance (Unboxed e) => Split (Ublist e) e
 
 instance (Unboxed e) => Bordered (Ublist e) Int e
   where
-    lower  _  = 0
-    upper  es = sizeOf es - 1
-    sizeOf es = case es of {Ublist n _ arrs -> max 0 n + sizeOf arrs; _ -> 0}
-    
+    lower   _  = 0
+    upper   es = sizeOf es - 1
     indexOf es i = i >= 0 && i < sizeOf es
+    sizeOf  es = case es of {Ublist n _ arrs -> max 0 n + sizeOf arrs; _ -> 0}
 
 --------------------------------------------------------------------------------
 
@@ -231,10 +230,12 @@ instance (Unboxed e) => Indexed (Ublist e) Int e
     
     es // ascs = isNull ascs ? es $ runST $ newLinear (listL es) >>= flip overwrite ascs >>= done'
     
+    Z !^ _ = error "in SDP.ByteList.Ublist.(!^)"
+    (Ublist n bytes# arrs) !^ i@(I# i#) = i < n ? bytes# !# i# $ arrs !^ (n - i)
+    
     {-# INLINE (.!) #-}
-    -- | Note: ByteArray primitive allows reading by negative offset.
+    Z .! _ = error "in SDP.ByteList.Ublist.(.!)"
     (Ublist n bytes# arrs) .! i@(I# i#) = i < n ? bytes# !# i# $ arrs .! (n - i)
-    Z .! _ = error "wrong using of (.!) from SDP.ByteList.Ublist"
     
     (!) Z _ = throw $ EmptyRange "in SDP.ByteList.Ublist.(!)"
     (!) (Ublist n bytes# arrs) i@(I# i#)
@@ -255,25 +256,20 @@ instance (Unboxed e, Arbitrary e) => Arbitrary (Ublist e) where arbitrary = from
 --------------------------------------------------------------------------------
 
 {-# INLINE done #-}
--- | internal Ublist creator.
 done :: (Unboxed e) => Int -> Ublist e -> MutableByteArray# s -> STRep s (Ublist e)
 done c arrs marr# = \ s1# -> case unsafeFreezeByteArray# marr# s1# of
   (# s2#, arr# #) -> (# s2#, Ublist c arr# arrs #)
 
 {-# INLINE done' #-}
 done' :: STUblist s e -> ST s (Ublist e)
-done'        STUBEmpty        = return UBEmpty
 done' (STUblist n marr# marr) = done' marr >>= \ arr -> ST $
   \ s1# -> case unsafeFreezeByteArray# marr# s1# of
     (# s2#, arr# #) -> (# s2#, Ublist n arr# arr #)
+done' _ = return UBEmpty
 
-pfailEx       :: String -> a
-pfailEx msg   =  throw . PatternMatchFail $ "in SDP.ByteList.Ublist." ++ msg
+pfailEx :: String -> a
+pfailEx msg = throw . PatternMatchFail $ "in SDP.ByteList.Ublist." ++ msg
 
--- | lim is internal constant - maximal size of chunk.
 lim :: Int
 lim =  1024
-
-
-
 

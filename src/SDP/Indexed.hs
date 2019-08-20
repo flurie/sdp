@@ -34,7 +34,7 @@ import SDP.Simple
 
 default ()
 
-infixl 9 .!, !, !?
+infixl 9 !^, .!, !, !?
 
 --------------------------------------------------------------------------------
 
@@ -54,6 +54,8 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
     
     -- | assoc' is safe version of assoc.
     assoc' :: (i, i) -> e -> [(i, e)] -> v
+    
+    (!^) :: v -> Int -> e
     
     {- |
       (.!) is unsafe, but on bit faster version of (!).
@@ -90,6 +92,9 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
     default (*$) :: (Bordered v i e) => (e -> Bool) -> v -> [i]
     f *$ es      =  fsts . filter (f . snd) $ assocs es
     
+    default (!^) :: (Bordered v i e) => v -> Int -> e
+    es !^ i = es .! index (bounds es) i
+    
     default (!?) :: (Bordered v i e) => v -> i -> Maybe e
     {-# INLINE (!?) #-}
     (!?) dat     = \ i -> (not . indexOf dat) ?: (dat !) $ i
@@ -109,14 +114,16 @@ instance Indexed [e] Int e
             nx   = next bnds i1
         fill xs  = xs
     
-    (x : xs) .! n = n == 0 ? x $ xs .! (n - 1)
-    _        .! _ = error "nice try but you still finished badly in SDP.Indexed.(.!) (List)"
+    xs !^ i = xs .! i
     
-    [] ! _ = throw $ EmptyRange "in SDP.Indexed.(!) (List)"
-    es ! n = n < 0 ? (throw $ IndexUnderflow "in SDP.Indexed.(!) (List)") $ es !^ n
+    []       .! _ = error "in SDP.Indexed.(.!)"
+    (x : xs) .! n = n == 0 ? x $ xs .! (n - 1)
+    
+    [] ! _ = throw $ EmptyRange "in SDP.Indexed.(!)"
+    es ! n = n >= 0 ? es !# n $ throw $ IndexUnderflow "in SDP.Indexed.(!)"
       where
-        []       !^ _  = throw $ IndexOverflow "in SDP.Indexed.(!) (List)"
-        (x : xs) !^ n' = n == 0 ? x $ xs !^ (n' - 1)
+        []       !# _  = throw $ IndexOverflow "in SDP.Indexed.(!)"
+        (x : xs) !# n' = n' == 0 ? x $ xs !# (n' - 1)
     
     {-# INLINE (!?) #-}
     []       !? _ = Nothing

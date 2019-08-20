@@ -203,6 +203,9 @@ instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
     
     arr // ascs = runST $ newLinear (listL arr) >>= (`overwrite` ascs) >>= done
     
+    {-# INLINE (!^) #-}
+    (Bytes _ _ _ bytes#) !^ (I# i#) = bytes# !# i#
+    
     {-# INLINE (!) #-}
     (!) (Bytes l u _ bytes#) i = case offset (l, u) i of (I# i#) -> bytes# !# i#
     
@@ -246,5 +249,7 @@ done (STBytes l u n mbytes#) = ST $ \ s1# -> case unsafeFreezeByteArray# mbytes#
 
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Bytes." ++ msg
+
+
 
 

@@ -34,7 +34,7 @@ import Prelude hiding
     scanl, scanr, scanl1, scanr1,
     
     -- defined in SDP.Linear and Data.List (originally in GHC.List)
-    head, tail, init, last, take, drop, (++), reverse, filter,
+    head, tail, init, last, take, drop, (!!), (++), reverse, filter,
     concat, concatMap, replicate, takeWhile, dropWhile
   )
 
