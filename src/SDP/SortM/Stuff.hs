@@ -92,9 +92,9 @@ timSortBy :: (BorderedM m v i e, LinearM m v e, IndexedM m v i e) => (e -> e -> 
 timSortBy cmp es = getSizeOf es >>= timSort'
   where
     timSort' n
-      | n <  0 = return ()
-      | n > 64 = ascSubs n 0 >>= mergeAll
-      |  True  = insertionSortBy cmp es
+      |  n < 0  = return ()
+      | n <= 64 = insertionSortBy cmp es
+      |   True  = ascSubs n 0 >>= mergeAll
     
     ascSubs n o
         |   o   == n = return []
@@ -111,8 +111,8 @@ timSortBy cmp es = getSizeOf es >>= timSort'
           where
             asc  p i = do c <- es !#> i; if p `gt` c then return i else i /= n - 1 ? asc  c (i + 1) $ return (i + 1)
             desc p i = do c <- es !#> i; if p `lt` c then rev' o i else i /= n - 1 ? desc c (i + 1) $ rev' o (i + 1)
-            rev' f l = rev f (l - 1) >> return l
             rev  f l = when (f < l) $ do swap es f l; rev (f + 1) (l - 1)
+            rev' f l = rev f (l - 1) >> return l
         
         normalized s = do when (ex > s) $ insertionSort_ cmp es o (s - 1) (ex - 1); return (max ex s)
         ex = min n (o + minrunTS n) -- expected ending
@@ -134,8 +134,7 @@ timSortBy cmp es = getSizeOf es >>= timSort'
             \ l r -> if l `lt` r
               then writeM_ es ic l >> mergeGo (ic + 1) (il + 1) ir left
               else writeM_ es ic r >> mergeGo (ic + 1) il (ir + 1) left
-        rb = by + sy
-        lb = sx
+        rb = by + sy; lb = sx
     
     gt x y = case x `cmp` y of {GT -> True; _ -> False}
     lt x y = case x `cmp` y of {LT -> True; _ -> False}
@@ -158,9 +157,8 @@ sorted es = and $ zipWith (<=) es' (tail es') where es' = listL es
 
 -- | sortedM is a procedure that checks for sorting.
 sortedM :: (LinearM m l e, Ord e) => l -> m Bool
-sortedM es = do
-  left <- getLeft es
-  return $ case left of {[] -> True; _ -> and $ zipWith (<=) left (tail left)}
+sortedM es = flip fmap (getLeft es) $
+  \ left -> case left of {[] -> True; _ -> and $ zipWith (<=) left (tail left)}
 
 {- |
   ascending is a function that checks if sequences of elements given in pairs
@@ -168,6 +166,5 @@ sortedM es = do
 -}
 ascending :: (Split s e, Ord e) => s -> [(Int, Int)] -> Bool
 ascending es ss = sorted `all` splits (snds ss) es
-
 
 

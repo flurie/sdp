@@ -41,7 +41,9 @@ import GHC.Base
   (
     Array#, Int (..),
     
-    newArray#, thawArray#, unsafeFreezeArray#, writeArray#, indexArray#
+    newArray#, thawArray#, unsafeFreezeArray#, writeArray#, indexArray#,
+    
+    isTrue#, (==#), (+#)
   )
 
 import GHC.Show ( appPrec )
@@ -76,11 +78,23 @@ type role Array nominal representational
 
 instance (Index i, Eq e) => Eq (Array i e) where (==) = eq1
 
+{-
+  This function is as low-level as possible, there should be no more performance
+  problems.
+-}
 instance (Index i) => Eq1 (Array i)
   where
-    liftEq eq xs ys = liftEq eq' (assocs xs) (assocs ys)
+    liftEq _  Z  Z  = True
+    liftEq eq xs ys = l1 == l2 && u1 == u2 && n1 == n2 && eq' 0#
       where
-        eq' (i1, x) (i2, y) = i1 == i2 && eq x y
+        !(Array l1 u1 n1 arr1#) = xs
+        !(Array l2 u2 n2 arr2#) = ys
+        !(I# n#) = n1
+        
+        eq' i# = isTrue# (i# ==# n#) || ((e1 `eq` e2) && eq' (i# +# 1#))
+          where
+            (# e1 #) = indexArray# arr1# i#
+            (# e2 #) = indexArray# arr2# i#
 
 --------------------------------------------------------------------------------
 
@@ -88,11 +102,23 @@ instance (Index i) => Eq1 (Array i)
 
 instance (Index i, Ord e) => Ord (Array i e) where compare = compare1
 
+{-
+  This function is as low-level as possible, there should be no more performance
+  problems.
+-}
 instance (Index i) => Ord1 (Array i)
   where
-    liftCompare cmp xs ys = liftCompare cmp' (assocs xs) (assocs ys)
+    liftCompare  _  Z  Z  = EQ
+    liftCompare cmp xs ys = (xs <==> ys) <> cmp' 0#
       where
-        cmp' (ix, x) (iy, y) = (ix <=> iy) <> (cmp x y)
+        !(Array _ _ _ arr1#) = xs
+        !(Array _ _ _ arr2#) = ys
+        !(I# n#) = length xs
+        
+        cmp' i# = if isTrue# (i# ==# n#) then EQ else (e1 `cmp` e2) <> cmp' (i# +# 1#)
+          where
+            (# e1 #) = indexArray# arr1# i#
+            (# e2 #) = indexArray# arr2# i#
 
 --------------------------------------------------------------------------------
 
@@ -108,7 +134,9 @@ instance (Index i, Show i, Show e) => Show (Array i e)
 instance (Index i, Read i, Read e) => Read (Array i e)
   where
     readList = readListDefault
-    readPrec = parens $ prec appPrec (lift . expect $ Ident "array") >> liftA2 assoc (step readPrec) (step readPrec)
+    readPrec = parens $ do
+      prec appPrec (lift . expect $ Ident "array")
+      liftA2 assoc (step readPrec) (step readPrec)
 
 --------------------------------------------------------------------------------
 
@@ -251,7 +279,9 @@ instance (Index i) => Scan (Array i)
           where
             prv = f (es !^ n) curr
 
-instance (Index i) => Traversable (Array i) where traverse f arr = fromList <$> traverse f (toList arr)
+instance (Index i) => Traversable (Array i)
+  where
+    traverse f arr = fromList <$> foldr (\ x ys -> liftA2 (:) (f x) ys) (pure []) arr
 
 --------------------------------------------------------------------------------
 
@@ -264,7 +294,7 @@ instance (Index i) => Linear (Array i e) e
     {-# INLINE lzero #-}
     lzero = runST $ filled 0 (unreachEx "lzero") >>= done
     
-    toHead e es = fromListN (n + 1) (e : toList es)    where n = length es
+    toHead e es = fromListN (length es + 1) (e : toList es)
     
     head Z  = pfailEx "(:>)"
     head es = es !^ 0
@@ -272,7 +302,7 @@ instance (Index i) => Linear (Array i e) e
     tail Z  = pfailEx "(:>)"
     tail es = fromListN (length es - 1) . tail $ toList es
     
-    toLast es e = fromListN (length es + 1) $ foldr (:) [e] es
+    toLast es e = fromList $ toList es :< e
     
     last Z  = pfailEx "(:<)"
     last arr = arr !^ (length arr - 1)
@@ -288,13 +318,10 @@ instance (Index i) => Linear (Array i e) e
     {-# INLINE single #-}
     single e = runST $ filled 1 e >>= done
     
-    xs ++ ys = fromListN (sizeOf xs + sizeOf ys) $ listL xs ++ listL ys
+    xs ++ ys = fromList (listL xs ++ listL ys)
     
     {-# INLINE replicate #-}
     replicate n e = runST $ filled n e >>= done
-    
-    {-# INLINE reverse #-}
-    reverse es = length es `fromListN` listR es
     
     listL es = toList es
     
@@ -325,29 +352,36 @@ instance (Index i) => Split (Array i e) e
       where
         l = length es
     
-    {-# INLINE split #-}
-    split n es
-        | n <= 0 = (Z, es)
-        | n >= l = (es, Z)
-        |  True  = (fromListN n take', fromListN (l - n) drop')
+    isPrefixOf xs ys = xs .<=. ys && equals 0#
       where
-        (take', drop') = split n $ toList es
-        l = length es
+        !(Array _ _ _ arr1#) = xs
+        !(Array _ _ _ arr2#) = ys
+        !(I# n#) = length xs
+        
+        equals i# = isTrue# (i# ==# n#) || (e1 == e2 && equals (i# +# 1#))
+          where
+            (# e1 #) = indexArray# arr1# i#
+            (# e2 #) = indexArray# arr2# i#
     
-    isPrefixOf xs ys = xs .<=. ys && equals
+    isSuffixOf xs ys = xs .<=. ys && equals 0# o#
       where
-        equals = and [ xs !^ i == ys !^ i | i <- [ 0 .. length xs - 1 ] ]
-    
-    isSuffixOf xs ys = xs .<=. ys && and equals
-      where
-        equals  = [ xs !^ i == xs !^ (i + offset') | i <- [ 0 .. length xs - 1 ] ]
-        offset' = length ys - length xs
+        !(Array _ _ _ arr1#) = xs
+        !(Array _ _ _ arr2#) = ys
+        
+        !(I# o#) = max 0 (length ys - lx)
+        !lx@(I# n#) = length xs
+        
+        equals i# j# = isTrue# (i# ==# n#) || (e1 == e2 && equals (i# +# 1#) (j# +# 1#))
+          where
+            (# e1 #) = indexArray# arr1# i#
+            (# e2 #) = indexArray# arr2# j#
 
 instance (Index i) => Bordered (Array i e) i e
   where
-    lower   (Array l _ _ _) = l
-    upper   (Array _ u _ _) = u
-    sizeOf  (Array _ _ n _) = n
+    bounds (Array l u _ _) = (l, u)
+    lower  (Array l _ _ _) = l
+    upper  (Array _ u _ _) = u
+    sizeOf (Array _ _ n _) = n
 
 --------------------------------------------------------------------------------
 
@@ -365,6 +399,7 @@ instance (Index i) => Indexed (Array i e) i e
         u = fst $ maximumBy cmpfst ascs
     arr // ascs = runST $ fromFoldableM arr >>= (`overwrite` ascs) >>= done
     
+    {-# INLINE (!^) #-}
     (Array _ _ _ arr#) !^ (I# i#) = case indexArray# arr# i# of (# e #) -> e
     
     {-# INLINE (!) #-}
@@ -378,9 +413,10 @@ instance (Index i) => Indexed (Array i e) i e
 instance (Index i) => E.IsList (Array i e)
   where
     type Item (Array i e) = e
-    fromList    es = fromList    es
-    fromListN n es = fromListN n es
-    toList      es = toList      es
+    
+    fromListN = fromListN
+    fromList  = fromList
+    toList    = toList
 
 instance (Index i) => IsString (Array i Char) where fromString es = fromList es
 
@@ -409,12 +445,11 @@ thaw (Array l u n arr#) = ST $ \ s1# -> case thawArray# arr# 0# n# s1# of
   where
     !(I# n#) = max 0 n
 
-pfailEx       :: String -> a
-pfailEx   msg =  throw . PatternMatchFail $ "in SDP.Array." ++ msg
+pfailEx :: String -> a
+pfailEx msg = throw . PatternMatchFail $ "in SDP.Array." ++ msg
 
-unreachEx     :: String -> a
-unreachEx msg =  throw . UnreachableException $ "in SDP.Array." ++ msg
-
+unreachEx :: String -> a
+unreachEx msg = throw . UnreachableException $ "in SDP.Array." ++ msg
 
 
 

@@ -13,7 +13,6 @@
     but incopatible with it.
     The main difference is the Index class instead of Ix.
 -}
-
 module SDP.Array.ST
 (
   module SDP.IndexedM,
@@ -60,7 +59,10 @@ type role STArray nominal nominal representational
 
 instance (Index i, Eq e) => Eq (STArray s i e)
   where
-    (STArray l1 u1 n1 marr1#) == (STArray l2 u2 n2 marr2#) = n1 == n2 && (n1 == 0 || l1 == l2 && u1 == u2 && isTrue# (sameMutableArray# marr1# marr2#))
+    (STArray l1 u1 n1 marr1#) == (STArray l2 u2 n2 marr2#) = res
+      where
+        res  = n1 == n2 && (n1 == 0 || l1 == l2 && u1 == u2 && same)
+        same = isTrue# (sameMutableArray# marr1# marr2#)
 
 --------------------------------------------------------------------------------
 
@@ -76,7 +78,7 @@ instance (Index i) => BorderedM (ST s) (STArray s i e) i e
 
 instance (Index i) => LinearM (ST s) (STArray s i e) e
   where
-    newLinear es = fromFoldableM es
+    newLinear = fromFoldableM
     
     {-# INLINE fromFoldableM #-}
     fromFoldableM es = ST $ \ s1# -> case newArray# n# err s1# of
@@ -89,8 +91,8 @@ instance (Index i) => LinearM (ST s) (STArray s i e) e
         (l, u) = unsafeBounds n
         err    = unreachEx "fromFoldableM"
     
-    getLeft  es@(STArray l u _ _) = sequence [ es >! i | i <- range (l, u) ]
-    getRight es@(STArray l u _ _) = sequence [ es >! i | i <- reverse $ range (l, u) ]
+    getLeft  es@(STArray l u _ _) = (es >!) `mapM` range (l, u)
+    getRight es@(STArray l u _ _) = (es >!) `mapM` reverse (range (l, u))
     
     copied (STArray _ _ n marr#) = do
       copy@(STArray _ _ _ marr1#) <- filled n $ unreachEx "copied"
@@ -99,7 +101,7 @@ instance (Index i) => LinearM (ST s) (STArray s i e) e
       return copy
     
     {-# INLINE reversed #-}
-    reversed es = liftA2 (\ bnds -> zip $ range bnds) (getBounds es) (getRight es) >>= overwrite es
+    reversed es = liftA2 zip (getIndices es) (getRight es) >>= overwrite es
     
     {-# INLINE filled #-}
     filled n e = let !n'@(I# n#) = max 0 n in ST $ \ s1# -> case newArray# n# e s1# of
@@ -112,15 +114,12 @@ instance (Index i) => LinearM (ST s) (STArray s i e) e
 instance (Index i) => IndexedM (ST s) (STArray s i e) i e
   where
     {-# INLINE fromAssocs' #-}
-    fromAssocs' bnds defvalue ascs = newArr >>= (`overwrite` ascs)
-      where
-        newArr = ST $ \ s1# -> case newArray# n# defvalue s1# of (# s2#, marr# #) -> done bnds n marr# s2#
-        !n@(I# n#) = size bnds
+    fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
     
     (STArray _ _ _ marr#) !#> (I# i#) = ST $ readArray# marr# i#
-    (STArray l u _ marr#) >! i = case offset (l, u) i of (I# i#) -> ST $ readArray# marr# i#
     
-    es@(STArray l u _ _) !> i = case inBounds (l, u) i of
+    (STArray l u _ marr#) >! i = case offset (l, u) i of (I# i#) -> ST $ readArray# marr# i#
+    es@(STArray l u _ _)  !> i = case inBounds (l, u) i of
       ER -> throw $ EmptyRange     msg
       UR -> throw $ IndexUnderflow msg
       IN -> es >! i
@@ -138,16 +137,12 @@ instance (Index i) => IndexedM (ST s) (STArray s i e) i e
     overwrite es@(STArray l u _ _) ascs = mapM_ (uncurry $ writeM_ es) ies >> return es
       where
         ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
-    
-    p *? marr = fsts . filter (p . snd) <$> getAssocs marr
 
 --------------------------------------------------------------------------------
 
 {- SortM instance. -}
 
-instance (Index i) => SortM (ST s) (STArray s i e) e
-  where
-    sortMBy cmp es = timSortBy cmp es
+instance (Index i) => SortM (ST s) (STArray s i e) e where sortMBy = timSortBy
 
 --------------------------------------------------------------------------------
 
@@ -155,10 +150,6 @@ instance (Index i) => SortM (ST s) (STArray s i e) e
 done :: (i, i) -> Int -> MutableArray# s e -> STRep s (STArray s i e)
 done (l, u) n marr# = \ s1# -> (# s1#, STArray l u n marr# #)
 
-unreachEx     :: String -> a
-unreachEx msg =  throw . UnreachableException $ "in SDP.Array.ST." ++ msg
-
-
-
-
+unreachEx :: String -> a
+unreachEx msg = throw . UnreachableException $ "in SDP.Array.ST." ++ msg
 

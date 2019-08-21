@@ -54,7 +54,10 @@ type role STUblist nominal representational
 instance (Unboxed e) => Eq (STUblist s e)
   where
     STUBEmpty == STUBEmpty = True
-    (STUblist n1 marr1# marr1) == (STUblist n2 marr2# marr2) = n1 == n2 && (n1 == 0 || isTrue# (sameMutableByteArray# marr1# marr2#) && marr1 == marr2)
+    (STUblist n1 marr1# marr1) == (STUblist n2 marr2# marr2) = res
+      where
+        res  = n1 == n2 && (n1 == 0 || same && marr1 == marr2)
+        same = isTrue# (sameMutableByteArray# marr1# marr2#)
     _ == _ = False
 
 --------------------------------------------------------------------------------
@@ -63,23 +66,16 @@ instance (Unboxed e) => Eq (STUblist s e)
 
 instance (Unboxed e) => BorderedM (ST s) (STUblist s e) Int e
   where
-    getLower  _ = return 0
+    getLower  _  = return 0
+    getUpper  es = return $ case es of {STUblist n _ _ -> max 0 n - 1; _ -> -1}
+    getSizeOf es = return $ case es of {STUblist n _ _ -> max n 0; _ -> 0}
     
-    getUpper     STUBEmpty     = return $ -1
-    getUpper  (STUblist n _ _) = return $ max 0 n - 1
-    
-    getSizeOf    STUBEmpty     = return 0
-    getSizeOf (STUblist n _ _) = return $ max 0 n
-    
-    getIndices    STUBEmpty     = return []
-    getIndices (STUblist n _ _) = return [0 .. n - 1]
-    
-    getIndexOf     STUBEmpty    _ = return False
-    getIndexOf (STUblist n _ _) i = return $ i >= 0 && i < n
+    getIndices es   = return $ case es of {STUblist n _ _ -> [0 .. n - 1]; _ -> []}
+    getIndexOf es i = return $ case es of {STUblist n _ _ -> i >= 0 && i < n; _ -> False}
 
 instance (Unboxed e) => LinearM (ST s) (STUblist s e) e
   where
-    newLinear es = fromFoldableM es
+    newLinear = fromFoldableM
     
     {-# INLINE fromFoldableM #-}
     fromFoldableM es = foldr (\ x y -> toChunk err lim x .++ y) rest' chunks
@@ -91,13 +87,13 @@ instance (Unboxed e) => LinearM (ST s) (STUblist s e) e
         err   = unreachEx "fromFoldableM"
     
     getLeft       STUBEmpty      = return []
-    getLeft  es@(STUblist n _ _) = sequence [ es >! i | i <- range (0, n - 1) ]
+    getLeft  es@(STUblist n _ _) = mapM (es >!) [0 .. n - 1]
     
     getRight      STUBEmpty      = return []
-    getRight es@(STUblist n _ _) = sequence [ es >! i | i <- reverse $ range (0, n - 1) ]
+    getRight es@(STUblist n _ _) = mapM (es >!) [n - 1, n - 2 .. 0]
     
     {-# INLINE reversed #-}
-    reversed es = liftA2 (\ bnds -> zip $ range bnds) (getBounds es) (getRight es) >>= overwrite es
+    reversed es = liftA2 zip (getIndices es) (getRight es) >>= overwrite es
     
     {-# INLINE filled #-}
     -- Note: STUblist.filled is not so efficient as Ublist.replicate.
@@ -159,8 +155,6 @@ instance (Unboxed e) => IndexedM (ST s) (STUblist s e) Int e
         (curr, others) = partition (inRange (0, n - 1) . fst) ascs
         writes  = ST $ foldr (fill marr#) (done n marr# marr) curr
         others' = [ (i - n, e) | (i, e) <- others ]
-    
-    p *? marr = fsts . filter (p . snd) <$> getAssocs marr
 
 --------------------------------------------------------------------------------
 
@@ -204,6 +198,8 @@ unreachEx msg =  throw . UnreachableException $ "in SDP.STUnlist." ++ msg
 
 lim :: Int
 lim =  1024
+
+
 
 
 

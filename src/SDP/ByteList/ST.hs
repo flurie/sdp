@@ -48,7 +48,10 @@ type role STByteList nominal nominal representational
 
 instance (Index i, Unboxed e) => Eq (STByteList s i e)
   where
-    (STByteList l1 u1 xs) == (STByteList l2 u2 ys) = (isEmpty (l1, u1) && isEmpty (l2, u2)) || xs == ys
+    (STByteList l1 u1 xs) == (STByteList l2 u2 ys) = e1 && e2 || xs == ys
+      where
+        e1 = isEmpty (l1, u1)
+        e2 = isEmpty (l2, u2)
 
 --------------------------------------------------------------------------------
 
@@ -58,26 +61,25 @@ instance (Index i, Unboxed e) => BorderedM (ST s) (STByteList s i e) i e
   where
     getLower   (STByteList l _ _)   = return l
     getUpper   (STByteList _ u _)   = return u
-    getSizeOf  (STByteList l u _)   = return $ size  (l, u)
-    getIndices (STByteList l u _)   = return $ range (l, u)
+    getSizeOf  (STByteList l u _)   = return $ size    (l, u)
+    getIndices (STByteList l u _)   = return $ range   (l, u)
     getIndexOf (STByteList l u _) i = return $ inRange (l, u) i
 
 instance (Index i, Unboxed e) => LinearM (ST s) (STByteList s i e) e
   where
-    newLinear es = fromFoldableM es
+    newLinear = fromFoldableM
     
     fromFoldableM es = STByteList l u <$> fromFoldableM es
       where
         (l, u) = unsafeBounds (length es)
     
-    getLeft  (STByteList l u es) = take (size (l, u)) <$> getLeft es
-    getRight (STByteList l u es) = liftA2 (\ s r -> drop (s - size (l, u)) r) (getSizeOf es) (getRight es)
+    getLeft (STByteList l u es) = take (size (l, u)) <$> getLeft es
     
     copied  (STByteList l u es)       = STByteList l u <$> copied  es
     copied' (STByteList l u es) l' u' = STByteList l u <$> copied' es l' u'
     
     {-# INLINE reversed #-}
-    reversed es = liftA2 (\ bnds -> zip $ range bnds) (getBounds es) (getRight es) >>= overwrite es
+    reversed es = liftA2 zip (getIndices es) (getRight es) >>= overwrite es
     
     {-# INLINE filled #-}
     filled n e = STByteList l u <$> filled n e where (l, u) = unsafeBounds n
@@ -92,7 +94,7 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STByteList s i e) i e
     fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
     
     (STByteList _ _ es) !#> i = es !#> i
-    (STByteList l u es) >!  i = es >! offset (l, u) i
+    (STByteList l u es) >!  i = es >! offset  (l, u) i
     (STByteList l u es) !>  i = case inBounds (l, u) i of
         ER -> throw $ EmptyRange     msg
         UR -> throw $ IndexUnderflow msg
@@ -109,11 +111,10 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STByteList s i e) i e
       | isEmpty (l, u) = fromAssocs (l', u') ascs
       | True = STByteList l u <$> overwrite es ies
       where
-        l' = fst $ minimumBy cmpfst ascs
-        u' = fst $ maximumBy cmpfst ascs
-        
         ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
-    
-    p *? marr = fsts . filter (p . snd) <$> getAssocs marr
+        l'  = fst $ minimumBy cmpfst ascs
+        u'  = fst $ maximumBy cmpfst ascs
+
+
 
 

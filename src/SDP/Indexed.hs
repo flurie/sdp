@@ -18,7 +18,7 @@ module SDP.Indexed
   
   Indexed (..),
   
-  write, (>/>)
+  (>/>)
 )
 where
 
@@ -74,6 +74,15 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
     
     -- | (!?) is completely safe, but so boring function.
     (!?) :: v -> i -> Maybe e
+    
+    -- |  Write one element to structure.
+    default write_ :: (Bordered v i e) => v -> Int -> e -> v
+    write_ :: v -> Int -> e -> v
+    write_ es i e = es // [(index (bounds es) i, e)]
+    
+    -- |  Write one element to structure.
+    write :: v -> i -> e -> v
+    write es i e = es // [(i, e)]
     
     -- | Writes elements to (immutable) structure.
     (//) :: v -> [(i, e)] -> v
@@ -139,11 +148,6 @@ instance Indexed [e] Int e
     p *$ es = findIndices p es
 
 --------------------------------------------------------------------------------
-
--- |  Write one element to structure.
-{-# INLINE write #-}
-write :: (Indexed v i e) => v -> i -> e -> v
-write es i e = es // [(i, e)]
 
 -- | Update one element in structure.
 {-# INLINE (>/>) #-}

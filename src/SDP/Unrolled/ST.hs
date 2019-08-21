@@ -48,7 +48,10 @@ type role STUnrolled nominal nominal representational
 
 instance (Index i, Eq e) => Eq (STUnrolled s i e)
   where
-    (STUnrolled l1 u1 xs) == (STUnrolled l2 u2 ys) = (isEmpty (l1, u1) && isEmpty (l2, u2)) || xs == ys
+    (STUnrolled l1 u1 xs) == (STUnrolled l2 u2 ys) = e1 && e2 || xs == ys
+      where
+        e1 = isEmpty (l1, u1)
+        e2 = isEmpty (l2, u2)
 
 --------------------------------------------------------------------------------
 
@@ -58,26 +61,25 @@ instance (Index i) => BorderedM (ST s) (STUnrolled s i e) i e
   where
     getLower   (STUnrolled l _ _)   = return l
     getUpper   (STUnrolled _ u _)   = return u
-    getSizeOf  (STUnrolled l u _)   = return $ size  (l, u)
-    getIndices (STUnrolled l u _)   = return $ range (l, u)
+    getSizeOf  (STUnrolled l u _)   = return $ size    (l, u)
+    getIndices (STUnrolled l u _)   = return $ range   (l, u)
     getIndexOf (STUnrolled l u _) i = return $ inRange (l, u) i
 
 instance (Index i) => LinearM (ST s) (STUnrolled s i e) e
   where
-    newLinear es = fromFoldableM es
+    newLinear = fromFoldableM
     
     fromFoldableM es = STUnrolled l u <$> fromFoldableM es
       where
         (l, u) = unsafeBounds $ length es
     
-    getLeft  (STUnrolled l u es) = take (size (l, u)) <$> getLeft es
-    getRight (STUnrolled l u es) = liftA2 (\ s r -> drop (s - size (l, u)) r) (getSizeOf es) (getRight es)
+    getLeft (STUnrolled l u es) = take (size (l, u)) <$> getLeft es
     
     copied  (STUnrolled l u es)       = STUnrolled l u <$> copied  es
     copied' (STUnrolled l u es) l' u' = STUnrolled l u <$> copied' es l' u'
     
     {-# INLINE reversed #-}
-    reversed es = liftA2 (\ bnds -> zip $ range bnds) (getBounds es) (getRight es) >>= overwrite es
+    reversed es = liftA2 zip (getIndices es) (getRight es) >>= overwrite es
     
     {-# INLINE filled #-}
     filled n e = STUnrolled l u <$> filled n e where (l, u) = unsafeBounds n
@@ -109,11 +111,10 @@ instance (Index i) => IndexedM (ST s) (STUnrolled s i e) i e
       | isEmpty (l, u) = fromAssocs (l', u') ascs
       | True = STUnrolled l u <$> overwrite es ies
       where
+        ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
         l' = fst $ minimumBy cmpfst ascs
         u' = fst $ maximumBy cmpfst ascs
-        
-        ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
-    
-    p *? marr = fsts . filter (p . snd) <$> getAssocs marr
+
+
 
 

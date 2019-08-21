@@ -55,7 +55,10 @@ type role STUnlist nominal representational
 instance (Eq e) => Eq (STUnlist s e)
   where
     STUNEmpty == STUNEmpty = True
-    (STUnlist n1 marr1# marr1) == (STUnlist n2 marr2# marr2) = n1 == n2 && (n1 == 0 || isTrue# (sameMutableArray# marr1# marr2#) && marr1 == marr2)
+    (STUnlist n1 marr1# marr1) == (STUnlist n2 marr2# marr2) = res
+      where
+        res  = n1 == n2 && (n1 == 0 || same)
+        same = isTrue# (sameMutableArray# marr1# marr2#) && marr1 == marr2
     _ == _ = False
 
 --------------------------------------------------------------------------------
@@ -64,23 +67,16 @@ instance (Eq e) => Eq (STUnlist s e)
 
 instance BorderedM (ST s) (STUnlist s e) Int e
   where
-    getLower  _ = return 0
+    getLower  _  = return 0
+    getUpper  es = return $ case es of {STUnlist n _ _ -> max 0 n - 1; _ -> -1}
+    getSizeOf es = return $ case es of {STUnlist n _ _ -> max 0 n; _ -> 0}
     
-    getUpper     STUNEmpty     = return $ -1
-    getUpper  (STUnlist n _ _) = return $ max 0 n - 1
-    
-    getSizeOf    STUNEmpty     = return 0
-    getSizeOf (STUnlist n _ _) = return $ max 0 n
-    
-    getIndices    STUNEmpty     = return []
-    getIndices (STUnlist n _ _) = return [0 .. n - 1]
-    
-    getIndexOf     STUNEmpty    _ = return False
-    getIndexOf (STUnlist n _ _) i = return $ i >= 0 && i < n
+    getIndices es   = return $ case es of {STUnlist n _ _ -> [0 .. n - 1]; _ -> []}
+    getIndexOf es i = return $ case es of {STUnlist n _ _ -> i >= 0 && i < n; _ -> False}
 
 instance LinearM (ST s) (STUnlist s e) e
   where
-    newLinear es = fromFoldableM es
+    newLinear = fromFoldableM
     
     {-# INLINE fromFoldableM #-}
     fromFoldableM es = foldr (\ x y -> toChunk' err lim x .++ y) rest' chunks
@@ -92,13 +88,13 @@ instance LinearM (ST s) (STUnlist s e) e
         err   = unreachEx "fromFoldableM"
     
     getLeft       STUNEmpty      = return []
-    getLeft  es@(STUnlist n _ _) = sequence [ es >! i | i <- range (0, n - 1) ]
+    getLeft  es@(STUnlist n _ _) = mapM (es >!) [0 .. n - 1]
     
     getRight      STUNEmpty      = return []
-    getRight es@(STUnlist n _ _) = sequence [ es >! i | i <- reverse $ range (0, n - 1) ]
+    getRight es@(STUnlist n _ _) = mapM (es >!) [n - 1, n - 2 .. 0]
     
     {-# INLINE reversed #-}
-    reversed es = liftA2 (\ bnds -> zip $ range bnds) (getBounds es) (getRight es) >>= overwrite es
+    reversed es = liftA2 zip (getIndices es) (getRight es) >>= overwrite es
     
     {-# INLINE filled #-}
     -- Note: STUnlist.filled is not so efficient as Unlist.replicate.
@@ -153,8 +149,6 @@ instance IndexedM (ST s) (STUnlist s e) Int e
         (curr, others) = partition (inRange (0, n - 1) . fst) ascs
         writes  = ST $ foldr (fill marr#) (done n marr# marr) curr
         others' = [ (i - n, e) | (i, e) <- others ]
-    
-    p *? marr = fsts . filter (p . snd) <$> getAssocs marr
 
 --------------------------------------------------------------------------------
 
@@ -187,4 +181,5 @@ unreachEx msg =  throw . UnreachableException $ "in SDP.STUnlist." ++ msg
 
 lim :: Int
 lim =  1024
+
 

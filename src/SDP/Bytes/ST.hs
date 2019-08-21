@@ -59,7 +59,10 @@ type role STBytes nominal nominal representational
 
 instance (Index i, Unboxed e) => Eq (STBytes s i e)
   where
-    (STBytes l1 u1 n1 marr1#) == (STBytes l2 u2 n2 marr2#) = n1 == n2 && (n1 == 0 || l1 == l2 && u1 == u2 && isTrue# (sameMutableByteArray# marr1# marr2#))
+    (STBytes l1 u1 n1 marr1#) == (STBytes l2 u2 n2 marr2#) = res
+      where
+        res  = n1 == n2 && (n1 == 0 || l1 == l2 && u1 == u2 && same)
+        same = isTrue# (sameMutableByteArray# marr1# marr2#)
 
 --------------------------------------------------------------------------------
 
@@ -75,7 +78,7 @@ instance (Index i, Unboxed e) => BorderedM (ST s) (STBytes s i e) i e
 
 instance (Index i, Unboxed e) => LinearM (ST s) (STBytes s i e) e
   where
-    newLinear es = fromFoldableM es
+    newLinear = fromFoldableM
     
     {-# INLINE fromFoldableM #-}
     fromFoldableM es = fromFoldable' $ unreachEx "fromFoldableM"
@@ -89,16 +92,17 @@ instance (Index i, Unboxed e) => LinearM (ST s) (STBytes s i e) e
         
         !n@(I# n#) = length es
     
-    getLeft  es@(STBytes l u _ _) = sequence [ es >! i | i <- reverse $ range (l, u) ]
-    getRight es@(STBytes l u _ _) = sequence [ es >! i | i <- range (l, u) ]
+    
+    getLeft  es@(STBytes l u _ _) = (es >!) `mapM` range (l, u)
+    getRight es@(STBytes l u _ _) = (es >!) `mapM` reverse (range (l, u))
     
     copied (STBytes l u n _) = do
       copy <- filled_ n (l, u) (unreachEx "copied")
-      forM_ [0 .. n - 1] (\ i -> do e <- copy !#> i; writeM_ copy i e)
+      forM_ [0 .. n - 1] $ \ i -> do e <- copy !#> i; writeM_ copy i e
       return copy
     
     {-# INLINE reversed #-}
-    reversed es = liftA2 (\ bnds -> zip $ range bnds) (getBounds es) (getRight es) >>= overwrite es
+    reversed es = liftA2 zip (getIndices es) (getRight es) >>= overwrite es
     
     {-# INLINE filled #-}
     filled n e = ST $ \ s1# -> case newUnboxed' e n# s1# of
@@ -143,16 +147,12 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STBytes s i e) i e
     overwrite (STBytes l u n marr#) ascs = ST $ foldr (fill marr#) (done (l, u) n marr#) ies
       where
         ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
-    
-    p *? marr = fsts . filter (p . snd) <$> getAssocs marr
 
 --------------------------------------------------------------------------------
 
 {- SortM instance. -}
 
-instance (Index i, Unboxed e) => SortM (ST s) (STBytes s i e) e
-  where
-    sortMBy cmp es = timSortBy cmp es
+instance (Index i, Unboxed e) => SortM (ST s) (STBytes s i e) e where sortMBy = timSortBy
 
 --------------------------------------------------------------------------------
 
@@ -170,5 +170,6 @@ fill marr# (I# i#, e) nxt = \ s1# -> case writeByteArray# marr# i# e s1# of s2# 
 
 unreachEx     :: String -> a
 unreachEx msg =  throw . UnreachableException $ "in SDP.Bytes.ST." ++ msg
+
 
 

@@ -57,9 +57,19 @@ type role ByteList nominal representational
 
 {- Eq and Ord instances. -}
 
-instance (Eq e,  Unboxed e, Index i) => Eq  (ByteList i e) where xs == ys = assocs xs == assocs ys
+instance (Eq e, Unboxed e, Index i) => Eq (ByteList i e)
+  where
+    (ByteList l1 u1 xs) == (ByteList l2 u2 ys) = s1 == s2 && xs == ys
+      where
+        s1 = size (l1, u1)
+        s2 = size (l2, u2)
 
-instance (Ord e, Unboxed e, Index i) => Ord (ByteList i e) where compare xs ys = assocs xs <=> assocs ys
+instance (Ord e, Unboxed e, Index i) => Ord (ByteList i e)
+  where
+    compare (ByteList l1 u1 xs) (ByteList l2 u2 ys) = (s1 <=> s2) <> (xs <=> ys)
+      where
+        s1 = size (l1, u1)
+        s2 = size (l2, u2)
 
 --------------------------------------------------------------------------------
 
@@ -75,7 +85,9 @@ instance (Index i, Show i, Unboxed e, Show e) => Show (ByteList i e)
 instance (Index i, Read i, Unboxed e, Read e) => Read (ByteList i e)
   where
     readList = readListDefault
-    readPrec = parens $ prec appPrec (lift . expect $ Ident "bytelist") >> liftA2 assoc (step readPrec) (step readPrec)
+    readPrec = parens $ do
+      prec appPrec (lift . expect $ Ident "bytelist")
+      liftA2 assoc (step readPrec) (step readPrec)
 
 --------------------------------------------------------------------------------
 
@@ -83,9 +95,9 @@ instance (Index i, Read i, Unboxed e, Read e) => Read (ByteList i e)
 
 instance (Index i, Unboxed e) => Semigroup (ByteList i e) where xs <> ys = xs ++ ys
 
-instance (Index i, Unboxed e) => Monoid    (ByteList i e) where mempty = Z
+instance (Index i, Unboxed e) => Monoid (ByteList i e) where mempty = Z
 
-instance (Index i) => Default (ByteList i e) where def = case unsafeBounds 0 of (l, u) -> ByteList l u def
+instance (Index i) => Default (ByteList i e) where def = let (l, u) = unsafeBounds 0 in ByteList l u def
 
 --------------------------------------------------------------------------------
 
@@ -153,7 +165,6 @@ instance (Index i, Unboxed e) => Linear (ByteList i e) e
     intersperse e (ByteList _ _ es) = ByteList l u $ intersperse e es
       where
         n1 = case n <=> 0 of {LT -> 0; EQ -> 1; GT -> 2 * n - 1}; n = sizeOf es
-        
         (l, u) = unsafeBounds n1
     
     Z  ++ ys = ys
@@ -162,16 +173,12 @@ instance (Index i, Unboxed e) => Linear (ByteList i e) e
       where
         (l, u) = unsafeBounds $ size (l1, u1) + size (l2, u2)
     
-    listL  (ByteList l u bytes) = listL $ size (l, u) `take` bytes
-    listR  (ByteList l u bytes) = listR $ size (l, u) `take` bytes
+    listL (ByteList l u bytes) = listL $ size (l, u) `take` bytes
     
     partitions ps es = fromList <$> partitions ps (listL es)
 
 instance (Index i, Unboxed e) => Split (ByteList i e) e
   where
-    prefix p (ByteList l u es) = prefix p es `min` size (l, u)
-    suffix p (ByteList l u es) = prefix p es `min` size (l, u)
-    
     {-# INLINE take #-}
     take n list@(ByteList l u es)
         |      n <= 0      = Z
@@ -191,12 +198,16 @@ instance (Index i, Unboxed e) => Split (ByteList i e) e
     isPrefixOf xs ys = listL xs `isPrefixOf` listL ys
     isInfixOf  xs ys = listL xs `isInfixOf`  listL ys
     isSuffixOf xs ys = listL xs `isSuffixOf` listL ys
+    
+    prefix p (ByteList l u es) = prefix p es `min` size (l, u)
+    suffix p (ByteList l u es) = prefix p es `min` size (l, u)
 
 instance (Index i, Unboxed e) => Bordered (ByteList i e) i e
   where
-    sizeOf  (ByteList l u _) = size (l, u)
-    lower   (ByteList l _ _) = l
-    upper   (ByteList _ u _) = u
+    sizeOf (ByteList l u _) = size (l, u)
+    bounds (ByteList l u _) = (l, u)
+    lower  (ByteList l _ _) = l
+    upper  (ByteList _ u _) = u
 
 --------------------------------------------------------------------------------
 
@@ -219,7 +230,6 @@ instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
     (ByteList l u es) // ascs = ByteList l' u' es'
       where
         es' = es // [ (offset (l, u) i, e) | (i, e) <- ascs ]
-        
         (l', u') = unsafeBounds $ sizeOf es'
     
     {-# INLINE (!^) #-}
@@ -237,18 +247,18 @@ instance (Index i, Unboxed e) => E.IsList (ByteList i e)
   where
     type Item (ByteList i e) = e
     
-    fromList    es = fromList    es
-    fromListN n es = fromListN n es
-    toList      es = listL       es
+    fromListN = fromListN
+    fromList  = fromList
+    toList    = listL
 
-instance (Index i) => IsString (ByteList i Char) where fromString es = fromList es
+instance (Index i) => IsString (ByteList i Char) where fromString = fromList
 
 instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (ByteList i e) where arbitrary = fromList <$> arbitrary
 
 --------------------------------------------------------------------------------
 
-pfail     :: String -> a
-pfail msg =  throw . PatternMatchFail $ "in SDP.ByteList." ++ msg
+pfail :: String -> a
+pfail msg = throw . PatternMatchFail $ "in SDP.ByteList." ++ msg
 
 
 

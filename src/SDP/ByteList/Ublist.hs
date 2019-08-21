@@ -76,7 +76,7 @@ instance (Unboxed e, Show e) => Show (Ublist e)
 
 {- Semigroup, Monoid and Default instances. -}
 
-instance (Unboxed e) => Semigroup (Ublist e) where xs <> ys = xs ++ ys
+instance (Unboxed e) => Semigroup (Ublist e) where (<>) = (++)
 
 instance (Unboxed e) => Monoid    (Ublist e) where mempty = UBEmpty
 
@@ -124,13 +124,13 @@ instance (Unboxed e) => Linear (Ublist e) e
     {-# INLINE single #-}
     single e = runST $ filled 1 e >>= done'
     
-    fromList es = fromFoldable es
+    fromList = fromFoldable
     
     {-# INLINE fromFoldable #-}
     fromFoldable es = runST $ fromFoldableM es >>= done'
     
     {-# INLINE listL #-}
-    listL es' = list' 0# es'
+    listL = list' 0#
       where
         list' _ Z = []
         list' i# es@(Ublist (I# n#) bytes# bytes) = isTrue# (i# <# n#) ? begin $ rest
@@ -168,7 +168,7 @@ instance (Unboxed e) => Linear (Ublist e) e
                 in done n Z marr# ( if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2# )
             
             chunk = [ bytes# !# i# | (I# i#) <- [ n - 1, n - 2 .. 0 ] ]
-            err    = throw . UnreachableException $ "in SDP.ByteList.Ublist.reverse"
+            err   = unreachEx "reverse"
     
     partitions ps es = fromList <$> (partitions ps $ listL es)
 
@@ -176,27 +176,29 @@ instance (Unboxed e) => Split (Ublist e) e
   where
     {-# INLINE take #-}
     take n es
-        |     n <= 0     = Z
-        | sizeOf es <= n = es
-        |      True      = take' n es
+        | n <= 0 = Z
+        | l <= n = es
+        |  True  = take' n es
       where
         take' _ Z = Z
         take' n' (Ublist c arr# arrs) = n' >= c ? Ublist c arr# other $ fromListN n' rest
           where
             rest  = [ arr# !# i# | (I# i#) <- [0 .. n' - 1] ]
             other = take' (n' - c) arrs
+        l = sizeOf es
     
     {-# INLINE drop #-}
     drop n es
-        |     n <=  0    = es
-        | sizeOf es <= n = Z
-        |      True      = drop' n es
+        | n <= 0 = es
+        | l <= n = Z
+        |  True  = drop' n es
       where
         drop' _ Z = Z
         drop' n' (Ublist c arr# arrs) = n' >= c ? rest $ other ++ arrs
           where
             rest  = drop' (n' - c) arrs
             other = fromListN (c - n') [ arr# !# i# | (I# i#) <- [n' .. c - 1] ]
+        l = sizeOf es
     
     isPrefixOf xs ys = listL xs `isPrefixOf` listL ys
     isInfixOf  xs ys = listL xs `isInfixOf`  listL ys
@@ -249,7 +251,7 @@ instance (Unboxed e) => Indexed (Ublist e) Int e
 
 --------------------------------------------------------------------------------
 
-instance IsString (Ublist Char) where fromString es = fromList es
+instance IsString (Ublist Char) where fromString = fromList
 
 instance (Unboxed e, Arbitrary e) => Arbitrary (Ublist e) where arbitrary = fromList <$> arbitrary
 
@@ -269,6 +271,9 @@ done' _ = return UBEmpty
 
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.ByteList.Ublist." ++ msg
+
+unreachEx :: String -> a
+unreachEx msg = throw . UnreachableException $ "in SDP.ByteList.Ublist." ++ msg
 
 lim :: Int
 lim =  1024

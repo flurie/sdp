@@ -60,9 +60,10 @@ instance (Eq e, Index i) => Eq (Unrolled i e) where (==) = eq1
 
 instance (Index i) => Eq1 (Unrolled i)
   where
-    liftEq eq xs ys = liftEq eq' (assocs xs) (assocs ys)
+    liftEq eq (Unrolled l1 u1 xs) (Unrolled l2 u2 ys) = s1 == s2 && liftEq eq xs ys
       where
-        eq' (i1, x) (i2, y) = i1 == i2 && eq x y
+        s1 = size (l1, u1)
+        s2 = size (l2, u2)
 
 --------------------------------------------------------------------------------
 
@@ -72,9 +73,10 @@ instance (Ord e, Index i) => Ord (Unrolled i e) where compare = compare1
 
 instance (Index i) => Ord1 (Unrolled i)
   where
-    liftCompare cmp xs ys = liftCompare cmp' (assocs xs) (assocs ys)
+    liftCompare cmp (Unrolled l1 u1 xs) (Unrolled l2 u2 ys) = (s1 <=> s2) <> liftCompare cmp xs ys
       where
-        cmp' (ix, x) (iy, y) = (ix <=> iy) <> (cmp x y)
+        s1 = size (l1, u1)
+        s2 = size (l2, u2)
 
 --------------------------------------------------------------------------------
 
@@ -152,7 +154,9 @@ instance (Index i) => Foldable (Unrolled i)
 
 -- instance (Index i) => Scan (Unrolled i)
 
-instance (Index i) => Traversable (Unrolled i) where traverse f arr = fromList <$> traverse f (toList arr)
+instance (Index i) => Traversable (Unrolled i)
+  where
+    traverse f arr = fromList <$> foldr (\ x ys -> liftA2 (:) (f x) ys) (pure []) arr
 
 --------------------------------------------------------------------------------
 
@@ -298,11 +302,11 @@ instance (Index i) => E.IsList (Unrolled i e)
   where
     type Item (Unrolled i e) = e
     
-    fromList    es = fromList    es
-    fromListN n es = fromListN n es
-    toList      es = toList      es
+    fromListN = fromListN
+    fromList  = fromList
+    toList    = toList
 
-instance (Index i) => IsString (Unrolled i Char) where fromString es = fromList es
+instance (Index i) => IsString (Unrolled i Char) where fromString = fromList
 
 instance (Index i) => Estimate (Unrolled i) where xs <==> ys = length xs <=> length ys
 
@@ -310,6 +314,7 @@ instance (Index i, Arbitrary e) => Arbitrary (Unrolled i e) where arbitrary = fr
 
 --------------------------------------------------------------------------------
 
-pfail     :: String -> a
-pfail msg =  throw . PatternMatchFail $ "in SDP.Unrolled." ++ msg
+pfail :: String -> a
+pfail msg = throw . PatternMatchFail $ "in SDP.Unrolled." ++ msg
+
 

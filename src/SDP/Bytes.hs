@@ -69,9 +69,27 @@ type role Bytes nominal representational
 
 {- Eq and Ord instances. -}
 
-instance (Index i, Unboxed e) => Eq (Bytes i e)         where xs == ys = listL xs == listL ys
+instance (Index i, Unboxed e) => Eq (Bytes i e)
+  where
+    Z == Z  = True
+    xs == ys = l1 == l2 && u1 == u2 && n1 == n2 && eq' 0
+      where
+        !(Bytes l1 u1 n1 _) = xs
+        !(Bytes l2 u2 n2 _) = ys
+        
+        eq' i = (i == n1) || ((e1 == e2) && eq' (i + 1))
+          where
+            e1 = xs !^ i
+            e2 = ys !^ i
 
-instance (Index i, Unboxed e, Ord e) => Ord (Bytes i e) where compare xs ys = listL xs <=> listL ys
+instance (Index i, Unboxed e, Ord e) => Ord (Bytes i e)
+  where
+    compare Z  Z  = EQ
+    compare xs ys = (n1 <=> n2) <> cmp' 0
+      where
+        cmp' i = if i == n1 then EQ else (xs !^ i <=> ys !^ i) <> cmp' (i + 1)
+        n1 = sizeOf xs
+        n2 = sizeOf ys
 
 --------------------------------------------------------------------------------
 
@@ -87,15 +105,17 @@ instance (Index i, Show i, Unboxed e, Show e) => Show (Bytes i e)
 instance (Index i, Read i, Unboxed e, Read e) => Read (Bytes i e)
   where
     readList = readListDefault
-    readPrec = parens $ prec appPrec (lift . expect $ Ident "bytes") >> liftA2 assoc (step readPrec) (step readPrec)
+    readPrec = parens $ do
+      prec appPrec (lift . expect $ Ident "bytes")
+      liftA2 assoc (step readPrec) (step readPrec)
 
 --------------------------------------------------------------------------------
 
 {- Semigroup, Monoid and Default instances. -}
 
-instance (Index i, Unboxed e) => Semigroup (Bytes i e) where xs <> ys = xs ++ ys
+instance (Index i, Unboxed e) => Semigroup (Bytes i e) where (<>) = (++)
 
-instance (Index i, Unboxed e) => Monoid    (Bytes i e) where mempty = Z
+instance (Index i, Unboxed e) => Monoid (Bytes i e) where mempty = Z
 
 instance (Index i) => Default (Bytes i e)
   where
@@ -141,9 +161,6 @@ instance (Unboxed e, Index i) => Linear (Bytes i e) e
     xs ++  Z = xs
     xs ++ ys = fromList $ listL xs ++ listL ys
     
-    {-# INLINE reverse #-}
-    reverse es = fromListN (sizeOf es) (listR es)
-    
     {-# INLINE replicate #-}
     replicate n e = runST $ filled n e >>= done
     
@@ -158,11 +175,34 @@ instance (Unboxed e, Index i) => Linear (Bytes i e) e
 
 instance (Index i, Unboxed e) => Split (Bytes i e) e
   where
-    take n es = fromList . take n $ listL es
-    drop n es = fromList . drop n $ listL es
+    {-#  INLINE take #-}
+    take n es
+        | n <= 0 = Z
+        | n >= l = es
+        |  True  = fromList [ es !^ i | i <- [ 0 .. n - 1 ] ]
+      where
+        l = sizeOf es
     
-    isPrefixOf xs ys = n1 <= n2 && take n1 (listL xs) == take n2 (listL ys)        where n1 = sizeOf xs; n2 = sizeOf ys
-    isSuffixOf xs ys = n1 <= n2 && take n2 (listL xs) == take (n1 - n2) (listL ys) where n1 = sizeOf xs; n2 = sizeOf ys
+    {-# INLINE drop #-}
+    drop n es
+        | n <= 0 = es
+        | n >= l = Z
+        |  True  = fromListN (l - n) [ es !^ i | i <- [ n .. l - 1 ] ]
+      where
+        l = sizeOf es
+    
+    isPrefixOf xs ys = n1 <= n2 && equals 0
+      where
+        equals i = i == n1 || (xs !^ i == ys !^ i) && equals (i + 1)
+        n1 = sizeOf xs
+        n2 = sizeOf ys
+    
+    isSuffixOf xs ys = n1 <= n2 && equals 0 o
+      where
+        equals i j = i == n1 || (xs !^ i == ys !^ j) && equals (i + 1) (j + 1)
+        o  = max 0 (n2 - n1)
+        n1 = sizeOf xs
+        n2 = sizeOf ys
     
     {-# INLINE prefix #-}
     -- see SDP.Linear.suffix and SDP.Array.foldr
@@ -179,9 +219,10 @@ instance (Index i, Unboxed e) => Split (Bytes i e) e
 
 instance (Index i, Unboxed e) => Bordered (Bytes i e) i e
   where
+    sizeOf (Bytes _ _ n _) = max 0 n
+    bounds (Bytes l u _ _) = (l, u)
     lower  (Bytes l _ _ _) = l
     upper  (Bytes _ u _ _) = u
-    sizeOf (Bytes _ _ n _) = max 0 n
 
 --------------------------------------------------------------------------------
 
@@ -218,11 +259,11 @@ instance (Index i, Unboxed e) => E.IsList (Bytes i e)
   where
     type Item (Bytes i e) = e
     
-    fromList    es = fromList    es
-    fromListN n es = fromListN n es
-    toList      es = listL       es
+    fromListN = fromListN
+    fromList  = fromList
+    toList    = listL
 
-instance (Index i) => IsString (Bytes i Char) where fromString es = fromList es
+instance (Index i) => IsString (Bytes i Char) where fromString = fromList
 
 instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (Bytes i e) where arbitrary = fromList <$> arbitrary
 
@@ -249,7 +290,6 @@ done (STBytes l u n mbytes#) = ST $ \ s1# -> case unsafeFreezeByteArray# mbytes#
 
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Bytes." ++ msg
-
 
 
 

@@ -183,7 +183,7 @@ class Linear l e | l -> e
     
     -- | Generalization of Some.Module.reverse.
     reverse    :: l -> l
-    reverse es =  fromList . reverse $ listL es
+    reverse es =  fromList $ listR es
     
     -- | Generalization of Data.List.subsequences. May be moved.
     subsequences     :: l -> [l]

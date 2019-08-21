@@ -21,10 +21,11 @@ module SDP.IndexedM
   )
 where
 
-import Prelude ( (++) )
+import Prelude ()
 import SDP.SafePrelude
 
 import SDP.LinearM
+import SDP.Linear
 
 import SDP.Simple
 
@@ -37,7 +38,7 @@ default ()
 -- | Class for work with mutable indexed structures.
 class (Monad m, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
   where
-    {-# MINIMAL fromAssocs', overwrite, ((!>)|(!?>)), (*?) #-}
+    {-# MINIMAL fromAssocs', overwrite, ((!>)|(!?>)) #-}
     
     {-# INLINE fromAssocs #-}
     -- | fromAssocs returns new mutable structure created from assocs.
@@ -89,7 +90,9 @@ class (Monad m, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
     f .? es = listToMaybe <$> f *? es
     
     -- | (*?) is monadic version of (*$).
+    default (*?) :: (BorderedM m v i e) => (e -> Bool) -> v -> m [i]
     (*?) :: (e -> Bool) -> v -> m [i]
+    p *? marr = fsts . filter (p . snd) <$> getAssocs marr
 
 --------------------------------------------------------------------------------
 
@@ -111,5 +114,7 @@ arrcopy xs ys ix iy count = copy ix iy (max 0 count)
 
 undEx :: String -> a
 undEx msg = throw . UndefinedValue $ "in SDP.IndexedM" ++ msg
+
+
 
 

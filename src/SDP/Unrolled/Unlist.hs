@@ -182,10 +182,10 @@ instance Linear (Unlist e) e
     {-# INLINE single #-}
     single e = runST $ filled 1 e >>= done'
     
-    listL es = toList es
+    listL = toList
     
     {-# INLINE fromList #-}
-    fromList es = fromFoldable es
+    fromList = fromFoldable
     
     {-# INLINE fromFoldable #-}
     fromFoldable es = runST $ fromFoldableM es >>= done'
@@ -298,7 +298,7 @@ instance Indexed (Unlist e) Int e
 
 --------------------------------------------------------------------------------
 
-instance IsString (Unlist Char) where fromString es = fromList es
+instance IsString (Unlist Char) where fromString = fromList
 
 instance Estimate Unlist
   where
