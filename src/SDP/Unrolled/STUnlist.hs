@@ -24,7 +24,6 @@ import Prelude ()
 import SDP.SafePrelude
 
 import SDP.IndexedM
-import SDP.Linear
 
 import GHC.Base
   (
@@ -176,10 +175,11 @@ done n marr# rest = \ s1# -> (# s1#, STUnlist n marr# rest #)
 fill :: MutableArray# s e -> (Int, e) -> STRep s a -> STRep s a
 fill marr# (I# i#, e) nxt = \ s1# -> case writeArray# marr# i# e s1# of s2# -> nxt s2#
 
-unreachEx     :: String -> a
-unreachEx msg =  throw . UnreachableException $ "in SDP.STUnlist." ++ msg
+unreachEx :: String -> a
+unreachEx msg = throw . UnreachableException $ "in SDP.STUnlist." ++ msg
 
 lim :: Int
 lim =  1024
+
 
 

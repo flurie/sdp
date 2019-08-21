@@ -18,8 +18,7 @@ module SDP.ByteList
   module SDP.Indexed,
   module SDP.Set,
   
-  ByteList (..),
-  Ublist -- type Ublist exported as abstract.
+  ByteList (..), Ublist
 )
 where
 
@@ -174,6 +173,7 @@ instance (Index i, Unboxed e) => Linear (ByteList i e) e
         (l, u) = unsafeBounds $ size (l1, u1) + size (l2, u2)
     
     listL (ByteList l u bytes) = listL $ size (l, u) `take` bytes
+    listR (ByteList l u bytes) = listR $ size (l, u) `take` bytes
     
     partitions ps es = fromList <$> partitions ps (listL es)
 

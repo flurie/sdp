@@ -24,7 +24,6 @@ import Prelude ()
 import SDP.SafePrelude
 
 import SDP.IndexedM
-import SDP.Linear
 
 import GHC.Base ( Int (..) )
 
@@ -94,8 +93,9 @@ instance (Index i) => IndexedM (ST s) (STUnrolled s i e) i e
     fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
     
     (STUnrolled _ _ es) !#> i = es !#> i
-    (STUnrolled l u es) >!  i = es >! offset (l, u) i
-    (STUnrolled l u es) !>  i = case inBounds (l, u) i of
+    
+    (STUnrolled l u es) >! i = es >! offset (l, u) i
+    (STUnrolled l u es) !> i = case inBounds (l, u) i of
         ER -> throw $ EmptyRange     msg
         UR -> throw $ IndexUnderflow msg
         IN -> es >! offset (l, u) i
@@ -104,6 +104,7 @@ instance (Index i) => IndexedM (ST s) (STUnrolled s i e) i e
         msg = "in SDP.Unrolled.ST.(!>)"
     
     writeM_ (STUnrolled _ _ es) i = writeM es i
+    
     writeM  (STUnrolled l u es) i = writeM es $ offset (l, u) i
     
     overwrite es [] = return es
@@ -112,9 +113,8 @@ instance (Index i) => IndexedM (ST s) (STUnrolled s i e) i e
       | True = STUnrolled l u <$> overwrite es ies
       where
         ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
-        l' = fst $ minimumBy cmpfst ascs
-        u' = fst $ maximumBy cmpfst ascs
-
+        l'  = fst $ minimumBy cmpfst ascs
+        u'  = fst $ maximumBy cmpfst ascs
 
 
 

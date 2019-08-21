@@ -25,7 +25,6 @@ import SDP.SafePrelude
 
 import SDP.IndexedM
 import SDP.Unboxed
-import SDP.Linear
 
 import GHC.Base ( Int (..) )
 import GHC.ST   ( ST  (..) )
@@ -94,8 +93,9 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STByteList s i e) i e
     fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
     
     (STByteList _ _ es) !#> i = es !#> i
-    (STByteList l u es) >!  i = es >! offset  (l, u) i
-    (STByteList l u es) !>  i = case inBounds (l, u) i of
+    
+    (STByteList l u es) >! i = es >! offset  (l, u) i
+    (STByteList l u es) !> i = case inBounds (l, u) i of
         ER -> throw $ EmptyRange     msg
         UR -> throw $ IndexUnderflow msg
         IN -> es >! offset (l, u) i
@@ -104,6 +104,7 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STByteList s i e) i e
         msg = "in SDP.ByteList.ST.(!>)"
     
     writeM_ (STByteList _ _ es) i = writeM es i
+    
     writeM  (STByteList l u es) i = writeM es $ offset (l, u) i
     
     overwrite es [] = return es
@@ -114,7 +115,6 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STByteList s i e) i e
         ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
         l'  = fst $ minimumBy cmpfst ascs
         u'  = fst $ maximumBy cmpfst ascs
-
 
 
 

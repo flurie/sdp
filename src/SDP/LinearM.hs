@@ -12,17 +12,17 @@
 -}
 module SDP.LinearM
   (
-    module SDP.Index,
+    module SDP.Linear,
     
     BorderedM (..),
     LinearM   (..)
   )
 where
 
-import Prelude ( zip, take, drop, reverse )
+import Prelude ()
 import SDP.SafePrelude
 
-import SDP.Index
+import SDP.Linear
 
 default ()
 

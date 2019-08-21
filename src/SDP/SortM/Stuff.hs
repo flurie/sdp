@@ -25,7 +25,6 @@ import Prelude ()
 import SDP.SafePrelude
 
 import SDP.IndexedM
-import SDP.Linear
 
 import Data.Bits
 
@@ -166,5 +165,6 @@ sortedM es = flip fmap (getLeft es) $
 -}
 ascending :: (Split s e, Ord e) => s -> [(Int, Int)] -> Bool
 ascending es ss = sorted `all` splits (snds ss) es
+
 
 

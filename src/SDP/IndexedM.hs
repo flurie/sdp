@@ -14,6 +14,7 @@
 module SDP.IndexedM
   (
     module SDP.LinearM,
+    module SDP.Indexed,
     
     IndexedM (..),
     
@@ -25,7 +26,7 @@ import Prelude ()
 import SDP.SafePrelude
 
 import SDP.LinearM
-import SDP.Linear
+import SDP.Indexed
 
 import SDP.Simple
 

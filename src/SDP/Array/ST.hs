@@ -26,7 +26,6 @@ import Prelude ()
 import SDP.SafePrelude
 
 import SDP.IndexedM
-import SDP.Linear
 
 import GHC.Base
   (
@@ -152,4 +151,5 @@ done (l, u) n marr# = \ s1# -> (# s1#, STArray l u n marr# #)
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Array.ST." ++ msg
+
 
