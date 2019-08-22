@@ -103,13 +103,18 @@ instance (Index i) => IndexedM (ST s) (STUnrolled s i e) i e
     writeM  (STUnrolled l u es) i = writeM es $ offset (l, u) i
     
     overwrite es [] = return es
-    overwrite (STUnrolled l u es) ascs
-      | isEmpty (l, u) = fromAssocs (l', u') ascs
-      | True = STUnrolled l u <$> overwrite es ies
+    overwrite (STUnrolled l u es) ascs = if isEmpty (l, u)
+        then fromAssocs (l', u') ascs
+        else STUnrolled l u <$> overwrite es ies
       where
         ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
         l'  = fst $ minimumBy cmpfst ascs
         u'  = fst $ maximumBy cmpfst ascs
+    
+    fromIndexedM es = do
+      es' <- fromIndexedM es
+      n   <- getSizeOf es'
+      return $ let (l, u) = unsafeBounds n in STUnrolled l u es'
 
 
 

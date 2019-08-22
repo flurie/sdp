@@ -138,6 +138,12 @@ instance (Index i) => IndexedM (ST s) (STArray s i e) i e
     overwrite es@(STArray l u _ _) ascs = mapM_ (uncurry $ writeM_ es) ies >> return es
       where
         ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
+    
+    fromIndexedM es = do
+      n    <- getSizeOf es
+      copy <- filled n (unreachEx "fromIndexedM")
+      forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM_ copy i
+      return copy
 
 --------------------------------------------------------------------------------
 
@@ -153,7 +159,6 @@ done n marr# = \ s1# -> let (l, u) = unsafeBounds n in (# s1#, STArray l u n mar
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Array.ST." ++ msg
-
 
 
 

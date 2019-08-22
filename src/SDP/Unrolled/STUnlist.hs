@@ -142,6 +142,12 @@ instance IndexedM (ST s) (STUnlist s e) Int e
         (curr, others) = partition (inRange (0, n - 1) . fst) ascs
         writes  = ST $ foldr (fill marr#) (done n marr# marr) curr
         others' = [ (i - n, e) | (i, e) <- others ]
+    
+    fromIndexedM es = do
+      n    <- getSizeOf es
+      copy <- filled n (unreachEx "fromIndexedM")
+      forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM_ copy i
+      return copy
 
 --------------------------------------------------------------------------------
 
@@ -174,7 +180,6 @@ unreachEx msg = throw . UnreachableException $ "in SDP.STUnlist." ++ msg
 
 lim :: Int
 lim =  1024
-
 
 
 

@@ -149,6 +149,12 @@ instance (Unboxed e) => IndexedM (ST s) (STUblist s e) Int e
         (curr, others) = partition (inRange (0, n - 1) . fst) ascs
         writes  = ST $ foldr (fill mubl#) (done n mubl# mubls) curr
         others' = [ (i - n, e) | (i, e) <- others ]
+    
+    fromIndexedM es = do
+      n    <- getSizeOf es
+      copy <- filled_ n (unreachEx "fromIndexedM")
+      forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM_ copy i
+      return copy
 
 --------------------------------------------------------------------------------
 
@@ -165,8 +171,7 @@ toChunk e n@(I# n#) es = ST $ \ s1# -> case newUnboxed e n# s1# of
 (.++) :: ST s (STUblist s e) -> ST s (STUblist s e) -> ST s (STUblist s e)
 (.++) = liftA2 cat
   where
-    cat (STUblist n1 mubl# mubls) y = STUblist n1 mubl# (cat mubls y)
-    cat STUBEmpty y = y
+    cat x y = case x of {STUblist n1 mubl# mubls -> STUblist n1 mubl# (cat mubls y); _ -> y}
 
 filled_ :: (Unboxed e) => Int -> e -> ST s (STUblist s e)
 filled_ n e

@@ -117,4 +117,9 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STByteList s i e) i e
         ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
         l'  = fst $ minimumBy cmpfst ascs
         u'  = fst $ maximumBy cmpfst ascs
+    
+    fromIndexedM es = do
+      es' <- fromIndexedM es
+      n   <- getSizeOf es'
+      return $ let (l, u) = unsafeBounds n in STByteList l u es'
 

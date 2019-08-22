@@ -39,7 +39,7 @@ default ()
 -- | Class for work with mutable indexed structures.
 class (Monad m, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
   where
-    {-# MINIMAL fromAssocs', overwrite, ((!>)|(!?>)) #-}
+    {-# MINIMAL fromAssocs', fromIndexedM, overwrite, ((!>)|(!?>)) #-}
     
     {-# INLINE fromAssocs #-}
     -- | fromAssocs returns new mutable structure created from assocs.
@@ -78,6 +78,8 @@ class (Monad m, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
     writeM :: v -> i -> e -> m ()
     writeM es i e = do b <- getIndexOf es i; when b . void $ overwrite es [(i, e)]
     
+    fromIndexedM :: (BorderedM m v' j e, IndexedM m v' j e) => v' -> m v
+    
     -- | overwrite rewrites mutable structure using assocs.
     overwrite :: v -> [(i, e)] -> m v
     overwrite es ies = mapM_ (uncurry $ writeM es) ies >> return es
@@ -115,7 +117,4 @@ arrcopy xs ys ix iy count = copy ix iy (max 0 count)
 
 undEx :: String -> a
 undEx msg = throw . UndefinedValue $ "in SDP.IndexedM" ++ msg
-
-
-
 
