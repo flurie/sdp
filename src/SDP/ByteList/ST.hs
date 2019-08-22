@@ -58,11 +58,9 @@ instance (Index i, Unboxed e) => Eq (STByteList s i e)
 
 instance (Index i, Unboxed e) => BorderedM (ST s) (STByteList s i e) i e
   where
-    getLower   (STByteList l _ _)   = return l
-    getUpper   (STByteList _ u _)   = return u
-    getSizeOf  (STByteList l u _)   = return $ size    (l, u)
-    getIndices (STByteList l u _)   = return $ range   (l, u)
-    getIndexOf (STByteList l u _) i = return $ inRange (l, u) i
+    getLower   (STByteList l _ _) = return l
+    getUpper   (STByteList _ u _) = return u
+    getSizeOf  (STByteList l u _) = return $ size (l, u)
 
 instance (Index i, Unboxed e) => LinearM (ST s) (STByteList s i e) e
   where
@@ -72,16 +70,12 @@ instance (Index i, Unboxed e) => LinearM (ST s) (STByteList s i e) e
       where
         (l, u) = unsafeBounds (length es)
     
-    getLeft (STByteList l u es) = take (size (l, u)) <$> getLeft es
+    getLeft  (STByteList l u es)       = take (size (l, u)) <$> getLeft es
+    copied   (STByteList l u es)       = STByteList l u <$> copied  es
+    copied'  (STByteList l u es) l' u' = STByteList l u <$> copied' es l' u'
+    reversed (STByteList l u es)       = STByteList l u <$> reversed es
     
-    copied  (STByteList l u es)       = STByteList l u <$> copied  es
-    copied' (STByteList l u es) l' u' = STByteList l u <$> copied' es l' u'
-    
-    {-# INLINE reversed #-}
-    reversed es = liftA2 zip (getIndices es) (getRight es) >>= overwrite es
-    
-    {-# INLINE filled #-}
-    filled n e = STByteList l u <$> filled n e where (l, u) = unsafeBounds n
+    filled n e = let (l, u) = unsafeBounds n in STByteList l u <$> filled n e
 
 --------------------------------------------------------------------------------
 
@@ -89,8 +83,17 @@ instance (Index i, Unboxed e) => LinearM (ST s) (STByteList s i e) e
 
 instance (Index i, Unboxed e) => IndexedM (ST s) (STByteList s i e) i e
   where
+    fromAssocs (l, u) ascs = STByteList l u <$> fromAssocs bnds ies
+      where
+        ies  = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
+        bnds = (0, size (l, u) - 1)
+    
     {-# INLINE fromAssocs' #-}
-    fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
+    fromAssocs' (l, u) defvalue ascs = STByteList l u <$> es
+      where
+        ies  = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
+        es   = fromAssocs' bnds defvalue ies
+        bnds = (0, size (l, u) - 1)
     
     (STByteList _ _ es) !#> i = es !#> i
     
@@ -104,17 +107,14 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STByteList s i e) i e
         msg = "in SDP.ByteList.ST.(!>)"
     
     writeM_ (STByteList _ _ es) i = writeM es i
-    
     writeM  (STByteList l u es) i = writeM es $ offset (l, u) i
     
     overwrite es [] = return es
-    overwrite (STByteList l u es) ascs
-      | isEmpty (l, u) = fromAssocs (l', u') ascs
-      | True = STByteList l u <$> overwrite es ies
+    overwrite (STByteList l u es) ascs = if isEmpty (l, u)
+        then fromAssocs (l', u') ascs
+        else STByteList l u <$> overwrite es ies
       where
         ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
         l'  = fst $ minimumBy cmpfst ascs
         u'  = fst $ maximumBy cmpfst ascs
-
-
 

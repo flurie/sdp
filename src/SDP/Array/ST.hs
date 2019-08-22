@@ -69,11 +69,10 @@ instance (Index i, Eq e) => Eq (STArray s i e)
 
 instance (Index i) => BorderedM (ST s) (STArray s i e) i e
   where
-    getLower   (STArray l _ _ _)   = return l
-    getUpper   (STArray _ u _ _)   = return u
-    getSizeOf  (STArray _ _ n _)   = return $ max 0 n
-    getIndices (STArray l u _ _)   = return $ range   (l, u)
-    getIndexOf (STArray l u _ _) i = return $ inRange (l, u) i
+    getLower  (STArray l _ _ _) = return l
+    getUpper  (STArray _ u _ _) = return u
+    getBounds (STArray l u _ _) = return (l, u)
+    getSizeOf (STArray _ _ n _) = return $ max 0 n
 
 instance (Index i) => LinearM (ST s) (STArray s i e) e
   where
@@ -84,27 +83,30 @@ instance (Index i) => LinearM (ST s) (STArray s i e) e
       (# s2#, marr# #) ->
         let go y r = \ i# s3# -> case writeArray# marr# i# y s3# of
               s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#
-        in done (l, u) n marr# ( if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2# )
+        in done n marr# ( if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2# )
       where
+        err = unreachEx "fromFoldableM"
         !n@(I# n#) = length es
-        (l, u) = unsafeBounds n
-        err    = unreachEx "fromFoldableM"
     
-    getLeft  es@(STArray l u _ _) = (es >!) `mapM` range (l, u)
-    getRight es@(STArray l u _ _) = (es >!) `mapM` reverse (range (l, u))
+    getLeft  es@(STArray _ _ n _) = (es !#>) `mapM` [0 .. n - 1]
+    getRight es@(STArray _ _ n _) = (es !#>) `mapM` [n - 1, n - 2 .. 0]
     
-    copied (STArray _ _ n marr#) = do
-      copy@(STArray _ _ _ marr1#) <- filled n $ unreachEx "copied"
-      forM_ [0 .. n - 1] $ \ (I# i#) -> ST $ \ s1# -> case readArray# marr# i# s1# of
-        (# s2#, e #) -> case writeArray# marr1# i# e s2# of s3# -> (# s3#, () #)
+    copied es@(STArray _ _ n _) = do
+      copy <- filled n $ unreachEx "copied"
+      forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM_ copy i
+      return copy
+    
+    copied' es l u = let n' = size (l, u) in do
+      copy <- n' `filled` unreachEx "copied'"
+      forM_ [0 .. n' - 1] $ \ i -> es !#> i >>= writeM_ copy i
       return copy
     
     {-# INLINE reversed #-}
     reversed es = liftA2 zip (getIndices es) (getRight es) >>= overwrite es
     
     {-# INLINE filled #-}
-    filled n e = let !n'@(I# n#) = max 0 n in ST $ \ s1# -> case newArray# n# e s1# of
-      (# s2#, marr# #) -> done (unsafeBounds n') n' marr# s2#
+    filled n e = let !n'@(I# n#) = max 0 n in ST $
+      \ s1# -> case newArray# n# e s1# of (# s2#, marr# #) -> done n' marr# s2#
 
 --------------------------------------------------------------------------------
 
@@ -146,10 +148,13 @@ instance (Index i) => SortM (ST s) (STArray s i e) e where sortMBy = timSortBy
 --------------------------------------------------------------------------------
 
 {-# INLINE done #-}
-done :: (i, i) -> Int -> MutableArray# s e -> STRep s (STArray s i e)
-done (l, u) n marr# = \ s1# -> (# s1#, STArray l u n marr# #)
+done :: (Index i) => Int -> MutableArray# s e -> STRep s (STArray s i e)
+done n marr# = \ s1# -> let (l, u) = unsafeBounds n in (# s1#, STArray l u n marr# #)
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Array.ST." ++ msg
+
+
+
 
 

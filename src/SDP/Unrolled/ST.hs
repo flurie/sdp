@@ -58,11 +58,9 @@ instance (Index i, Eq e) => Eq (STUnrolled s i e)
 
 instance (Index i) => BorderedM (ST s) (STUnrolled s i e) i e
   where
-    getLower   (STUnrolled l _ _)   = return l
-    getUpper   (STUnrolled _ u _)   = return u
-    getSizeOf  (STUnrolled l u _)   = return $ size    (l, u)
-    getIndices (STUnrolled l u _)   = return $ range   (l, u)
-    getIndexOf (STUnrolled l u _) i = return $ inRange (l, u) i
+    getLower  (STUnrolled l _ _) = return l
+    getUpper  (STUnrolled _ u _) = return u
+    getSizeOf (STUnrolled l u _) = return $ size (l, u)
 
 instance (Index i) => LinearM (ST s) (STUnrolled s i e) e
   where
@@ -77,11 +75,8 @@ instance (Index i) => LinearM (ST s) (STUnrolled s i e) e
     copied  (STUnrolled l u es)       = STUnrolled l u <$> copied  es
     copied' (STUnrolled l u es) l' u' = STUnrolled l u <$> copied' es l' u'
     
-    {-# INLINE reversed #-}
     reversed es = liftA2 zip (getIndices es) (getRight es) >>= overwrite es
-    
-    {-# INLINE filled #-}
-    filled n e = STUnrolled l u <$> filled n e where (l, u) = unsafeBounds n
+    filled n e  = STUnrolled l u <$> filled n e where (l, u) = unsafeBounds n
 
 --------------------------------------------------------------------------------
 

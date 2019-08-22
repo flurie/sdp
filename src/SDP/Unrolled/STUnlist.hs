@@ -86,16 +86,10 @@ instance LinearM (ST s) (STUnlist s e) e
         rest' = toChunk' err restSize rest
         err   = unreachEx "fromFoldableM"
     
-    getLeft       STUNEmpty      = return []
-    getLeft  es@(STUnlist n _ _) = mapM (es >!) [0 .. n - 1]
-    
-    getRight      STUNEmpty      = return []
-    getRight es@(STUnlist n _ _) = mapM (es >!) [n - 1, n - 2 .. 0]
-    
-    {-# INLINE reversed #-}
+    getLeft  es = case es of {STUnlist n _ _ -> mapM (es >!) [0 .. n - 1]; _ -> return []}
+    getRight es = case es of {STUnlist n _ _ -> mapM (es >!) [n - 1, n - 2 .. 0]; _ -> return []}
     reversed es = liftA2 zip (getIndices es) (getRight es) >>= overwrite es
     
-    {-# INLINE filled #-}
     -- Note: STUnlist.filled is not so efficient as Unlist.replicate.
     filled n e
         | n <  1  = return STUNEmpty
@@ -180,6 +174,7 @@ unreachEx msg = throw . UnreachableException $ "in SDP.STUnlist." ++ msg
 
 lim :: Int
 lim =  1024
+
 
 
 

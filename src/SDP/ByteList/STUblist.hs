@@ -53,10 +53,10 @@ type role STUblist nominal representational
 instance (Unboxed e) => Eq (STUblist s e)
   where
     STUBEmpty == STUBEmpty = True
-    (STUblist n1 marr1# marr1) == (STUblist n2 marr2# marr2) = res
+    (STUblist n1 mubl1# mubls1) == (STUblist n2 mubl2# mubls2) = res
       where
-        res  = n1 == n2 && (n1 == 0 || same && marr1 == marr2)
-        same = isTrue# (sameMutableByteArray# marr1# marr2#)
+        res  = n1 == n2 && (n1 == 0 || same && mubls1 == mubls2)
+        same = isTrue# (sameMutableByteArray# mubl1# mubl2#)
     _ == _ = False
 
 --------------------------------------------------------------------------------
@@ -85,24 +85,20 @@ instance (Unboxed e) => LinearM (ST s) (STUblist s e) e
         rest' = toChunk err restSize rest
         err   = unreachEx "fromFoldableM"
     
-    getLeft       STUBEmpty      = return []
-    getLeft  es@(STUblist n _ _) = mapM (es >!) [0 .. n - 1]
-    
-    getRight      STUBEmpty      = return []
-    getRight es@(STUblist n _ _) = mapM (es >!) [n - 1, n - 2 .. 0]
+    getLeft  es = case es of {STUblist n _ _ -> mapM (es >!) [0 .. n - 1]; _ -> return []}
+    getRight es = case es of {STUblist n _ _ -> mapM (es >!) [n - 1, n - 2 .. 0]; _ -> return []}
     
     {-# INLINE reversed #-}
     reversed es = liftA2 zip (getIndices es) (getRight es) >>= overwrite es
     
-    {-# INLINE filled #-}
     -- Note: STUblist.filled is not so efficient as Ublist.replicate.
     filled n e
         | n <  1  = return STUBEmpty
         | n < lim = ST $ \ s1# -> case newUnboxed' e l# s1# of
-          (# s2#, marr# #) -> (# s2#, STUblist n marr# STUBEmpty #)
-        |  True   = filled (n - lim) e >>= \ marr -> ST $
+          (# s2#, mubl# #) -> (# s2#, STUblist n mubl# STUBEmpty #)
+        |  True   = filled (n - lim) e >>= \ mubls -> ST $
           \ s1# -> case newUnboxed' e l# s1# of
-            (# s2#, marr# #) -> (# s2#, STUblist n marr# marr #)
+            (# s2#, mubl# #) -> (# s2#, STUblist n mubl# mubls #)
       where
         !(I# l#) = lim
 
@@ -123,25 +119,24 @@ instance (Unboxed e) => IndexedM (ST s) (STUblist s e) Int e
     es !#> i = es >! i
     
     {-# INLINE (>!) #-}
-    (STUblist n marr# marr) >! i@(I# i#) = i >= n ? marr !> (i - n) $ ST (marr# !># i#)
-    _ >! _ = error "SDP.ByteList.STUblist.(>!) tried to find element in empty STUblist"
+    (STUblist n mubl# mubls) >! i@(I# i#) = i >= n ? mubls !> (i - n) $ ST (mubl# !># i#)
+    _ >! _ = error "in SDP.ByteList.STUblist.(>!)"
     
-    STUBEmpty           !> _ = throw $ EmptyRange "in SDP.ByteList.STUnlist.(!>)"
-    es@(STUblist n _ _) !> i
-      | n < 1 = throw $ EmptyRange     msg
-      | i < 0 = throw $ IndexUnderflow msg
-      | i < n = es >! i
-      | True  = throw $ IndexOverflow  msg
+    es !> i = getBounds es >>= \ bnds -> case inBounds bnds i of
+        ER -> throw $ EmptyRange     msg
+        UR -> throw $ IndexUnderflow msg
+        IN -> es >! i
+        OR -> throw $ IndexOverflow  msg
       where
         msg = "in SDP.ByteList.STUnlist.(!>)"
     
     writeM_ = writeM
     
     writeM STUBEmpty _ _ = return ()
-    writeM (STUblist n marr# marr) i@(I# i#) e
+    writeM (STUblist n mubl# mubls) i@(I# i#) e
       | i < 0 = return ()
-      | i < n = ST $ \ s1# -> case writeByteArray# marr# i# e s1# of s2# -> (# s2#, () #)
-      | True  = writeM marr (i - n) e
+      | i < n = ST $ \ s1# -> case writeByteArray# mubl# i# e s1# of s2# -> (# s2#, () #)
+      | True  = writeM mubls (i - n) e
     
     {-# INLINE overwrite #-}
     overwrite STUBEmpty ascs = isNull ascs ? return STUBEmpty $ fromAssocs (l, u) ascs
@@ -149,10 +144,10 @@ instance (Unboxed e) => IndexedM (ST s) (STUblist s e) Int e
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
     
-    overwrite es@(STUblist n marr# marr) ascs = writes >> overwrite marr others' >> return es
+    overwrite es@(STUblist n mubl# mubls) ascs = writes >> overwrite mubls others' >> return es
       where
         (curr, others) = partition (inRange (0, n - 1) . fst) ascs
-        writes  = ST $ foldr (fill marr#) (done n marr# marr) curr
+        writes  = ST $ foldr (fill mubl#) (done n mubl# mubls) curr
         others' = [ (i - n, e) | (i, e) <- others ]
 
 --------------------------------------------------------------------------------
@@ -160,37 +155,37 @@ instance (Unboxed e) => IndexedM (ST s) (STUblist s e) Int e
 {-# INLINE toChunk #-}
 toChunk :: (Unboxed e) => e -> Int -> [e] -> ST s (STUblist s e)
 toChunk e n@(I# n#) es = ST $ \ s1# -> case newUnboxed e n# s1# of
-  (# s2#, marr# #) ->
-    let go x r = \ i# s3# -> case writeByteArray# marr# i# x s3# of
+  (# s2#, mubl# #) ->
+    let go x r = \ i# s3# -> case writeByteArray# mubl# i# x s3# of
           s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#
     in case ( if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2# ) of
-      s5# -> (# s5#, STUblist n marr# STUBEmpty #)
+      s5# -> (# s5#, STUblist n mubl# STUBEmpty #)
 
 {-# INLINE (.++) #-}
 (.++) :: ST s (STUblist s e) -> ST s (STUblist s e) -> ST s (STUblist s e)
-xs' .++ ys' = liftA2 cat xs' ys'
+(.++) = liftA2 cat
   where
-    cat (STUblist n1 marr1# marr1) y = STUblist n1 marr1# (cat marr1 y)
+    cat (STUblist n1 mubl# mubls) y = STUblist n1 mubl# (cat mubls y)
     cat STUBEmpty y = y
 
 filled_ :: (Unboxed e) => Int -> e -> ST s (STUblist s e)
 filled_ n e
     | n <  1  = return STUBEmpty
     | n < lim = ST $ \ s1# -> case newUnboxed e l# s1# of
-      (# s2#, marr# #) -> (# s2#, STUblist n marr# STUBEmpty #)
-    |  True   = filled_ (n - lim) e >>= \ marr -> ST $
+      (# s2#, mubl# #) -> (# s2#, STUblist n mubl# STUBEmpty #)
+    |  True   = filled_ (n - lim) e >>= \ mubls -> ST $
       \ s1# -> case newUnboxed e l# s1# of
-        (# s2#, marr# #) -> (# s2#, STUblist n marr# marr #)
+        (# s2#, mubl# #) -> (# s2#, STUblist n mubl# mubls #)
   where
     !(I# l#) = lim
 
 {-# INLINE done #-}
 done :: Int -> MutableByteArray# s -> STUblist s e -> STRep s (STUblist s e)
-done n marr# rest = \ s1# -> (# s1#, STUblist n marr# rest #)
+done n mubl# rest = \ s1# -> (# s1#, STUblist n mubl# rest #)
 
 {-# INLINE fill #-}
 fill :: (Unboxed e) => MutableByteArray# s -> (Int, e) -> STRep s a -> STRep s a
-fill marr# (I# i#, e) nxt = \ s1# -> case writeByteArray# marr# i# e s1# of s2# -> nxt s2#
+fill mubl# (I# i#, e) nxt = \ s1# -> case writeByteArray# mubl# i# e s1# of s2# -> nxt s2#
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.STUnlist." ++ msg

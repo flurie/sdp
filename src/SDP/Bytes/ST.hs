@@ -69,11 +69,11 @@ instance (Index i, Unboxed e) => Eq (STBytes s i e)
 
 instance (Index i, Unboxed e) => BorderedM (ST s) (STBytes s i e) i e
   where
-    getLower   (STBytes l _ _ _)   = return l
-    getUpper   (STBytes _ u _ _)   = return u
-    getSizeOf  (STBytes _ _ n _)   = return $ max 0 n
-    getIndices (STBytes l u _ _)   = return $ range   (l, u)
-    getIndexOf (STBytes l u _ _) i = return $ inRange (l, u) i
+    getLower   (STBytes l _ _ _) = return l
+    getUpper   (STBytes _ u _ _) = return u
+    getSizeOf  (STBytes _ _ n _) = return $ max 0 n
+    getIndices (STBytes l u _ _) = return $ range   (l, u)
+    getIndexOf (STBytes l u _ _) = return . inRange (l, u)
 
 instance (Index i, Unboxed e) => LinearM (ST s) (STBytes s i e) e
   where
@@ -91,13 +91,12 @@ instance (Index i, Unboxed e) => LinearM (ST s) (STBytes s i e) e
         
         !n@(I# n#) = length es
     
-    
-    getLeft  es@(STBytes l u _ _) = (es >!) `mapM` range (l, u)
-    getRight es@(STBytes l u _ _) = (es >!) `mapM` reverse (range (l, u))
+    getLeft  es@(STBytes _ _ n _) = (es !#>) `mapM` [0 .. n - 1]
+    getRight es@(STBytes _ _ n _) = (es !#>) `mapM` [n - 1, n - 2 .. 0]
     
     copied (STBytes l u n _) = do
       copy <- filled_ n (l, u) (unreachEx "copied")
-      forM_ [0 .. n - 1] $ \ i -> do e <- copy !#> i; writeM_ copy i e
+      forM_ [0 .. n - 1] $ \ i -> copy !#> i >>= writeM_ copy i
       return copy
     
     {-# INLINE reversed #-}
@@ -117,9 +116,7 @@ instance (Index i, Unboxed e) => LinearM (ST s) (STBytes s i e) e
 instance (Index i, Unboxed e) => IndexedM (ST s) (STBytes s i e) i e
   where
     {-# INLINE fromAssocs #-}
-    fromAssocs bnds ascs = filled_ (size bnds) bnds err >>= (`overwrite` ascs)
-      where
-        err = unreachEx "fromAssocs"
+    fromAssocs bnds ascs = filled_ (size bnds) bnds (unreachEx "fromAssocs") >>= (`overwrite` ascs)
     
     {-# INLINE fromAssocs' #-}
     fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
@@ -167,9 +164,7 @@ done (l, u) n marr# = \ s1# -> (# s1#, STBytes l u n marr# #)
 fill :: (Unboxed e) => MutableByteArray# s -> (Int, e) -> STRep s a -> STRep s a
 fill marr# (I# i#, e) nxt = \ s1# -> case writeByteArray# marr# i# e s1# of s2# -> nxt s2#
 
-unreachEx     :: String -> a
-unreachEx msg =  throw . UnreachableException $ "in SDP.Bytes.ST." ++ msg
-
-
+unreachEx :: String -> a
+unreachEx msg = throw . UnreachableException $ "in SDP.Bytes.ST." ++ msg
 
 

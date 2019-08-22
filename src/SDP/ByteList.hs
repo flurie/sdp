@@ -76,10 +76,10 @@ instance (Ord e, Unboxed e, Index i) => Ord (ByteList i e)
 
 instance (Index i, Show i, Unboxed e, Show e) => Show (ByteList i e)
   where
-    showsPrec p unr@(ByteList l u _) = showParen (p > appPrec) $ showString "bytelist "
-                                                               . shows (l, u)
-                                                               . showChar ' '
-                                                               . shows (assocs unr)
+    showsPrec p es@(ByteList l u _) = showParen (p > appPrec) $ showString "bytelist "
+                                                              . shows (l, u)
+                                                              . showChar ' '
+                                                              . shows (assocs es)
 
 instance (Index i, Read i, Unboxed e, Read e) => Read (ByteList i e)
   where
@@ -94,7 +94,7 @@ instance (Index i, Read i, Unboxed e, Read e) => Read (ByteList i e)
 
 instance (Index i, Unboxed e) => Semigroup (ByteList i e) where xs <> ys = xs ++ ys
 
-instance (Index i, Unboxed e) => Monoid (ByteList i e) where mempty = Z
+instance (Index i, Unboxed e) => Monoid (ByteList i e) where mempty = def
 
 instance (Index i) => Default (ByteList i e) where def = let (l, u) = unsafeBounds 0 in ByteList l u def
 
@@ -110,7 +110,7 @@ instance (Index i, Unboxed e) => Linear (ByteList i e) e
     
     toHead e (ByteList l u es) = ByteList l' u' (e :> take n es)
       where
-        (l', u') = unsafeBounds $ n + 1
+        (l', u') = unsafeBounds (n + 1)
         n = size (l, u)
     
     uncons Z = pfail "(:>)"
@@ -142,29 +142,23 @@ instance (Index i, Unboxed e) => Linear (ByteList i e) e
     init Z = pfail "(:<)"
     init (ByteList l u es) = ByteList l u' $ init es where u' = prev (l, u) u
     
-    fromListN n es = ByteList l u $ fromListN n es
-      where
-        (l, u) = unsafeBounds $ max 0 n
+    fromList = fromFoldable
     
-    fromFoldable es = ByteList l u $ fromFoldable es
-      where
-        (l, u) = unsafeBounds $ length es
+    fromFoldable es = let (l, u) = unsafeBounds (length es) in ByteList l u $ fromFoldable es
     
-    replicate n e = ByteList l u $ replicate n e
-      where
-        (l, u) = unsafeBounds $ max 0 n
+    replicate n e = let (l, u) = unsafeBounds (max 0 n) in ByteList l u $ replicate n e
     
     concat xss = ByteList l' u' res
       where
         res = foldr  (\ (ByteList l u xs) ublist -> size (l, u) `take` xs ++ ublist) Z xss
         n   = foldr' (\ (ByteList l u _) count -> size (l, u) + count) 0 xss
         
-        (l', u') = unsafeBounds $ max 0 n
+        (l', u') = unsafeBounds (max 0 n)
     
     intersperse e (ByteList _ _ es) = ByteList l u $ intersperse e es
       where
-        n1 = case n <=> 0 of {LT -> 0; EQ -> 1; GT -> 2 * n - 1}; n = sizeOf es
-        (l, u) = unsafeBounds n1
+        (l, u) = unsafeBounds $ case n <=> 0 of {GT -> 2 * n - 1; _ -> 0}
+        n = sizeOf es
     
     Z  ++ ys = ys
     xs ++  Z = xs
@@ -180,20 +174,22 @@ instance (Index i, Unboxed e) => Linear (ByteList i e) e
 instance (Index i, Unboxed e) => Split (ByteList i e) e
   where
     {-# INLINE take #-}
-    take n list@(ByteList l u es)
-        |      n <= 0      = Z
-        | n >= size (l, u) = list
-        |       True       = ByteList l u' $ take n es
+    take n xs@(ByteList l u es)
+        | n <= 0 = Z
+        | n >= c = xs
+        |  True  = ByteList l u' (take n es)
       where
-        u' = index (l, u) $ n - 1
+        u' = index (l, u) (n - 1)
+        c  = size  (l, u)
     
     {-# INLINE drop #-}
     drop n list@(ByteList l u es)
         | n <= 0 = list
-        | n >= size (l, u) = Z
-        | True = ByteList l' u $ drop n es
+        | n >= c = Z
+        |  True  = ByteList l' u (drop n es)
       where
         l' = index (l, u) n
+        c  = size  (l, u)
     
     isPrefixOf xs ys = listL xs `isPrefixOf` listL ys
     isInfixOf  xs ys = listL xs `isInfixOf`  listL ys
@@ -214,19 +210,16 @@ instance (Index i, Unboxed e) => Bordered (ByteList i e) i e
 instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
   where
     {-# INLINE assoc' #-}
-    -- [internal]: it's correct, but completly inneficient (Set []), rewrite.
-    assoc' bnds e ies = fromListN n sorted
+    assoc' (l, u) defvalue ascs = ByteList l u $ assoc' bnds defvalue ies
       where
-        sorted = snds $ unionWith cmpfst (setWith cmpfst ies) filler
-        filler = zip (range bnds) (replicate n e)
-        n = size bnds
+        ies  = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
+        bnds = (0, size (l, u) - 1)
     
     {-# INLINE (//) #-}
     Z  // ascs = isNull ascs ? Z $ assoc (l, u) ascs
       where
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
-    
     (ByteList l u es) // ascs = ByteList l' u' es'
       where
         es' = es // [ (offset (l, u) i, e) | (i, e) <- ascs ]
@@ -259,7 +252,4 @@ instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (ByteList i e) where arb
 
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.ByteList." ++ msg
-
-
-
 

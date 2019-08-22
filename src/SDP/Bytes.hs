@@ -77,10 +77,7 @@ instance (Index i, Unboxed e) => Eq (Bytes i e)
         !(Bytes l1 u1 n1 _) = xs
         !(Bytes l2 u2 n2 _) = ys
         
-        eq' i = (i == n1) || ((e1 == e2) && eq' (i + 1))
-          where
-            e1 = xs !^ i
-            e2 = ys !^ i
+        eq' i = i == n1 || (xs !^ i == ys !^ i) && eq' (i + 1)
 
 instance (Index i, Unboxed e, Ord e) => Ord (Bytes i e)
   where
@@ -115,7 +112,7 @@ instance (Index i, Read i, Unboxed e, Read e) => Read (Bytes i e)
 
 instance (Index i, Unboxed e) => Semigroup (Bytes i e) where (<>) = (++)
 
-instance (Index i, Unboxed e) => Monoid (Bytes i e) where mempty = Z
+instance (Index i, Unboxed e) => Monoid (Bytes i e) where mempty = def
 
 instance (Index i) => Default (Bytes i e)
   where
@@ -152,7 +149,7 @@ instance (Unboxed e, Index i) => Linear (Bytes i e) e
         (# s2#, marr# #) -> case unsafeFreezeByteArray# marr# s2# of
           (# s3#, bytes# #) -> (# s3#, Bytes l u 1 bytes# #)
     
-    fromList es = fromFoldable es
+    fromList = fromFoldable
     
     {-# INLINE fromFoldable #-}
     fromFoldable es = runST $ fromFoldableM es >>= done
@@ -290,6 +287,4 @@ done (STBytes l u n mbytes#) = ST $ \ s1# -> case unsafeFreezeByteArray# mbytes#
 
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Bytes." ++ msg
-
-
 

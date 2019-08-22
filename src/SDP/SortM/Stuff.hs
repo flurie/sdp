@@ -48,8 +48,8 @@ insertionSortOn :: (BorderedM m v i e, IndexedM m v i e, Ord o) => (e -> o) -> v
 insertionSortOn f es = insertionSortBy (compare `on` f) es
 
 {- |
-  insertionSortBy is naive service sorting procedure, that have O(n) complexity
-  in all cases.
+  insertionSortBy is naive service sorting procedure, that have O(n^2)
+  complexity in all cases.
 -}
 insertionSortBy :: (BorderedM m v i e, IndexedM m v i e) => (e -> e -> Ordering) -> v -> m ()
 insertionSortBy cmp es = do n <- getSizeOf es; insertionSort_ cmp es 0 0 (n - 1)

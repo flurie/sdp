@@ -86,11 +86,11 @@ instance (Show e) => Show (Unlist e)
 
 {- Semigroup, Monoid and Default instances. -}
 
-instance Semigroup (Unlist e) where xs <> ys = xs ++ ys
+instance Semigroup (Unlist e) where (<>) = (++)
 
-instance Monoid    (Unlist e) where mempty = UNEmpty
+instance Monoid (Unlist e) where mempty = def
 
-instance Default   (Unlist e) where def = UNEmpty
+instance Default (Unlist e) where def = UNEmpty
 
 --------------------------------------------------------------------------------
 
@@ -148,7 +148,7 @@ instance Linear (Unlist e) e
   where
     isNull es = null es
     
-    lzero = UNEmpty
+    lzero = def
     
     toHead e Z = single e
     toHead e (Unlist c arr# arrs) = c < lim ? res1 $ (Unlist 1 single# arrs)
@@ -184,7 +184,6 @@ instance Linear (Unlist e) e
     
     listL = toList
     
-    {-# INLINE fromList #-}
     fromList = fromFoldable
     
     {-# INLINE fromFoldable #-}
@@ -249,9 +248,6 @@ instance Split (Unlist e) e
     isPrefixOf xs ys = toList xs `isPrefixOf` toList ys
     isInfixOf  xs ys = toList xs `isInfixOf`  toList ys
     isSuffixOf xs ys = toList xs `isSuffixOf` toList ys
-    
-    prefix p es = prefix p $ toList es
-    suffix p es = suffix p $ toList es
 
 instance Bordered (Unlist e) Int e
   where
@@ -273,7 +269,6 @@ instance Indexed (Unlist e) Int e
       where
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
-    
     es // ascs = isNull ascs ? es $ runST $ fromFoldableM es >>= flip overwrite ascs >>= done'
     
     Z !^ _ = error "in SDP.Unrolled.Unlist.(!^)"
@@ -329,11 +324,11 @@ done' (STUnlist n marr# marr) = done' marr >>= \ arr -> ST $
   \ s1# -> case unsafeFreezeArray# marr# s1# of
     (# s2#, arr# #) -> (# s2#, Unlist n arr# arr #)
 
-pfailEx       :: String -> a
-pfailEx   msg =  throw . PatternMatchFail $ "in SDP.Unrolled.Unlist." ++ msg
+pfailEx :: String -> a
+pfailEx msg = throw . PatternMatchFail $ "in SDP.Unrolled.Unlist." ++ msg
 
-unreachEx     :: String -> a
-unreachEx msg =  throw . UnreachableException $ "in SDP.Unrolled.Unlist." ++ msg
+unreachEx :: String -> a
+unreachEx msg = throw . UnreachableException $ "in SDP.Unrolled.Unlist." ++ msg
 
 lim :: Int
 lim =  1024

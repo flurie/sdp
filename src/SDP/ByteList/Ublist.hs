@@ -78,7 +78,7 @@ instance (Unboxed e, Show e) => Show (Ublist e)
 
 instance (Unboxed e) => Semigroup (Ublist e) where (<>) = (++)
 
-instance (Unboxed e) => Monoid    (Ublist e) where mempty = UBEmpty
+instance (Unboxed e) => Monoid (Ublist e) where mempty = UBEmpty
 
 instance Default (Ublist e) where def = UBEmpty
 
@@ -90,25 +90,26 @@ instance (Unboxed e) => Linear (Ublist e) e
   where
     isNull es = case es of {Ublist c _ _ -> c < 1; _ -> True}
     
-    lzero = UBEmpty
+    lzero = def
     
     head Z  = pfailEx ".(:>)"
     head es = es .! 0
     
-    tail Z                          = pfailEx "(:<)"
-    tail es@(Ublist c _ Z)          = fromListN (c - 1) . tail $ listL es
-    tail es@(Ublist c bytes# bytes) = Ublist c' new# bytes
+    tail Z = pfailEx "(:<)"
+    tail es@(Ublist _ _ Z) = fromList . tail $ listL es
+    tail es@(Ublist c ubl# ubls) = Ublist c' new# ubls
       where
-        !(Ublist c' new# _) = (`asTypeOf` es) $ tail (Ublist c bytes# Z)
+        !(Ublist c' new# _) = (`asTypeOf` es) $ tail (Ublist c ubl# Z)
     
     toHead e Z = single e
-    toHead e (Ublist c arr# arrs) = c < lim ? res $ (Ublist 1 single# arrs)
+    toHead e (Ublist c ubl# ubls) = c < lim ? res $ (Ublist 1 single# ubls)
       where
-        res = fromListN (c + 1) $ e : listL (Ublist c arr# Z)
+        res = fromListN (c + 1) $ e : listL (Ublist c ubl# Z)
         !(Ublist 1 single# Z) = single e
     
-    last Z  = pfailEx "(:<)"
-    last (Ublist (I# c#) bytes# bytes) = case bytes of {Z -> bytes# !# (c# -# 1#); _ -> last bytes}
+    last Z = pfailEx "(:<)"
+    last (Ublist (I# c#) ubl# Z) = ubl# !# (c# -# 1#)
+    last (Ublist _ _ ubls) = last ubls
     
     init Z                    = pfailEx "(:>)"
     init es@(Ublist c _ Z)    = fromListN (c - 1) . init $ listL es
@@ -117,9 +118,9 @@ instance (Unboxed e) => Linear (Ublist e) e
     toLast Z e = single e
     toLast es@(Ublist c _ Z) e = c < lim ? res $ (Ublist 1 single# Z)
       where
-        res = fromListN (max 0 c + 1) $ toLast (listL es) e
+        res = fromList (listL es :< e)
         !(Ublist 1 single# Z) = single e
-    toLast (Ublist c arr# arrs) e = Ublist c arr# (toLast arrs e)
+    toLast (Ublist c ubl# ubls) e = Ublist c ubl# (ubls :< e)
     
     {-# INLINE single #-}
     single e = runST $ filled 1 e >>= done'
@@ -133,20 +134,19 @@ instance (Unboxed e) => Linear (Ublist e) e
     listL = list' 0#
       where
         list' _ Z = []
-        list' i# es@(Ublist (I# n#) bytes# bytes) = isTrue# (i# <# n#) ? begin $ rest
-          where
-            begin = (bytes# !# i#) : list' (i# +# 1#) es
-            rest  = list' 0# bytes
+        list' i# es@(Ublist (I# n#) ubl# ubls) = if isTrue# (i# <# n#)
+          then (ubl# !# i#) : list' (i# +# 1#) es
+          else list' 0# ubls
     
     Z  ++ ys = ys
     xs ++  Z = xs
-    (Ublist c arr# arrs) ++ ys = Ublist c arr# (arrs ++ ys)
+    (Ublist c ubl# ubls) ++ ys = Ublist c ubl# (ubls ++ ys)
     
     {-# INLINE replicate #-}
     replicate n e = copy count
       where
-        chunk  = runST $ ST $ \ s1# -> case newUnboxed' e l# s1# of (# s2#, marr# #) -> done lim Z marr# s2#
-        rest   = runST $ ST $ \ s1# -> case newUnboxed' e r# s1# of (# s2#, marr# #) -> done restSize Z marr# s2#
+        chunk  = runST $ ST $ \ s1# -> case newUnboxed' e l# s1# of (# s2#, mubl# #) -> done    lim   Z mubl# s2#
+        rest   = runST $ ST $ \ s1# -> case newUnboxed' e r# s1# of (# s2#, mubl# #) -> done restSize Z mubl# s2#
         copy c = case c <=> 0 of {LT -> Z; EQ -> rest; GT -> chunk ++ copy (c - 1)}
         
         !(count, restSize@(I# r#)) = n `divMod` lim
@@ -170,7 +170,7 @@ instance (Unboxed e) => Linear (Ublist e) e
             chunk = [ bytes# !# i# | (I# i#) <- [ n - 1, n - 2 .. 0 ] ]
             err   = unreachEx "reverse"
     
-    partitions ps es = fromList <$> (partitions ps $ listL es)
+    partitions ps es = fromList <$> partitions ps (listL es)
 
 instance (Unboxed e) => Split (Ublist e) e
   where
@@ -181,10 +181,10 @@ instance (Unboxed e) => Split (Ublist e) e
         |  True  = take' n es
       where
         take' _ Z = Z
-        take' n' (Ublist c arr# arrs) = n' >= c ? Ublist c arr# other $ fromListN n' rest
+        take' n' (Ublist c ubl# ubls) = n' >= c ? Ublist c ubl# other $ fromListN n' rest
           where
-            rest  = [ arr# !# i# | (I# i#) <- [0 .. n' - 1] ]
-            other = take' (n' - c) arrs
+            rest  = [ ubl# !# i# | (I# i#) <- [0 .. n' - 1] ]
+            other = take' (n' - c) ubls
         l = sizeOf es
     
     {-# INLINE drop #-}
@@ -194,25 +194,25 @@ instance (Unboxed e) => Split (Ublist e) e
         |  True  = drop' n es
       where
         drop' _ Z = Z
-        drop' n' (Ublist c arr# arrs) = n' >= c ? rest $ other ++ arrs
+        drop' n' (Ublist c ubl# ubls) = n' >= c ? rest $ other ++ ubls
           where
-            rest  = drop' (n' - c) arrs
-            other = fromListN (c - n') [ arr# !# i# | (I# i#) <- [n' .. c - 1] ]
+            rest  = drop' (n' - c) ubls
+            other = fromListN (c - n') [ ubl# !# i# | (I# i#) <- [n' .. c - 1] ]
         l = sizeOf es
     
     isPrefixOf xs ys = listL xs `isPrefixOf` listL ys
     isInfixOf  xs ys = listL xs `isInfixOf`  listL ys
     isSuffixOf xs ys = listL xs `isSuffixOf` listL ys
     
-    prefix p es = prefix p $ listL es
-    suffix p es = suffix p $ listL es
+    prefix p es = prefix p (listL es)
+    suffix p es = suffix p (listL es)
 
 instance (Unboxed e) => Bordered (Ublist e) Int e
   where
     lower   _  = 0
     upper   es = sizeOf es - 1
     indexOf es i = i >= 0 && i < sizeOf es
-    sizeOf  es = case es of {Ublist n _ arrs -> max 0 n + sizeOf arrs; _ -> 0}
+    sizeOf  es = case es of {Ublist n _ ubls -> max 0 n + sizeOf ubls; _ -> 0}
 
 --------------------------------------------------------------------------------
 
@@ -232,19 +232,23 @@ instance (Unboxed e) => Indexed (Ublist e) Int e
     
     es // ascs = isNull ascs ? es $ runST $ newLinear (listL es) >>= flip overwrite ascs >>= done'
     
-    Z !^ _ = error "in SDP.ByteList.Ublist.(!^)"
-    (Ublist n bytes# arrs) !^ i@(I# i#) = i < n ? bytes# !# i# $ arrs !^ (n - i)
+    (!^) = (.!)
     
     {-# INLINE (.!) #-}
-    Z .! _ = error "in SDP.ByteList.Ublist.(.!)"
-    (Ublist n bytes# arrs) .! i@(I# i#) = i < n ? bytes# !# i# $ arrs .! (n - i)
+    es .! i@(I# i#)
+        | isNull es = error "in SDP.ByteList.Ublist.(.!)"
+        |   i < n   = bytes# !# i#
+        |    True   = arrs .! (n - i)
+      where
+        !(Ublist n bytes# arrs) = es
     
-    (!) Z _ = throw $ EmptyRange "in SDP.ByteList.Ublist.(!)"
-    (!) (Ublist n bytes# arrs) i@(I# i#)
-      |    i < 0    = throw $ IndexUnderflow "in SDP.ByteList.Ublist.(!)"
-      |    i < n    = bytes# !# i#
-      | isNull arrs = throw $ IndexOverflow  "in SDP.ByteList.Ublist.(!)"
-      |     True    = arrs ! (n - 1)
+    (!) es i = case inBounds (bounds es) i of
+        ER -> throw $ EmptyRange     msg
+        UR -> throw $ IndexUnderflow msg
+        IN -> es .! i
+        OR -> throw $ IndexOverflow  msg
+      where
+        msg = "in SDP.ByteList.Ublist.(!)"
     
     p .$ es = p .$ listL es
     p *$ es = p *$ listL es
@@ -277,4 +281,5 @@ unreachEx msg = throw . UnreachableException $ "in SDP.ByteList.Ublist." ++ msg
 
 lim :: Int
 lim =  1024
+
 
