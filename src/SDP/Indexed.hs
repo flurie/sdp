@@ -41,7 +41,7 @@ infixl 9 !^, .!, !, !?
 -- | Class of indexed data structures.
 class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
   where
-    {-# MINIMAL assoc', (//), ((!)|(!?)), (*$) #-}
+    {-# MINIMAL assoc', fromIndexed, (//), ((!)|(!?)), (*$) #-}
     
     {- |
       assoc creates new structure from list of associations [(index, element)],
@@ -84,7 +84,10 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
     write :: v -> i -> e -> v
     write es i e = es // [(i, e)]
     
-    -- | Writes elements to (immutable) structure.
+    -- | fromIndexed converts one indexed structure to another.
+    fromIndexed :: (Bordered v' j e, Indexed v' j e) => v' -> v
+    
+    -- | Writes elements to immutable structure (by copying).
     (//) :: v -> [(i, e)] -> v
     
     -- | Update function. Uses (!) and may throw IndexException.
@@ -138,6 +141,8 @@ instance Indexed [e] Int e
     []       !? _ = Nothing
     (x : xs) !? n = case n <=> 0 of {LT -> Nothing; EQ -> Just x; GT -> xs !? (n - 1)}
     
+    fromIndexed es = (es !) <$> indices es
+    
     {-# INLINE (//) #-}
     xs // es = snds $ unionWith cmpfst (assocs xs) (setWith cmpfst es)
     
@@ -150,7 +155,6 @@ instance Indexed [e] Int e
 --------------------------------------------------------------------------------
 
 -- | Update one element in structure.
-{-# INLINE (>/>) #-}
 (>/>) :: (Indexed v i e) => v -> [i] -> (e -> e) -> v
 (>/>) es is = (es /> is) . const
 

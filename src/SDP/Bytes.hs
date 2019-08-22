@@ -238,8 +238,14 @@ instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
       where
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
-    
     arr // ascs = runST $ newLinear (listL arr) >>= (`overwrite` ascs) >>= done
+    
+    fromIndexed es = runST $ do
+        copy <- filled_ n (unreachEx "fromIndexed")
+        forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
+        done copy
+      where
+        n = sizeOf es
     
     {-# INLINE (!^) #-}
     (Bytes _ _ _ bytes#) !^ (I# i#) = bytes# !# i#
@@ -285,6 +291,15 @@ done :: (Index i) => STBytes s i e -> ST s (Bytes i e)
 done (STBytes l u n mbytes#) = ST $ \ s1# -> case unsafeFreezeByteArray# mbytes# s1# of
   (# s2#, bytes# #) -> (# s2#, Bytes l u n bytes# #)
 
+filled_ :: (Index i, Unboxed e) => Int -> e -> ST s (STBytes s i e)
+filled_ n@(I# n#) e = ST $ \ s1# -> case newUnboxed e n# s1# of
+    (# s2#, marr# #) -> (# s2#, STBytes l u n marr# #)
+  where
+    (l, u) = unsafeBounds n
+
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Bytes." ++ msg
+
+unreachEx :: String -> a
+unreachEx msg = throw . UnreachableException $ "in SDP.Bytes." ++ msg
 

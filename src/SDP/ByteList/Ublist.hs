@@ -229,8 +229,14 @@ instance (Unboxed e) => Indexed (Ublist e) Int e
       where
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
-    
     es // ascs = isNull ascs ? es $ runST $ newLinear (listL es) >>= flip overwrite ascs >>= done'
+    
+    fromIndexed es = runST $ do
+        copy <- filled_ n (unreachEx "fromIndexed")
+        forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
+        done' copy
+      where
+        n = sizeOf es
     
     (!^) = (.!)
     
@@ -273,6 +279,17 @@ done' (STUblist n marr# marr) = done' marr >>= \ arr -> ST $
     (# s2#, arr# #) -> (# s2#, Ublist n arr# arr #)
 done' _ = return UBEmpty
 
+filled_ :: (Unboxed e) => Int -> e -> ST s (STUblist s e)
+filled_ n e
+    | n <  1  = return STUBEmpty
+    | n < lim = ST $ \ s1# -> case newUnboxed e l# s1# of
+      (# s2#, mubl# #) -> (# s2#, STUblist n mubl# STUBEmpty #)
+    |  True   = filled_ (n - lim) e >>= \ mubls -> ST $
+      \ s1# -> case newUnboxed e l# s1# of
+        (# s2#, mubl# #) -> (# s2#, STUblist n mubl# mubls #)
+  where
+    !(I# l#) = lim
+
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.ByteList.Ublist." ++ msg
 
@@ -281,5 +298,4 @@ unreachEx msg = throw . UnreachableException $ "in SDP.ByteList.Ublist." ++ msg
 
 lim :: Int
 lim =  1024
-
 

@@ -279,11 +279,12 @@ instance (Index i) => Indexed (Unrolled i e) i e
       where
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
-    
     (Unrolled l u es) // ascs = Unrolled l' u' es'
       where
         es' = es // [ (offset (l, u) i, e) | (i, e) <- ascs ]
         (l', u') = unsafeBounds $ length es'
+    
+    fromIndexed es = let (l, u) = unsafeBounds (sizeOf es) in Unrolled l u (fromIndexed es)
     
     {-# INLINE (!^) #-}
     (Unrolled _ _ es) !^ i = es !^ i
@@ -314,7 +315,6 @@ instance (Index i, Arbitrary e) => Arbitrary (Unrolled i e) where arbitrary = fr
 
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.Unrolled." ++ msg
-
 
 
 

@@ -225,6 +225,8 @@ instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
         es' = es // [ (offset (l, u) i, e) | (i, e) <- ascs ]
         (l', u') = unsafeBounds $ sizeOf es'
     
+    fromIndexed es = let (l, u) = unsafeBounds (sizeOf es) in ByteList l u (fromIndexed es)
+    
     {-# INLINE (!^) #-}
     (ByteList _ _ es) !^ i = es ! i
     
@@ -252,4 +254,7 @@ instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (ByteList i e) where arb
 
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.ByteList." ++ msg
+
+
+
 

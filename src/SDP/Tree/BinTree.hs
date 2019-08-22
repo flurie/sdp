@@ -320,6 +320,8 @@ instance Indexed (BinTree e) Int e
       where
         toUnlist = fromFoldable :: BinTree e -> Unlist e
     
+    fromIndexed es = fromList [es ! i | i <- indices es ]
+    
     Z !^ _ = error "in SDP.Tree.BinTree.(!^)"
     (BinNode l e _ _ r) !^ n = let s = length l in case n <=> s of {LT -> l !^ n; EQ -> e; GT -> r !^ (n - s - 1)}
     

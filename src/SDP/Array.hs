@@ -399,6 +399,13 @@ instance (Index i) => Indexed (Array i e) i e
         u = fst $ maximumBy cmpfst ascs
     arr // ascs = runST $ fromFoldableM arr >>= (`overwrite` ascs) >>= done
     
+    fromIndexed es = runST $ do
+        copy <- filled n (unreachEx "fromIndexed")
+        forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
+        done copy
+      where
+        n = sizeOf es
+    
     {-# INLINE (!^) #-}
     (Array _ _ _ arr#) !^ (I# i#) = case indexArray# arr# i# of (# e #) -> e
     
@@ -450,6 +457,4 @@ pfailEx msg = throw . PatternMatchFail $ "in SDP.Array." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Array." ++ msg
-
-
 

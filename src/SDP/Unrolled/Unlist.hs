@@ -103,7 +103,7 @@ instance Functor Unlist
       case newArray# n# (unreachEx "fmap") s1# of
         (# s2#, marr# #) ->
           let go i@(I# i#) s# = if i == n
-              then done n (f <$> arrs) marr# s#
+              then done' n (f <$> arrs) marr# s#
               else fill marr# (i, f $ arr# !# i#) (go $ i + 1) s#
           in go 0 s2#
 
@@ -180,14 +180,14 @@ instance Linear (Unlist e) e
     init (Unlist c arr# arrs) = Unlist c arr# (init arrs)
     
     {-# INLINE single #-}
-    single e = runST $ filled 1 e >>= done'
+    single e = runST $ filled 1 e >>= done
     
     listL = toList
     
     fromList = fromFoldable
     
     {-# INLINE fromFoldable #-}
-    fromFoldable es = runST $ fromFoldableM es >>= done'
+    fromFoldable es = runST $ fromFoldableM es >>= done
     
     Z ++ ys = ys
     xs ++ Z = xs
@@ -197,8 +197,8 @@ instance Linear (Unlist e) e
     {-# INLINE replicate #-}
     replicate n e = copy count
       where
-        chunk  = runST $ ST $ \ s1# -> case newArray# l# e s1# of (# s2#, marr# #) -> done lim Z marr# s2#
-        rest   = runST $ ST $ \ s1# -> case newArray# r# e s1# of (# s2#, marr# #) -> done restSize Z marr# s2#
+        chunk  = runST $ ST $ \ s1# -> case newArray# l# e s1# of (# s2#, marr# #) -> done' lim Z marr# s2#
+        rest   = runST $ ST $ \ s1# -> case newArray# r# e s1# of (# s2#, marr# #) -> done' restSize Z marr# s2#
         copy c = case c <=> 0 of {LT -> Z; EQ -> rest; GT -> chunk ++ copy (c - 1)}
         
         !(count, restSize@(I# r#)) = n `divMod` lim
@@ -212,7 +212,7 @@ instance Linear (Unlist e) e
         reverse' tail' Z = tail'
         reverse' tail' (Unlist n bytes# bytes) = reverse' (Unlist n rev# tail') bytes
           where
-            !(Unlist _ rev# _) = runST $ newLinear chunk >>= done'
+            !(Unlist _ rev# _) = runST $ newLinear chunk >>= done
             
             chunk = [ bytes# !# i# | (I# i#) <- [ n - 1, n - 2 .. 0 ] ]
     
@@ -262,14 +262,21 @@ instance Bordered (Unlist e) Int e
 instance Indexed (Unlist e) Int e
   where
     {-# INLINE assoc' #-}
-    assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done'
+    assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
     
     {-# INLINE (//) #-}
     Z // ascs = isNull ascs ? Z $ assoc (l, u) ascs
       where
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
-    es // ascs = isNull ascs ? es $ runST $ fromFoldableM es >>= flip overwrite ascs >>= done'
+    es // ascs = isNull ascs ? es $ runST $ fromFoldableM es >>= flip overwrite ascs >>= done
+    
+    fromIndexed es = runST $ do
+        copy <- filled n (unreachEx "fromIndexed")
+        forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
+        done copy
+      where
+        n = sizeOf es
     
     Z !^ _ = error "in SDP.Unrolled.Unlist.(!^)"
     (Unlist c arr# arrs) !^ i@(I# i#) = i < c ? e $ arrs !^ (i - c)
@@ -312,15 +319,15 @@ arr# !# i# = case indexArray# arr# i# of (# e #) -> e
 fill :: MutableArray# s e -> (Int, e) -> STRep s a -> STRep s a
 fill marr# (I# i#, e) nxt = \ s1# -> case writeArray# marr# i# e s1# of s2# -> nxt s2#
 
-{-# INLINE done #-}
-done :: Int -> Unlist e -> MutableArray# s e -> STRep s (Unlist e)
-done c rest marr# = \ s1# -> case unsafeFreezeArray# marr# s1# of
+{-# INLINE done' #-}
+done' :: Int -> Unlist e -> MutableArray# s e -> STRep s (Unlist e)
+done' c rest marr# = \ s1# -> case unsafeFreezeArray# marr# s1# of
   (# s2#, arr# #) -> (# s2#, Unlist c arr# rest #)
 
-{-# INLINE done' #-}
-done' :: STUnlist s e -> ST s (Unlist e)
-done'        STUNEmpty        = return UNEmpty
-done' (STUnlist n marr# marr) = done' marr >>= \ arr -> ST $
+{-# INLINE done #-}
+done :: STUnlist s e -> ST s (Unlist e)
+done        STUNEmpty        = return UNEmpty
+done (STUnlist n marr# marr) = done marr >>= \ arr -> ST $
   \ s1# -> case unsafeFreezeArray# marr# s1# of
     (# s2#, arr# #) -> (# s2#, Unlist n arr# arr #)
 
@@ -332,4 +339,7 @@ unreachEx msg = throw . UnreachableException $ "in SDP.Unrolled.Unlist." ++ msg
 
 lim :: Int
 lim =  1024
+
+
+
 
