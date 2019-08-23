@@ -16,9 +16,7 @@ module SDP.IndexedM
     module SDP.LinearM,
     module SDP.Indexed,
     
-    IndexedM (..),
-    
-    arrcopy
+    IndexedM (..)
   )
 where
 
@@ -99,22 +97,14 @@ class (Monad m, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
 
 --------------------------------------------------------------------------------
 
-{-# INLINE arrcopy #-}
-{- |
-  arrcopy is a utility function that copies a fragment of the first array to the
-  second array. This function is not intended for copying to an adjacent memory
-  area. The first 2 Int arguments are the offsets in the first and second
-  arrays, respectively, the third is the number of elements to be copied.
--}
-arrcopy :: (IndexedM m v i e) => v -> v -> Int -> Int -> Int -> m ()
-arrcopy xs ys ix iy count = copy ix iy (max 0 count)
-  where
-    -- I chose 0 as the recursion base because -1 doesn't look pretty.
-    copy ox oy 0 = xs !#> ox >>= writeM_ ys oy
-    copy ox oy c = xs !#> ox >>= writeM_ ys oy >> copy (ox + 1) (oy + 1) (c - 1)
+
 
 --------------------------------------------------------------------------------
 
 undEx :: String -> a
 undEx msg = throw . UndefinedValue $ "in SDP.IndexedM" ++ msg
+
+
+
+
 

@@ -149,6 +149,21 @@ minrunTS i = mr i 0 where mr n r = n >= 64 ? mr (shiftR n 1) (n .&. 1) $ n + r
 swap :: (IndexedM m v i e) => v -> Int -> Int -> m ()
 swap es i j = do a <- es !#> i; b <- es !#> j; writeM_ es j a; writeM_ es i b
 
+{-
+  arrcopy is a utility function that copies a fragment of the first array to the
+  second array. This function is not intended for copying to an adjacent memory
+  area. The first 2 Int arguments are the offsets in the first and second
+  arrays, respectively, the third is the number of elements to be copied.
+-}
+arrcopy :: (IndexedM m v i e) => v -> v -> Int -> Int -> Int -> m ()
+arrcopy xs ys ix iy count = copy ix iy (max 0 count)
+  where
+    -- I chose 0 as the recursion base because -1 doesn't look pretty.
+    copy ox oy 0 = xs !#> ox >>= writeM_ ys oy
+    copy ox oy c = xs !#> ox >>= writeM_ ys oy >> copy (ox + 1) (oy + 1) (c - 1)
+
+--------------------------------------------------------------------------------
+
 -- | sorted is a function that checks for sorting.
 sorted :: (Linear l e, Ord e) => l -> Bool
 sorted Z  = True
