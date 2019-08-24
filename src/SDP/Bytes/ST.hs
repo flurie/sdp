@@ -144,6 +144,13 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STBytes s i e) i e
       where
         ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
     
+    fromIndexed' es = do
+        copy <- filled_ n (unsafeBounds n) (unreachEx "fromIndexed'")
+        forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
+        return copy
+      where
+        n = sizeOf es
+    
     fromIndexedM es = do
       n    <- getSizeOf es
       copy <- filled_ n (unsafeBounds n) (unreachEx "fromIndexedM")
@@ -172,4 +179,7 @@ fill marr# (I# i#, e) nxt = \ s1# -> case writeByteArray# marr# i# e s1# of s2# 
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Bytes.ST." ++ msg
+
+
+
 

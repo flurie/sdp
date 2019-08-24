@@ -139,6 +139,13 @@ instance (Index i) => IndexedM (ST s) (STArray s i e) i e
       where
         ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
     
+    fromIndexed' es = do
+        copy <- filled n (unreachEx "fromIndexed'")
+        forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
+        return copy
+      where
+        n = sizeOf es
+    
     fromIndexedM es = do
       n    <- getSizeOf es
       copy <- filled n (unreachEx "fromIndexedM")
@@ -159,7 +166,5 @@ done n marr# = \ s1# -> let (l, u) = unsafeBounds n in (# s1#, STArray l u n mar
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Array.ST." ++ msg
-
-
 
 

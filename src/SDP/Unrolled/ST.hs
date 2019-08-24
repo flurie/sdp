@@ -111,10 +111,15 @@ instance (Index i) => IndexedM (ST s) (STUnrolled s i e) i e
         l'  = fst $ minimumBy cmpfst ascs
         u'  = fst $ maximumBy cmpfst ascs
     
+    fromIndexed' es = STUnrolled l u <$> fromIndexed' es
+      where
+        (l, u) = unsafeBounds (sizeOf es)
+    
     fromIndexedM es = do
       es' <- fromIndexedM es
       n   <- getSizeOf es'
       return $ let (l, u) = unsafeBounds n in STUnrolled l u es'
+
 
 
 

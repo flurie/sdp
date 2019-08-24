@@ -74,9 +74,22 @@ version 0.0.2.0:
   Added service class IndexEQ for trivial index declarations.
   Added Index instances for 2- .. 15-dimensional tuples.
   
-  Added BorderedM, LinearM and IndexedM classes.
+  Added BorderedM, LinearM, IndexedM and SortM classes.
   Added STArray, STBytes, STUnrolled, STByteList, STUnlist and STUblist.
   
+  Added Index instances for 2- ... 15-dimensional indices.
+  
   Removed Stability properties, changed Safety of some modules.
+
+version NX:
+  Added (!^) and fromIndexed functions to Indexed class.
+  write function moved back to Indexed, added write_ function.
+  
+  Added (!#>), fromIndexed' and fromIndexedM procedures to IndexedM class.
+  
+  Added Thaw and Freeze classes.
+  
+  Removed arrcopy procedure (moved to SDP.SortM.Stuff)
+
 
 

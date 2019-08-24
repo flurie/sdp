@@ -30,7 +30,7 @@ Library
     base         >= 4.6  && < 5,
     ghc-prim     >= 0.5.3,
     data-default >= 0.7  && < 0.8,
-    QuickCheck   >= 2.12
+    QuickCheck   >= 2.12 && < 3
   
   ghc-options: -O2 -Wall
   

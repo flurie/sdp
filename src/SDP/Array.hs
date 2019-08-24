@@ -429,9 +429,9 @@ instance (Index i) => IsString (Array i Char) where fromString es = fromList es
 
 instance (Index i) => Estimate (Array i) where xs <==> ys = length xs <=> length ys
 
--- instance (Index i) => Set (Array i e) e
-
 instance (Index i, Arbitrary e) => Arbitrary (Array i e) where arbitrary = fromList <$> arbitrary
+
+-- instance (Index i) => Set (Array i e) e
 
 --------------------------------------------------------------------------------
 
@@ -441,20 +441,30 @@ instance (Index i) => Sort (Array i e) e
 
 --------------------------------------------------------------------------------
 
+instance (Index i) => Thaw (ST s) (Array i e) (STArray s i e)
+  where
+    thaw (Array l u n@(I# n#) arr#) = ST $
+      \ s1# -> case thawArray# arr# 0# n# s1# of
+        (# s2#, marr# #) -> (# s2#, STArray l u n marr# #)
+
+instance (Index i) => Freeze (ST s) (STArray s i e) (Array i e)
+  where
+    freeze = done
+
+--------------------------------------------------------------------------------
+
 {-# INLINE done #-}
 done :: STArray s i e -> ST s (Array i e)
 done (STArray l u n marr#) = ST $ \ s1# -> case unsafeFreezeArray# marr# s1# of
   (# s2#, arr# #) -> (# s2#, Array l u n arr# #)
-
-thaw :: Array i e -> ST s (STArray s i e)
-thaw (Array l u n arr#) = ST $ \ s1# -> case thawArray# arr# 0# n# s1# of
-    (# s2#, marr# #) -> (# s2#, STArray l u n marr# #)
-  where
-    !(I# n#) = max 0 n
 
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Array." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Array." ++ msg
+
+
+
+
 

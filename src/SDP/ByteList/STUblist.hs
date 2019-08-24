@@ -150,6 +150,13 @@ instance (Unboxed e) => IndexedM (ST s) (STUblist s e) Int e
         writes  = ST $ foldr (fill mubl#) (done n mubl# mubls) curr
         others' = [ (i - n, e) | (i, e) <- others ]
     
+    fromIndexed' es = do
+        copy <- filled_ n (unreachEx "fromIndexed'")
+        forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
+        return copy
+      where
+        n = sizeOf es
+    
     fromIndexedM es = do
       n    <- getSizeOf es
       copy <- filled_ n (unreachEx "fromIndexedM")

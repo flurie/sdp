@@ -10,13 +10,14 @@
   IndexedM is service class of SDP, designed to read and write mutable indexable
   data structures.
 -}
-
 module SDP.IndexedM
   (
     module SDP.LinearM,
     module SDP.Indexed,
     
-    IndexedM (..)
+    IndexedM (..),
+    Freeze   (..),
+    Thaw     (..)
   )
 where
 
@@ -37,7 +38,7 @@ default ()
 -- | Class for work with mutable indexed structures.
 class (Monad m, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
   where
-    {-# MINIMAL fromAssocs', fromIndexedM, overwrite, ((!>)|(!?>)) #-}
+    {-# MINIMAL fromAssocs', fromIndexed', fromIndexedM, overwrite, ((!>)|(!?>)) #-}
     
     {-# INLINE fromAssocs #-}
     -- | fromAssocs returns new mutable structure created from assocs.
@@ -76,6 +77,10 @@ class (Monad m, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
     writeM :: v -> i -> e -> m ()
     writeM es i e = do b <- getIndexOf es i; when b . void $ overwrite es [(i, e)]
     
+    -- | fromIndexed' is overloaded version of thaw.
+    fromIndexed' :: (Bordered v' j e, Indexed v' j e) => v' -> m v
+    
+    -- | fromIndexed converts one mutable structure to other.
     fromIndexedM :: (BorderedM m v' j e, IndexedM m v' j e) => v' -> m v
     
     -- | overwrite rewrites mutable structure using assocs.
@@ -97,14 +102,24 @@ class (Monad m, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
 
 --------------------------------------------------------------------------------
 
+-- | Service class of immutable-mutable converters.
+class (Monad m) => Thaw m v v' | v' -> m
+  where
+    -- | thaw converts an immutable structure to a mutable.
+    thaw :: v -> m v'
 
+--------------------------------------------------------------------------------
+
+-- | Service class of mutable-immutable converters.
+class (Monad m) => Freeze m v' v | v' -> m
+  where
+    -- | freeze converts a mutable structure to a immutable.
+    freeze :: v' -> m v
 
 --------------------------------------------------------------------------------
 
 undEx :: String -> a
 undEx msg = throw . UndefinedValue $ "in SDP.IndexedM" ++ msg
-
-
 
 
 

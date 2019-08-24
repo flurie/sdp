@@ -19,12 +19,12 @@ module SDP.Linear
   module SDP.Zip,
   
   Bordered (..),
-  Linear (..),
-  Split (..),
+  Linear   (..),
+  Split    (..),
   
   pattern (:>), pattern (:<), pattern Z,
   
-  intercalate, tails, inits, nub,
+  intercalate, tails, inits,
   
   stripPrefix, stripSuffix
 )
@@ -63,7 +63,6 @@ infixl 5 :<
     consistency, but some functions in Linear may seem redundant and/or not very
     relevant.
 -}
-
 class Linear l e | l -> e
   where
     {-# MINIMAL isNull, (listL|listR), (fromList|fromListN), (head,tail|uncons), (init,last|unsnoc) #-}
@@ -191,9 +190,12 @@ class Linear l e | l -> e
       where
         ss es = case es of {(x :> xs) -> single x : foldr (\ ys r -> ys : (x :> ys) : r) [] (ss xs); _ -> Z}
     
+    nub :: (Eq e) => l -> l
+    nub = nubBy (==)
+    
     -- | Generalization of Data.List.nubBy.
-    nubBy      :: (e -> e -> Bool) -> l -> l
-    nubBy f es =  fromList . nubBy f $ listL es
+    nubBy :: (e -> e -> Bool) -> l -> l
+    nubBy f = fromList . nubBy f . listL
 
 --------------------------------------------------------------------------------
 
@@ -202,7 +204,6 @@ class Linear l e | l -> e
   This is a enough general class: type must be Foldable, but not necessarily
   Linear or Indexed.
 -}
-
 class (Index i) => Bordered (b) i e | b -> i, b -> e
   where
     {-# MINIMAL (bounds|(lower, upper)) #-}
@@ -242,7 +243,6 @@ class (Index i) => Bordered (b) i e | b -> i, b -> e
   Split - class of splittable data structures. Also allows simple comparing
   functions.
 -}
-
 class (Linear s e) => Split s e | s -> e
   where
     {-# MINIMAL (take,drop|split) #-}
@@ -446,10 +446,6 @@ stripSuffix sub line = sub `isSuffixOf` line ? take n line $ line
 intercalate   :: (Foldable f, Linear (f l) l, Linear l e) => l -> f l -> l
 intercalate l =  concat . intersperse l
 
--- | nub is generalization of Data.List.nub and synonym for nubBy (==).
-nub   :: (Linear l e, Eq e) => l -> l
-nub   =  nubBy (==)
-
 -- | tails is generalization of Data.List.tails.
 tails :: (Linear l e) => l -> [l]
 tails Z  = Z
@@ -459,4 +455,6 @@ tails es = es : tails (tail es)
 inits :: (Linear l e) => l -> [l]
 inits Z  = Z
 inits es = es : inits (init es)
+
+
 

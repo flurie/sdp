@@ -13,12 +13,11 @@
 
 module SDP.Unrolled
 (
-  Unrolled (..),
-  Unlist, -- type Unlist exported as abstract.
-  
   module SDP.Indexed,
   module SDP.Scan,
-  module SDP.Set
+  module SDP.Set,
+  
+  Unrolled (..), Unlist
 )
 where
 
@@ -32,7 +31,8 @@ import SDP.Set
 import Test.QuickCheck
 
 import GHC.Base ( Int (..) )
-import GHC.Show ( appPrec )
+import GHC.Show ( appPrec  )
+import GHC.ST   (    ST    )
 
 import Text.Read hiding ( pfail )
 import Text.Read.Lex    ( expect )
@@ -41,6 +41,7 @@ import qualified GHC.Exts as E
 import Data.String ( IsString (..) )
 
 import SDP.Unrolled.Unlist
+import SDP.Unrolled.ST
 import SDP.Simple
 
 default ()
@@ -313,8 +314,17 @@ instance (Index i, Arbitrary e) => Arbitrary (Unrolled i e) where arbitrary = fr
 
 --------------------------------------------------------------------------------
 
+instance (Index i) => Thaw (ST s) (Unrolled i e) (STUnrolled s i e)
+  where
+    thaw (Unrolled l u es) = STUnrolled l u <$> thaw es
+
+instance (Index i) => Freeze (ST s) (STUnrolled s i e) (Unrolled i e)
+  where
+    freeze (STUnrolled l u es) = Unrolled l u <$> freeze es
+
+--------------------------------------------------------------------------------
+
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.Unrolled." ++ msg
-
 
 

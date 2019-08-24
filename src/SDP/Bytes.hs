@@ -280,11 +280,18 @@ instance (Index i, Unboxed e) => Sort (Bytes i e) e
 
 --------------------------------------------------------------------------------
 
-thaw :: (Index i, Unboxed e) => Bytes i e -> ST s (STBytes s i e)
-thaw es@(Bytes l u n _) = ST $ \ s1# -> case rep s1# of
-    (# s2#, es'@(STBytes _ _ _ marr#) #) -> (# s2#, (STBytes l u n marr#) `asTypeOf` es' #)
+instance (Index i, Unboxed e) => Thaw (ST s) (Bytes i e) (STBytes s i e)
   where
-    (ST rep) = newLinear $ listL es
+    thaw es@(Bytes l u n _) = ST $ \ s1# -> case rep s1# of
+        (# s2#, es'@(STBytes _ _ _ marr#) #) -> (# s2#, (STBytes l u n marr#) `asTypeOf` es' #)
+      where
+        (ST rep) = newLinear (listL es)
+
+instance (Index i, Unboxed e) => Freeze (ST s) (STBytes s i e) (Bytes i e)
+  where
+    freeze = done
+
+--------------------------------------------------------------------------------
 
 {-# INLINE done #-}
 done :: (Index i) => STBytes s i e -> ST s (Bytes i e)
@@ -302,4 +309,7 @@ pfailEx msg = throw . PatternMatchFail $ "in SDP.Bytes." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Bytes." ++ msg
+
+
+
 

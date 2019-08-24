@@ -123,12 +123,12 @@ instance (Unboxed e) => Linear (Ublist e) e
     toLast (Ublist c ubl# ubls) e = Ublist c ubl# (ubls :< e)
     
     {-# INLINE single #-}
-    single e = runST $ filled 1 e >>= done'
+    single e = runST $ filled 1 e >>= done
     
     fromList = fromFoldable
     
     {-# INLINE fromFoldable #-}
-    fromFoldable es = runST $ fromFoldableM es >>= done'
+    fromFoldable es = runST $ fromFoldableM es >>= done
     
     {-# INLINE listL #-}
     listL = list' 0#
@@ -145,8 +145,8 @@ instance (Unboxed e) => Linear (Ublist e) e
     {-# INLINE replicate #-}
     replicate n e = copy count
       where
-        chunk  = runST $ ST $ \ s1# -> case newUnboxed' e l# s1# of (# s2#, mubl# #) -> done    lim   Z mubl# s2#
-        rest   = runST $ ST $ \ s1# -> case newUnboxed' e r# s1# of (# s2#, mubl# #) -> done restSize Z mubl# s2#
+        chunk  = runST $ ST $ \ s1# -> case newUnboxed' e l# s1# of (# s2#, mubl# #) -> done'    lim   Z mubl# s2#
+        rest   = runST $ ST $ \ s1# -> case newUnboxed' e r# s1# of (# s2#, mubl# #) -> done' restSize Z mubl# s2#
         copy c = case c <=> 0 of {LT -> Z; EQ -> rest; GT -> chunk ++ copy (c - 1)}
         
         !(count, restSize@(I# r#)) = n `divMod` lim
@@ -165,7 +165,7 @@ instance (Unboxed e) => Linear (Ublist e) e
               (# s2#, marr# #) ->
                 let go x r = \ i# s3# -> case writeByteArray# marr# i# x s3# of
                       s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#
-                in done n Z marr# ( if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2# )
+                in done' n Z marr# ( if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2# )
             
             chunk = [ bytes# !# i# | (I# i#) <- [ n - 1, n - 2 .. 0 ] ]
             err   = unreachEx "reverse"
@@ -219,22 +219,22 @@ instance (Unboxed e) => Bordered (Ublist e) Int e
 instance (Unboxed e) => Indexed (Ublist e) Int e
   where
     {-# INLINE assoc  #-}
-    assoc  bnds ascs = runST $ fromAssocs bnds ascs >>= done'
+    assoc  bnds ascs = runST $ fromAssocs bnds ascs >>= done
     
     {-# INLINE assoc' #-}
-    assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done'
+    assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
     
     {-# INLINE (//) #-}
     Z // ascs = isNull ascs ? Z $ assoc (l, u) ascs
       where
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
-    es // ascs = isNull ascs ? es $ runST $ newLinear (listL es) >>= flip overwrite ascs >>= done'
+    es // ascs = isNull ascs ? es $ runST $ newLinear (listL es) >>= flip overwrite ascs >>= done
     
     fromIndexed es = runST $ do
         copy <- filled_ n (unreachEx "fromIndexed")
         forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
-        done' copy
+        done copy
       where
         n = sizeOf es
     
@@ -267,17 +267,33 @@ instance (Unboxed e, Arbitrary e) => Arbitrary (Ublist e) where arbitrary = from
 
 --------------------------------------------------------------------------------
 
-{-# INLINE done #-}
-done :: (Unboxed e) => Int -> Ublist e -> MutableByteArray# s -> STRep s (Ublist e)
-done c arrs marr# = \ s1# -> case unsafeFreezeByteArray# marr# s1# of
-  (# s2#, arr# #) -> (# s2#, Ublist c arr# arrs #)
+instance (Unboxed e) => Thaw (ST s) (Ublist e) (STUblist s e)
+  where
+    thaw Z = return (STUBEmpty)
+    thaw (Ublist n ubl# ubls) = liftA2 thaw' list (thaw ubls)
+      where
+        thaw' :: (Unboxed e) => STUblist s e -> STUblist s e -> STUblist s e
+        thaw' = \ (STUblist _ stubl# _) stubls -> STUblist n stubl# stubls
+        
+        list = newLinear [ ubl# !# i# | (I# i#) <- [0 .. n - 1] ]
+
+instance (Unboxed e) => Freeze (ST s) (STUblist s e) (Ublist e)
+  where
+    freeze = done
+
+--------------------------------------------------------------------------------
 
 {-# INLINE done' #-}
-done' :: STUblist s e -> ST s (Ublist e)
-done' (STUblist n marr# marr) = done' marr >>= \ arr -> ST $
+done' :: (Unboxed e) => Int -> Ublist e -> MutableByteArray# s -> STRep s (Ublist e)
+done' c arrs marr# = \ s1# -> case unsafeFreezeByteArray# marr# s1# of
+  (# s2#, arr# #) -> (# s2#, Ublist c arr# arrs #)
+
+{-# INLINE done #-}
+done :: STUblist s e -> ST s (Ublist e)
+done (STUblist n marr# marr) = done marr >>= \ arr -> ST $
   \ s1# -> case unsafeFreezeByteArray# marr# s1# of
     (# s2#, arr# #) -> (# s2#, Ublist n arr# arr #)
-done' _ = return UBEmpty
+done _ = return UBEmpty
 
 filled_ :: (Unboxed e) => Int -> e -> ST s (STUblist s e)
 filled_ n e
@@ -298,4 +314,7 @@ unreachEx msg = throw . UnreachableException $ "in SDP.ByteList.Ublist." ++ msg
 
 lim :: Int
 lim =  1024
+
+
+
 

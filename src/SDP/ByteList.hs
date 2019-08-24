@@ -25,6 +25,7 @@ where
 import Prelude ()
 import SDP.SafePrelude
 
+import SDP.IndexedM
 import SDP.Indexed
 import SDP.Unboxed
 import SDP.Set
@@ -32,7 +33,8 @@ import SDP.Set
 import Test.QuickCheck
 
 import GHC.Base ( Int (..) )
-import GHC.Show ( appPrec )
+import GHC.Show ( appPrec  )
+import GHC.ST   (    ST    )
 
 import Text.Read hiding ( pfail )
 import Text.Read.Lex    ( expect )
@@ -41,6 +43,7 @@ import qualified GHC.Exts as E
 import Data.String ( IsString (..) )
 
 import SDP.ByteList.Ublist
+import SDP.ByteList.ST
 import SDP.Simple
 
 default ()
@@ -252,9 +255,16 @@ instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (ByteList i e) where arb
 
 --------------------------------------------------------------------------------
 
+instance (Index i, Unboxed e) => Thaw (ST s) (ByteList i e) (STByteList s i e)
+  where
+    thaw (ByteList l u es) = STByteList l u <$> thaw es
+
+instance (Index i, Unboxed e) => Freeze (ST s) (STByteList s i e) (ByteList i e)
+  where
+    freeze (STByteList l u es) = ByteList l u <$> freeze es
+
+--------------------------------------------------------------------------------
+
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.ByteList." ++ msg
-
-
-
 

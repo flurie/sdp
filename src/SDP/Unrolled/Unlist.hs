@@ -311,6 +311,20 @@ instance (Arbitrary e) => Arbitrary (Unlist e) where arbitrary = fromList <$> ar
 
 --------------------------------------------------------------------------------
 
+instance Thaw (ST s) (Unlist e) (STUnlist s e)
+  where
+    thaw Z = return (STUNEmpty)
+    thaw (Unlist n unl# unls) = liftA2 thaw' list (thaw unls)
+      where
+        thaw' = \ (STUnlist _ stunl# _) stunls -> STUnlist n stunl# stunls
+        list  = newLinear [ unl# !# i# | (I# i#) <- [0 .. n - 1] ]
+
+instance Freeze (ST s) (STUnlist s e) (Unlist e)
+  where
+    freeze = done
+
+--------------------------------------------------------------------------------
+
 {-# INLINE (!#) #-}
 (!#) :: Array# e -> Int# -> e
 arr# !# i# = case indexArray# arr# i# of (# e #) -> e
@@ -339,6 +353,7 @@ unreachEx msg = throw . UnreachableException $ "in SDP.Unrolled.Unlist." ++ msg
 
 lim :: Int
 lim =  1024
+
 
 
 
