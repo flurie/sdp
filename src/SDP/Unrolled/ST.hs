@@ -15,6 +15,7 @@
 module SDP.Unrolled.ST
 (
   module SDP.IndexedM,
+  module SDP.SortM,
   
   STUnrolled (..)
 )
@@ -24,12 +25,13 @@ import Prelude ()
 import SDP.SafePrelude
 
 import SDP.IndexedM
+import SDP.SortM
 
 import GHC.Base ( Int (..) )
-
-import GHC.ST ( ST (..) )
+import GHC.ST   ( ST )
 
 import SDP.Unrolled.STUnlist
+import SDP.SortM.Stuff
 import SDP.Simple
 
 default ()
@@ -80,7 +82,7 @@ instance (Index i) => LinearM (ST s) (STUnrolled s i e) e
 
 --------------------------------------------------------------------------------
 
-{- IndexedM instance. -}
+{- IndexedM and SortM instances. -}
 
 instance (Index i) => IndexedM (ST s) (STUnrolled s i e) i e
   where
@@ -120,6 +122,5 @@ instance (Index i) => IndexedM (ST s) (STUnrolled s i e) i e
       n   <- getSizeOf es'
       return $ let (l, u) = unsafeBounds n in STUnrolled l u es'
 
-
-
+instance (Index i) => SortM (ST s) (STUnrolled s i e) e where sortMBy = timSortBy
 

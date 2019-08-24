@@ -159,7 +159,7 @@ arrcopy :: (IndexedM m v i e) => v -> v -> Int -> Int -> Int -> m ()
 arrcopy xs ys ix iy count = copy ix iy (max 0 count)
   where
     -- I chose 0 as the recursion base because -1 doesn't look pretty.
-    copy ox oy 0 = xs !#> ox >>= writeM_ ys oy
+    copy _  _  0 = return ()
     copy ox oy c = xs !#> ox >>= writeM_ ys oy >> copy (ox + 1) (oy + 1) (c - 1)
 
 --------------------------------------------------------------------------------

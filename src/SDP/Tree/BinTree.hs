@@ -17,17 +17,28 @@
     but it still has terrible performance. This mainly concerns the construction
     and deconstruction.
 -}
-
-module SDP.Tree.BinTree ( BinTree (..) ) where
+module SDP.Tree.BinTree
+  (
+    module SDP.Indexed,
+    module SDP.Sort,
+    module SDP.Set,
+    
+    BinTree (..)
+  )
+where
 
 import Prelude ()
 import SDP.SafePrelude
 
+import SDP.IndexedM
+import SDP.Indexed
+import SDP.Sort
+import SDP.Set
+
 import Test.QuickCheck
 
-import SDP.Indexed
-
-import GHC.Show ( appPrec )
+import GHC.Show (  appPrec  )
+import GHC.ST   ( ST, runST )
 
 import Text.Read
 import Text.Read.Lex ( expect )
@@ -35,7 +46,8 @@ import Text.Read.Lex ( expect )
 import qualified GHC.Exts as E
 import Data.String ( IsString (..) )
 
-import SDP.Unrolled.Unlist
+import SDP.Unrolled.STUnlist
+import SDP.SortM.Stuff
 import SDP.Simple
 
 default ()
@@ -93,7 +105,9 @@ instance (Show a) => Show (BinTree a)
 instance (Read a) => Read (BinTree a)
   where
     readList = readListDefault
-    readPrec = parens $ prec appPrec (lift . expect $ Ident "bintree") >> liftA2 assoc (step readPrec) (step readPrec)
+    readPrec = parens $ do
+      prec appPrec (lift . expect $ Ident "bintree")
+      liftA2 assoc (step readPrec) (step readPrec)
 
 {-
 
@@ -299,31 +313,29 @@ instance Bordered (BinTree e) Int e
   where
     lower  _    = 0
     upper  tree = length tree - 1
-    
     sizeOf tree = length tree
 
 --------------------------------------------------------------------------------
 
-{- Indexed instance. -}
+{- Indexed and Sort instances. -}
 
 instance Indexed (BinTree e) Int e
   where
     {-# INLINE assoc' #-}
-    -- BinTree assoc' uses Unlist assoc' as backend.
-    assoc' bnds defvalue ascs = fromUnlist $ assoc' bnds defvalue ascs
-      where
-        fromUnlist = fromFoldable :: Unlist e -> BinTree e
+    -- BinTree assoc' uses STUnlist fromAssoc' as backend.
+    assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= fromSTUnlist
     
     {-# INLINE (//) #-}
-    -- BinTree (//) uses Unlist (//) as backend.
-    es // ies = fromFoldable $ (toUnlist es) // ies
-      where
-        toUnlist = fromFoldable :: BinTree e -> Unlist e
+    -- BinTree (//) uses STUnlist overwrite as backend.
+    es // ies = runST $ toSTUnlist es >>= (`overwrite` ies) >>= fromSTUnlist
     
     fromIndexed es = fromList [es ! i | i <- indices es ]
     
     Z !^ _ = error "in SDP.Tree.BinTree.(!^)"
-    (BinNode l e _ _ r) !^ n = let s = length l in case n <=> s of {LT -> l !^ n; EQ -> e; GT -> r !^ (n - s - 1)}
+    (BinNode l e _ _ r) !^ n = let s = length l in case n <=> s of
+      LT -> l !^ n
+      EQ -> e
+      GT -> r !^ (n - s - 1)
     
     {-# INLINE (!) #-}
     Z ! _ = throw $ EmptyRange "in SDP.BinTree"
@@ -336,10 +348,17 @@ instance Indexed (BinTree e) Int e
         msg = "in SDP.BinTree"
     
     Z .! _ = error "in SDP.Tree.BinTree.(.!)"
-    (BinNode l e _ _ r) .! n = let s = length l in case n <=> s of {LT -> l .! n; EQ -> e; GT -> r .! (n - s - 1)}
+    (BinNode l e _ _ r) .! n = let s = length l in case n <=> s of
+      LT -> l .! n
+      EQ -> e
+      GT -> r .! (n - s - 1)
     
     p .$ es = p .$ toList es
     p *$ es = p *$ toList es
+
+instance Sort (BinTree e) e
+  where
+    sortBy cmp es = runST $ do es' <- toSTUnlist es; timSortBy cmp es'; fromSTUnlist es'
 
 --------------------------------------------------------------------------------
 
@@ -399,14 +418,19 @@ instance E.IsList (BinTree e)
   where
     type Item (BinTree e) = e
     
-    fromList es = fromList es
-    toList   es = toList   es
+    fromList = fromList
+    toList   = toList
 
 instance IsString (BinTree Char) where fromString es = fromList es
 
 instance (Arbitrary e) => Arbitrary (BinTree e) where arbitrary = fromList <$> arbitrary
 
 instance Estimate BinTree where xs <==> ys = length xs <=> length ys
+
+--------------------------------------------------------------------------------
+
+instance Thaw   (ST s) (BinTree e) (STUnlist s e) where thaw   = toSTUnlist
+instance Freeze (ST s) (STUnlist s e) (BinTree e) where freeze = fromSTUnlist
 
 --------------------------------------------------------------------------------
 
@@ -459,6 +483,7 @@ rotateRight _ = throw $ UnreachableException "in SDP.Tree.BinTree.rotateRight"
 {-
 
 -- "good" height (by definition), but slow: O(n).
+
 height_ :: BinTree e -> Int
 height_ Z  = 0
 height_ (BinNode l _ _ _ r) = 1 + max (height_ l) (height_ r)
@@ -480,6 +505,16 @@ height' l r = 1 + max (height l) (height r)
 length' :: BinTree e -> BinTree e -> Int
 length' l r = length l + length r + 1
 
+toSTUnlist :: BinTree e -> ST s (STUnlist s e)
+toSTUnlist = fromFoldableM
+
+fromSTUnlist :: STUnlist s e -> ST s (BinTree e)
+fromSTUnlist es = fromList <$> getLeft es
+
 pfailEx     :: String -> a
 pfailEx msg =  throw . PatternMatchFail $ "in SDP.Tree.BinTree." ++ msg
+
+
+
+
 

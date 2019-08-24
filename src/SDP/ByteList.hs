@@ -12,10 +12,10 @@
     
     This module provides ByteList - strict boxed unrolled linked list.
 -}
-
 module SDP.ByteList
 (
   module SDP.Indexed,
+  module SDP.Sort,
   module SDP.Set,
   
   ByteList (..), Ublist
@@ -28,13 +28,14 @@ import SDP.SafePrelude
 import SDP.IndexedM
 import SDP.Indexed
 import SDP.Unboxed
+import SDP.Sort
 import SDP.Set
 
 import Test.QuickCheck
 
-import GHC.Base ( Int (..) )
-import GHC.Show ( appPrec  )
-import GHC.ST   (    ST    )
+import GHC.Base ( Int  (..) )
+import GHC.Show (  appPrec  )
+import GHC.ST   ( runST, ST )
 
 import Text.Read hiding ( pfail )
 import Text.Read.Lex    ( expect )
@@ -44,6 +45,7 @@ import Data.String ( IsString (..) )
 
 import SDP.ByteList.Ublist
 import SDP.ByteList.ST
+import SDP.SortM.Stuff
 import SDP.Simple
 
 default ()
@@ -210,8 +212,16 @@ instance (Index i, Unboxed e) => Bordered (ByteList i e) i e
 
 --------------------------------------------------------------------------------
 
+{- Indexed and Sort instances. -}
+
 instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
   where
+    {-# INLINE assoc #-}
+    assoc (l, u) ascs = ByteList l u $ assoc bnds ies
+      where
+        ies  = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
+        bnds = (0, size (l, u) - 1)
+    
     {-# INLINE assoc' #-}
     assoc' (l, u) defvalue ascs = ByteList l u $ assoc' bnds defvalue ies
       where
@@ -230,7 +240,6 @@ instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
     
     fromIndexed es = let (l, u) = unsafeBounds (sizeOf es) in ByteList l u (fromIndexed es)
     
-    {-# INLINE (!^) #-}
     (ByteList _ _ es) !^ i = es ! i
     
     {-# INLINE (!) #-}
@@ -238,6 +247,10 @@ instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
     
     p .$ (ByteList l u es) = index (l, u) <$> p .$ es
     p *$ (ByteList l u es) = index (l, u) <$> p *$ es
+
+instance (Index i, Unboxed e) => Sort (ByteList i e) e
+  where
+    sortBy cmp es = runST $ do es' <- thaw es; timSortBy cmp es'; done es'
 
 --------------------------------------------------------------------------------
 
@@ -264,6 +277,9 @@ instance (Index i, Unboxed e) => Freeze (ST s) (STByteList s i e) (ByteList i e)
     freeze (STByteList l u es) = ByteList l u <$> freeze es
 
 --------------------------------------------------------------------------------
+
+done :: (Index i, Unboxed e) => STByteList s i e -> ST s (ByteList i e)
+done = freeze
 
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.ByteList." ++ msg

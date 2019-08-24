@@ -15,6 +15,7 @@
 module SDP.Unrolled.STUnlist
 (
   module SDP.IndexedM,
+  module SDP.SortM,
   
   STUnlist (..)
 )
@@ -24,6 +25,7 @@ import Prelude ()
 import SDP.SafePrelude
 
 import SDP.IndexedM
+import SDP.SortM
 
 import GHC.Base
   (
@@ -36,6 +38,7 @@ import GHC.Base
 
 import GHC.ST ( ST (..), STRep )
 
+import SDP.SortM.Stuff
 import SDP.Simple
 
 default ()
@@ -103,7 +106,7 @@ instance LinearM (ST s) (STUnlist s e) e
 
 --------------------------------------------------------------------------------
 
-{- IndexedM instance. -}
+{- IndexedM and SortM instances. -}
 
 instance IndexedM (ST s) (STUnlist s e) Int e
   where
@@ -113,7 +116,7 @@ instance IndexedM (ST s) (STUnlist s e) Int e
     es !#> i = es >! i
     
     {-# INLINE (>!) #-}
-    (STUnlist n marr# marr) >! i@(I# i#) = i >= n ? marr !> (i - n) $ ST (readArray# marr# i#)
+    (STUnlist n marr# marr) >! i@(I# i#) = i >= n ? marr >! (i - n) $ ST (readArray# marr# i#)
     _ >! _ = error "SDP.Unrolled.STUnlist.(>!) tried to find element in empty STUnlist"
     
     STUNEmpty           !> _ = throw $ EmptyRange "in SDP.Unrolled.STUnlist.(!>)"
@@ -123,7 +126,7 @@ instance IndexedM (ST s) (STUnlist s e) Int e
       | i < n = es >! i
       | True  = throw $ IndexOverflow  msg
       where
-        msg = "in SDP.STUnlist.(!>)"
+        msg = "in SDP.Unrolled.STUnlist.(!>)"
     
     writeM STUNEmpty _ _ = return ()
     writeM (STUnlist n marr# marr) i@(I# i#) e
@@ -155,6 +158,8 @@ instance IndexedM (ST s) (STUnlist s e) Int e
       copy <- filled n (unreachEx "fromIndexedM")
       forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM_ copy i
       return copy
+
+instance SortM (ST s) (STUnlist s e) e where sortMBy = timSortBy
 
 --------------------------------------------------------------------------------
 

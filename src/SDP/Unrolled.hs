@@ -10,10 +10,10 @@
     
     This module provides Unrolled - unrolled linked list.
 -}
-
 module SDP.Unrolled
 (
   module SDP.Indexed,
+  module SDP.Sort,
   module SDP.Scan,
   module SDP.Set,
   
@@ -25,14 +25,15 @@ import Prelude ()
 import SDP.SafePrelude
 
 import SDP.Indexed
+import SDP.Sort
 import SDP.Scan
 import SDP.Set
 
 import Test.QuickCheck
 
-import GHC.Base ( Int (..) )
-import GHC.Show ( appPrec  )
-import GHC.ST   (    ST    )
+import GHC.Base ( Int  (..) )
+import GHC.Show (  appPrec  )
+import GHC.ST   ( runST, ST )
 
 import Text.Read hiding ( pfail )
 import Text.Read.Lex    ( expect )
@@ -42,6 +43,7 @@ import Data.String ( IsString (..) )
 
 import SDP.Unrolled.Unlist
 import SDP.Unrolled.ST
+import SDP.SortM.Stuff
 import SDP.Simple
 
 default ()
@@ -164,9 +166,7 @@ instance (Index i) => Traversable (Unrolled i)
 
 instance (Index i) => Linear (Unrolled i e) e
   where
-    isNull es = null es
-    
-    lzero = def
+    isNull = null
     
     uncons Z = pfail "(:>)"
     uncons (Unrolled l u es) = (x, es <. 2 ? Z $ Unrolled l1 u xs)
@@ -267,6 +267,8 @@ instance (Index i) => Bordered (Unrolled i e) i e
 
 --------------------------------------------------------------------------------
 
+{- Indexed and Sort instances. -}
+
 instance (Index i) => Indexed (Unrolled i e) i e
   where
     {-# INLINE assoc' #-}
@@ -296,6 +298,10 @@ instance (Index i) => Indexed (Unrolled i e) i e
     p .$ (Unrolled l u es) = index (l, u) <$> p .$ es
     p *$ (Unrolled l u es) = index (l, u) <$> p *$ es
 
+instance (Index i) => Sort (Unrolled i e) e
+  where
+    sortBy cmp es = runST $ do es' <- thaw es; timSortBy cmp es'; done es'
+
 --------------------------------------------------------------------------------
 
 instance (Index i) => E.IsList (Unrolled i e)
@@ -324,7 +330,9 @@ instance (Index i) => Freeze (ST s) (STUnrolled s i e) (Unrolled i e)
 
 --------------------------------------------------------------------------------
 
+done :: (Index i) => STUnrolled s i e -> ST s (Unrolled i e)
+done = freeze
+
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.Unrolled." ++ msg
-
 

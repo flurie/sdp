@@ -385,7 +385,7 @@ instance (Index i) => Bordered (Array i e) i e
 
 --------------------------------------------------------------------------------
 
-{- Indexed instance. -}
+{- Indexed and Sort instances. -}
 
 instance (Index i) => Indexed (Array i e) i e
   where
@@ -415,6 +415,10 @@ instance (Index i) => Indexed (Array i e) i e
     p .$ es = (\ i -> p $ es ! i)  `find`  indices es
     p *$ es = (\ i -> p $ es ! i) `filter` indices es
 
+instance (Index i) => Sort (Array i e) e
+  where
+    sortBy cmp es = runST $ do es' <- thaw es; timSortBy cmp es'; done es'
+
 --------------------------------------------------------------------------------
 
 instance (Index i) => E.IsList (Array i e)
@@ -432,12 +436,6 @@ instance (Index i) => Estimate (Array i) where xs <==> ys = length xs <=> length
 instance (Index i, Arbitrary e) => Arbitrary (Array i e) where arbitrary = fromList <$> arbitrary
 
 -- instance (Index i) => Set (Array i e) e
-
---------------------------------------------------------------------------------
-
-instance (Index i) => Sort (Array i e) e
-  where
-    sortBy cmp es = runST $ do es' <- thaw es; timSortBy cmp es'; done es'
 
 --------------------------------------------------------------------------------
 

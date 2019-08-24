@@ -81,15 +81,20 @@ version 0.0.2.0:
   
   Removed Stability properties, changed Safety of some modules.
 
-version NX:
+version 0.1.0.0:
   Added (!^) and fromIndexed functions to Indexed class.
-  write function moved back to Indexed, added write_ function.
-  
   Added (!#>), fromIndexed' and fromIndexedM procedures to IndexedM class.
   
-  Added Thaw and Freeze classes.
+  Removed arrcopy procedure (moved to private section of SDP.SortM.Stuff).
+  write function moved back to Indexed, added write_ function.
   
-  Removed arrcopy procedure (moved to SDP.SortM.Stuff)
+  Added SortM instances for STUnrolled, STByteList, STUnlist and STUblist.
+  Added Sort  instances for Unrolled, ByteList, Unlist, Ublist and BinTree.
+  
+  Added Test.SDP.Sort module (very short).
+  Added Thaw and Freeze classes.
+
+
 
 
 

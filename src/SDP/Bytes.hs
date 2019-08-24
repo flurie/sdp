@@ -15,11 +15,11 @@
     but incopatible with it.
     The main difference is the Index class instead of Ix.
 -}
-
 module SDP.Bytes
 (
   module SDP.Unboxed,
   module SDP.Indexed,
+  module SDP.Sort,
   module SDP.Set,
   
   Bytes (..)
@@ -223,7 +223,7 @@ instance (Index i, Unboxed e) => Bordered (Bytes i e) i e
 
 --------------------------------------------------------------------------------
 
-{- Indexed instance. -}
+{- Indexed and Sort instances. -}
 
 instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
   where
@@ -256,6 +256,10 @@ instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
     p .$ es@(Bytes l u _ _) = index (l, u) <$> p .$ listL es
     p *$ es@(Bytes l u _ _) = index (l, u) <$> p *$ listL es
 
+instance (Index i, Unboxed e) => Sort (Bytes i e) e
+  where
+    sortBy cmp es = runST $ do es' <- thaw es; timSortBy cmp es'; done es'
+
 --------------------------------------------------------------------------------
 
 instance (Index i, Unboxed e) => E.IsList (Bytes i e)
@@ -271,12 +275,6 @@ instance (Index i) => IsString (Bytes i Char) where fromString = fromList
 instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (Bytes i e) where arbitrary = fromList <$> arbitrary
 
 -- instance (Index i, Unboxed e) => Set (Bytes i e) e
-
---------------------------------------------------------------------------------
-
-instance (Index i, Unboxed e) => Sort (Bytes i e) e
-  where
-    sortBy cmp es = runST $ do es' <- thaw es; timSortBy cmp es'; done es'
 
 --------------------------------------------------------------------------------
 
@@ -309,7 +307,4 @@ pfailEx msg = throw . PatternMatchFail $ "in SDP.Bytes." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Bytes." ++ msg
-
-
-
 

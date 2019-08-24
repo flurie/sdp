@@ -11,10 +11,10 @@
     This module provides service type Ublist - mutable strict unboxed unrolled
     linked list for SDP.ByteList.Ublist.
 -}
-
 module SDP.ByteList.STUblist
 (
   module SDP.IndexedM,
+  module SDP.SortM,
   
   STUblist (..)
 )
@@ -25,6 +25,7 @@ import SDP.SafePrelude
 
 import SDP.IndexedM
 import SDP.Unboxed
+import SDP.SortM
 
 import GHC.Base
   (
@@ -35,6 +36,7 @@ import GHC.Base
 
 import GHC.ST ( ST (..), STRep )
 
+import SDP.SortM.Stuff
 import SDP.Simple
 
 default ()
@@ -104,7 +106,7 @@ instance (Unboxed e) => LinearM (ST s) (STUblist s e) e
 
 --------------------------------------------------------------------------------
 
-{- IndexedM instance. -}
+{- IndexedM and SortM instances. -}
 
 instance (Unboxed e) => IndexedM (ST s) (STUblist s e) Int e
   where
@@ -120,7 +122,7 @@ instance (Unboxed e) => IndexedM (ST s) (STUblist s e) Int e
     
     {-# INLINE (>!) #-}
     (STUblist n mubl# mubls) >! i@(I# i#) = i >= n ? mubls !> (i - n) $ ST (mubl# !># i#)
-    _ >! _ = error "in SDP.ByteList.STUblist.(>!)"
+    _  >! _ = error "in SDP.ByteList.STUblist.(>!)"
     
     es !> i = getBounds es >>= \ bnds -> case inBounds bnds i of
         ER -> throw $ EmptyRange     msg
@@ -143,7 +145,6 @@ instance (Unboxed e) => IndexedM (ST s) (STUblist s e) Int e
       where
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
-    
     overwrite es@(STUblist n mubl# mubls) ascs = writes >> overwrite mubls others' >> return es
       where
         (curr, others) = partition (inRange (0, n - 1) . fst) ascs
@@ -162,6 +163,8 @@ instance (Unboxed e) => IndexedM (ST s) (STUblist s e) Int e
       copy <- filled_ n (unreachEx "fromIndexedM")
       forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM_ copy i
       return copy
+
+instance (Unboxed e) => SortM (ST s) (STUblist s e) e where sortMBy = timSortBy
 
 --------------------------------------------------------------------------------
 

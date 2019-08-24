@@ -15,6 +15,7 @@
 module SDP.Unrolled.Unlist
 (
   module SDP.Indexed,
+  module SDP.Sort,
   module SDP.Scan,
   module SDP.Set,
   
@@ -28,6 +29,7 @@ import SDP.SafePrelude
 import Test.QuickCheck
 
 import SDP.Indexed
+import SDP.Sort
 import SDP.Scan
 import SDP.Set
 
@@ -44,6 +46,7 @@ import GHC.ST ( ST (..), STRep, runST )
 import Data.String ( IsString (..) )
 
 import SDP.Unrolled.STUnlist
+import SDP.SortM.Stuff
 import SDP.Simple
 
 default ()
@@ -257,7 +260,7 @@ instance Bordered (Unlist e) Int e
 
 --------------------------------------------------------------------------------
 
-{- Indexed instance. -}
+{- Indexed and Sort instances. -}
 
 instance Indexed (Unlist e) Int e
   where
@@ -297,6 +300,10 @@ instance Indexed (Unlist e) Int e
     
     p .$ es = p .$ toList es
     p *$ es = p *$ toList es
+
+instance Sort (Unlist e) e
+  where
+    sortBy cmp es = runST $ do es' <- thaw es; timSortBy cmp es'; done es'
 
 --------------------------------------------------------------------------------
 
@@ -353,8 +360,6 @@ unreachEx msg = throw . UnreachableException $ "in SDP.Unrolled.Unlist." ++ msg
 
 lim :: Int
 lim =  1024
-
-
 
 
 

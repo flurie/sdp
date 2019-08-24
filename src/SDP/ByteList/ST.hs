@@ -15,6 +15,7 @@
 module SDP.ByteList.ST
 (
   module SDP.IndexedM,
+  module SDP.SortM,
   
   STByteList (..)
 )
@@ -25,11 +26,13 @@ import SDP.SafePrelude
 
 import SDP.IndexedM
 import SDP.Unboxed
+import SDP.SortM
 
 import GHC.Base ( Int (..) )
 import GHC.ST   ( ST  (..) )
 
 import SDP.ByteList.STUblist
+import SDP.SortM.Stuff
 import SDP.Simple
 
 default ()
@@ -64,7 +67,8 @@ instance (Index i, Unboxed e) => BorderedM (ST s) (STByteList s i e) i e
 
 instance (Index i, Unboxed e) => LinearM (ST s) (STByteList s i e) e
   where
-    newLinear = fromFoldableM
+    newLinear  = fromFoldableM
+    filled n e = let (l, u) = unsafeBounds n in STByteList l u <$> filled n e
     
     fromFoldableM es = STByteList l u <$> fromFoldableM es
       where
@@ -74,12 +78,10 @@ instance (Index i, Unboxed e) => LinearM (ST s) (STByteList s i e) e
     copied   (STByteList l u es)       = STByteList l u <$> copied  es
     copied'  (STByteList l u es) l' u' = STByteList l u <$> copied' es l' u'
     reversed (STByteList l u es)       = STByteList l u <$> reversed es
-    
-    filled n e = let (l, u) = unsafeBounds n in STByteList l u <$> filled n e
 
 --------------------------------------------------------------------------------
 
-{- IndexedM instance. -}
+{- IndexedM and SortM instances. -}
 
 instance (Index i, Unboxed e) => IndexedM (ST s) (STByteList s i e) i e
   where
@@ -127,4 +129,7 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STByteList s i e) i e
       n   <- getSizeOf es'
       return $ let (l, u) = unsafeBounds n in STByteList l u es'
 
+instance (Index i, Unboxed e) => SortM (ST s) (STByteList s i e) e
+  where
+    sortMBy = timSortBy
 

@@ -11,11 +11,11 @@
     This module provides service type Ublist - strict boxed unrolled linked list
     for SDP.ByteList.
 -}
-
 module SDP.ByteList.Ublist
 (
   module SDP.Indexed,
   module SDP.Unboxed,
+  module SDP.Sort,
   module SDP.Set,
   
   Ublist (..)
@@ -29,6 +29,7 @@ import Test.QuickCheck
 
 import SDP.Indexed
 import SDP.Unboxed
+import SDP.Sort
 import SDP.Set
 
 import GHC.Base
@@ -44,6 +45,7 @@ import GHC.Show ( appPrec )
 import Data.String ( IsString (..) )
 
 import SDP.ByteList.STUblist
+import SDP.SortM.Stuff
 import SDP.Simple
 
 default ()
@@ -216,6 +218,8 @@ instance (Unboxed e) => Bordered (Ublist e) Int e
 
 --------------------------------------------------------------------------------
 
+{- Indexed and Sort instances. -}
+
 instance (Unboxed e) => Indexed (Ublist e) Int e
   where
     {-# INLINE assoc  #-}
@@ -258,6 +262,10 @@ instance (Unboxed e) => Indexed (Ublist e) Int e
     
     p .$ es = p .$ listL es
     p *$ es = p *$ listL es
+
+instance (Unboxed e) => Sort (Ublist e) e
+  where
+    sortBy cmp es = runST $ do es' <- thaw es; timSortBy cmp es'; done es'
 
 --------------------------------------------------------------------------------
 
@@ -314,7 +322,4 @@ unreachEx msg = throw . UnreachableException $ "in SDP.ByteList.Ublist." ++ msg
 
 lim :: Int
 lim =  1024
-
-
-
 

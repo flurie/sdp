@@ -1,5 +1,5 @@
 name:          sdp
-version:       0.0.2.0
+version:       0.1.0.0
 category:      Data Structures
 
 synopsis:      Simple Data Processing
@@ -20,6 +20,13 @@ cabal-version: >=1.10
 source-repository head
   type: git
   location: https://github.com/andreymulik/sdp
+
+---            _      _____ ______ ______   ___  ______ __   __              ---
+---           | |    |_   _|| ___ \| ___ \ / _ \ | ___ \\ \ / /              ---
+---           | |      | |  | |_/ /| |_/ // /_\ \| |_/ / \ V /               ---
+---           | |      | |  | ___ \|    / |  _  ||    /   \ /                ---
+---           | |____ _| |_ | |_/ /| |\ \ | | | || |\ \   | |                ---
+---           \_____/ \___/ \____/ \_| \_|\_| |_/\_| \_|  \_/                ---
 
 Library
   hs-source-dirs:   src
@@ -90,8 +97,269 @@ Library
     Test.SDP.Indexed
     Test.SDP.Linear
     Test.SDP.Index
+    Test.SDP.Sort
     Test.SDP.Set
   
   other-modules:
     SDP.Simple
+
+---            _____  _____  _____  _____  _____  _   _  _____               ---
+---           |_   _||  ___|/  ___||_   _||_   _|| \ | ||  __ \              ---
+---             | |  | |__  \ `--.   | |    | |  |  \| || |  \/              ---
+---             | |  |  __|  `--. \  | |    | |  | . ` || | __               ---
+---             | |  | |___ /\__/ /  | |   _| |_ | |\  || |_\ \              ---
+---             \_/  \____/ \____/   \_/   \___/ \_| \_/ \____/              ---
+
+test-suite test-array
+  default-language: Haskell2010
+  hs-source-dirs:   test, src
+  
+  type:             exitcode-stdio-1.0
+  main-is:          test-array.hs
+  
+  other-modules:
+    Control.Exception.SDP
+    SDP.Array
+    SDP.Array.ST
+    SDP.Estimate
+    SDP.Index
+    SDP.Indexed
+    SDP.IndexedM
+    SDP.Linear
+    SDP.LinearM
+    SDP.SafePrelude
+    SDP.Scan
+    SDP.Set
+    SDP.Simple
+    SDP.Sort
+    SDP.SortM
+    SDP.SortM.Stuff
+    SDP.Zip
+    Test.SDP.Indexed
+    Test.SDP.Linear
+    Test.SDP.Sort
+  
+  build-depends:
+    base                       >= 4.12    && < 5,
+    ghc-prim                   >= 0.5.3   && < 0.6,
+    sdp                        >= 0.0.2.0 && < 0.1,
+    bytestring                 >= 0.10    && < 0.11,
+    data-default               >= 0.7     && < 0.8,
+    QuickCheck                 >= 2.12    && < 3,
+    test-framework             >= 0.8     && < 0.9,
+    test-framework-quickcheck2 >= 0.3     && < 0.4
+  
+  ghc-options: -Wall -O2
+
+test-suite test-bytes
+  default-language: Haskell2010
+  hs-source-dirs:   test, src
+  
+  type:             exitcode-stdio-1.0
+  main-is:          test-bytes.hs
+  
+  other-modules:
+    Control.Exception.SDP
+    SDP.Bytes
+    SDP.Bytes.ST
+    SDP.Estimate
+    SDP.Index
+    SDP.Indexed
+    SDP.IndexedM
+    SDP.Linear
+    SDP.LinearM
+    SDP.SafePrelude
+    SDP.Set
+    SDP.Simple
+    SDP.Sort
+    SDP.SortM
+    SDP.SortM.Stuff
+    SDP.Unboxed
+    SDP.Zip
+    Test.SDP.Indexed
+    Test.SDP.Linear
+    Test.SDP.Sort
+  
+  build-depends:
+    base                       >= 4.12    && < 5,
+    ghc-prim                   >= 0.5.3   && < 0.6,
+    sdp                        >= 0.0.2.0 && < 0.1,
+    bytestring                 >= 0.10    && < 0.11,
+    data-default               >= 0.7     && < 0.8,
+    QuickCheck                 >= 2.12    && < 3,
+    test-framework             >= 0.8     && < 0.9,
+    test-framework-quickcheck2 >= 0.3     && < 0.4
+  
+  ghc-options: -Wall -O2
+
+test-suite test-unrolled
+  default-language: Haskell2010
+  hs-source-dirs:   test, src
+  
+  type:             exitcode-stdio-1.0
+  main-is:          test-unrolled.hs
+  
+  other-modules:
+    Control.Exception.SDP
+    SDP.Estimate
+    SDP.Index
+    SDP.Indexed
+    SDP.IndexedM
+    SDP.Linear
+    SDP.LinearM
+    SDP.SafePrelude
+    SDP.Scan
+    SDP.Set
+    SDP.Simple
+    SDP.Sort
+    SDP.SortM
+    SDP.SortM.Stuff
+    SDP.Unrolled
+    SDP.Unrolled.ST
+    SDP.Unrolled.STUnlist
+    SDP.Unrolled.Unlist
+    SDP.Zip
+    Test.SDP.Indexed
+    Test.SDP.Linear
+    Test.SDP.Sort
+  
+  build-depends:
+    base                       >= 4.12    && < 5,
+    ghc-prim                   >= 0.5.3   && < 0.6,
+    sdp                        >= 0.0.2.0 && < 0.1,
+    bytestring                 >= 0.10    && < 0.11,
+    data-default               >= 0.7     && < 0.8,
+    QuickCheck                 >= 2.12    && < 3,
+    test-framework             >= 0.8     && < 0.9,
+    test-framework-quickcheck2 >= 0.3     && < 0.4
+  
+  ghc-options: -Wall -O2
+
+test-suite test-bytelist
+  default-language: Haskell2010
+  hs-source-dirs:   test, src
+  
+  type:             exitcode-stdio-1.0
+  main-is:          test-bytelist.hs
+  
+  other-modules:
+    Control.Exception.SDP
+    SDP.ByteList
+    SDP.ByteList.ST
+    SDP.ByteList.STUblist
+    SDP.ByteList.Ublist
+    SDP.Estimate
+    SDP.Index
+    SDP.Indexed
+    SDP.IndexedM
+    SDP.Linear
+    SDP.LinearM
+    SDP.SafePrelude
+    SDP.Set
+    SDP.Simple
+    SDP.Sort
+    SDP.SortM
+    SDP.SortM.Stuff
+    SDP.Unboxed
+    SDP.Zip
+    Test.SDP.Indexed
+    Test.SDP.Linear
+    Test.SDP.Sort
+  
+  build-depends:
+    base                       >= 4.12    && < 5,
+    ghc-prim                   >= 0.5.3   && < 0.6,
+    sdp                        >= 0.0.2.0 && < 0.1,
+    bytestring                 >= 0.10    && < 0.11,
+    data-default               >= 0.7     && < 0.8,
+    QuickCheck                 >= 2.12    && < 3,
+    test-framework             >= 0.8     && < 0.9,
+    test-framework-quickcheck2 >= 0.3     && < 0.4
+  
+  ghc-options: -Wall -O2
+
+test-suite test-ublist
+  default-language: Haskell2010
+  hs-source-dirs:   test, src
+  
+  type:             exitcode-stdio-1.0
+  main-is:          test-ublist.hs
+  
+  other-modules:
+    Control.Exception.SDP
+    SDP.ByteList.STUblist
+    SDP.ByteList.Ublist
+    SDP.Estimate
+    SDP.Index
+    SDP.Indexed
+    SDP.IndexedM
+    SDP.Linear
+    SDP.LinearM
+    SDP.SafePrelude
+    SDP.Set
+    SDP.Simple
+    SDP.Sort
+    SDP.SortM
+    SDP.SortM.Stuff
+    SDP.Unboxed
+    SDP.Zip
+    Test.SDP.Indexed
+    Test.SDP.Linear
+    Test.SDP.Sort
+  
+  build-depends:
+    base                       >= 4.12    && < 5,
+    ghc-prim                   >= 0.5.3   && < 0.6,
+    sdp                        >= 0.0.2.0 && < 0.1,
+    bytestring                 >= 0.10    && < 0.11,
+    data-default               >= 0.7     && < 0.8,
+    QuickCheck                 >= 2.12    && < 3,
+    test-framework             >= 0.8     && < 0.9,
+    test-framework-quickcheck2 >= 0.3     && < 0.4
+  
+  ghc-options: -Wall -O2
+
+test-suite test-unlist
+  default-language: Haskell2010
+  hs-source-dirs:   test, src
+  
+  type:             exitcode-stdio-1.0
+  main-is:          test-unlist.hs
+  
+  other-modules:
+    Control.Exception.SDP
+    SDP.Estimate
+    SDP.Index
+    SDP.Indexed
+    SDP.IndexedM
+    SDP.Linear
+    SDP.LinearM
+    SDP.SafePrelude
+    SDP.Scan
+    SDP.Set
+    SDP.Simple
+    SDP.Sort
+    SDP.SortM
+    SDP.SortM.Stuff
+    SDP.Unrolled.STUnlist
+    SDP.Unrolled.Unlist
+    SDP.Zip
+    Test.SDP.Indexed
+    Test.SDP.Linear
+    Test.SDP.Sort
+  
+  build-depends:
+    base                       >= 4.12    && < 5,
+    ghc-prim                   >= 0.5.3   && < 0.6,
+    sdp                        >= 0.0.2.0 && < 0.1,
+    bytestring                 >= 0.10    && < 0.11,
+    data-default               >= 0.7     && < 0.8,
+    QuickCheck                 >= 2.12    && < 3,
+    test-framework             >= 0.8     && < 0.9,
+    test-framework-quickcheck2 >= 0.3     && < 0.4
+  
+  ghc-options: -Wall -O2
+
+
+
 
