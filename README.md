@@ -5,22 +5,30 @@ This is a library for simple data processing.
 ## Reasons
 
 The purpose of SDP is to provide the most comfortable interface for working with
-different data structures in the same namespace, while maintaining sufficiently
-high quality code and speed of work so that it can be use in practice, and
+different data structures in the same namespace, keeping sufficiently high
+quality code and speed of work. So that it can be use in practice, and
 translation programs from old and more specialized libraries did not cause
 serious problems.
-SDP classes not keen to summarize all possible data structures - only the
-simplest of them. However, such structures are required in 80-95% cases.
+
+Classes in SDP keep a balance between versatility and efficiency. They may not
+be suitable for working with some data structures, but with the most common ones
+are perfectly combined.
 
 ## Functionality
 
-Currently there are only six data structures in SDP:
+SDP provides a wide range of options for data conversion, a powerful abstraction
+for generalized programming, and the most common operations, including (but not
+limited to) fetching, splitting, and sorting. However, it does not give its own
+implementations of structures advantages over external ones.
+
+SDP provides 6 standard data structures for use in programs that are not very
+demanding on speed and efficiency:
 
 - standard lists ([])
 - binary trees   (BinTree)
 
-- lazy   immutable  boxed  arrays (Array, STArray)
-- strict immutable unboxed arrays (Bytes, STBytes)
+- lazy    boxed  arrays (Array, STArray)
+- strict unboxed arrays (Bytes, STBytes)
 
 - lazy   unrolled linked lists (Unrolled, STUnrolled)
 - strict unrolled linked lists (ByteList, STByteList)
@@ -30,7 +38,31 @@ And two service structures (may be infinite):
 - lazy   unrolled linked lists (Unlist, STUnlist)
 - strict unrolled linked lists (Ublist, STUblist)
 
-But matrices, bitmaps, stream, dictionaries and prefix trees will also be added.
+But matrices, bitmaps, streams, dictionaries and prefix trees will also be added
+in new versions.
+
+SDP provides the following classes:
+
+- Bordered/BorderedM - for for getting the bounds, list of indices and
+associations (index, element).
+- Linear - for separate elements, create structure from list or Foldable, left
+and right views of structure, three generic patterns and some generalized list
+functions (concat, intersperse, filter, partition, reverse and nubBy).
+- Indexed/IndexedM - for create structure from list of associations or other
+Indexed/IndexedM, for rewrite or update it, for reading and writing (4 and 2
+resp. for both) and for searching indices of elements by predicate.
+- Sort/SortM - for sort data structures and timSort algorithm for any IndexedM.
+- Set - for standard set operations.
+
+- Zip and Scan - for overloaded zips and scans (only suitable for structures
+generalized by value type).
+
+- Estimate - for lazy comparings by length.
+- Unboxed - overloaded by value type interface for ByteArray creating, filling,
+reading and writing.
+- Index - for index types.
+- IndexEQ - for long trivial Index instances (it’s better to lose a little
+performance than to look for errors in a hundred lines of monotonous code).
 
 ## Versioning
 
