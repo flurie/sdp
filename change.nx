@@ -1,0 +1,13 @@
+DESCRIPTION:
+
+change.nx is the file for changes that will be implemented in the dev branch.
+
+This is a public version of TODO, without "grandiose intents" and momentary
+"brilliant ideas". This is either what I'm working on now, or approved requests.
+
+Don't write anything yourself if the request has been added to this file - with
+the same functionality, I will usually prefer my own code.
+
+VERSION NX (0.1.0.0):
+  
+  Set instances for some data structures.

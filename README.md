@@ -1,16 +1,9 @@
 # SDP
 
-That is it?
---------------------------------------------------------------------------------
-This is a library for simple data processing and my sandbox for working with
-language extensions. However, I hope that sense will come of it, and I can use
-it in more serious projects.
-SDP was created under the influence of containers, it is not based on
-collections (abandoned 2010), collections-api (most likely abandoned),
-EdisonAPI (alive as of 2018) or any such library - it's independent project.
+This is a library for simple data processing.
 
-Why is SDP needed?
---------------------------------------------------------------------------------
+## Reasons
+
 The purpose of SDP is to provide the most comfortable interface for working with
 different data structures in the same namespace, while maintaining sufficiently
 high quality code and speed of work so that it can be use in practice, and
@@ -19,8 +12,8 @@ serious problems.
 SDP classes not keen to summarize all possible data structures - only the
 simplest of them. However, such structures are required in 80-95% cases.
 
-What SDP provides?
---------------------------------------------------------------------------------
+## Functionality
+
 Currently there are only six data structures in SDP:
 
 - standard lists ([])
@@ -37,11 +30,26 @@ And two service structures (may be infinite):
 - lazy   unrolled linked lists (Unlist, STUnlist)
 - strict unrolled linked lists (Ublist, STUblist)
 
-But matrices, bitmaps, sequences, dictionaries, and prefix trees will also be
-added.
+But matrices, bitmaps, stream, dictionaries and prefix trees will also be added.
 
-How does SDP differ from other libraries?
---------------------------------------------------------------------------------
+## Versioning
+
+SDP and SDP-derived libraries must follow of the Haskell community versioning
+principles and this restrictions:
+
+In the version number a.b.c.d:
+* d is the patch number: only bugfixes and code improvements. Also may be
+changed valid dependency versions. Documentation changes are not subject to
+versioning.
+* c is internal library version number, used to mark changes in the API (only
+extension, older code must compile anyway) and code improvements.
+* b is the number of the stable version of SDP. Deprecated changes cannot be
+removed until the next stable version.
+* a is reserved (always 0) - necessary in case of release of a new edition of
+SDP.
+
+## Differences from other similar projects
+
 * Internal consistency. Unfortunately, not all libraries are consistent, even in
 the Haskell Platform.
 * Maximum functionality with the minimum number of dependencies. SDP requires
@@ -61,11 +69,35 @@ interfaces for working with different data structures and reduce code
 duplication. SDP will not require you to use qualified import when working with
 different structures in the same namespace.
 
-License.
---------------------------------------------------------------------------------
+## Derivative work
+
+SDP permits any derivative works. If you want to create some tool on the basis
+of SDP, here is a list of simple rules that will help to quickly find it,
+determine what it does, and with which versions of SDP it's compatible:
+
+### Extensions
+
+SDP extensions (libraries that adds new features to SDP) must follow naming rule
+sdp-%extensionname% (e.g. sdp-io or sdp-binary) and versioning rules.
+
+### Wrappers
+
+SDP wrappers (library that provides SDP functionality for an existing library)
+must follow one of naming rules
+* sdp4%libraryname% - for libraries that is good in itself and wrapper are
+needed only for conveniece.
+* sdp2%libraryname% - for libraries with limited functionality and/or bad API
+(a compromise between the Last Chinese Warnings to the author and fork).
+
+## Contributing
+
+For details of the process for submitting pull requests, please read
+[https://github.com/andreymulik/sdp/blob/master/CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
 SDP is free software, you can redistribute it and/or modify it under the
 terms of the BSD3 license.
 SDP is distributed in the hope that it will be useful, but without any
 warranty, without even the implied warranty of merchantability or fitness for
 a particular purpose. See the BSD3 license for more details.
-
