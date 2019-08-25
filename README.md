@@ -50,13 +50,14 @@ and right views of structure. Also contains some generalized list functions
 generic patterns.
 - Indexed/IndexedM - for create structure from list of associations or other
 Indexed/IndexedM, for rewriting or updating it, for reading and writing (4 and 2
-resp. for both) and for searching indices of elements by predicate.
+functions/procedures resp., for both) and for searching indices of elements by
+predicate.
 - Sort/SortM - for sort data structures. Also SDP contain timSort algorithm
-implementation for any IndexedM.
+implementation for all IndexedM.
 - Set - for standard set operations.
 
 - Zip and Scan - for overloaded zips and scans (only suitable for structures
-generalized by value type).
+generalized by element's type).
 
 - Estimate - for lazy comparings by length.
 - Unboxed - overloaded by value type interface for ByteArray creating, filling,
@@ -67,15 +68,15 @@ performance than to look for errors in a hundred lines of monotonous code).
 
 ## Versioning
 
-SDP and SDP-derived libraries must follow of the Haskell community versioning
-principles and this restrictions:
+SDP and SDP-derived extensions/wrappers must follow of the Haskell community
+versioning principles with this restrictions:
 
 For the version a.b.c.d
-* d is the patch number: only bugfixes and code improvements. Also may be
+* d is the patch number: only bugfixes and small code improvements. Also may be
 changed valid dependency versions.
 * c is the internal library version number, used to mark changes in the API
-(only extension, older code must compile anyway) and big code improvements.
-* b is the number of the stable version of SDP. Deprecated changes cannot be
+(only small extensions, older code must compile anyway) and code improvements.
+* b is the number of the stable version of SDP. Deprecations cannot be
 removed until the next stable version.
 * a is reserved (always 0) - necessary in case of release a new edition of SDP.
 
@@ -102,8 +103,8 @@ different structures in the same namespace.
 
 ## Derivative work
 
-SDP permits any derivative works. If you want to create some tool on the basis
-of SDP, here is a list of simple rules that will help to quickly find it,
+SDP license permits any derivative works. If you want to create some tool on the
+basis of SDP, here is a list of simple rules that will help to quickly find it,
 determine what it does, and with which versions of SDP it's compatible:
 
 ### Extensions
@@ -132,4 +133,3 @@ terms of the BSD3 license.
 SDP is distributed in the hope that it will be useful, but without any
 warranty, without even the implied warranty of merchantability or fitness for
 a particular purpose. See the BSD3 license for more details.
-

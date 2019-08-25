@@ -11,7 +11,7 @@ of what was written, write to me about this by e-mail. Even if the problem is in
 one single article. Grammar Nazis are welcome here.
 * In issue, you can write both in English and in Russian (the first is
 preferable, because more people will be able to understand you).
-* You can write me an [e-mail](work.a.mulik@gmail.com) in the language that you
+* You can write me an e-mail (<work.a.mulik@gmail.com>) in the language that you
 know better. If you are a Russian speaking developer and don't know how to
 literary translate a certain term (e.g. "pattern matching" translates as
 "сопоставление с образцом" - whis is ugly and too long), then write it in
