@@ -7,10 +7,10 @@ This is a library for simple data processing.
 The purpose of SDP is to provide the most comfortable interface for working with
 different data structures in the same namespace, keeping sufficiently high
 quality code and speed of work. So that it can be use in practice, and
-translation programs from old and more specialized libraries did not cause
+transition programs from old and more specialized libraries did not cause
 serious problems.
 
-Classes in SDP keep a balance between versatility and efficiency. They may not
+Classes in SDP keep a balance between universality and efficiency. They may not
 be suitable for working with some data structures, but with the most common ones
 are perfectly combined.
 
@@ -18,11 +18,10 @@ are perfectly combined.
 
 SDP provides a wide range of options for data conversion, a powerful abstraction
 for generalized programming, and the most common operations, including (but not
-limited to) fetching, splitting, and sorting. However, it does not give its own
-implementations of structures advantages over external ones.
+limited to) filtering, splitting, and sorting.
 
-SDP provides 6 standard data structures for use in programs that are not very
-demanding on speed and efficiency:
+Now SDP provides only 6 standard data structures for use in programs that are
+not very demanding on speed and efficiency:
 
 - standard lists ([])
 - binary trees   (BinTree)
@@ -43,15 +42,17 @@ in new versions.
 
 SDP provides the following classes:
 
-- Bordered/BorderedM - for for getting the bounds, list of indices and
-associations (index, element).
+- Bordered/BorderedM - for getting the bounds, list of indices and associations
+(index, element).
 - Linear - for separate elements, create structure from list or Foldable, left
-and right views of structure, three generic patterns and some generalized list
-functions (concat, intersperse, filter, partition, reverse and nubBy).
+and right views of structure. Also contains some generalized list functions
+(concat, intersperse, filter, partition, reverse and nubBy) and support three
+generic patterns.
 - Indexed/IndexedM - for create structure from list of associations or other
-Indexed/IndexedM, for rewrite or update it, for reading and writing (4 and 2
+Indexed/IndexedM, for rewriting or updating it, for reading and writing (4 and 2
 resp. for both) and for searching indices of elements by predicate.
-- Sort/SortM - for sort data structures and timSort algorithm for any IndexedM.
+- Sort/SortM - for sort data structures. Also SDP contain timSort algorithm
+implementation for any IndexedM.
 - Set - for standard set operations.
 
 - Zip and Scan - for overloaded zips and scans (only suitable for structures
@@ -69,21 +70,19 @@ performance than to look for errors in a hundred lines of monotonous code).
 SDP and SDP-derived libraries must follow of the Haskell community versioning
 principles and this restrictions:
 
-In the version number a.b.c.d:
+For the version a.b.c.d
 * d is the patch number: only bugfixes and code improvements. Also may be
-changed valid dependency versions. Documentation changes are not subject to
-versioning.
-* c is internal library version number, used to mark changes in the API (only
-extension, older code must compile anyway) and code improvements.
+changed valid dependency versions.
+* c is the internal library version number, used to mark changes in the API
+(only extension, older code must compile anyway) and big code improvements.
 * b is the number of the stable version of SDP. Deprecated changes cannot be
 removed until the next stable version.
-* a is reserved (always 0) - necessary in case of release of a new edition of
-SDP.
+* a is reserved (always 0) - necessary in case of release a new edition of SDP.
 
 ## Differences from other similar projects
 
-* Internal consistency. Unfortunately, not all libraries are consistent, even in
-the Haskell Platform.
+* Internal consistency. Unfortunately, not all libraries are self-consistent,
+even in the Haskell Platform.
 * Maximum functionality with the minimum number of dependencies. SDP requires
 only the most necessary and commonly used packages. This is one of the reasons
 for which I refused to use some libraries as dependencies (for example,
@@ -92,10 +91,10 @@ designed Ix class).
 * Orientation to other libraries. SDP is unlikely to be used by itself, but it
 can become a bridge between other libraries and structures. SDP doesn't give its
 own implementations of structures an advantage over external ones (except,
-perhaps, own implementation of n-dimensional indices). You can add general
-classes implementations for any data structures and they will be able to work
-perfectly with native ones and between themselves. If other developers do the
-same, then writing the code will be a little easier.
+perhaps, voluntary-compulsory use of Index class). You can add general classes
+implementations for any data structures and they will be able to work perfectly
+with native ones and between themselves. If other developers do the same, then
+writing the code will be a little easier.
 * Good extensibility. SDP is based on type classes that provide the simplest
 interfaces for working with different data structures and reduce code
 duplication. SDP will not require you to use qualified import when working with
@@ -124,7 +123,7 @@ needed only for conveniece.
 ## Contributing
 
 For details of the process for submitting pull requests, please read
-[https://github.com/andreymulik/sdp/blob/master/CONTRIBUTING.md](CONTRIBUTING.md).
+[CONTRIBUTING.md](https://github.com/andreymulik/sdp/blob/master/CONTRIBUTING.md).
 
 ## License
 
@@ -133,3 +132,4 @@ terms of the BSD3 license.
 SDP is distributed in the hope that it will be useful, but without any
 warranty, without even the implied warranty of merchantability or fitness for
 a particular purpose. See the BSD3 license for more details.
+
