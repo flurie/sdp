@@ -385,7 +385,7 @@ instance (Index i) => Bordered (Array i e) i e
 
 --------------------------------------------------------------------------------
 
-{- Indexed and Sort instances. -}
+{- Indexed, Set and Sort instances. -}
 
 instance (Index i) => Indexed (Array i e) i e
   where
@@ -415,6 +415,69 @@ instance (Index i) => Indexed (Array i e) i e
     p .$ es = (\ i -> p $ es ! i)  `find`  indices es
     p *$ es = (\ i -> p $ es ! i) `filter` indices es
 
+instance (Index i) => Set (Array i e) e
+  where
+    setWith f es = nubSorted f $ sortBy f es
+    
+    insertWith _ e Z  = single e
+    insertWith f e es = isContainedIn f e es ? es $ res
+      where
+        res = fromList . insertWith f e $ listL es
+    
+    deleteWith _ _ Z  = Z
+    deleteWith f e es = isContainedIn f e es ? es $ res
+      where
+        res = fromList . deleteWith f e $ listL es
+    
+    intersectionWith f xs ys = fromList $ intersection' 0 0
+      where
+        n1 = sizeOf xs; n2 = sizeOf ys
+        intersection' i j = i == n1 || j == n2 ? [] $ case x `f` y of
+            LT -> intersection' (i + 1) j
+            EQ -> x : intersection' (i + 1) (j + 1)
+            GT -> intersection' i (j + 1)
+          where
+            x = xs !^ i; y = ys !^ j
+    
+    unionWith f xs ys = fromList $ union' 0 0
+      where
+        n1 = sizeOf xs; n2 = sizeOf ys
+        union' i j
+          | i == n1 = (ys !^) <$> [j .. n2 - 1]
+          | j == n2 = (xs !^) <$> [i .. n1 - 1]
+          |  True   = case x `f` y of
+            LT -> x : union' (i + 1) j
+            EQ -> x : union' (i + 1) (j + 1)
+            GT -> y : union' i (j + 1)
+          where
+            x = xs !^ i; y = ys !^ j
+    
+    differenceWith f xs ys = fromList $ difference' 0 0
+      where
+        n1 = sizeOf xs; n2 = sizeOf ys
+        difference' i j
+            | i == n1 = []
+            | j == n2 = (xs !^) <$> [i .. n1 - 1]
+            |  True   = case x `f` y of
+              LT -> x : difference' (i + 1) j
+              EQ -> difference' (i + 1) (j + 1)
+              GT -> difference' i (j + 1)
+          where
+            x = xs !^ i; y = ys !^ j
+    
+    symdiffWith f xs ys = fromList $ symdiff' 0 0
+      where
+        n1 = sizeOf xs; n2 = sizeOf ys
+        symdiff' i j
+            | i == n1 = (ys !^) <$> [j .. n2 - 1]
+            | j == n2 = (xs !^) <$> [i .. n1 - 1]
+            |  True   = case x `f` y of
+              LT -> x : symdiff' (i + 1) j
+              EQ -> symdiff' (i + 1) (j + 1)
+              GT -> y : symdiff' i (j + 1)
+          where
+            x = xs !^ i; y = ys !^ j
+
 instance (Index i) => Sort (Array i e) e
   where
     sortBy cmp es = runST $ do es' <- thaw es; timSortBy cmp es'; done es'
@@ -429,15 +492,15 @@ instance (Index i) => E.IsList (Array i e)
     fromList  = fromList
     toList    = toList
 
-instance (Index i) => IsString (Array i Char) where fromString es = fromList es
+instance (Index i) => IsString (Array i Char) where fromString = fromList
 
 instance (Index i) => Estimate (Array i) where xs <==> ys = length xs <=> length ys
 
 instance (Index i, Arbitrary e) => Arbitrary (Array i e) where arbitrary = fromList <$> arbitrary
 
--- instance (Index i) => Set (Array i e) e
-
 --------------------------------------------------------------------------------
+
+{- Thaw and Freeze instances. -}
 
 instance (Index i) => Thaw (ST s) (Array i e) (STArray s i e)
   where
@@ -456,13 +519,17 @@ done :: STArray s i e -> ST s (Array i e)
 done (STArray l u n marr#) = ST $ \ s1# -> case unsafeFreezeArray# marr# s1# of
   (# s2#, arr# #) -> (# s2#, Array l u n arr# #)
 
+nubSorted :: (Index i) => (e -> e -> Ordering) -> Array i e -> Array i e
+nubSorted _ Z  = Z
+nubSorted f es = fromList $ foldr fun [last es] ((es !^) <$> [0 .. sizeOf es - 2])
+  where
+    fun = \ e ls -> e `f` head ls == EQ ? ls $ e : ls
+
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Array." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Array." ++ msg
-
-
 
 
 

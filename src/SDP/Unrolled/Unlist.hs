@@ -260,7 +260,7 @@ instance Bordered (Unlist e) Int e
 
 --------------------------------------------------------------------------------
 
-{- Indexed and Sort instances. -}
+{- Indexed, Set and Sort instances. -}
 
 instance Indexed (Unlist e) Int e
   where
@@ -300,6 +300,80 @@ instance Indexed (Unlist e) Int e
     
     p .$ es = p .$ toList es
     p *$ es = p *$ toList es
+
+instance Set (Unlist e) e
+  where
+    setWith f es = nubSorted f $ sortBy f es
+    
+    insertWith _ e Z  = single e
+    insertWith f e es = isContainedIn f e es ? es $ res
+      where
+        res = fromList . insertWith f e $ listL es
+    
+    deleteWith _ _ Z  = Z
+    deleteWith f e es = isContainedIn f e es ? es $ res
+      where
+        res = fromList . deleteWith f e $ listL es
+    
+    intersectionWith f xs ys = fromList $ intersection' 0 0
+      where
+        intersection' i j = i == n1 || j == n2 ? [] $ case x `f` y of
+            LT -> intersection' (i + 1) j
+            EQ -> x : intersection' (i + 1) (j + 1)
+            GT -> intersection' i (j + 1)
+          where
+            x = xs !^ i; n1 = sizeOf xs
+            y = ys !^ j; n2 = sizeOf ys
+    
+    unionWith f xs ys = fromList $ union' 0 0
+      where
+        union' i j
+          | i == n1 = (ys !^) <$> [j .. n2 - 1]
+          | j == n2 = (xs !^) <$> [i .. n1 - 1]
+          |  True   = case x `f` y of
+            LT -> x : union' (i + 1) j
+            EQ -> x : union' (i + 1) (j + 1)
+            GT -> y : union' i (j + 1)
+          where
+            x = xs !^ i; n1 = sizeOf xs
+            y = ys !^ j; n2 = sizeOf ys
+    
+    differenceWith f xs ys = fromList $ difference' 0 0
+      where
+        difference' i j
+            | i == n1 = []
+            | j == n2 = (xs !^) <$> [i .. n1 - 1]
+            |  True   = case x `f` y of
+              LT -> x : difference' (i + 1) j
+              EQ -> difference' (i + 1) (j + 1)
+              GT -> difference' i (j + 1)
+          where
+            x = xs !^ i; n1 = sizeOf xs
+            y = ys !^ j; n2 = sizeOf ys
+    
+    symdiffWith f xs ys = fromList $ symdiff' 0 0
+      where
+        n1 = sizeOf xs; n2 = sizeOf ys
+        symdiff' i j
+            | i == n1 = (ys !^) <$> [j .. n2 - 1]
+            | j == n2 = (xs !^) <$> [i .. n1 - 1]
+            |  True   = case x `f` y of
+              LT -> x : symdiff' (i + 1) j
+              EQ -> symdiff' (i + 1) (j + 1)
+              GT -> y : symdiff' i (j + 1)
+          where
+            x = xs !^ i; y = ys !^ j
+    
+    {-# INLINE isContainedIn #-}
+    isContainedIn f e es = contain es
+      where
+        contain Z = False
+        contain (Unlist n arr# arrs) = contain' 0 || contain arrs
+          where
+            contain' i@(I# i#) = i == n ? False $ case e `f` (arr# !# i#) of
+              LT -> False
+              EQ -> True
+              GT -> contain' (i + 1)
 
 instance Sort (Unlist e) e
   where
@@ -352,6 +426,10 @@ done (STUnlist n marr# marr) = done marr >>= \ arr -> ST $
   \ s1# -> case unsafeFreezeArray# marr# s1# of
     (# s2#, arr# #) -> (# s2#, Unlist n arr# arr #)
 
+nubSorted :: (e -> e -> Ordering) -> Unlist e -> Unlist e
+nubSorted f (xs :< x) = fromList $ foldr (\ e ls@(l : _) -> e `f` l == EQ ? ls $ e : ls) [x] xs
+nubSorted _ _ = Z
+
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Unrolled.Unlist." ++ msg
 
@@ -360,6 +438,8 @@ unreachEx msg = throw . UnreachableException $ "in SDP.Unrolled.Unlist." ++ msg
 
 lim :: Int
 lim =  1024
+
+
 
 
 

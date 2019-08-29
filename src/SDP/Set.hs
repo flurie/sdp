@@ -11,7 +11,6 @@
     Set is a class that allows you to create sets and perform simple operations
   on them.
 -}
-
 module SDP.Set
 (
   module SDP.Linear,
@@ -54,7 +53,6 @@ default ()
   because I don't want to be remembered with bad words every time while creating
   another newtype. For everyday use, the synonyms below are quite enough.
 -}
-
 class (Linear s o) => Set s o | s -> o
   where
     {-# MINIMAL setWith, intersectionWith, unionWith, differenceWith #-}
@@ -66,7 +64,7 @@ class (Linear s o) => Set s o | s -> o
     
     -- | Adding element to set.
     insertWith :: (o -> o -> Ordering) -> o -> s -> s
-    insertWith f e es = intersectionWith f es $ single e
+    insertWith f e es = unionWith f es $ single e
     
     -- | Deleting element from set.
     deleteWith :: (o -> o -> Ordering) -> o -> s -> s
@@ -231,10 +229,11 @@ instance Set [e] e
       where
         (ordered, rest) = splitSeq xs
         
-        splitSeq (e1 : e2 : es) = let (initseq, others) = splitSeq (e2 : es) in case f e1 e2 of
-          LT -> (e1 : initseq, others)
-          EQ -> (initseq, others)
-          GT -> ([e1], e2 : es)
+        splitSeq (e1 : e2 : es) = let (initseq, others) = splitSeq (e2 : es) in
+          case f e1 e2 of
+            LT -> (e1 : initseq, others)
+            EQ -> (initseq, others)
+            GT -> ([e1], e2 : es)
         splitSeq es = (es, [])
         
         dumbMergeList    []       bs    = bs
@@ -302,4 +301,5 @@ instance Set [e] e
       GT -> isDisjointWith f (x : xs) ys
     isDisjointWith _ _  _  = True
 
---------------------------------------------------------------------------------
+
+

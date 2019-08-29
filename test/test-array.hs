@@ -8,6 +8,7 @@ import SDP.Array
 import Test.SDP.Indexed
 import Test.SDP.Linear
 import Test.SDP.Sort
+import Test.SDP.Set
 
 default ()
 
@@ -32,9 +33,10 @@ main = defaultMain
     testProperty "array-indexed-read   " readIndexedProp,
     
     -- sort test
-    testProperty "array-sort           " sortProp
+    testProperty "array-sort           " sortProp,
     
-    -- set test (planned)
+    -- set test
+    testProperty "array-set            " setProp
   ]
 
 --------------------------------------------------------------------------------
@@ -85,5 +87,14 @@ readIndexedProp  =  readIndexedTest
 
 sortProp :: Array Int Char -> Bool
 sortProp =  sortTest
+
+--------------------------------------------------------------------------------
+
+{- Set property. -}
+
+setProp :: TestSet1 (Array Int) Char
+setProp =  setTest
+
+
 
 

@@ -9,12 +9,15 @@
     
     This module is exported by "SDP.SafePrelude".
 -}
-
 module SDP.Estimate
 (
   module Data.Functor.Classes,
   
-  Estimate (..), EL (..), min_, max_
+  Estimate (..), EL (..),
+  
+  (<=>), cmpfst, cmpsnd, eqfst, eqsnd,
+  
+  min_, max_
 )
 where
 
@@ -24,12 +27,47 @@ import Prelude
     
     Bool (..), Ordering (..), Int,
     
-    (&&), (||)
+    fst, snd, (&&), (||)
   )
 
 import Data.Functor.Classes
+import Data.Function
+
+infixl 4 <=>, <==>, .<., .>., .<=., .>=., ==., /=., <., >., <=., >=.
 
 default ()
+
+--------------------------------------------------------------------------------
+
+{- Common stuff. -}
+
+-- | "spaceship operator" - infix version of compare.
+(<=>) :: (Ord a) => a -> a -> Ordering
+(<=>) = compare
+
+-- | Compare tuples by first elements.
+cmpfst :: (Ord a) => (a, b) -> (a, b) -> Ordering
+cmpfst = (compare `on` fst)
+
+-- | Compare tuples by second elements.
+cmpsnd :: (Ord b) => (a, b) -> (a, b) -> Ordering
+cmpsnd = (compare `on` snd)
+
+-- | Compare tuples by first elements.
+eqfst :: (Eq a) => (a, b) -> (a, b) -> Bool
+eqfst = on (==) fst
+
+-- | Compare tuples by second elements.
+eqsnd :: (Eq b) => (a, b) -> (a, b) -> Bool
+eqsnd = on (==) snd
+
+-- | min_ is min which compares on length.
+min_ :: (Estimate e) => e a -> e a -> e a
+min_ xs ys = if xs .<=. ys then xs else ys
+
+-- | max_ is max which compares on length.
+max_ :: (Estimate e) => e a -> e a -> e a
+max_ xs ys = if xs .>=. ys then xs else ys
 
 --------------------------------------------------------------------------------
 
@@ -37,7 +75,6 @@ default ()
     Type EL allows you to consistently represent all kinds of structures
     that have an instance of Estimate.
 -}
-
 data EL e = forall o . EL (e o)
 
 {- |
@@ -134,16 +171,6 @@ class (Foldable e, Ord1 e) => Estimate e
 
 --------------------------------------------------------------------------------
 
--- | min_ is min which compares on length.
-min_ :: (Estimate e) => e a -> e a -> e a
-min_ xs ys = if xs .<=. ys then xs else ys
-
--- | max_ is max which compares on length.
-max_ :: (Estimate e) => e a -> e a -> e a
-max_ xs ys = if xs .>=. ys then xs else ys
-
---------------------------------------------------------------------------------
-
 instance Estimate []
   where
     [] <==> [] = EQ
@@ -168,4 +195,7 @@ instance Estimate []
     
     []       /=. n = n /= 0
     (_ : xs) /=. n = n <  0 || xs /=. (n - 1)
+
+
+
 

@@ -223,7 +223,7 @@ instance (Index i, Unboxed e) => Bordered (Bytes i e) i e
 
 --------------------------------------------------------------------------------
 
-{- Indexed and Sort instances. -}
+{- Indexed, Set and Sort instances. -}
 
 instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
   where
@@ -256,6 +256,79 @@ instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
     p .$ es@(Bytes l u _ _) = index (l, u) <$> p .$ listL es
     p *$ es@(Bytes l u _ _) = index (l, u) <$> p *$ listL es
 
+instance (Index i, Unboxed e) => Set (Bytes i e) e
+  where
+    setWith f es = nubSorted f $ sortBy f es
+    
+    insertWith _ e Z  = single e
+    insertWith f e es = isContainedIn f e es ? es $ res
+      where
+        res = fromList . insertWith f e $ listL es
+    
+    deleteWith _ _ Z  = Z
+    deleteWith f e es = isContainedIn f e es ? es $ res
+      where
+        res = fromList . deleteWith f e $ listL es
+    
+    intersectionWith f xs ys = fromList $ intersection' 0 0
+      where
+        intersection' i j = i == n1 || j == n2 ? [] $ case x `f` y of
+            LT -> intersection' (i + 1) j
+            EQ -> x : intersection' (i + 1) (j + 1)
+            GT -> intersection' i (j + 1)
+          where
+            x = xs !^ i; n1 = sizeOf xs
+            y = ys !^ j; n2 = sizeOf ys
+    
+    unionWith f xs ys = fromList $ union' 0 0
+      where
+        union' i j
+          | i == n1 = (ys !^) <$> [j .. n2 - 1]
+          | j == n2 = (xs !^) <$> [i .. n1 - 1]
+          |  True   = case x `f` y of
+            LT -> x : union' (i + 1) j
+            EQ -> x : union' (i + 1) (j + 1)
+            GT -> y : union' i (j + 1)
+          where
+            x = xs !^ i; n1 = sizeOf xs
+            y = ys !^ j; n2 = sizeOf ys
+    
+    differenceWith f xs ys = fromList $ difference' 0 0
+      where
+        difference' i j
+            | i == n1 = []
+            | j == n2 = (xs !^) <$> [i .. n1 - 1]
+            |  True   = case x `f` y of
+              LT -> x : difference' (i + 1) j
+              EQ -> difference' (i + 1) (j + 1)
+              GT -> difference' i (j + 1)
+          where
+            x = xs !^ i; n1 = sizeOf xs
+            y = ys !^ j; n2 = sizeOf ys
+    
+    symdiffWith f xs ys = fromList $ symdiff' 0 0
+      where
+        n1 = sizeOf xs; n2 = sizeOf ys
+        symdiff' i j
+            | i == n1 = (ys !^) <$> [j .. n2 - 1]
+            | j == n2 = (xs !^) <$> [i .. n1 - 1]
+            |  True   = case x `f` y of
+              LT -> x : symdiff' (i + 1) j
+              EQ -> symdiff' (i + 1) (j + 1)
+              GT -> y : symdiff' i (j + 1)
+          where
+            x = xs !^ i; y = ys !^ j
+    
+    isContainedIn _ _ Z  = False
+    isContainedIn f e es = contained' 0
+      where
+        contained' i = i == sizeOf es ? False $ case e `f` (es !^ i) of
+          LT -> False
+          EQ -> True
+          GT -> contained' (i + 1)
+    
+    isSubsetWith f xs ys = all (\ x -> isContainedIn f x ys) (listL xs)
+
 instance (Index i, Unboxed e) => Sort (Bytes i e) e
   where
     sortBy cmp es = runST $ do es' <- thaw es; timSortBy cmp es'; done es'
@@ -273,8 +346,6 @@ instance (Index i, Unboxed e) => E.IsList (Bytes i e)
 instance (Index i) => IsString (Bytes i Char) where fromString = fromList
 
 instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (Bytes i e) where arbitrary = fromList <$> arbitrary
-
--- instance (Index i, Unboxed e) => Set (Bytes i e) e
 
 --------------------------------------------------------------------------------
 
@@ -296,6 +367,12 @@ done :: (Index i) => STBytes s i e -> ST s (Bytes i e)
 done (STBytes l u n mbytes#) = ST $ \ s1# -> case unsafeFreezeByteArray# mbytes# s1# of
   (# s2#, bytes# #) -> (# s2#, Bytes l u n bytes# #)
 
+nubSorted :: (Index i, Unboxed e) => (e -> e -> Ordering) -> Bytes i e -> Bytes i e
+nubSorted _ Z  = Z
+nubSorted f es = fromList $ foldr fun [last es] ((es !^) <$> [0 .. sizeOf es - 2])
+  where
+    fun = \ e ls -> e `f` head ls == EQ ? ls $ e : ls
+
 filled_ :: (Index i, Unboxed e) => Int -> e -> ST s (STBytes s i e)
 filled_ n@(I# n#) e = ST $ \ s1# -> case newUnboxed e n# s1# of
     (# s2#, marr# #) -> (# s2#, STBytes l u n marr# #)
@@ -307,4 +384,7 @@ pfailEx msg = throw . PatternMatchFail $ "in SDP.Bytes." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Bytes." ++ msg
+
+
+
 

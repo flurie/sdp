@@ -8,6 +8,7 @@ import SDP.Bytes
 import Test.SDP.Indexed
 import Test.SDP.Linear
 import Test.SDP.Sort
+import Test.SDP.Set
 
 default ()
 
@@ -32,9 +33,10 @@ main = defaultMain
     testProperty "bytes-indexed-read   " readIndexedProp,
     
     -- sort test
-    testProperty "array-sort           " sortProp
+    testProperty "bytes-sort           " sortProp,
     
-    -- set test (planned)
+    -- set test
+    testProperty "bytes-set            " setProp
   ]
 
 --------------------------------------------------------------------------------
@@ -85,6 +87,15 @@ readIndexedProp  =  readIndexedTest
 
 sortProp :: Bytes Int Char -> Bool
 sortProp =  sortTest
+
+--------------------------------------------------------------------------------
+
+{- Set property. -}
+
+setProp :: TestSet1 (Bytes Int) Char
+setProp =  setTest
+
+
 
 
 

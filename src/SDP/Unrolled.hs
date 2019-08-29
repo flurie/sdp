@@ -267,7 +267,7 @@ instance (Index i) => Bordered (Unrolled i e) i e
 
 --------------------------------------------------------------------------------
 
-{- Indexed and Sort instances. -}
+{- Indexed, Set and Sort instances. -}
 
 instance (Index i) => Indexed (Unrolled i e) i e
   where
@@ -297,6 +297,45 @@ instance (Index i) => Indexed (Unrolled i e) i e
     
     p .$ (Unrolled l u es) = index (l, u) <$> p .$ es
     p *$ (Unrolled l u es) = index (l, u) <$> p *$ es
+
+instance (Index i) => Set (Unrolled i e) e
+  where
+    setWith f (Unrolled _ _ es) = Unrolled l u es'
+      where
+        es'    = setWith f es
+        (l, u) = unsafeBounds (sizeOf es')
+    
+    intersectionWith f (Unrolled _ _ xs) (Unrolled _ _ ys) = Unrolled l u es
+      where
+        es     = intersectionWith f xs ys
+        (l, u) = unsafeBounds (sizeOf es)
+    
+    unionWith f (Unrolled _ _ xs) (Unrolled _ _ ys) = Unrolled l u es
+      where
+        es     = unionWith f xs ys
+        (l, u) = unsafeBounds (sizeOf es)
+    
+    differenceWith f (Unrolled _ _ xs) (Unrolled _ _ ys) = Unrolled l u es
+      where
+        es     = differenceWith f xs ys
+        (l, u) = unsafeBounds (sizeOf es)
+    
+    symdiffWith f (Unrolled _ _ xs) (Unrolled _ _ ys) = Unrolled l u es
+      where
+        es     = symdiffWith f xs ys
+        (l, u) = unsafeBounds (sizeOf es)
+    
+    insertWith f e (Unrolled _ _ es) = Unrolled l u es'
+      where
+        es'    = insertWith f e es
+        (l, u) = unsafeBounds (sizeOf es')
+    
+    deleteWith f e (Unrolled _ _ es) = Unrolled l u es'
+      where
+        es'    = deleteWith f e es
+        (l, u) = unsafeBounds (sizeOf es')
+    
+    isContainedIn f e (Unrolled _ _ es) = isContainedIn f e es
 
 instance (Index i) => Sort (Unrolled i e) e
   where

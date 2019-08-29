@@ -8,6 +8,7 @@ import SDP.ByteList
 import Test.SDP.Indexed
 import Test.SDP.Linear
 import Test.SDP.Sort
+import Test.SDP.Set
 
 default ()
 
@@ -32,9 +33,10 @@ main = defaultMain
     testProperty "bytelist-indexed-read   " readIndexedProp,
     
     -- sort test
-    testProperty "bytelist-sort           " sortProp
+    testProperty "bytelist-sort           " sortProp,
     
-    -- set test (planned)
+    -- set test
+    testProperty "bytelist-set            " setProp
   ]
 
 --------------------------------------------------------------------------------
@@ -85,6 +87,14 @@ readIndexedProp  =  readIndexedTest
 
 sortProp :: ByteList Int Char -> Bool
 sortProp =  sortTest
+
+--------------------------------------------------------------------------------
+
+{- Set property. -}
+
+setProp :: TestSet1 (ByteList Int) Char
+setProp =  setTest
+
 
 
 

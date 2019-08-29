@@ -22,8 +22,6 @@ module SDP.Simple
   
   fsts, snds,
   
-  cmpfst, cmpsnd, eqfst, eqsnd,
-  
   (?>), bindM2, bindM3, bindM4
 )
 
@@ -67,26 +65,6 @@ fsts = fmap fst
 -- Gives all second elements.
 snds :: (Functor f) => f (a, b) -> f b
 snds = fmap snd
-
---------------------------------------------------------------------------------
-
-{- Common comparators. -}
-
--- Compare tuples by first elements.
-cmpfst :: (Ord a) => (a, b) -> (a, b) -> Ordering
-cmpfst = (compare `on` fst)
-
--- Compare tuples by second elements.
-cmpsnd :: (Ord b) => (a, b) -> (a, b) -> Ordering
-cmpsnd = (compare `on` snd)
-
--- Compare tuples by first elements.
-eqfst :: (Eq a) => (a, b) -> (a, b) -> Bool
-eqfst = on (==) fst
-
--- Compare tuples by second elements.
-eqsnd :: (Eq b) => (a, b) -> (a, b) -> Bool
-eqsnd = on (==) snd
 
 --------------------------------------------------------------------------------
 

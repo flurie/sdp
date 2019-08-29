@@ -93,6 +93,21 @@ version 0.1.0.0:
   
   Added Test.SDP.Sort module (very short).
   Added Thaw and Freeze classes.
+  
+  Added Set instances for Array, Bytes, Unlist, Ublist, Unrolled and ByteList.
+  
+  SDP.Tree.BinTree now is DEPRECATED by follow reasons:
+    1) BinTree is memory inefficient.
+    2) BinTree is very slow.
+    3) The idea of using AVL turned out to be worse than I thought. I see no
+    reason to optimize the existing implementation or change the algorithm to a
+    faster one. The result will be noticeably worse than the implementation on
+    arrays.
+    4) Effective tools appeared in the library for working with mutable data.
+    5) TimSort showed a good enough result so that heapSort implementation isn't
+    required.
+  
+  Some common comparators moved from SDP.Simple (internal) to SDP.Estimate.
 
 
 

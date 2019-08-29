@@ -8,6 +8,28 @@ This is a public version of TODO, without "grandiose intents" and momentary
 Don't write anything yourself if the request has been added to this file - with
 the same functionality, I will usually prefer my own code.
 
-VERSION NX (0.1.0.0):
+VERSION NX-MINOR (0.1.1):
   
-  Set instances for some data structures.
+  Nothing yet, see EXPERIMENTAL.
+
+VERSION NX-MAJOR (0.2):
+  
+  Removing of deprecated SDP.Tree.BinTree, perhaps, in favor SDP.Tree.Heap
+  (new class).
+
+EXPERIMENTAL
+  
+  Indexed and IndexedM extension.
+  
+  New class for slices. The final separation of the Linear class.
+  
+  New class for heaps (SDP.Tree.Heap).
+  
+  TimSort optimizations (binary search, new splitting procedure,
+  GaloppingMode and TryMerge). Perhaps, optimized version for immutable
+  structures.
+  
+  Cabal benchmarks.
+
+
+

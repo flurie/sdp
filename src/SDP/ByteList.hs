@@ -212,7 +212,7 @@ instance (Index i, Unboxed e) => Bordered (ByteList i e) i e
 
 --------------------------------------------------------------------------------
 
-{- Indexed and Sort instances. -}
+{- Indexed, Set and Sort instances. -}
 
 instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
   where
@@ -247,6 +247,47 @@ instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
     
     p .$ (ByteList l u es) = index (l, u) <$> p .$ es
     p *$ (ByteList l u es) = index (l, u) <$> p *$ es
+
+instance (Index i, Unboxed e) => Set (ByteList i e) e
+  where
+    setWith f (ByteList _ _ es) = ByteList l u es'
+      where
+        es'    = setWith f es
+        (l, u) = unsafeBounds (sizeOf es')
+    
+    intersectionWith f (ByteList _ _ xs) (ByteList _ _ ys) = ByteList l u es
+      where
+        es     = intersectionWith f xs ys
+        (l, u) = unsafeBounds (sizeOf es)
+    
+    unionWith f (ByteList _ _ xs) (ByteList _ _ ys) = ByteList l u es
+      where
+        es     = unionWith f xs ys
+        (l, u) = unsafeBounds (sizeOf es)
+    
+    differenceWith f (ByteList _ _ xs) (ByteList _ _ ys) = ByteList l u es
+      where
+        es     = differenceWith f xs ys
+        (l, u) = unsafeBounds (sizeOf es)
+    
+    symdiffWith f (ByteList _ _ xs) (ByteList _ _ ys) = ByteList l u es
+      where
+        es     = symdiffWith f xs ys
+        (l, u) = unsafeBounds (sizeOf es)
+    
+    insertWith f e (ByteList _ _ es) = ByteList l u es'
+      where
+        es'    = insertWith f e es
+        (l, u) = unsafeBounds (sizeOf es')
+    
+    deleteWith f e (ByteList _ _ es) = ByteList l u es'
+      where
+        es'    = deleteWith f e es
+        (l, u) = unsafeBounds (sizeOf es')
+    
+    isContainedIn f e (ByteList _ _ es) = isContainedIn f e es
+    
+    isSubsetWith f (ByteList _ _ xs) (ByteList _ _ ys) = isSubsetWith f xs ys
 
 instance (Index i, Unboxed e) => Sort (ByteList i e) e
   where

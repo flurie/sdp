@@ -8,6 +8,7 @@ import SDP.Unrolled.Unlist
 import Test.SDP.Indexed
 import Test.SDP.Linear
 import Test.SDP.Sort
+import Test.SDP.Set
 
 default ()
 
@@ -32,9 +33,10 @@ main = defaultMain
     testProperty "unlist-indexed-read   " readIndexedProp,
     
     -- sort test
-    testProperty "unlist-sort           " sortProp
+    testProperty "unlist-sort           " sortProp,
     
-    -- set test (planned)
+    -- set test
+    testProperty "unlist-set            " setProp
   ]
 
 --------------------------------------------------------------------------------
@@ -85,6 +87,14 @@ readIndexedProp  =  readIndexedTest
 
 sortProp :: Unlist Char -> Bool
 sortProp =  sortTest
+
+--------------------------------------------------------------------------------
+
+{- Set property. -}
+
+setProp :: TestSet1 Unlist Char
+setProp =  setTest
+
 
 
 

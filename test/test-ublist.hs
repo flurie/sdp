@@ -8,6 +8,7 @@ import SDP.ByteList.Ublist
 import Test.SDP.Indexed
 import Test.SDP.Linear
 import Test.SDP.Sort
+import Test.SDP.Set
 
 default ()
 
@@ -32,9 +33,10 @@ main = defaultMain
     testProperty "ublist-indexed-read   " readIndexedProp,
     
     -- sort test
-    testProperty "ublist-sort           " sortProp
+    testProperty "ublist-sort           " sortProp,
     
-    -- set test (planned)
+    -- set test
+    testProperty "ublist-set            " setProp
   ]
 
 --------------------------------------------------------------------------------
@@ -85,6 +87,14 @@ readIndexedProp  =  readIndexedTest
 
 sortProp :: Ublist Char -> Bool
 sortProp =  sortTest
+
+--------------------------------------------------------------------------------
+
+{- Set property. -}
+
+setProp :: TestSet1 Ublist Char
+setProp =  setTest
+
 
 
 

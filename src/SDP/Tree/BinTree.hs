@@ -18,6 +18,7 @@
     and deconstruction.
 -}
 module SDP.Tree.BinTree
+{-# DEPRECATED "SDP.Tree.BinTree will be removed in new stable release" #-}
   (
     module SDP.Indexed,
     module SDP.Sort,
