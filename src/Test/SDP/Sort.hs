@@ -5,7 +5,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
     
-    Test.SDP.Sort provides simple sort of test for SDP.Sort class.
+    Test.SDP.Sort provides simple test for SDP.Sort class.
 -}
 module Test.SDP.Sort ( sortTest ) where
 

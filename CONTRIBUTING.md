@@ -24,7 +24,7 @@ translation.
 
 Please note that there is no code of conduct. I'm in principle do not want
 to limit anyone's freedom of speech (as part of a discussion on the topic).
-If you insult someone, then this is your problem. If you take the opinion of
-unfamiliars personally, this is your problem.
+If you insult someone, then this is your problem. If you are strongly offended
+by the opinions of strangers, then this is your problem.
 
 
