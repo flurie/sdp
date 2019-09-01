@@ -10,16 +10,18 @@ the same functionality, I will usually prefer my own code.
 
 VERSION NX-MINOR (0.1.1):
   
-  Nothing yet, see EXPERIMENTAL.
+  Indexed and IndexedM extension.
+  
+  Also see MAYBE
 
 VERSION NX-MAJOR (0.2):
   
   Removing of deprecated SDP.Tree.BinTree, perhaps, in favor SDP.Tree.Heap
   (new class).
-
-EXPERIMENTAL
   
-  Indexed and IndexedM extension.
+  Cabal benchmarks.
+
+MAYBE
   
   New class for slices. The final separation of the Linear class.
   
@@ -28,8 +30,6 @@ EXPERIMENTAL
   TimSort optimizations (binary search, new splitting procedure,
   GaloppingMode and TryMerge). Perhaps, optimized version for immutable
   structures.
-  
-  Cabal benchmarks.
 
 
 

@@ -81,7 +81,7 @@ version 0.0.2.0:
   
   Removed Stability properties, changed Safety of some modules.
 
-version 0.1.0.0:
+version 0.1:
   Added (!^) and fromIndexed functions to Indexed class.
   Added (!#>), fromIndexed' and fromIndexedM procedures to IndexedM class.
   
@@ -109,7 +109,7 @@ version 0.1.0.0:
   
   Some common comparators moved from SDP.Simple (internal) to SDP.Estimate.
 
-
-
+version 0.1.1:
+  Added imap and accum functions.
 
 

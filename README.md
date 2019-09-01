@@ -50,8 +50,7 @@ and right views of structure. Also contains some generalized list functions
 generic patterns.
 - Indexed/IndexedM - for create structure from list of associations or other
 Indexed/IndexedM, for rewriting or updating it, for reading and writing (4 and 2
-functions/procedures resp., for both) and for searching indices of elements by
-predicate.
+functions/procedures resp.) and for searching indices of elements by predicate.
 - Sort/SortM - for sort data structures. Also SDP contain timSort algorithm
 implementation for all IndexedM.
 - Set - for standard set operations.

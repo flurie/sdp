@@ -43,37 +43,62 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
   where
     {-# MINIMAL assoc', fromIndexed, (//), ((!)|(!?)), (*$) #-}
     
+    {- Global operations. -}
+    
     {- |
       assoc creates new structure from list of associations [(index, element)],
-      where default element is IndexOverflow Exception.
+      where default element is IndexException (UndefinedValue).
     -}
     assoc :: (i, i) -> [(i, e)] -> v
-    assoc bnds =  assoc' bnds err
-      where
-        err = throw $ UndefinedValue "in SDP.Indexed.assoc (default)"
+    assoc bnds = assoc' bnds (undEx "assoc (default)")
     
     -- | assoc' is safe version of assoc.
     assoc' :: (i, i) -> e -> [(i, e)] -> v
     
+    -- | fromIndexed converts indexed structure to another one.
+    fromIndexed :: (Bordered v' j e, Indexed v' j e) => v' -> v
+    
+    -- | imap applies function to indices.
+    imap :: (Indexed v' j e) => (i, i) -> v' -> (i -> j) -> v
+    imap bnds es f = assoc bnds [ (i, es ! f i) | i <- range bnds ]
+    
+    -- | accum creates a new structure from the old and the assocs list.
+    default accum :: (Bordered v i e) => (e -> e' -> e) -> v -> [(i, e')] -> v
+    accum :: (e -> e' -> e) -> v -> [(i, e')] -> v
+    accum f es ies = bounds es `assoc` [ (i, es .! i `f` e') | (i, e') <- ies ]
+    
+    -- | Writes elements to immutable structure (by copying).
+    (//) :: v -> [(i, e)] -> v
+    
+    -- | Update function. Uses (!) and may throw IndexException.
+    (/>) :: v -> [i] -> (i -> e -> e) -> v
+    (/>) es is f = es // [ (i, f i (es ! i)) | i <- is ]
+    
+    {- Elementwise operations. -}
+    
+    -- | (!^) is completely unsafe reader. Must work as fast, as possible.
+    default (!^) :: (Bordered v i e) => v -> Int -> e
     (!^) :: v -> Int -> e
+    es !^ i = es .! index (bounds es) i
     
     {- |
-      (.!) is unsafe, but on bit faster version of (!).
-      Use (.!) only if you are really sure that you will not go beyond the bounds.
+      (.!) is unsafe reader, but on bit faster version of (!). Use (.!) only if
+      you are really sure that you will not go beyond the bounds. E.g. after
+      testing with (!).
     -}
     {-# INLINE (.!) #-}
     (.!) :: v -> i -> e
-    dat .! ix = dat ! ix
+    (.!) = (!)
     
-    -- | (!) is pretty safe function, that returns elements by index. Must throw IndexException.
+    -- | (!) is pretty safe reader. Must throw IndexException.
     {-# INLINE (!) #-}
     (!)  :: v -> i -> e
-    (!) dat ix = fromMaybe err $ dat !? ix
-      where
-        err = throw . UndefinedValue $ "in SDP.Indexed.(!)"
+    (!) dat = fromMaybe (undEx "(!)") . (dat !?)
     
-    -- | (!?) is completely safe, but so boring function.
+    -- | (!?) is completely safe, but very boring function.
+    default (!?) :: (Bordered v i e) => v -> i -> Maybe e
     (!?) :: v -> i -> Maybe e
+    (!?) dat = (not . indexOf dat) ?: (dat .!)
     
     -- |  Write one element to structure.
     default write_ :: (Bordered v i e) => v -> Int -> e -> v
@@ -84,32 +109,14 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
     write :: v -> i -> e -> v
     write es i e = es // [(i, e)]
     
-    -- | fromIndexed converts one indexed structure to another.
-    fromIndexed :: (Bordered v' j e, Indexed v' j e) => v' -> v
-    
-    -- | Writes elements to immutable structure (by copying).
-    (//) :: v -> [(i, e)] -> v
-    
-    -- | Update function. Uses (!) and may throw IndexException.
-    (/>) :: v -> [i] -> (i -> e -> e) -> v
-    (/>) es is f = es // [ (i, f i (es ! i)) | i <- is ]
-    
     -- | Searches the index of first matching element.
     (.$) :: (e -> Bool) -> v -> Maybe i
     (.$) f es = null ?: head $ f *$ es
     
     -- | Searches the indices of all matching elements.
-    (*$) :: (e -> Bool) -> v -> [i]
-    
     default (*$) :: (Bordered v i e) => (e -> Bool) -> v -> [i]
-    f *$ es      =  fsts . filter (f . snd) $ assocs es
-    
-    default (!^) :: (Bordered v i e) => v -> Int -> e
-    es !^ i = es .! index (bounds es) i
-    
-    default (!?) :: (Bordered v i e) => v -> i -> Maybe e
-    {-# INLINE (!?) #-}
-    (!?) dat     = \ i -> (not . indexOf dat) ?: (dat !) $ i
+    (*$) :: (e -> Bool) -> v -> [i]
+    (*$) f = fsts . filter (f . snd) . assocs
 
 --------------------------------------------------------------------------------
 
@@ -126,7 +133,7 @@ instance Indexed [e] Int e
             nx   = next bnds i1
         fill xs  = xs
     
-    xs !^ i = xs .! i
+    (!^) = (.!)
     
     []       .! _ = error "in SDP.Indexed.(.!)"
     (x : xs) .! n = n == 0 ? x $ xs .! (n - 1)
@@ -137,7 +144,6 @@ instance Indexed [e] Int e
         []       !# _  = throw $ IndexOverflow "in SDP.Indexed.(!)"
         (x : xs) !# n' = n' == 0 ? x $ xs !# (n' - 1)
     
-    {-# INLINE (!?) #-}
     []       !? _ = Nothing
     (x : xs) !? n = case n <=> 0 of {LT -> Nothing; EQ -> Just x; GT -> xs !? (n - 1)}
     
@@ -147,14 +153,18 @@ instance Indexed [e] Int e
     xs // es = snds $ unionWith cmpfst (assocs xs) (setWith cmpfst es)
     
     {-# INLINE (.$) #-}
-    p .$ es = findIndex p es
+    (.$) = findIndex
     
     {-# INLINE (*$) #-}
-    p *$ es = findIndices p es
-
---------------------------------------------------------------------------------
+    (*$) = findIndices
 
 -- | Update one element in structure.
 (>/>) :: (Indexed v i e) => v -> [i] -> (e -> e) -> v
 (>/>) es is = (es /> is) . const
+
+--------------------------------------------------------------------------------
+
+undEx :: String -> a
+undEx msg = throw . UndefinedValue $ "in SDP.Indexed." ++ msg
+
 
