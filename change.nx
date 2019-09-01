@@ -12,7 +12,7 @@ VERSION NX-MINOR (0.1.1):
   
   Indexed and IndexedM extension.
   
-  Also see MAYBE
+  Also see EXPERIMENTAL
 
 VERSION NX-MAJOR (0.2):
   
@@ -21,7 +21,7 @@ VERSION NX-MAJOR (0.2):
   
   Cabal benchmarks.
 
-MAYBE
+EXPERIMENTAL
   
   New class for slices. The final separation of the Linear class.
   

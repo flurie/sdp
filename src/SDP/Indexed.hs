@@ -58,14 +58,14 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
     -- | fromIndexed converts indexed structure to another one.
     fromIndexed :: (Bordered v' j e, Indexed v' j e) => v' -> v
     
-    -- | imap applies function to indices.
+    -- | imap creates new indexed structure from old with reshaping function.
     imap :: (Indexed v' j e) => (i, i) -> v' -> (i -> j) -> v
     imap bnds es f = assoc bnds [ (i, es ! f i) | i <- range bnds ]
     
     -- | accum creates a new structure from the old and the assocs list.
     default accum :: (Bordered v i e) => (e -> e' -> e) -> v -> [(i, e')] -> v
     accum :: (e -> e' -> e) -> v -> [(i, e')] -> v
-    accum f es ies = bounds es `assoc` [ (i, es .! i `f` e') | (i, e') <- ies ]
+    accum f es ies = bounds es `assoc` [ (i, es ! i `f` e') | (i, e') <- ies ]
     
     -- | Writes elements to immutable structure (by copying).
     (//) :: v -> [(i, e)] -> v

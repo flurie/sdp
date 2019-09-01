@@ -67,7 +67,7 @@ class (Monad m, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
     -- | (!?>) is completely safe monadic reader.
     default (!?>) :: (BorderedM m v i e) => v -> i -> m (Maybe e)
     (!?>) :: v -> i -> m (Maybe e)
-    es !?> i = getIndexOf es ?> (es !>) $ i
+    (!?>) es = getIndexOf es ?> (es !>)
     
     default writeM_ :: (BorderedM m v i e) => v -> Int -> e -> m ()
     writeM_ :: v -> Int -> e -> m ()
@@ -86,6 +86,16 @@ class (Monad m, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
     -- | overwrite rewrites mutable structure using assocs.
     overwrite :: v -> [(i, e)] -> m v
     overwrite es ies = mapM_ (uncurry $ writeM es) ies >> return es
+    
+    -- | reshape creates new indexed structure from old with reshaping function.
+    reshape :: (IndexedM m v' j e) => (i, i) -> v' -> (i -> j) -> m v
+    reshape bnds es f = fromAssocs bnds =<< range bnds `forM` \ i -> do e <- es !> f i; return (i, e)
+    
+    default fromAccum :: (BorderedM m v i e) => (e -> e' -> e) -> v -> [(i, e')] -> m v
+    fromAccum :: (e -> e' -> e) -> v -> [(i, e')] -> m v
+    fromAccum f es ascs = bindM2 (getBounds es) ies fromAssocs
+      where
+        ies = sequence [ do e <- es !> i; return (i, f e e') | (i, e') <- ascs ]
     
     -- | updateM updates elements with specified indices by function.
     updateM :: v -> [i] -> (i -> e -> e) -> m v
