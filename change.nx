@@ -12,6 +12,8 @@ VERSION NX-MINOR (0.1.1):
   
   Indexed and IndexedM extension.
   
+  Added new class IFold.
+  
   Also see EXPERIMENTAL
 
 VERSION NX-MAJOR (0.2):
@@ -30,6 +32,4 @@ EXPERIMENTAL
   TimSort optimizations (binary search, new splitting procedure,
   GaloppingMode and TryMerge). Perhaps, optimized version for immutable
   structures.
-
-
 

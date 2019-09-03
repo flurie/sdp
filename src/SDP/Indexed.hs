@@ -17,6 +17,7 @@ module SDP.Indexed
   module SDP.Linear,
   
   Indexed (..),
+  IFold   (..),
   
   (>/>)
 )
@@ -120,6 +121,50 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
 
 --------------------------------------------------------------------------------
 
+{- |
+  IFold class for folds with index. The main reason for creating this class is
+  the increasing in Foldable definitions on containers with a limited set of
+  elements (in particular, monomorphic).
+  I don't want to call the class IFoldable due to the similarity with C#.
+-}
+class (Indexed v i e) => IFold v i e
+  where
+    {-# MINIMAL ifoldr, ifoldl #-}
+    
+    -- | ifoldr is right fold with index
+    ifoldr   :: (i -> e -> r -> r) -> r -> v -> r
+    
+    -- | ifoldl is left  fold with index
+    ifoldl   :: (i -> r -> e -> r) -> r -> v -> r
+    
+    -- | ifoldr' is strict version of ifoldr
+    ifoldr'  :: (i -> e -> r -> r) -> r -> v -> r
+    
+    -- | ifoldl' is strict version of ifoldl
+    ifoldl'  :: (i -> r -> e -> r) -> r -> v -> r
+    
+    -- | i_foldr is just foldr with IFold context
+    i_foldr  :: (e -> r -> r) -> r -> v -> r
+    
+    -- | i_foldl is just foldl with IFold context
+    i_foldl  :: (r -> e -> r) -> r -> v -> r
+    
+    -- | i_foldr' is just foldl' with IFoldl context
+    i_foldr' :: (e -> r -> r) -> r -> v -> r
+    
+    -- | i_foldl' is just foldl' with IFold context
+    i_foldl' :: (r -> e -> r) -> r -> v -> r
+    
+    ifoldr'  f = ifoldr  (\ i e r -> id $! f i e r)
+    ifoldl'  f = ifoldl  (\ i r e -> id $! f i r e)
+    
+    i_foldr  f = ifoldr  (const f)
+    i_foldl  f = ifoldl  (const f)
+    i_foldr' f = ifoldr' (const f)
+    i_foldl' f = ifoldl' (const f)
+
+--------------------------------------------------------------------------------
+
 instance Indexed [e] Int e
   where
     assoc' bnds e = toResultList . normalAssocs
@@ -158,13 +203,28 @@ instance Indexed [e] Int e
     {-# INLINE (*$) #-}
     (*$) = findIndices
 
+instance IFold [e] Int e
+  where
+    ifoldr f base = go 0
+      where
+        go _    []    = base
+        go i (x : xs) = f i x $ go (i + 1) xs
+    
+    ifoldl f = go 0
+      where
+        go _ e    []    = e
+        go i e (x : xs) = go (i + 1) (f i e x) xs
+
+--------------------------------------------------------------------------------
+
 -- | Update one element in structure.
 (>/>) :: (Indexed v i e) => v -> [i] -> (e -> e) -> v
 (>/>) es is = (es /> is) . const
 
---------------------------------------------------------------------------------
-
 undEx :: String -> a
 undEx msg = throw . UndefinedValue $ "in SDP.Indexed." ++ msg
+
+
+
 
 
