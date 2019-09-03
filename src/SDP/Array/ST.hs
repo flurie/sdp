@@ -110,7 +110,7 @@ instance (Index i) => LinearM (ST s) (STArray s i e) e
 
 --------------------------------------------------------------------------------
 
-{- IndexedM and SortM instances. -}
+{- IndexedM, IFoldM and SortM instances. -}
 
 instance (Index i) => IndexedM (ST s) (STArray s i e) i e
   where
@@ -152,6 +152,24 @@ instance (Index i) => IndexedM (ST s) (STArray s i e) i e
       forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM_ copy i
       return copy
 
+instance (Index i) => IFoldM (ST s) (STArray s i e) i e
+  where
+    ifoldrM  f base arr@(STArray l u n _) = go 0
+      where
+        go i =  n == i ? return base $ bindM2 (arr !#> i) (go $ i + 1) (f $ index (l, u) i)
+    
+    ifoldlM  f base arr@(STArray l u n _) = go $ n - 1
+      where
+        go i = -1 == i ? return base $ bindM2 (go $ i - 1) (arr !#> i) (f $ index (l, u) i)
+    
+    i_foldrM f base arr@(STArray _ _ n _) = go 0
+      where
+        go i = n == i ? return base $ bindM2 (arr !#> i) (go $ i + 1) f
+    
+    i_foldlM f base arr@(STArray _ _ n _) = go $ n - 1
+      where
+        go i = -1 == i ? return base $ bindM2 (go $ i - 1) (arr !#> i) f
+
 instance (Index i) => SortM (ST s) (STArray s i e) e where sortMBy = timSortBy
 
 --------------------------------------------------------------------------------
@@ -162,4 +180,6 @@ done n marr# = \ s1# -> let (l, u) = unsafeBounds n in (# s1#, STArray l u n mar
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Array.ST." ++ msg
+
+
 

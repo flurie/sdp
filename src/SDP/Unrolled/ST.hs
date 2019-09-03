@@ -82,7 +82,7 @@ instance (Index i) => LinearM (ST s) (STUnrolled s i e) e
 
 --------------------------------------------------------------------------------
 
-{- IndexedM and SortM instances. -}
+{- IndexedM, IFoldM and SortM instances. -}
 
 instance (Index i) => IndexedM (ST s) (STUnrolled s i e) i e
   where
@@ -122,5 +122,14 @@ instance (Index i) => IndexedM (ST s) (STUnrolled s i e) i e
       n   <- getSizeOf es'
       return $ let (l, u) = unsafeBounds n in STUnrolled l u es'
 
+instance (Index i) => IFoldM (ST s) (STUnrolled s i e) i e
+  where
+    ifoldrM f e (STUnrolled l u es) = ifoldrM (\ i -> f (index (l, u) i)) e es
+    ifoldlM f e (STUnrolled l u es) = ifoldlM (\ i -> f (index (l, u) i)) e es
+    
+    i_foldrM f e (STUnrolled _ _ es) = i_foldrM f e es
+    i_foldlM f e (STUnrolled _ _ es) = i_foldlM f e es
+
 instance (Index i) => SortM (ST s) (STUnrolled s i e) e where sortMBy = timSortBy
+
 

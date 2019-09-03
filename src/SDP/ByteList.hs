@@ -212,7 +212,7 @@ instance (Index i, Unboxed e) => Bordered (ByteList i e) i e
 
 --------------------------------------------------------------------------------
 
-{- Indexed, Set and Sort instances. -}
+{- Indexed, IFold, Set and Sort instances. -}
 
 instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
   where
@@ -247,6 +247,14 @@ instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
     
     p .$ (ByteList l u es) = index (l, u) <$> p .$ es
     p *$ (ByteList l u es) = index (l, u) <$> p *$ es
+
+instance (Index i, Unboxed e) => IFold (ByteList i e) i e
+  where
+    ifoldr f base (ByteList l u es) = ifoldr (\ i -> f (index (l, u) i)) base $ size (l, u) `take` es
+    ifoldl f base (ByteList l u es) = ifoldl (\ i -> f (index (l, u) i)) base $ size (l, u) `take` es
+    
+    i_foldr f base (ByteList l u es) = i_foldr f base $ size (l, u) `take` es
+    i_foldl f base (ByteList l u es) = i_foldl f base $ size (l, u) `take` es
 
 instance (Index i, Unboxed e) => Set (ByteList i e) e
   where

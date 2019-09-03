@@ -111,7 +111,7 @@ instance (Index i, Unboxed e) => LinearM (ST s) (STBytes s i e) e
 
 --------------------------------------------------------------------------------
 
-{- IndexedM and SortM instances. -}
+{- IndexedM, IFoldM and SortM instances. -}
 
 instance (Index i, Unboxed e) => IndexedM (ST s) (STBytes s i e) i e
   where
@@ -157,6 +157,24 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STBytes s i e) i e
       forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM_ copy i
       return copy
 
+instance (Index i, Unboxed e) => IFoldM (ST s) (STBytes s i e) i e
+  where
+    ifoldrM  f base bytes@(STBytes l u n _) = go 0
+      where
+        go i =  n == i ? return base $ bindM2 (bytes !#> i) (go $ i + 1) (f $ index (l, u) i)
+    
+    ifoldlM  f base bytes@(STBytes l u n _) = go $ n - 1
+      where
+        go i = -1 == i ? return base $ bindM2 (go $ i - 1) (bytes !#> i) (f $ index (l, u) i)
+    
+    i_foldrM f base bytes@(STBytes _ _ n _) = go 0
+      where
+        go i =  n == i ? return base $ bindM2 (bytes !#> i) (go $ i + 1) f
+    
+    i_foldlM f base bytes@(STBytes _ _ n _) = go $ n - 1
+      where
+        go i = -1 == i ? return base $ bindM2 (go $ i - 1) (bytes !#> i) f
+
 instance (Index i, Unboxed e) => SortM (ST s) (STBytes s i e) e where sortMBy = timSortBy
 
 --------------------------------------------------------------------------------
@@ -175,6 +193,8 @@ fill marr# (I# i#, e) nxt = \ s1# -> case writeByteArray# marr# i# e s1# of s2# 
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Bytes.ST." ++ msg
+
+
 
 
 

@@ -223,7 +223,7 @@ instance (Index i, Unboxed e) => Bordered (Bytes i e) i e
 
 --------------------------------------------------------------------------------
 
-{- Indexed, Set and Sort instances. -}
+{- Indexed, IFold, Set and Sort instances. -}
 
 instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
   where
@@ -255,6 +255,24 @@ instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
     
     p .$ es@(Bytes l u _ _) = index (l, u) <$> p .$ listL es
     p *$ es@(Bytes l u _ _) = index (l, u) <$> p *$ listL es
+
+instance (Index i, Unboxed e) => IFold (Bytes i e) i e
+  where
+    ifoldr  f base bytes@(Bytes l u n _) = go 0
+      where
+        go i =  n == i ? base $ f (index (l, u) i) (bytes !^ i) (go $ i + 1)
+    
+    ifoldl  f base bytes@(Bytes l u _ _) = go (sizeOf bytes - 1)
+      where
+        go i = -1 == i ? base $ f (index (l, u) i) (go $ i - 1) (bytes !^ i)
+    
+    i_foldr f base arr = go 0
+      where
+        go i = sizeOf arr == i ? base $ f (arr !^ i) (go $ i + 1)
+    
+    i_foldl f base arr = go (sizeOf arr - 1)
+      where
+        go i = -1 == i ? base $ f (go $ i - 1) (arr !^ i)
 
 instance (Index i, Unboxed e) => Set (Bytes i e) e
   where

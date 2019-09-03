@@ -218,7 +218,7 @@ instance (Unboxed e) => Bordered (Ublist e) Int e
 
 --------------------------------------------------------------------------------
 
-{- Indexed, Set and Sort instances. -}
+{- Indexed, IFold, Set and Sort instances. -}
 
 instance (Unboxed e) => Indexed (Ublist e) Int e
   where
@@ -262,6 +262,28 @@ instance (Unboxed e) => Indexed (Ublist e) Int e
     
     p .$ es = p .$ listL es
     p *$ es = p *$ listL es
+
+instance (Unboxed e) => IFold (Ublist e) Int e
+  where
+    ifoldr _ base Z = base
+    ifoldr f base (Ublist c arr# arrs) = go (ifoldr f base arrs) 0
+      where
+        go b i@(I# i#) = c == i ? b $ f i (arr# !# i#) (go b $ i + 1)
+    
+    ifoldl _ base Z = base
+    ifoldl f base (Ublist c arr# arrs) = ifoldl f (go base $ c - 1) arrs
+      where
+        go b i@(I# i#) = -1 == i ? b $ f i (go b $ i - 1) (arr# !# i#)
+    
+    i_foldr _ base Z = base
+    i_foldr f base (Ublist c arr# arrs) = go (i_foldr f base arrs) 0
+      where
+        go b i@(I# i#) = c == i ? b $ f (arr# !# i#) (go b $ i + 1)
+    
+    i_foldl _ base Z = base
+    i_foldl f base (Ublist c arr# arrs) = i_foldl f (go base $ c - 1) arrs
+      where
+        go b i@(I# i#) = -1 == i ? b $ f (go b $ i - 1) (arr# !# i#)
 
 instance (Unboxed e) => Set (Ublist e) e
   where
@@ -391,10 +413,10 @@ filled_ n e
     !(I# l#) = lim
 
 nubSorted :: (Unboxed e) => (e -> e -> Ordering) -> Ublist e -> Ublist e
-nubSorted f (xs :< x) = fromList $ i_foldr [x] xs
+nubSorted f (xs :< x) = fromList $ intFold [x] xs
   where
-    i_foldr base Z = base
-    i_foldr base (Ublist c arr# arrs) = go (i_foldr base arrs) 0
+    intFold base Z = base
+    intFold base (Ublist c arr# arrs) = go (intFold base arrs) 0
       where
         go b i@(I# i#) = c == i ? b $ (e `f` l == EQ ? ls $ e : ls)
           where

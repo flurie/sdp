@@ -267,7 +267,7 @@ instance (Index i) => Bordered (Unrolled i e) i e
 
 --------------------------------------------------------------------------------
 
-{- Indexed, Set and Sort instances. -}
+{- Indexed, IFold, Set and Sort instances. -}
 
 instance (Index i) => Indexed (Unrolled i e) i e
   where
@@ -297,6 +297,14 @@ instance (Index i) => Indexed (Unrolled i e) i e
     
     p .$ (Unrolled l u es) = index (l, u) <$> p .$ es
     p *$ (Unrolled l u es) = index (l, u) <$> p *$ es
+
+instance (Index i) => IFold (Unrolled i e) i e
+  where
+    ifoldr f base (Unrolled l u es) = ifoldr (\ i -> f (index (l, u) i)) base $ size (l, u) `take` es
+    ifoldl f base (Unrolled l u es) = ifoldl (\ i -> f (index (l, u) i)) base $ size (l, u) `take` es
+    
+    i_foldr = foldr
+    i_foldl = foldl
 
 instance (Index i) => Set (Unrolled i e) e
   where

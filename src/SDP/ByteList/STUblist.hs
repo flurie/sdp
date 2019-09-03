@@ -106,7 +106,7 @@ instance (Unboxed e) => LinearM (ST s) (STUblist s e) e
 
 --------------------------------------------------------------------------------
 
-{- IndexedM and SortM instances. -}
+{- IndexedM, IFoldM, and SortM instances. -}
 
 instance (Unboxed e) => IndexedM (ST s) (STUblist s e) Int e
   where
@@ -164,6 +164,28 @@ instance (Unboxed e) => IndexedM (ST s) (STUblist s e) Int e
       forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM_ copy i
       return copy
 
+instance (Unboxed e) => IFoldM (ST s) (STUblist s e) Int e
+  where
+    ifoldrM _ base STUBEmpty = return base
+    ifoldrM f base arr@(STUblist c _ arrs) = go (ifoldrM f base arrs) 0
+      where
+        go b i = c == i ? b $ bindM2 (arr !#> i) (go b $ i + 1) (f i)
+    
+    ifoldlM _ base STUBEmpty = return base
+    ifoldlM f base arr@(STUblist c _ arrs) = return base `go` (c - 1) >>= ifoldlM f `flip` arrs
+      where
+        go b i = -1 == i ? b $ bindM2 (go b $ i - 1) (arr !#> i) (f i)
+    
+    i_foldrM _ base STUBEmpty = return base
+    i_foldrM f base arr@(STUblist c _ arrs) = go (i_foldrM f base arrs) 0
+      where
+        go b i = c == i ? b $ bindM2 (arr !#> i) (go b $ i + 1) f
+    
+    i_foldlM _ base STUBEmpty = return base
+    i_foldlM f base arr@(STUblist c _ arrs) = return base `go` (c - 1) >>= i_foldlM f `flip` arrs
+      where
+        go b i = -1 == i ? b $ bindM2 (go b $ i - 1) (arr !#> i) f
+
 instance (Unboxed e) => SortM (ST s) (STUblist s e) e where sortMBy = timSortBy
 
 --------------------------------------------------------------------------------
@@ -207,4 +229,7 @@ unreachEx msg = throw . UnreachableException $ "in SDP.STUnlist." ++ msg
 
 lim :: Int
 lim =  1024
+
+
+
 

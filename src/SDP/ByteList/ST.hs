@@ -81,7 +81,7 @@ instance (Index i, Unboxed e) => LinearM (ST s) (STByteList s i e) e
 
 --------------------------------------------------------------------------------
 
-{- IndexedM and SortM instances. -}
+{- IndexedM, IFoldM and SortM instances. -}
 
 instance (Index i, Unboxed e) => IndexedM (ST s) (STByteList s i e) i e
   where
@@ -129,7 +129,17 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STByteList s i e) i e
       n   <- getSizeOf es'
       return $ let (l, u) = unsafeBounds n in STByteList l u es'
 
+instance (Index i, Unboxed e) => IFoldM (ST s) (STByteList s i e) i e
+  where
+    ifoldrM f e (STByteList l u es) = ifoldrM (\ i -> f (index (l, u) i)) e es
+    ifoldlM f e (STByteList l u es) = ifoldlM (\ i -> f (index (l, u) i)) e es
+    
+    i_foldrM f e (STByteList _ _ es) = i_foldrM f e es
+    i_foldlM f e (STByteList _ _ es) = i_foldlM f e es
+
 instance (Index i, Unboxed e) => SortM (ST s) (STByteList s i e) e
   where
     sortMBy = timSortBy
+
+
 

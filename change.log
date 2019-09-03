@@ -112,5 +112,9 @@ version 0.1:
 version 0.1.1:
   Added imap and accum functions (Indexed).
   Added reshape and fromAccum procedures (IndexedM).
-  Added IFold class.
+  Added IFold and IFoldM classes.
+
+
+
+
 

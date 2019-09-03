@@ -51,7 +51,7 @@ generic patterns.
 - Indexed/IndexedM - for create structure from list of associations or other
 Indexed/IndexedM, for rewriting or updating it, for reading and writing (4 and 2
 functions/procedures resp.) and for searching indices of elements by predicate.
-- IFold - for folds with index.
+- IFold/IFoldM - for folds with index.
 - Sort/SortM - for sort data structures. Also SDP contain timSort algorithm
 implementation for all IndexedM.
 - Set - for standard set operations.

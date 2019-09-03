@@ -10,11 +10,7 @@ the same functionality, I will usually prefer my own code.
 
 VERSION NX-MINOR (0.1.1):
   
-  Indexed and IndexedM extension.
-  
-  Added new class IFold.
-  
-  Also see EXPERIMENTAL
+  Nothing yet, see EXPERIMENTAL
 
 VERSION NX-MAJOR (0.2):
   
@@ -26,10 +22,12 @@ VERSION NX-MAJOR (0.2):
 EXPERIMENTAL
   
   New class for slices. The final separation of the Linear class.
-  
   New class for heaps (SDP.Tree.Heap).
+  LinearM enrichment.
   
   TimSort optimizations (binary search, new splitting procedure,
-  GaloppingMode and TryMerge). Perhaps, optimized version for immutable
-  structures.
+  GaloppingMode and TryMerge).
+
+
+
 

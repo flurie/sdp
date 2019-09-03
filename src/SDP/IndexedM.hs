@@ -16,6 +16,7 @@ module SDP.IndexedM
     module SDP.Indexed,
     
     IndexedM (..),
+    IFoldM   (..),
     Freeze   (..),
     Thaw     (..)
   )
@@ -36,7 +37,7 @@ default ()
 --------------------------------------------------------------------------------
 
 -- | Class for work with mutable indexed structures.
-class (Monad m, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
+class (LinearM m v e, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
   where
     {-# MINIMAL fromAssocs', fromIndexed', fromIndexedM, overwrite, ((!>)|(!?>)) #-}
     
@@ -112,6 +113,28 @@ class (Monad m, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
 
 --------------------------------------------------------------------------------
 
+-- | IFoldM is just monadic IFold version.
+class (IndexedM m v i e) => IFoldM m v i e
+  where
+    {-# MINIMAL ifoldrM, ifoldlM #-}
+    
+    -- | ifoldrM is right monadic fold with index
+    ifoldrM  :: (i -> e -> r -> m r) -> r -> v -> m r
+    
+    -- | ifoldlM is left  monadic fold with index
+    ifoldlM  :: (i -> r -> e -> m r) -> r -> v -> m r
+    
+    i_foldrM :: (e -> r -> m r) -> r -> v -> m r
+    i_foldlM :: (r -> e -> m r) -> r -> v -> m r
+    
+    -- | i_foldr is just foldrM in IFoldM context
+    i_foldrM f = ifoldrM (const f)
+    
+    -- | i_foldl is just foldlM in IFoldM context
+    i_foldlM f = ifoldlM (const f)
+
+--------------------------------------------------------------------------------
+
 -- | Service class of immutable-mutable converters.
 class (Monad m) => Thaw m v v' | v' -> m
   where
@@ -130,6 +153,8 @@ class (Monad m) => Freeze m v' v | v' -> m
 
 undEx :: String -> a
 undEx msg = throw . UndefinedValue $ "in SDP.IndexedM" ++ msg
+
+
 
 
 

@@ -385,7 +385,7 @@ instance (Index i) => Bordered (Array i e) i e
 
 --------------------------------------------------------------------------------
 
-{- Indexed, Set and Sort instances. -}
+{- Indexed, IFold, Set and Sort instances. -}
 
 instance (Index i) => Indexed (Array i e) i e
   where
@@ -414,6 +414,19 @@ instance (Index i) => Indexed (Array i e) i e
     
     p .$ es = (\ i -> p $ es ! i)  `find`  indices es
     p *$ es = (\ i -> p $ es ! i) `filter` indices es
+
+instance (Index i) => IFold (Array i e) i e
+  where
+    ifoldr  f base arr@(Array l u n _) = go 0
+      where
+        go i =  n == i ? base $ f (index (l, u) i) (arr !^ i) (go $ i + 1)
+    
+    ifoldl  f base arr@(Array l u _ _) = go (length arr - 1)
+      where
+        go i = -1 == i ? base $ f (index (l, u) i) (go $ i - 1) (arr !^ i)
+    
+    i_foldr = foldr
+    i_foldl = foldl
 
 instance (Index i) => Set (Array i e) e
   where
@@ -530,6 +543,8 @@ pfailEx msg = throw . PatternMatchFail $ "in SDP.Array." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Array." ++ msg
+
+
 
 
 

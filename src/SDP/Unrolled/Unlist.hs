@@ -260,7 +260,7 @@ instance Bordered (Unlist e) Int e
 
 --------------------------------------------------------------------------------
 
-{- Indexed, Set and Sort instances. -}
+{- Indexed, IFold, Set and Sort instances. -}
 
 instance Indexed (Unlist e) Int e
   where
@@ -300,6 +300,21 @@ instance Indexed (Unlist e) Int e
     
     p .$ es = p .$ toList es
     p *$ es = p *$ toList es
+
+instance IFold (Unlist e) Int e
+  where
+    ifoldr _ base Z = base
+    ifoldr f base (Unlist c arr# arrs) = go (ifoldr f base arrs) 0
+      where
+        go b i@(I# i#) = c == i ? b $ f i (arr# !# i#) (go b $ i + 1)
+    
+    ifoldl _ base Z = base
+    ifoldl f base (Unlist c arr# arrs) = ifoldl f (go base $ c - 1) arrs
+      where
+        go b i@(I# i#) = -1 == i ? b $ f i (go b $ i - 1) (arr# !# i#)
+    
+    i_foldr = foldr
+    i_foldl = foldl
 
 instance Set (Unlist e) e
   where
