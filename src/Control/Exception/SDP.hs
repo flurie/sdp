@@ -5,13 +5,11 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
 -}
-
 module Control.Exception.SDP
 (
   module Control.Exception,
   
-  UnreachableException (..),
-  IndexException (..)
+  UnreachableException (..), IndexException (..)
 )
 where
 
@@ -24,9 +22,9 @@ import Data.Typeable
 
 {-|
   Exception type IndexException replaces  the less informative 'ArrayException'
-  and  has  more  neutral  names  in  relation  to other  indexable  structures.
+  and has more neutral names in relation to other indexable structures.
   
-  If the index can overflow and underflow at the same time,  it is recommended
+  If the index can overflow and underflow at the same time, it is recommended
   to indicate in the documentation.
 -}
 
@@ -51,7 +49,6 @@ instance Exception IndexException
     UnreachableCodeException exception type is used in expressions that should
     never be evaluated. Is soft version of 'AssertionFailed'.
 -}
-
 data UnreachableException = UnreachableException String
   deriving (Eq, Typeable)
 
@@ -61,4 +58,3 @@ instance Show UnreachableException
 
 instance Exception UnreachableException
 
---------------------------------------------------------------------------------

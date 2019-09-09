@@ -84,14 +84,13 @@ Library
     
     -- some dispensable classes
     
-    SDP.SortM
-    SDP.Sort
     SDP.Scan
+    SDP.Sort
     SDP.Zip
-    
     
     SDP.IndexedM
     SDP.LinearM
+    SDP.SortM
     
     -- basic test suite
     

@@ -30,9 +30,9 @@ import SDP.Indexed
 
 import SDP.Simple
 
-infixl 5 !#>
-
 default ()
+
+infixl 5 !#>
 
 --------------------------------------------------------------------------------
 

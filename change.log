@@ -114,7 +114,7 @@ version 0.1.1:
   Added reshape and fromAccum procedures (IndexedM).
   Added IFold and IFoldM classes.
 
-
-
+version 0.1.2:
+  Added chunks function.
 
 

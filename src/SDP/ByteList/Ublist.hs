@@ -36,7 +36,7 @@ import GHC.Base
   (
     ByteArray#, MutableByteArray#, Int (..),
     
-    unsafeFreezeByteArray#, isTrue#, (+#), (-#), (==#), (<#)
+    unsafeFreezeByteArray#, isTrue#, (+#), (-#), (<#)
   )
 
 import GHC.ST   ( ST (..), STRep, runST )
@@ -61,9 +61,27 @@ data Ublist e = UBEmpty | Ublist {-# UNPACK #-} !Int (ByteArray#) (Ublist e)
 
 {- Eq and Ord instances. -}
 
-instance (Eq e,  Unboxed e) => Eq  (Ublist e) where xs == ys = listL xs == listL ys
+instance (Unboxed e) => Eq (Ublist e)
+  where
+    (==) = go 0
+      where
+        go o xs@(Ublist c1 _ xss) ys@(Ublist n2 _ yss) = if n1 > n2
+            then and [ xs !^ (o + i) == ys !^ i | i <- [0 .. n2 - 1] ] && go (o + n2) xs yss
+            else and [ xs !^ (o + i) == ys !^ i | i <- [0 .. n1 - 1] ] && go    n1    ys xss
+          where
+            n1 = c1 - o
+        go o xs ys = sizeOf xs == o && isNull ys
 
-instance (Ord e, Unboxed e) => Ord (Ublist e) where compare xs ys = listL xs <=> listL ys
+instance (Unboxed e, Ord e) => Ord (Ublist e)
+  where
+    compare = go 0 0
+      where
+        go o1 o2 xs@(Ublist c1 _ xss) ys@(Ublist c2 _ yss) = if c1 > c2 - d
+            then fold [ xs !^ (d + i) <=> (ys !^ i) | i <- [o2 .. c2 - 1] ] <> go (d + c2) 0 xs yss
+            else fold [ xs !^ i <=> (ys !^ (i - d)) | i <- [o1 .. c1 - 1] ] <> go 0 (c1 - d) xss ys
+          where
+            d = o1 - o2 -- count of elements between xs and ys positions
+        go o1 o2 xs ys = (sizeOf xs - o1) <=> (sizeOf ys - o2)
 
 --------------------------------------------------------------------------------
 
@@ -155,22 +173,15 @@ instance (Unboxed e) => Linear (Ublist e) e
         !(I# l#) = lim
     
     {-# INLINE reverse #-}
-    reverse es' = reverse' Z es'
+    reverse = reverse' Z
       where
+        reverse' :: (Unboxed e) => Ublist e -> Ublist e -> Ublist e
         reverse' tail' Z = tail'
-        reverse' tail' (Ublist n@(I# n#) bytes# bytes) = reverse' (Ublist n rev# tail') bytes
+        reverse' tail' (Ublist n bytes# bytes) = reverse' (Ublist n rev# tail') bytes
           where
-            !(Ublist _ rev# _) = toChunk err chunk `asTypeOf` bytes
-            
-            toChunk :: (Unboxed e) => e -> [e] -> Ublist e
-            toChunk e es = runST $ ST $ \ s1# -> case newUnboxed e n# s1# of
-              (# s2#, marr# #) ->
-                let go x r = \ i# s3# -> case writeByteArray# marr# i# x s3# of
-                      s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#
-                in done' n Z marr# ( if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2# )
+            !(Ublist _ rev# _) = (runST $ newLinear chunk >>= done) `asTypeOf` tail'
             
             chunk = [ bytes# !# i# | (I# i#) <- [ n - 1, n - 2 .. 0 ] ]
-            err   = unreachEx "reverse"
     
     partitions ps es = fromList <$> partitions ps (listL es)
 
@@ -213,7 +224,7 @@ instance (Unboxed e) => Bordered (Ublist e) Int e
   where
     lower   _  = 0
     upper   es = sizeOf es - 1
-    indexOf es i = i >= 0 && i < sizeOf es
+    indexOf es = \ i -> i >= 0 && i < sizeOf es
     sizeOf  es = case es of {Ublist n _ ubls -> max 0 n + sizeOf ubls; _ -> 0}
 
 --------------------------------------------------------------------------------
@@ -287,7 +298,7 @@ instance (Unboxed e) => IFold (Ublist e) Int e
 
 instance (Unboxed e) => Set (Ublist e) e
   where
-    setWith f es = nubSorted f $ sortBy f es
+    setWith f = nubSorted f . sortBy f
     
     insertWith _ e Z  = single e
     insertWith f e es = isContainedIn f e es ? es $ res
@@ -349,7 +360,7 @@ instance (Unboxed e) => Set (Ublist e) e
             x = xs !^ i; y = ys !^ j
     
     {-# INLINE isContainedIn #-}
-    isContainedIn f e es = contain es
+    isContainedIn f e = contain
       where
         contain Z = False
         contain (Ublist n arr# arrs) = contain' 0 || contain arrs
@@ -369,7 +380,9 @@ instance (Unboxed e) => Sort (Ublist e) e
 
 instance IsString (Ublist Char) where fromString = fromList
 
-instance (Unboxed e, Arbitrary e) => Arbitrary (Ublist e) where arbitrary = fromList <$> arbitrary
+instance (Unboxed e, Arbitrary e) => Arbitrary (Ublist e)
+  where
+    arbitrary = fromList <$> arbitrary
 
 --------------------------------------------------------------------------------
 
@@ -413,15 +426,7 @@ filled_ n e
     !(I# l#) = lim
 
 nubSorted :: (Unboxed e) => (e -> e -> Ordering) -> Ublist e -> Ublist e
-nubSorted f (xs :< x) = fromList $ intFold [x] xs
-  where
-    intFold base Z = base
-    intFold base (Ublist c arr# arrs) = go (intFold base arrs) 0
-      where
-        go b i@(I# i#) = c == i ? b $ (e `f` l == EQ ? ls $ e : ls)
-          where
-            ls@(l : _) = (go b $ i + 1)
-            e = arr# !# i#
+nubSorted f (xs :< x) = fromList $ i_foldr (\ e ls@(l : _) -> e `f` l == EQ ? ls $ e : ls) [x] xs
 nubSorted _ _ = Z
 
 pfailEx :: String -> a

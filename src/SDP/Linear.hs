@@ -18,12 +18,22 @@ module SDP.Linear
   module SDP.Index,
   module SDP.Zip,
   
+  -- * Bordered class
+  -- $borderedDoc
   Bordered (..),
+  -- * Linear class
+  -- $linearDoc
   Linear   (..),
+  -- * Split class
+  -- $splitDoc
   Split    (..),
   
+  -- * Patterns
+  -- $patternDoc
   pattern (:>), pattern (:<), pattern Z,
   
+  -- * Other functions
+  -- $linearStuff
   intercalate, tails, inits,
   
   stripPrefix, stripSuffix
@@ -45,23 +55,87 @@ import SDP.Simple
 
 default ()
 
---------------------------------------------------------------------------------
-
 infixr 5 :>, ++
 infixl 5 :<
 
 --------------------------------------------------------------------------------
 
+{- $borderedDoc
+  Bordered is a service class for immutable structures.
+  
+  Please note that in this class only 'assocs' can throw exceptions
+  ('IndexException' is recommended). Other functions must be defined everywhere,
+  including, on possible incorrect data.
+  
+  Also note that sizeOf shouldn't return negative values (if size field is
+  incorrect and recovery is not possible, the structure should be considered
+  empty to avoid even more serious errors).
+-}
+
+-- | Class of bordered data structures.
+class (Index i) => Bordered (b) i e | b -> i, b -> e
+  where
+    {-# MINIMAL (bounds|(lower, upper)) #-}
+    
+    {-# INLINE bounds #-}
+    {- |
+      bounds is a function that returns the exact upper and lower bounds of a
+      structure. If the structure doesn't have explicitly defined boundaries
+      (list, for example), use the default bounds: unsafeBounds (sizeOf es).
+    -}
+    bounds    :: b -> (i, i)
+    bounds es =  (lower es, upper es)
+    
+    {-# INLINE indices #-}
+    indices   :: b -> [i]
+    indices   =  range . bounds
+    
+    {-# INLINE lower #-}
+    lower :: b -> i
+    lower =  fst . bounds
+    
+    {-# INLINE upper #-}
+    upper :: b -> i
+    upper =  snd . bounds
+    
+    {-# INLINE assocs #-}
+    default assocs :: (Linear b e) => b -> [(i, e)]
+    assocs    :: b -> [(i, e)]
+    assocs es =  indices es `zip` listL es
+    
+    {-# INLINE sizeOf #-}
+    sizeOf  :: b -> Int
+    sizeOf  =  size . bounds
+    
+    {-# INLINE indexOf #-}
+    indexOf :: b -> i -> Bool
+    indexOf = inRange . bounds
+
+--------------------------------------------------------------------------------
+
+{- $linearDoc
+  Linear is a class for linear data structures that contains functions for:
+  
+  * simple separation: 'head', 'tail', 'init', 'last', 'uncons', 'unsnoc'
+    
+  * concatenation: 'toHead', 'toLast', '(++)', 'concat', 'concatMap'
+    
+  * creation: empty ('lzero'), singleton ('single'), finite ('fromListN',
+    'replicate') and, if the structure allows, potentially infinite ('fromList',
+    'fromFoldable') data structures
+    
+  * left- and right-side view ('listL' and 'listR'), 'reverse'
+    
+  * filtering by condition: 'filter', 'partition', 'partitions'
+    
+  * deleting repeats: 'nub', 'nubBy'
+  
+  Linear doesn't require 'Foldable' because it's a bit stricter than needed.
+-}
+
 {- |
-    Class of linear data structures that can be created from list.
-    Linear similar to IsList, but also provides overloaded pattern synonyms:
-    Z, (head :> tail) and (init :< last).
-    
-    Linear doesn't require Foldable because it's a bit stricter than needed.
-    
-    This class tries to balance between efficiency, code observability and
-    consistency, but some functions in Linear may seem redundant and/or not very
-    relevant.
+  Class for data structures that can be created from list and retain its basic
+  properties.
 -}
 class Linear l e | l -> e
   where
@@ -84,11 +158,11 @@ class Linear l e | l -> e
     toHead      :: e -> l -> l
     toHead e es =  single e ++ es
     
-    head    :: l -> e
-    head es =  fst (uncons es)
+    head :: l -> e
+    head =  fst . uncons
     
-    tail    :: l -> l
-    tail es =  snd (uncons es)
+    tail :: l -> l
+    tail =  snd . uncons
     
     -- | Separates init and last. Service function, synonym for (xs :< x).
     unsnoc      :: l -> (l, e)
@@ -98,11 +172,11 @@ class Linear l e | l -> e
     toLast      :: l -> e -> l
     toLast es e =  es ++ single e
     
-    init    :: l -> l
-    init es =  fst (unsnoc es)
+    init :: l -> l
+    init =  fst . unsnoc
     
-    last    :: l -> e
-    last es =  snd (unsnoc es)
+    last :: l -> e
+    last =  snd . unsnoc
     
     {- Construction. -}
     
@@ -127,39 +201,39 @@ class Linear l e | l -> e
     fromListN n =  fromList . take n
     
     -- | Same as listL . reverse.
-    listR    :: l -> [e]
-    listR es =  listL (reverse es)
+    listR :: l -> [e]
+    listR =  listL . reverse
     
-    -- | Same as toList, but formally doesn't requires Foldable.
-    listL    :: l -> [e]
-    listL es =  reverse (listR es)
+    -- | Same as toList, but formally doesn't require 'Foldable'.
+    listL :: l -> [e]
+    listL =  reverse . listR
     
     {- Generalized folds. -}
     
     {- |
-      Very powerful generalisation of fromList, but not comfortable to use -
+      Very powerful generalisation of 'fromList', but not comfortable to use -
       oftentimes needed type signatures.
     -}
-    fromFoldable     :: (Foldable f) => f e -> l
-    fromFoldable es  =  fromList $ toList es
+    fromFoldable :: (Foldable f) => f e -> l
+    fromFoldable =  fromList . toList
     
     -- | Generalization of Some.Module.concat.
-    concat           :: (Foldable f) => f l -> l
-    concat ess       =  foldr (++) Z ess
+    concat :: (Foldable f) => f l -> l
+    concat =  foldr (++) Z
     
     -- | Generalization of Data.List.concatMap.
-    concatMap        :: (Foldable f) => (a -> l) -> f a -> l
-    concatMap f ess  =  foldr' (\ x y -> f x ++ y) Z ess
+    concatMap   :: (Foldable f) => (a -> l) -> f a -> l
+    concatMap f =  foldr' (\ x y -> f x ++ y) Z
     
     -- | Generalization of Data.List.intersperse. May be moved.
-    intersperse      :: e -> l -> l
-    intersperse e es =  fromList . intersperse e $ listL es
+    intersperse   :: e -> l -> l
+    intersperse e =  fromList . intersperse e . listL
     
     {- Filtering functions. -}
     
     -- | Generalization of Some.Module.filter.
-    filter         :: (e -> Bool) -> l -> l
-    filter p es    =  fromList . filter p $ listL es
+    filter   :: (e -> Bool) -> l -> l
+    filter p =  fromList . filter p . listL
     
     -- | Generalization of Some.Module.partition.
     partition      :: (e -> Bool) -> l -> (l, l)
@@ -167,22 +241,21 @@ class Linear l e | l -> e
     
     -- | Generalization of partition, that select sublines by predicates.
     partitions       :: (Foldable f) => f (e -> Bool) -> l -> [l]
-    partitions ps' es = partitions' (toList ps') es
+    partitions ps' = partitions' (toList ps')
       where
         partitions'    []    xs = [xs]
         partitions' (p : ps) xs = let (y, ys) = partition p xs in y : partitions' ps ys
     
     {- Special functions -}
     
-    -- Compares lines as [multi]sets. May be rewrited and moved.
+    -- Compares lines as sorted multisets. May be rewrited and moved.
     isSubseqOf :: (Eq e) => l -> l -> Bool
-    isSubseqOf xs@(x :> rest) (y :> ys) = x == y && rest `isSubseqOf` ys || xs `isSubseqOf` ys
-    isSubseqOf Z _ =  True
-    isSubseqOf _ _ =  False
+    isSubseqOf xs@(x :> xs') (y :> ys) = x == y && xs' `isSubseqOf` ys || xs `isSubseqOf` ys
+    isSubseqOf xs _ = isNull xs
     
     -- | Generalization of Some.Module.reverse.
-    reverse    :: l -> l
-    reverse es =  fromList $ listR es
+    reverse :: l -> l
+    reverse =  fromList . listR
     
     -- | Generalization of Data.List.subsequences. May be moved.
     subsequences     :: l -> [l]
@@ -199,61 +272,33 @@ class Linear l e | l -> e
 
 --------------------------------------------------------------------------------
 
-{- |
-  Class of bordered data structures.
-  This is a enough general class: type must be Foldable, but not necessarily
-  Linear or Indexed.
+{- $splitDoc
+  Split is class for structures that may be splitted on parts:
+    
+  * by length: 'take', 'drop' and 'split' (also known as splitAt)
+    
+  * by condition: 'takeWhile', 'dropWhile', 'spanl', 'breakl' (left to right)
+    and 'takeEnd', 'dropEnd', 'spanr', 'breakr' (right to left).
+  
+  Also Split contain some comparators:
+    
+  * by content: 'isPrefixOf', 'isInfixOf' and 'isSuffixOf'
+    
+  * by condition: 'prefix' and 'suffix'.
 -}
-class (Index i) => Bordered (b) i e | b -> i, b -> e
-  where
-    {-# MINIMAL (bounds|(lower, upper)) #-}
-    
-    {-# INLINE bounds #-}
-    bounds       :: b -> (i, i)
-    bounds  es   =  (lower es, upper es)
-    
-    {-# INLINE indices #-}
-    indices      :: b -> [i]
-    indices es   =  range (bounds es)
-    
-    {-# INLINE lower #-}
-    lower        :: b -> i
-    lower   es   =  fst (bounds es)
-    
-    {-# INLINE upper #-}
-    upper        :: b -> i
-    upper   es   =  snd (bounds es)
-    
-    assocs       :: b -> [(i, e)]
-    
-    {-# INLINE sizeOf #-}
-    sizeOf       :: b -> Int
-    sizeOf  es   =  size (bounds es)
-    
-    {-# INLINE indexOf #-}
-    indexOf      :: b -> i -> Bool
-    indexOf es i = bounds es `inRange` i
-    
-    default assocs :: (Linear b e) => b -> [(i, e)]
-    assocs es      =  zip (indices es) (listL es)
 
---------------------------------------------------------------------------------
-
-{- |
-  Split - class of splittable data structures. Also allows simple comparing
-  functions.
--}
+-- | Split - class of splittable data structures.
 class (Linear s e) => Split s e | s -> e
   where
     {-# MINIMAL (take,drop|split) #-}
     
     {- Simple splitters. -}
     
-    take       :: Int -> s -> s
-    take n es  =  fst $ split n es
+    take   :: Int -> s -> s
+    take n =  fst . split n
     
-    drop       :: Int -> s -> s
-    drop n es  =  snd $ split n es
+    drop   :: Int -> s -> s
+    drop n =  snd . split n
     
     -- | split is same as Some.Module.splitAt
     split      :: Int -> s -> (s, s)
@@ -261,10 +306,10 @@ class (Linear s e) => Split s e | s -> e
     
     {- |
       splits is generalization of split, that breaks a line into sublines of a
-      given sizes.
+      given sizes (and rest).
     -}
-    splits         :: (Foldable f) => f Int -> s -> [s]
-    splits ints es =  splits' (toList ints) es
+    splits      :: (Foldable f) => f Int -> s -> [s]
+    splits ints =  splits' (toList ints)
       where
         splits'    []    xs = [xs]
         splits' (i : is) xs = let (y, ys) = split i xs in y : splits is ys
@@ -273,31 +318,33 @@ class (Linear s e) => Split s e | s -> e
       parts is generalization of split, that breaks a sublines into sublines
       starting at a given indices.
     -}
-    parts          :: (Foldable f) => f Int -> s -> [s]
-    parts ints es  =  parts' 0 (toList ints) es
+    parts      :: (Foldable f) => f Int -> s -> [s]
+    parts ints =  parts' 0 (toList ints)
       where
         parts' _ [] xs = [xs]
         parts' c (i : is) xs = let (y, ys) = split (i - c) xs in y : parts' i is ys
+    
+    -- | chunks is just synonym for \ n es -> takeWhile (not . Null) parts [n, n ..] es
+    chunks :: Int -> s -> [s]
+    chunks n es = case split n es of {(x, Z) -> [x]; (x, xs) -> x : chunks n xs}
     
     {- Subsequence checkers. -}
     
     -- | isPrefixOf checks whether the first line is the beginning of the second
     isPrefixOf :: (Eq e) => s -> s -> Bool
-    isPrefixOf (x :> xs) (y :> ys) = (x == y) && (xs `isPrefixOf` ys)
-    isPrefixOf Z _ = True
-    isPrefixOf _ _ = False
+    isPrefixOf (x :> xs) (y :> ys) = x == y && xs `isPrefixOf` ys
+    isPrefixOf xs _ = isNull xs
     
     -- | isSuffixOf checks whether the first line is the ending of the second
     isSuffixOf :: (Eq e) => s -> s -> Bool
-    isSuffixOf (xs :< x) (ys :< y) = (x == y) && (xs `isSuffixOf` ys)
-    isSuffixOf Z _ = True
-    isSuffixOf _ _ = False
+    isSuffixOf (xs :< x) (ys :< y) = x == y && xs `isSuffixOf` ys
+    isSuffixOf xs _ = isNull xs
     
     -- | isInfixOf checks whether the first line is the substring of the second
     isInfixOf  :: (Eq e) => s -> s -> Bool
-    isInfixOf  Z _   = True
-    isInfixOf  _ Z   = False
-    isInfixOf  xs ys = xs `isPrefixOf` ys || xs `isInfixOf` (tail ys)
+    isInfixOf Z _ = True
+    isInfixOf xs ys@(_ :> ys') = xs `isPrefixOf` ys || xs `isInfixOf` ys'
+    isInfixOf _ _ = False
     
     {- Largest sequences. -}
     
@@ -353,17 +400,19 @@ class (Linear s e) => Split s e | s -> e
 
 --------------------------------------------------------------------------------
 
+{- $patternDoc
+  SDP.Linear also provides three overloaded patterns: 'Z', (':>') and (':<').
+-}
+
 -- | Pattern Z is generalization of []. Same as isNull and lzero.
 pattern Z :: (Linear l e) => l
 pattern Z <- (isNull -> True)                           where  Z   = lzero
 
--- | Pattern (head :> tail) is generalization of (head : tail).
--- Same as uncons and toHead.
+-- | Pattern (:>) is left-size view of linear. Same as uncons and toHead.
 pattern  (:>)   :: (Linear l e) => e -> l -> l
 pattern x :> xs <- ((isNull ?: uncons) -> Just (x, xs)) where (:>) = toHead
 
--- | Pattern (init :< last) is right-size version of (:>)
--- Same as unsnoc and toLast.
+-- | Pattern (:<) is right-size view of linear. Same as unsnoc and toLast.
 pattern   (:<)  :: (Linear l e) => l -> e -> l
 pattern xs :< x <- ((isNull ?: unsnoc) -> Just (xs, x)) where (:<) = toLast
 
@@ -378,7 +427,7 @@ instance Linear [e] e
     isNull = null
     
     fromList    = id
-    fromListN n = take n
+    fromListN   = take
     lzero       = [ ]
     single x    = [x]
     
@@ -386,12 +435,12 @@ instance Linear [e] e
     toHead      = (:)
     toLast xs x = foldr' (:) [x] xs
     
-    uncons   [ ]      = throw $ PatternMatchFail "in SDP.Linear.(:>)"
-    uncons (e : es)   = (e, es)
+    uncons   [ ]     = throw $ PatternMatchFail "in SDP.Linear.(:>)"
+    uncons (e : es)  = (e, es)
     
-    unsnoc    [ ]     = throw $ PatternMatchFail "in SDP.Linear.(:<)"
-    unsnoc    [e]     = ([], e)
-    unsnoc  (e : es)  = (e : es', e') where (es', e') = unsnoc es
+    unsnoc    [ ]    = throw $ PatternMatchFail "in SDP.Linear.(:<)"
+    unsnoc    [e]    = ([], e)
+    unsnoc  (e : es) = let (es', e') = unsnoc es in (e : es', e')
     
     reverse      = L.reverse
     replicate    = L.replicate
@@ -430,6 +479,10 @@ instance Split [e] e
 
 --------------------------------------------------------------------------------
 
+{- $linearStuff
+  And also SDP.Linear provides some common functions, not included to classes.
+-}
+
 -- | stripPrefix sub line... strips prefix sub of line
 stripPrefix :: (Split s e, Bordered s i e, Eq e) => s -> s -> s
 stripPrefix sub line = sub `isPrefixOf` line ? drop n line $ line
@@ -455,6 +508,8 @@ tails es = es : tails (tail es)
 inits :: (Linear l e) => l -> [l]
 inits Z  = Z
 inits es = es : inits (init es)
+
+
 
 
 

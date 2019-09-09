@@ -11,7 +11,6 @@
   Indexed is one of the main classes of SDP, designed to read and write immutable
   indexable data structures.
 -}
-
 module SDP.Indexed
 (
   module SDP.Linear,
@@ -223,8 +222,4 @@ instance IFold [e] Int e
 
 undEx :: String -> a
 undEx msg = throw . UndefinedValue $ "in SDP.Indexed." ++ msg
-
-
-
-
 

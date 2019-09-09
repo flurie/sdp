@@ -121,6 +121,10 @@ instance (Index i) => Default (Bytes i e)
         (# s2#, marr# #) -> case unsafeFreezeByteArray# marr# s2# of
           (# s3#, bytes# #) -> (# s3#, Bytes l u 0 bytes# #)
 
+instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (Bytes i e)
+  where
+    arbitrary = fromList <$> arbitrary
+
 --------------------------------------------------------------------------------
 
 {- Linear, Split and Bordered instances. -}
@@ -151,6 +155,8 @@ instance (Unboxed e, Index i) => Linear (Bytes i e) e
     
     fromList = fromFoldable
     
+    fromListN n es = runST $ newLinearN n es >>= done
+    
     {-# INLINE fromFoldable #-}
     fromFoldable es = runST $ fromFoldableM es >>= done
     
@@ -165,10 +171,12 @@ instance (Unboxed e, Index i) => Linear (Bytes i e) e
     listR (Bytes _ _ n bytes#) = [ bytes# !# i# | (I# i#) <- [n - 1, n - 2 .. 0] ]
     
     {-# INLINE concatMap #-}
-    concatMap f ess = fromList $ foldr (\ a l -> listL (f a) ++ l) [] ess
+    concatMap f = fromList . foldr (\ a l -> listL (f a) ++ l) []
     
     {-# INLINE concat #-}
-    concat ess = fromList $ foldr (\ a l -> listL a ++ l) [] ess
+    concat = fromList . foldr (\ a l -> listL a ++ l) []
+    
+    partitions f es = fromList <$> partitions f (listL es)
 
 instance (Index i, Unboxed e) => Split (Bytes i e) e
   where
@@ -188,6 +196,10 @@ instance (Index i, Unboxed e) => Split (Bytes i e) e
       where
         l = sizeOf es
     
+    splits ns es = fromList <$> splits ns (listL es)
+    chunks ns es = fromList <$> chunks ns (listL es)
+    parts  ns es = fromList <$> parts  ns (listL es)
+    
     isPrefixOf xs ys = n1 <= n2 && equals 0
       where
         equals i = i == n1 || (xs !^ i == ys !^ i) && equals (i + 1)
@@ -202,17 +214,10 @@ instance (Index i, Unboxed e) => Split (Bytes i e) e
         n2 = sizeOf ys
     
     {-# INLINE prefix #-}
-    -- see SDP.Linear.suffix and SDP.Array.foldr
-    prefix p (Bytes _ _ n arr#) = go 0
-      where
-        go i@(I# i#) = n' == i ? 0 $ p (arr# !# i#) ? (go $ i + 1) + 1 $ 0
-        n' = max 0 n
+    prefix p = i_foldr (\ e c -> p e ? c + 1 $ 0) 0
     
     {-# INLINE suffix #-}
-    -- see SDP.Linear.suffix and SDP.Array.foldl
-    suffix p (Bytes _ _ n arr#) = go $ max 0 n - 1
-      where
-        go i@(I# i#) = -1 == i ? 0 $ p (arr# !# i#) ? (go $ i - 1) + 1 $ 0
+    suffix p = i_foldl (\ c e -> p e ? c + 1 $ 0) 0
 
 instance (Index i, Unboxed e) => Bordered (Bytes i e) i e
   where
@@ -258,25 +263,29 @@ instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
 
 instance (Index i, Unboxed e) => IFold (Bytes i e) i e
   where
+    {-# INLINE ifoldr #-}
     ifoldr  f base bytes@(Bytes l u n _) = go 0
       where
         go i =  n == i ? base $ f (index (l, u) i) (bytes !^ i) (go $ i + 1)
     
+    {-# INLINE ifoldl #-}
     ifoldl  f base bytes@(Bytes l u _ _) = go (sizeOf bytes - 1)
       where
         go i = -1 == i ? base $ f (index (l, u) i) (go $ i - 1) (bytes !^ i)
     
+    {-# INLINE i_foldr #-}
     i_foldr f base arr = go 0
       where
         go i = sizeOf arr == i ? base $ f (arr !^ i) (go $ i + 1)
     
+    {-# INLINE i_foldl #-}
     i_foldl f base arr = go (sizeOf arr - 1)
       where
         go i = -1 == i ? base $ f (go $ i - 1) (arr !^ i)
 
 instance (Index i, Unboxed e) => Set (Bytes i e) e
   where
-    setWith f es = nubSorted f $ sortBy f es
+    setWith f = nubSorted f . sortBy f
     
     insertWith _ e Z  = single e
     insertWith f e es = isContainedIn f e es ? es $ res
@@ -362,8 +371,6 @@ instance (Index i, Unboxed e) => E.IsList (Bytes i e)
     toList    = listL
 
 instance (Index i) => IsString (Bytes i Char) where fromString = fromList
-
-instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (Bytes i e) where arbitrary = fromList <$> arbitrary
 
 --------------------------------------------------------------------------------
 

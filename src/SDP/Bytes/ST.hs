@@ -69,15 +69,37 @@ instance (Index i, Unboxed e) => Eq (STBytes s i e)
 
 instance (Index i, Unboxed e) => BorderedM (ST s) (STBytes s i e) i e
   where
+    {-# INLINE getLower #-}
     getLower   (STBytes l _ _ _) = return l
+    
+    {-# INLINE getUpper #-}
     getUpper   (STBytes _ u _ _) = return u
+    
+    {-# INLINE getSizeOf #-}
     getSizeOf  (STBytes _ _ n _) = return $ max 0 n
+    
+    {-# INLINE getIndices #-}
     getIndices (STBytes l u _ _) = return $ range   (l, u)
+    
+    {-# INLINE getIndexOf #-}
     getIndexOf (STBytes l u _ _) = return . inRange (l, u)
 
 instance (Index i, Unboxed e) => LinearM (ST s) (STBytes s i e) e
   where
     newLinear = fromFoldableM
+    
+    {-# INLINE newLinearN #-}
+    newLinearN c es = fromFoldable' err
+      where
+        fromFoldable' :: (Index i, Unboxed e) => e -> ST s (STBytes s i e)
+        fromFoldable' e = ST $ \ s1# -> case newUnboxed e n# s1# of
+          (# s2#, marr# #) ->
+            let go y r = \ i# s3# -> case writeByteArray# marr# i# y s3# of
+                  s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#
+            in done (unsafeBounds n) n marr# ( if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2# )
+        
+        err = undEx "newLinearN"
+        !n@(I# n#) = max 0 c
     
     {-# INLINE fromFoldableM #-}
     fromFoldableM es = fromFoldable' $ unreachEx "fromFoldableM"
@@ -94,9 +116,14 @@ instance (Index i, Unboxed e) => LinearM (ST s) (STBytes s i e) e
     getLeft  es@(STBytes _ _ n _) = (es !#>) `mapM` [0 .. n - 1]
     getRight es@(STBytes _ _ n _) = (es !#>) `mapM` [n - 1, n - 2 .. 0]
     
-    copied (STBytes l u n _) = do
-      copy <- filled_ n (l, u) (unreachEx "copied")
+    copied (STBytes _ _ n _) = do
+      copy <- filled' n (unreachEx "copied")
       forM_ [0 .. n - 1] $ \ i -> copy !#> i >>= writeM_ copy i
+      return copy
+    
+    copied' es l u = let n = size (l, u) in do
+      copy <- filled' n (unreachEx "copied'")
+      forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM_ copy i
       return copy
     
     {-# INLINE reversed #-}
@@ -145,7 +172,7 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STBytes s i e) i e
         ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
     
     fromIndexed' es = do
-        copy <- filled_ n (unsafeBounds n) (unreachEx "fromIndexed'")
+        copy <- filled' n (unreachEx "fromIndexed'")
         forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
         return copy
       where
@@ -153,7 +180,7 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STBytes s i e) i e
     
     fromIndexedM es = do
       n    <- getSizeOf es
-      copy <- filled_ n (unsafeBounds n) (unreachEx "fromIndexedM")
+      copy <- filled' n (unreachEx "fromIndexedM")
       forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM_ copy i
       return copy
 
@@ -183,6 +210,12 @@ filled_ :: (Index i, Unboxed e) => Int -> (i, i) -> e -> ST s (STBytes s i e)
 filled_ n@(I# n#) (l, u) e = ST $ \ s1# -> case newUnboxed e n# s1# of
   (# s2#, marr# #) -> (# s2#, STBytes l u n marr# #)
 
+filled' :: (Index i, Unboxed e) => Int -> e -> ST s (STBytes s i e)
+filled' n@(I# n#) e = ST $ \ s1# -> case newUnboxed e n# s1# of
+    (# s2#, marr# #) -> (# s2#, STBytes l u n marr# #)
+  where
+    (l, u) = unsafeBounds n
+
 {-# INLINE done #-}
 done :: (Unboxed e) => (i, i) -> Int -> MutableByteArray# s -> STRep s (STBytes s i e)
 done (l, u) n marr# = \ s1# -> (# s1#, STBytes l u n marr# #)
@@ -190,6 +223,9 @@ done (l, u) n marr# = \ s1# -> (# s1#, STBytes l u n marr# #)
 {-# INLINE fill #-}
 fill :: (Unboxed e) => MutableByteArray# s -> (Int, e) -> STRep s a -> STRep s a
 fill marr# (I# i#, e) nxt = \ s1# -> case writeByteArray# marr# i# e s1# of s2# -> nxt s2#
+
+undEx :: String -> a
+undEx msg = throw . UndefinedValue $ "in SDP.Bytes.ST." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Bytes.ST." ++ msg

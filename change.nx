@@ -5,10 +5,14 @@ change.nx is the file for changes that will be implemented in the dev branch.
 This is a public version of TODO, without "grandiose intents" and momentary
 "brilliant ideas". This is either what I'm working on now, or approved requests.
 
+Please note that the EXPERIMENTAL section is needed to describe features that
+may not be feasible in their intended form. Therefore, they may either not be
+added at all, or they will be added strongly modified.
+
 Don't write anything yourself if the request has been added to this file - with
 the same functionality, I will usually prefer my own code.
 
-VERSION NX-MINOR (0.1.1):
+VERSION NX-MINOR (0.1.2):
   
   Nothing yet, see EXPERIMENTAL
 
@@ -23,10 +27,13 @@ EXPERIMENTAL
   
   New class for slices. The final separation of the Linear class.
   New class for heaps (SDP.Tree.Heap).
+  New class for maps (dictionaries).
+  New class for monadic splits (SplitM).
   LinearM enrichment.
   
   TimSort optimizations (binary search, new splitting procedure,
   GaloppingMode and TryMerge).
+
 
 
 

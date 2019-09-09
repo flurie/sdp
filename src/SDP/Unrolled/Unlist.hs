@@ -64,9 +64,27 @@ type role Unlist representational
 
 {- Eq and Eq1 instances. -}
 
-instance (Eq e) => Eq (Unlist e) where (==) = eq1
+instance (Eq e) => Eq (Unlist e)
+  where
+    (==) = go 0
+      where
+        go o xs@(Unlist c1 _ xss) ys@(Unlist n2 _ yss) = if n1 > n2
+            then and [ xs !^ (o + i) == ys !^ i | i <- [0 .. n2 - 1] ] && go (o + n2) xs yss
+            else and [ xs !^ (o + i) == ys !^ i | i <- [0 .. n1 - 1] ] && go    n1    ys xss
+          where
+            n1 = c1 - o
+        go o xs ys = sizeOf xs == o && isNull ys
 
-instance Eq1 Unlist where liftEq f xs ys = liftEq f (toList xs) (toList ys)
+instance Eq1 Unlist
+  where
+    liftEq f = go 0 0
+      where
+        go o1 o2 xs@(Unlist c1 _ xss) ys@(Unlist c2 _ yss) = if c1 > c2 - d
+            then all (\ i -> xs !^ (d + i) `f` (ys !^ i)) [o2 .. c2 - 1] && go (d + c2) 0 xs yss
+            else all (\ i -> xs !^ i `f` (ys !^ (i - d))) [o1 .. c1 - 1] && go 0 (c1 - d) xss ys
+          where
+            d = o1 - o2 -- count of elements between xs and ys positions
+        go o1 o2 xs ys = sizeOf xs == o1 && sizeOf ys == o2
 
 --------------------------------------------------------------------------------
 
@@ -74,7 +92,16 @@ instance Eq1 Unlist where liftEq f xs ys = liftEq f (toList xs) (toList ys)
 
 instance (Ord e) => Ord (Unlist e) where compare = compare1
 
-instance Ord1 Unlist where liftCompare f xs ys = liftCompare f (toList xs) (toList ys)
+instance Ord1 Unlist
+  where
+    liftCompare cmp = go 0 0
+      where
+        go o1 o2 xs@(Unlist c1 _ xss) ys@(Unlist c2 _ yss) = if c1 > c2 - d
+            then fold [ xs !^ (d + i) `cmp` (ys !^ i) | i <- [o2 .. c2 - 1] ] <> go (d + c2) 0 xs yss
+            else fold [ xs !^ i `cmp` (ys !^ (i - d)) | i <- [o1 .. c1 - 1] ] <> go 0 (c1 - d) xss ys
+          where
+            d = o1 - o2 -- count of elements between xs and ys positions
+        go o1 o2 xs ys = (sizeOf xs - o1) <=> (sizeOf ys - o2)
 
 --------------------------------------------------------------------------------
 
@@ -91,9 +118,9 @@ instance (Show e) => Show (Unlist e)
 
 instance Semigroup (Unlist e) where (<>) = (++)
 
-instance Monoid (Unlist e) where mempty = def
+instance Monoid    (Unlist e) where mempty = def
 
-instance Default (Unlist e) where def = UNEmpty
+instance Default   (Unlist e) where def = UNEmpty
 
 --------------------------------------------------------------------------------
 
@@ -138,8 +165,8 @@ instance Foldable Unlist
     
     length es = case es of {Unlist n _ arrs -> max 0 n + length arrs; _ -> 0}
     
-    toList UNEmpty = []
-    toList (Unlist c arr# arrs) = [ arr# !# i# | (I# i#) <- [0 .. c - 1] ] ++ toList arrs
+    toList Z = []
+    toList (Unlist c arr# arrs) = foldr (\ (I# i#) es -> (arr# !# i#) : es) (toList arrs) [0 .. c - 1]
     
     null es = case es of {Unlist c _ _ -> c < 1; _ -> True}
 
@@ -149,7 +176,7 @@ instance Foldable Unlist
 
 instance Linear (Unlist e) e
   where
-    isNull es = null es
+    isNull = null
     
     lzero = def
     
@@ -176,7 +203,7 @@ instance Linear (Unlist e) e
     toLast (Unlist c arr# arrs) e = Unlist c arr# (toLast arrs e)
     
     last Z  = pfailEx "(:<)"
-    last es = es !^ (length es - 1)
+    last es = es !^ (sizeOf es - 1)
     
     init Z = pfailEx "(:>)"
     init es@(Unlist _ _ Z)    = fromList . init $ toList es
@@ -209,7 +236,7 @@ instance Linear (Unlist e) e
         !(I# l#) = lim
     
     {-# INLINE reverse #-}
-    reverse es' = reverse' Z es'
+    reverse = reverse' Z
       where
         reverse' :: Unlist e -> Unlist e -> Unlist e
         reverse' tail' Z = tail'
@@ -219,8 +246,8 @@ instance Linear (Unlist e) e
             
             chunk = [ bytes# !# i# | (I# i#) <- [ n - 1, n - 2 .. 0 ] ]
     
-    partition  p  es = let (x, y) = partition p $ toList es in (fromList x, fromList y)
-    partitions ps es = fromList <$> (partitions ps $ toList es)
+    partition  p  es = let (x, y) = partition p (toList es) in (fromList x, fromList y)
+    partitions ps es = fromList <$> partitions ps (toList es)
 
 instance Split (Unlist e) e
   where
@@ -254,9 +281,9 @@ instance Split (Unlist e) e
 
 instance Bordered (Unlist e) Int e
   where
-    lower  _  = 0
-    upper  es = length es - 1
-    sizeOf es = length es
+    lower _  = 0
+    upper es = sizeOf es - 1
+    sizeOf   = length
 
 --------------------------------------------------------------------------------
 
@@ -453,8 +480,6 @@ unreachEx msg = throw . UnreachableException $ "in SDP.Unrolled.Unlist." ++ msg
 
 lim :: Int
 lim =  1024
-
-
 
 
 

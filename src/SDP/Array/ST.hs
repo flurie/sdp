@@ -69,14 +69,37 @@ instance (Index i, Eq e) => Eq (STArray s i e)
 
 instance (Index i) => BorderedM (ST s) (STArray s i e) i e
   where
-    getLower  (STArray l _ _ _) = return l
-    getUpper  (STArray _ u _ _) = return u
-    getBounds (STArray l u _ _) = return (l, u)
-    getSizeOf (STArray _ _ n _) = return $ max 0 n
+    {-# INLINE getLower #-}
+    getLower   (STArray l _ _ _) = return l
+    
+    {-# INLINE getUpper #-}
+    getUpper   (STArray _ u _ _) = return u
+    
+    {-# INLINE getBounds #-}
+    getBounds  (STArray l u _ _) = return (l, u)
+    
+    {-# INLINE getSizeOf #-}
+    getSizeOf  (STArray _ _ n _) = return $ max 0 n
+    
+    {-# INLINE getIndices #-}
+    getIndices (STArray l u _ _) = return $ range   (l, u)
+    
+    {-# INLINE getIndexOf #-}
+    getIndexOf (STArray l u _ _) = return . inRange (l, u)
 
 instance (Index i) => LinearM (ST s) (STArray s i e) e
   where
     newLinear = fromFoldableM
+    
+    {-# INLINE newLinearN #-}
+    newLinearN c es = ST $ \ s1# -> case newArray# n# err s1# of
+      (# s2#, marr# #) ->
+        let go y r = \ i# s3# -> case writeArray# marr# i# y s3# of
+              s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#
+        in done n marr# ( if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2# )
+      where
+        err = undEx "newLinearN"
+        !n@(I# n#) = max 0 c
     
     {-# INLINE fromFoldableM #-}
     fromFoldableM es = ST $ \ s1# -> case newArray# n# err s1# of
@@ -102,7 +125,11 @@ instance (Index i) => LinearM (ST s) (STArray s i e) e
       return copy
     
     {-# INLINE reversed #-}
-    reversed es = liftA2 zip (getIndices es) (getRight es) >>= overwrite es
+    reversed es@(STArray _ _ n _) = go 0 (n - 1) >> return es
+      where
+        go i j = when (i < j) $ do
+          go (i + 1) (j - 1)
+          ei <- es !#> i; writeM_ es i =<< es !#> j; writeM_ es j ei
     
     {-# INLINE filled #-}
     filled n e = let !n'@(I# n#) = max 0 n in ST $
@@ -115,7 +142,9 @@ instance (Index i) => LinearM (ST s) (STArray s i e) e
 instance (Index i) => IndexedM (ST s) (STArray s i e) i e
   where
     {-# INLINE fromAssocs' #-}
-    fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
+    fromAssocs' (l, u) defvalue ascs = arr >>= (`overwrite` ascs) . unsafeReshape l u
+      where
+        arr = size (l, u) `filled` defvalue
     
     (STArray _ _ _ marr#) !#> (I# i#) = ST $ readArray# marr# i#
     
@@ -177,6 +206,13 @@ instance (Index i) => SortM (ST s) (STArray s i e) e where sortMBy = timSortBy
 {-# INLINE done #-}
 done :: (Index i) => Int -> MutableArray# s e -> STRep s (STArray s i e)
 done n marr# = \ s1# -> let (l, u) = unsafeBounds n in (# s1#, STArray l u n marr# #)
+
+{-# INLINE unsafeReshape #-}
+unsafeReshape :: (Index i) => i -> i -> STArray s i e -> STArray s i e
+unsafeReshape l u = \ (STArray _ _ n arr#) -> STArray l u n arr#
+
+undEx :: String -> a
+undEx msg = throw . UndefinedValue $ "in SDP.Array.ST" ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Array.ST." ++ msg
