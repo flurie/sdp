@@ -13,7 +13,6 @@
     but incopatible with it.
     The main difference is the Index class instead of Ix.
 -}
-
 module SDP.Bytes.ST
 (
   module SDP.IndexedM,
@@ -117,12 +116,12 @@ instance (Index i, Unboxed e) => LinearM (ST s) (STBytes s i e) e
     getRight es@(STBytes _ _ n _) = (es !#>) `mapM` [n - 1, n - 2 .. 0]
     
     copied (STBytes _ _ n _) = do
-      copy <- filled' n (unreachEx "copied")
+      copy <- filled_ n (unreachEx "copied")
       forM_ [0 .. n - 1] $ \ i -> copy !#> i >>= writeM_ copy i
       return copy
     
     copied' es l u = let n = size (l, u) in do
-      copy <- filled' n (unreachEx "copied'")
+      copy <- filled_ n (unreachEx "copied'")
       forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM_ copy i
       return copy
     
@@ -143,11 +142,23 @@ instance (Index i, Unboxed e) => LinearM (ST s) (STBytes s i e) e
 instance (Index i, Unboxed e) => IndexedM (ST s) (STBytes s i e) i e
   where
     {-# INLINE fromAssocs #-}
-    fromAssocs bnds ascs = filled_ (size bnds) bnds (unreachEx "fromAssocs") >>= (`overwrite` ascs)
+    fromAssocs bnds ascs = filledB_ bnds err >>= (`overwrite` ascs)
+      where
+        filledB_ :: (Index i, Unboxed e) => (i, i) -> e -> ST s (STBytes s i e)
+        filledB_ (l, u) e = ST $ \ s1# -> case newUnboxed e n# s1# of
+          (# s2#, marr# #) -> (# s2#, STBytes l u n marr# #)
+        !n@(I# n#) = size bnds
+        err = unreachEx "fromAssocs"
     
     {-# INLINE fromAssocs' #-}
-    fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
+    fromAssocs' bnds@(l, u) defvalue ascs = do
+        arr <- ST $ \ s1# -> case newUnboxed' defvalue n# s1# of
+          (# s2#, marr# #) -> (# s2#, STBytes l u n marr# #)
+        overwrite arr ascs
+      where
+        !n@(I# n#) = size bnds
     
+    {-# INLINE (!#>) #-}
     (STBytes _ _ _ marr#) !#> (I# i#) = ST $ marr# !># i#
     
     {-# INLINE (>!) #-}
@@ -160,9 +171,11 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STBytes s i e) i e
       where
         msg = "in SDP.Bytes.ST.(!>)"
     
+    {-# INLINE writeM_ #-}
     writeM_ (STBytes _ _ _ mbytes#) (I# i#) e = ST $
       \ s1# -> case writeByteArray# mbytes# i# e s1# of s2# -> (# s2#, () #)
     
+    {-# INLINE writeM #-}
     writeM (STBytes l u _ mbytes#) i e = let !(I# i#) = offset (l, u) i in ST $
       \ s1# -> case writeByteArray# mbytes# i# e s1# of s2# -> (# s2#, () #)
     
@@ -172,7 +185,7 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STBytes s i e) i e
         ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
     
     fromIndexed' es = do
-        copy <- filled' n (unreachEx "fromIndexed'")
+        copy <- filled_ n (unreachEx "fromIndexed'")
         forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
         return copy
       where
@@ -180,7 +193,7 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STBytes s i e) i e
     
     fromIndexedM es = do
       n    <- getSizeOf es
-      copy <- filled' n (unreachEx "fromIndexedM")
+      copy <- filled_ n (unreachEx "fromIndexedM")
       forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM_ copy i
       return copy
 
@@ -206,12 +219,8 @@ instance (Index i, Unboxed e) => SortM (ST s) (STBytes s i e) e where sortMBy = 
 
 --------------------------------------------------------------------------------
 
-filled_ :: (Index i, Unboxed e) => Int -> (i, i) -> e -> ST s (STBytes s i e)
-filled_ n@(I# n#) (l, u) e = ST $ \ s1# -> case newUnboxed e n# s1# of
-  (# s2#, marr# #) -> (# s2#, STBytes l u n marr# #)
-
-filled' :: (Index i, Unboxed e) => Int -> e -> ST s (STBytes s i e)
-filled' n@(I# n#) e = ST $ \ s1# -> case newUnboxed e n# s1# of
+filled_ :: (Index i, Unboxed e) => Int -> e -> ST s (STBytes s i e)
+filled_ n@(I# n#) e = ST $ \ s1# -> case newUnboxed e n# s1# of
     (# s2#, marr# #) -> (# s2#, STBytes l u n marr# #)
   where
     (l, u) = unsafeBounds n

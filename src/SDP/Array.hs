@@ -1,6 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 {-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, RoleAnnotations #-}
-
 {-# LANGUAGE TypeFamilies #-}
 
 {- |
@@ -134,9 +133,7 @@ instance (Index i, Read i, Read e) => Read (Array i e)
 {- Semigroup, Monoid, Default and Arbitrary instances. -}
 
 instance (Index i) => Semigroup (Array i e) where (<>) = (++)
-
 instance (Index i) => Monoid    (Array i e) where mempty = Z
-
 instance (Index i) => Default   (Array i e) where def = Z
 
 instance (Index i, Arbitrary e) => Arbitrary (Array i e)
@@ -275,7 +272,7 @@ instance (Index i) => Scan (Array i)
 
 instance (Index i) => Traversable (Array i)
   where
-    traverse f arr = fromList <$> foldr (\ x ys -> liftA2 (:) (f x) ys) (pure []) arr
+    traverse f = fmap fromList . foldr (\ x ys -> liftA2 (:) (f x) ys) (pure [])
 
 --------------------------------------------------------------------------------
 
@@ -288,24 +285,25 @@ instance (Index i) => Linear (Array i e) e
     {-# INLINE lzero #-}
     lzero = runST $ filled 0 (unreachEx "lzero") >>= done
     
-    toHead e es = fromListN (sizeOf es + 1) (e : toList es)
+    toHead e es = fromListN (sizeOf es + 1) (e : listL es)
     
     head Z  = pfailEx "(:>)"
     head es = es !^ 0
     
     tail Z  = pfailEx "(:>)"
-    tail es = fromListN (sizeOf es - 1) . tail $ toList es
+    tail es = fromListN (sizeOf es - 1) . tail $ listL es
     
-    toLast es e = fromListN (sizeOf es + 1) $ toList es :< e
+    toLast es e = fromListN (sizeOf es + 1) $ foldr (:) [e] es
     
     last Z  = pfailEx "(:<)"
     last es = es !^ (sizeOf es - 1)
     
     init Z  = pfailEx "(:<)"
-    init es = fromListN (sizeOf es - 1) $ toList es
+    init es = fromListN (sizeOf es - 1) $ listL es
     
     fromList = fromFoldable
     
+    {-# INLINE fromListN #-}
     fromListN n es = runST $ newLinearN n es >>= done
     
     {-# INLINE fromFoldable #-}
@@ -543,5 +541,4 @@ pfailEx msg = throw . PatternMatchFail $ "in SDP.Array." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Array." ++ msg
-
 

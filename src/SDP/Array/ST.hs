@@ -142,13 +142,21 @@ instance (Index i) => LinearM (ST s) (STArray s i e) e
 instance (Index i) => IndexedM (ST s) (STArray s i e) i e
   where
     {-# INLINE fromAssocs' #-}
-    fromAssocs' (l, u) defvalue ascs = arr >>= (`overwrite` ascs) . unsafeReshape l u
+    fromAssocs' (l, u) defvalue ascs = do
+        arr <- ST $ \ s1# -> case newArray# n# defvalue s1# of
+          (# s2#, marr# #) -> (# s2#, STArray l u n marr# #)
+        arr `overwrite` ascs
       where
-        arr = size (l, u) `filled` defvalue
+        !n@(I# n#) = size (l, u)
     
-    (STArray _ _ _ marr#) !#> (I# i#) = ST $ readArray# marr# i#
+    {-# INLINE (!#>) #-}
+    (!#>) (STArray _ _ _ marr#) = \ (I# i#) -> ST $ readArray# marr# i#
     
-    (STArray l u _ marr#) >! i = case offset (l, u) i of (I# i#) -> ST $ readArray# marr# i#
+    {-# INLINE (>!) #-}
+    (STArray l u _ marr#) >! i = case offset   (l, u) i of
+      (I# i#) -> ST $ readArray# marr# i#
+    
+    {-# INLINE (!>) #-}
     es@(STArray l u _ _)  !> i = case inBounds (l, u) i of
       ER -> throw $ EmptyRange     msg
       UR -> throw $ IndexUnderflow msg
@@ -157,9 +165,11 @@ instance (Index i) => IndexedM (ST s) (STArray s i e) i e
       where
         msg = "in SDP.Array.ST.(!>)"
     
+    {-# INLINE writeM_ #-}
     writeM_ (STArray _ _ _ marr#) (I# i#) e = ST $
       \ s1# -> case writeArray# marr# i# e s1# of s2# -> (# s2#, () #)
     
+    {-# INLINE writeM #-}
     writeM (STArray l u _ marr#) i e = let !(I# i#) = offset (l, u) i in ST $
       \ s1# -> case writeArray# marr# i# e s1# of s2# -> (# s2#, () #)
     
@@ -183,18 +193,22 @@ instance (Index i) => IndexedM (ST s) (STArray s i e) i e
 
 instance (Index i) => IFoldM (ST s) (STArray s i e) i e
   where
+    {-# INLINE ifoldrM #-}
     ifoldrM  f base arr@(STArray l u n _) = go 0
       where
         go i =  n == i ? return base $ bindM2 (arr !#> i) (go $ i + 1) (f $ index (l, u) i)
     
+    {-# INLINE ifoldlM #-}
     ifoldlM  f base arr@(STArray l u n _) = go $ n - 1
       where
         go i = -1 == i ? return base $ bindM2 (go $ i - 1) (arr !#> i) (f $ index (l, u) i)
     
+    {-# INLINE i_foldrM #-}
     i_foldrM f base arr@(STArray _ _ n _) = go 0
       where
         go i = n == i ? return base $ bindM2 (arr !#> i) (go $ i + 1) f
     
+    {-# INLINE i_foldlM #-}
     i_foldlM f base arr@(STArray _ _ n _) = go $ n - 1
       where
         go i = -1 == i ? return base $ bindM2 (go $ i - 1) (arr !#> i) f
@@ -207,15 +221,10 @@ instance (Index i) => SortM (ST s) (STArray s i e) e where sortMBy = timSortBy
 done :: (Index i) => Int -> MutableArray# s e -> STRep s (STArray s i e)
 done n marr# = \ s1# -> let (l, u) = unsafeBounds n in (# s1#, STArray l u n marr# #)
 
-{-# INLINE unsafeReshape #-}
-unsafeReshape :: (Index i) => i -> i -> STArray s i e -> STArray s i e
-unsafeReshape l u = \ (STArray _ _ n arr#) -> STArray l u n arr#
-
 undEx :: String -> a
 undEx msg = throw . UndefinedValue $ "in SDP.Array.ST" ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Array.ST." ++ msg
-
 
 

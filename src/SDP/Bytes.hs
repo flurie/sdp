@@ -1,6 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 {-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, RoleAnnotations #-}
-
 {-# LANGUAGE TypeFamilies #-}
 
 {- |
@@ -111,8 +110,7 @@ instance (Index i, Read i, Unboxed e, Read e) => Read (Bytes i e)
 {- Semigroup, Monoid and Default instances. -}
 
 instance (Index i, Unboxed e) => Semigroup (Bytes i e) where (<>) = (++)
-
-instance (Index i, Unboxed e) => Monoid (Bytes i e) where mempty = def
+instance (Index i, Unboxed e) => Monoid    (Bytes i e) where mempty = def
 
 instance (Index i) => Default (Bytes i e)
   where
@@ -135,11 +133,15 @@ instance (Unboxed e, Index i) => Linear (Bytes i e) e
     
     lzero = def
     
+    toHead e es = fromListN (sizeOf es + 1) (e : listL es)
+    
     head Z  = pfailEx "(:>)"
     head es = es .! lower es
     
     tail Z  = pfailEx "(:>)"
     tail es = drop 1 es
+    
+    toLast es e = fromListN (sizeOf es + 1) $ i_foldr (:) [e] es
     
     last Z  = pfailEx "(:<)"
     last es = es .! upper es
@@ -155,6 +157,7 @@ instance (Unboxed e, Index i) => Linear (Bytes i e) e
     
     fromList = fromFoldable
     
+    {-# INLINE fromListN #-}
     fromListN n es = runST $ newLinearN n es >>= done
     
     {-# INLINE fromFoldable #-}
@@ -258,8 +261,7 @@ instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
     {-# INLINE (!) #-}
     (!) (Bytes l u _ bytes#) i = case offset (l, u) i of (I# i#) -> bytes# !# i#
     
-    p .$ es@(Bytes l u _ _) = index (l, u) <$> p .$ listL es
-    p *$ es@(Bytes l u _ _) = index (l, u) <$> p *$ listL es
+    (*$) p = ifoldr (\ i e is -> p e ? (i : is) $ is) []
 
 instance (Index i, Unboxed e) => IFold (Bytes i e) i e
   where
@@ -409,7 +411,5 @@ pfailEx msg = throw . PatternMatchFail $ "in SDP.Bytes." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Bytes." ++ msg
-
-
 
 
