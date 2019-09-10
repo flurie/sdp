@@ -63,6 +63,7 @@ data Ublist e = UBEmpty | Ublist {-# UNPACK #-} !Int (ByteArray#) (Ublist e)
 
 instance (Unboxed e) => Eq (Ublist e)
   where
+    {-# INLINE (==) #-}
     (==) = go 0
       where
         go o xs@(Ublist c1 _ xss) ys@(Ublist n2 _ yss) = if n1 > n2
@@ -74,6 +75,7 @@ instance (Unboxed e) => Eq (Ublist e)
 
 instance (Unboxed e, Ord e) => Ord (Ublist e)
   where
+    {-# INLINE compare #-}
     compare = go 0 0
       where
         go o1 o2 xs@(Ublist c1 _ xss) ys@(Ublist c2 _ yss) = if c1 > c2 - d
@@ -116,44 +118,42 @@ instance (Unboxed e) => Linear (Ublist e) e
     head es = es .! 0
     
     tail Z = pfailEx "(:<)"
-    tail es@(Ublist _ _ Z) = fromList . tail $ listL es
+    tail es@(Ublist _ _ Z)       = fromList . tail $ listL es
     tail es@(Ublist c ubl# ubls) = Ublist c' new# ubls
       where
         !(Ublist c' new# _) = (`asTypeOf` es) $ tail (Ublist c ubl# Z)
     
     toHead e Z = single e
-    toHead e (Ublist c ubl# ubls) = c < lim ? res $ (Ublist 1 single# ubls)
+    toHead e (Ublist c ubl# ubls)
+        | c < lim = (Ublist c1  ubl1#  ubls)
+        |   True  = (Ublist 1  single# ubls)
       where
-        res = fromListN (c + 1) $ e : listL (Ublist c ubl# Z)
-        !(Ublist 1 single# Z) = single e
+        !(Ublist c1  ubl1#  Z) = fromList $ e : listL (Ublist c ubl# Z)
+        !(Ublist 1  single# Z) = single e
     
     last Z = pfailEx "(:<)"
     last (Ublist (I# c#) ubl# Z) = ubl# !# (c# -# 1#)
-    last (Ublist _ _ ubls) = last ubls
+    last    (Ublist _ _ ubls)    = last ubls
     
     init Z                    = pfailEx "(:>)"
     init es@(Ublist c _ Z)    = fromListN (c - 1) . init $ listL es
     init (Ublist c arr# arrs) = Ublist c arr# (init arrs)
     
     toLast Z e = single e
-    toLast es@(Ublist c _ Z) e = c < lim ? res $ (Ublist 1 single# Z)
-      where
-        res = fromList (listL es :< e)
-        !(Ublist 1 single# Z) = single e
-    toLast (Ublist c ubl# ubls) e = Ublist c ubl# (ubls :< e)
+    toLast es@(Ublist c ubl# ubls) e
+      | isNull ubls && c < lim = fromList $ listL es :< e
+      |          True          = Ublist c ubl# (ubls :< e)
     
     {-# INLINE single #-}
     single e = runST $ filled 1 e >>= done
     
-    fromList = fromFoldable
-    
-    {-# INLINE fromFoldable #-}
-    fromFoldable es = runST $ fromFoldableM es >>= done
+    {-# INLINE fromList #-}
+    fromList es = runST $ newLinear es >>= done
     
     {-# INLINE listL #-}
     listL = list' 0#
       where
-        list' _ Z = []
+        list' _  Z   = []
         list' i# es@(Ublist (I# n#) ubl# ubls) = if isTrue# (i# <# n#)
           then (ubl# !# i#) : list' (i# +# 1#) es
           else list' 0# ubls
@@ -173,15 +173,15 @@ instance (Unboxed e) => Linear (Ublist e) e
         !(I# l#) = lim
     
     {-# INLINE reverse #-}
-    reverse = reverse' Z
+    reverse = rev Z
       where
-        reverse' :: (Unboxed e) => Ublist e -> Ublist e -> Ublist e
-        reverse' tail' Z = tail'
-        reverse' tail' (Ublist n bytes# bytes) = reverse' (Ublist n rev# tail') bytes
-          where
-            !(Ublist _ rev# _) = (runST $ newLinear chunk >>= done) `asTypeOf` tail'
-            
-            chunk = [ bytes# !# i# | (I# i#) <- [ n - 1, n - 2 .. 0 ] ]
+        rev :: (Unboxed e) => Ublist e -> Ublist e -> Ublist e
+        rev tail' = \ es -> case es of
+          Z -> tail'
+          (Ublist n ubl# ubls) ->
+            let rightView = [ ubl# !# i# | (I# i#) <- [ n - 1, n - 2 .. 0 ] ]
+                !(Ublist _ rev# _) = fromList rightView `asTypeOf` tail'
+            in  rev (Ublist n rev# tail') ubls
     
     partitions ps es = fromList <$> partitions ps (listL es)
 
@@ -217,8 +217,8 @@ instance (Unboxed e) => Split (Ublist e) e
     isInfixOf  xs ys = listL xs `isInfixOf`  listL ys
     isSuffixOf xs ys = listL xs `isSuffixOf` listL ys
     
-    prefix p es = prefix p (listL es)
-    suffix p es = suffix p (listL es)
+    prefix p = i_foldr (\ e c -> p e ? c + 1 $ 0) 0
+    suffix p = i_foldl (\ c e -> p e ? c + 1 $ 0) 0
 
 instance (Unboxed e) => Bordered (Ublist e) Int e
   where
@@ -276,25 +276,29 @@ instance (Unboxed e) => Indexed (Ublist e) Int e
 
 instance (Unboxed e) => IFold (Ublist e) Int e
   where
-    ifoldr _ base Z = base
-    ifoldr f base (Ublist c arr# arrs) = go (ifoldr f base arrs) 0
-      where
-        go b i@(I# i#) = c == i ? b $ f i (arr# !# i#) (go b $ i + 1)
+    ifoldr  f base = \ ubl -> case ubl of
+      Z                    -> base
+      (Ublist c ubl# ubls) ->
+        let go b i@(I# i#) = c == i ? b $ f i (ubl# !# i#) (go b $ i + 1)
+        in  go (ifoldr f base ubls) 0
     
-    ifoldl _ base Z = base
-    ifoldl f base (Ublist c arr# arrs) = ifoldl f (go base $ c - 1) arrs
-      where
-        go b i@(I# i#) = -1 == i ? b $ f i (go b $ i - 1) (arr# !# i#)
+    ifoldl  f base = \ ubl -> case ubl of
+      Z                    -> base
+      (Ublist c ubl# ubls) ->
+        let go b i@(I# i#) = -1 == i ? b $ f i (go b $ i - 1) (ubl# !# i#)
+        in  ifoldl f (go base $ c - 1) ubls
     
-    i_foldr _ base Z = base
-    i_foldr f base (Ublist c arr# arrs) = go (i_foldr f base arrs) 0
-      where
-        go b i@(I# i#) = c == i ? b $ f (arr# !# i#) (go b $ i + 1)
+    i_foldr f base = \ ubl -> case ubl of
+      Z                    -> base
+      (Ublist c ubl# ubls) ->
+        let go b i@(I# i#) = c == i ? b $ f (ubl# !# i#) (go b $ i + 1)
+        in  go (i_foldr f base ubls) 0
     
-    i_foldl _ base Z = base
-    i_foldl f base (Ublist c arr# arrs) = i_foldl f (go base $ c - 1) arrs
-      where
-        go b i@(I# i#) = -1 == i ? b $ f (go b $ i - 1) (arr# !# i#)
+    i_foldl f base = \ ubl -> case ubl of
+      Z                    -> base
+      (Ublist c arr# arrs) ->
+        let go b i@(I# i#) = -1 == i ? b $ f (go b $ i - 1) (arr# !# i#)
+        in  i_foldl f (go base $ c - 1) arrs
 
 instance (Unboxed e) => Set (Ublist e) e
   where
@@ -437,4 +441,5 @@ unreachEx msg = throw . UnreachableException $ "in SDP.ByteList.Ublist." ++ msg
 
 lim :: Int
 lim =  1024
+
 

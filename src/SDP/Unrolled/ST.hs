@@ -62,23 +62,21 @@ instance (Index i) => BorderedM (ST s) (STUnrolled s i e) i e
   where
     getLower  (STUnrolled l _ _) = return l
     getUpper  (STUnrolled _ u _) = return u
+    getBounds (STUnrolled l u _) = return (l, u)
     getSizeOf (STUnrolled l u _) = return $ size (l, u)
 
 instance (Index i) => LinearM (ST s) (STUnrolled s i e) e
   where
-    newLinear = fromFoldableM
-    
-    fromFoldableM es = STUnrolled l u <$> fromFoldableM es
+    newLinear es = STUnrolled l u <$> newLinear es
       where
-        (l, u) = unsafeBounds $ length es
+        (l, u) = unsafeBounds (length es)
     
-    getLeft (STUnrolled l u es) = take (size (l, u)) <$> getLeft es
+    filled n e = STUnrolled l u <$> filled n e where (l, u) = unsafeBounds n
     
-    copied  (STUnrolled l u es)       = STUnrolled l u <$> copied  es
-    copied' (STUnrolled l u es) l' u' = STUnrolled l u <$> copied' es l' u'
-    
-    reversed es = liftA2 zip (getIndices es) (getRight es) >>= overwrite es
-    filled n e  = STUnrolled l u <$> filled n e where (l, u) = unsafeBounds n
+    getLeft  (STUnrolled l u es) = take (size (l, u)) <$> getLeft es
+    copied   (STUnrolled l u es) = STUnrolled l u <$> copied  es
+    copied'  (STUnrolled l u es) = \ l' u' -> STUnrolled l u <$> copied' es l' u'
+    reversed (STUnrolled l u es) = STUnrolled l u <$> reversed es
 
 --------------------------------------------------------------------------------
 
@@ -87,7 +85,10 @@ instance (Index i) => LinearM (ST s) (STUnrolled s i e) e
 instance (Index i) => IndexedM (ST s) (STUnrolled s i e) i e
   where
     {-# INLINE fromAssocs' #-}
-    fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
+    fromAssocs' (l, u) defvalue ascs = STUnrolled l u <$> fromAssocs' bnds defvalue ies
+      where
+        ies  = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
+        bnds = (0, size (l, u) - 1)
     
     (STUnrolled _ _ es) !#> i = es !#> i
     
@@ -100,9 +101,8 @@ instance (Index i) => IndexedM (ST s) (STUnrolled s i e) i e
       where
         msg = "in SDP.Unrolled.ST.(!>)"
     
-    writeM_ (STUnrolled _ _ es) i = writeM es i
-    
-    writeM  (STUnrolled l u es) i = writeM es $ offset (l, u) i
+    writeM_ (STUnrolled _ _ es) = writeM es
+    writeM  (STUnrolled l u es) = writeM es . offset (l, u)
     
     overwrite es [] = return es
     overwrite (STUnrolled l u es) ascs = if isEmpty (l, u)

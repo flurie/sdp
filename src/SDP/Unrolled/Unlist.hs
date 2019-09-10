@@ -38,7 +38,7 @@ import GHC.Base
   (
     Array#, MutableArray#, Int (..), Int#,
     
-    newArray#, unsafeFreezeArray#, writeArray#, indexArray#
+    newArray#, unsafeFreezeArray#, writeArray#, indexArray#, (-#)
   )
 
 import GHC.ST ( ST (..), STRep, runST )
@@ -114,13 +114,17 @@ instance (Show e) => Show (Unlist e)
 
 --------------------------------------------------------------------------------
 
-{- Semigroup, Monoid and Default instances. -}
+{- Semigroup, Monoid, Default and Arbitrary instances. -}
 
 instance Semigroup (Unlist e) where (<>) = (++)
 
 instance Monoid    (Unlist e) where mempty = def
 
 instance Default   (Unlist e) where def = UNEmpty
+
+instance (Arbitrary e) => Arbitrary (Unlist e)
+  where
+    arbitrary = fromList <$> arbitrary
 
 --------------------------------------------------------------------------------
 
@@ -181,43 +185,46 @@ instance Linear (Unlist e) e
     lzero = def
     
     toHead e Z = single e
-    toHead e (Unlist c arr# arrs) = c < lim ? res1 $ (Unlist 1 single# arrs)
+    toHead e (Unlist c unl# unls)
+        | c < lim = (Unlist c1  unl1#  unls)
+        |   True  = (Unlist 1  single# unls)
       where
-        res1 = fromListN (max 0 c + 1) $ e : toList (Unlist c arr# Z)
-        !(Unlist 1 single# Z) = single e
+        !(Unlist c1  unl1#  Z) = fromList $ e : listL (Unlist c unl# Z)
+        !(Unlist 1  single# Z) = single e
     
     head Z  = pfailEx "(:>)"
     head es = es !^ 0
     
     tail Z  = pfailEx "(:<)"
     tail es@(Unlist _ _ Z)    = fromList . tail $ toList es
-    tail (Unlist c arr# arrs) = Unlist c' new# arrs
+    tail (Unlist c unl# unls) = Unlist c' new# unls
       where
-        !(Unlist c' new# _) = tail (Unlist c arr# Z)
+        !(Unlist c' new# _) = tail (Unlist c unl# Z)
     
     toLast Z e = single e
-    toLast es@(Unlist c _ Z) e = c < lim ? res1 $ (Unlist 1 single# Z)
-      where
-        res1 = fromListN (max 0 c + 1) $ foldr (:) [e] es
-        !(Unlist 1 single# Z) = single e
-    toLast (Unlist c arr# arrs) e = Unlist c arr# (toLast arrs e)
+    toLast es@(Unlist c unl# unls) e
+      | isNull unls && c < lim = fromList $ listL es :< e
+      |          True          = Unlist c unl# (unls :< e)
     
-    last Z  = pfailEx "(:<)"
-    last es = es !^ (sizeOf es - 1)
+    last Z = pfailEx "(:<)"
+    last (Unlist (I# c#) unl# Z) = unl# !# (c# -# 1#)
+    last    (Unlist _ _ unls)    = last unls
     
     init Z = pfailEx "(:>)"
     init es@(Unlist _ _ Z)    = fromList . init $ toList es
-    init (Unlist c arr# arrs) = Unlist c arr# (init arrs)
+    init (Unlist c unl# unls) = Unlist c unl# (init unls)
+    
+    init Z                    = pfailEx "(:>)"
+    init es@(Unlist _ _ Z)    = fromList . init $ listL es
+    init (Unlist c unl# unls) = Unlist c unl# (init unls)
     
     {-# INLINE single #-}
     single e = runST $ filled 1 e >>= done
     
     listL = toList
     
-    fromList = fromFoldable
-    
-    {-# INLINE fromFoldable #-}
-    fromFoldable es = runST $ fromFoldableM es >>= done
+    {-# INLINE fromList #-}
+    fromList es = runST $ newLinear es >>= done
     
     Z ++ ys = ys
     xs ++ Z = xs
@@ -236,15 +243,15 @@ instance Linear (Unlist e) e
         !(I# l#) = lim
     
     {-# INLINE reverse #-}
-    reverse = reverse' Z
+    reverse = rev Z
       where
-        reverse' :: Unlist e -> Unlist e -> Unlist e
-        reverse' tail' Z = tail'
-        reverse' tail' (Unlist n bytes# bytes) = reverse' (Unlist n rev# tail') bytes
-          where
-            !(Unlist _ rev# _) = runST $ newLinear chunk >>= done
-            
-            chunk = [ bytes# !# i# | (I# i#) <- [ n - 1, n - 2 .. 0 ] ]
+        rev :: Unlist e -> Unlist e -> Unlist e
+        rev tail' = \ es -> case es of
+          Z -> tail'
+          (Unlist n ubl# ubls) ->
+            let rightView = [ ubl# !# i# | (I# i#) <- [ n - 1, n - 2 .. 0 ] ]
+                !(Unlist _ rev# _) = fromList rightView `asTypeOf` tail'
+            in  rev (Unlist n rev# tail') ubls
     
     partition  p  es = let (x, y) = partition p (toList es) in (fromList x, fromList y)
     partitions ps es = fromList <$> partitions ps (toList es)
@@ -283,7 +290,8 @@ instance Bordered (Unlist e) Int e
   where
     lower _  = 0
     upper es = sizeOf es - 1
-    sizeOf   = length
+    indexOf es = \ i -> i >= 0 && i < sizeOf es
+    sizeOf  es = case es of {Unlist n _ unls -> max 0 n + sizeOf unls; _ -> 0}
 
 --------------------------------------------------------------------------------
 
@@ -330,22 +338,26 @@ instance Indexed (Unlist e) Int e
 
 instance IFold (Unlist e) Int e
   where
-    ifoldr _ base Z = base
-    ifoldr f base (Unlist c arr# arrs) = go (ifoldr f base arrs) 0
-      where
-        go b i@(I# i#) = c == i ? b $ f i (arr# !# i#) (go b $ i + 1)
+    {-# INLINE ifoldr #-}
+    ifoldr  f base = \ unl -> case unl of
+      Z                    -> base
+      (Unlist c unl# unls) ->
+        let go b i@(I# i#) = c == i ? b $ f i (unl# !# i#) (go b $ i + 1)
+        in  go (ifoldr f base unls) 0
     
-    ifoldl _ base Z = base
-    ifoldl f base (Unlist c arr# arrs) = ifoldl f (go base $ c - 1) arrs
-      where
-        go b i@(I# i#) = -1 == i ? b $ f i (go b $ i - 1) (arr# !# i#)
+    {-# INLINE ifoldl #-}
+    ifoldl  f base = \ unl -> case unl of
+      Z                    -> base
+      (Unlist c unl# unls) ->
+        let go b i@(I# i#) = -1 == i ? b $ f i (go b $ i - 1) (unl# !# i#)
+        in  ifoldl f (go base $ c - 1) unls
     
     i_foldr = foldr
     i_foldl = foldl
 
 instance Set (Unlist e) e
   where
-    setWith f es = nubSorted f $ sortBy f es
+    setWith f = nubSorted f . sortBy f
     
     insertWith _ e Z  = single e
     insertWith f e es = isContainedIn f e es ? es $ res
@@ -429,8 +441,6 @@ instance Estimate Unlist
   where
     UNEmpty         <==> ys = case ys of {Unlist c2 _ _ ->  0 <=> c2; _ -> EQ}
     (Unlist c1 _ _) <==> ys = case ys of {Unlist c2 _ _ -> c1 <=> c2; _ -> c1 <=> 0}
-
-instance (Arbitrary e) => Arbitrary (Unlist e) where arbitrary = fromList <$> arbitrary
 
 --------------------------------------------------------------------------------
 

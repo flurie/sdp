@@ -61,23 +61,23 @@ instance (Index i, Unboxed e) => Eq (STByteList s i e)
 
 instance (Index i, Unboxed e) => BorderedM (ST s) (STByteList s i e) i e
   where
-    getLower   (STByteList l _ _) = return l
-    getUpper   (STByteList _ u _) = return u
-    getSizeOf  (STByteList l u _) = return $ size (l, u)
+    getLower  (STByteList l _ _) = return l
+    getUpper  (STByteList _ u _) = return u
+    getBounds (STByteList l u _) = return (l, u)
+    getSizeOf (STByteList l u _) = return $ size (l, u)
 
 instance (Index i, Unboxed e) => LinearM (ST s) (STByteList s i e) e
   where
-    newLinear  = fromFoldableM
-    filled n e = let (l, u) = unsafeBounds n in STByteList l u <$> filled n e
-    
-    fromFoldableM es = STByteList l u <$> fromFoldableM es
+    newLinear es = STByteList l u <$> newLinear es
       where
         (l, u) = unsafeBounds (length es)
     
-    getLeft  (STByteList l u es)       = take (size (l, u)) <$> getLeft es
-    copied   (STByteList l u es)       = STByteList l u <$> copied  es
-    copied'  (STByteList l u es) l' u' = STByteList l u <$> copied' es l' u'
-    reversed (STByteList l u es)       = STByteList l u <$> reversed es
+    filled n e = let (l, u) = unsafeBounds n in STByteList l u <$> filled n e
+    
+    getLeft  (STByteList l u es) = take (size (l, u)) <$> getLeft es
+    copied   (STByteList l u es) = STByteList l u <$> copied  es
+    copied'  (STByteList l u es) = \ l' u' -> STByteList l u <$> copied' es l' u'
+    reversed (STByteList l u es) = STByteList l u <$> reversed es
 
 --------------------------------------------------------------------------------
 
@@ -88,13 +88,13 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STByteList s i e) i e
     fromAssocs (l, u) ascs = STByteList l u <$> fromAssocs bnds ies
       where
         ies  = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
-        bnds = (0, size (l, u) - 1)
+        bnds = (0, size  (l, u) - 1)
     
     {-# INLINE fromAssocs' #-}
-    fromAssocs' (l, u) defvalue ascs = STByteList l u <$> es
+    fromAssocs' (l, u) defvalue ascs = STByteList l u <$> fromAssocs' bnds defvalue ies
       where
         ies  = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
-        es   = fromAssocs' bnds defvalue ies
+
         bnds = (0, size (l, u) - 1)
     
     (STByteList _ _ es) !#> i = es !#> i
@@ -108,8 +108,8 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STByteList s i e) i e
       where
         msg = "in SDP.ByteList.ST.(!>)"
     
-    writeM_ (STByteList _ _ es) i = writeM es i
-    writeM  (STByteList l u es) i = writeM es $ offset (l, u) i
+    writeM_ (STByteList _ _ es) = writeM es
+    writeM  (STByteList l u es) = writeM es . offset (l, u)
     
     overwrite es [] = return es
     overwrite (STByteList l u es) ascs = if isEmpty (l, u)
@@ -131,15 +131,20 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STByteList s i e) i e
 
 instance (Index i, Unboxed e) => IFoldM (ST s) (STByteList s i e) i e
   where
-    ifoldrM f e (STByteList l u es) = ifoldrM (\ i -> f (index (l, u) i)) e es
-    ifoldlM f e (STByteList l u es) = ifoldlM (\ i -> f (index (l, u) i)) e es
+    {-# INLINE ifoldrM #-}
+    ifoldrM f e (STByteList l u es) = ifoldrM (f . index (l, u)) e es
     
+    {-# INLINE ifoldlM #-}
+    ifoldlM f e (STByteList l u es) = ifoldlM (f . index (l, u)) e es
+    
+    {-# INLINE i_foldrM #-}
     i_foldrM f e (STByteList _ _ es) = i_foldrM f e es
+    
+    {-# INLINE i_foldlM #-}
     i_foldlM f e (STByteList _ _ es) = i_foldlM f e es
 
 instance (Index i, Unboxed e) => SortM (ST s) (STByteList s i e) e
   where
     sortMBy = timSortBy
-
 
 

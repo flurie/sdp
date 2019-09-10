@@ -76,7 +76,10 @@ instance (Ord e, Index i) => Ord (Unrolled i e) where compare = compare1
 
 instance (Index i) => Ord1 (Unrolled i)
   where
-    liftCompare cmp (Unrolled l1 u1 xs) (Unrolled l2 u2 ys) = (size (l1, u1) <=> size (l2, u2)) <> liftCompare cmp xs ys
+    liftCompare cmp (Unrolled l1 u1 xs) (Unrolled l2 u2 ys) = (s1 <=> s2) <> liftCompare cmp xs ys
+      where
+        s1 = size (l1, u1)
+        s2 = size (l2, u2)
 
 --------------------------------------------------------------------------------
 
@@ -104,7 +107,9 @@ instance (Index i) => Semigroup (Unrolled i e) where xs <> ys = xs ++ ys
 
 instance (Index i) => Monoid (Unrolled i e) where mempty = def
 
-instance (Index i) => Default (Unrolled i e) where def = Z
+instance (Index i) => Default (Unrolled i e)
+  where
+    def = let (l, u) = unsafeBounds 0 in Unrolled l u def
 
 --------------------------------------------------------------------------------
 
@@ -166,7 +171,14 @@ instance (Index i) => Traversable (Unrolled i)
 
 instance (Index i) => Linear (Unrolled i e) e
   where
-    isNull = null
+    lzero = def
+    
+    isNull (Unrolled l u es) = isEmpty (l, u) || isNull es
+    
+    toHead e (Unrolled l u es) = Unrolled l' u' (e :> take n es)
+      where
+        (l', u') = unsafeBounds (n + 1)
+        n = size (l, u)
     
     uncons Z = pfail "(:>)"
     uncons (Unrolled l u es) = (x, es <. 2 ? Z $ Unrolled l1 u xs)
@@ -180,6 +192,11 @@ instance (Index i) => Linear (Unrolled i e) e
     tail Z = pfail "(:>)"
     tail (Unrolled l u es) = Unrolled l' u $ tail es where l' = next (l, u) l
     
+    toLast (Unrolled l u es) e = Unrolled l' u' (take n es :< e)
+      where
+        (l', u') = unsafeBounds $ n + 1
+        n = size (l, u)
+    
     unsnoc Z = pfail "(:<)"
     unsnoc (Unrolled l u es) = (es <. 2 ? Z $ Unrolled l u1 xs, x)
       where
@@ -192,9 +209,8 @@ instance (Index i) => Linear (Unrolled i e) e
     init Z = pfail "(:<)"
     init (Unrolled l u es) = Unrolled l u' $ init es where u' = prev (l, u) u
     
-    fromList = fromFoldable
-    
-    fromFoldable es = let (l, u) = unsafeBounds (length es) in Unrolled l u $ fromFoldable es
+    fromList   es = let (l, u) = unsafeBounds (sizeOf es) in Unrolled l u $ fromList es
+    replicate n e = let (l, u) = unsafeBounds (max 0 n) in Unrolled l u $ replicate n e
     
     Z  ++ ys = ys
     xs ++  Z = xs
@@ -202,16 +218,15 @@ instance (Index i) => Linear (Unrolled i e) e
       where
         (l, u) = unsafeBounds $ size (l1, u1) + size (l2, u2)
     
-    concat xss = Unrolled l' u' res
+    concat = \ xss -> case unsafeBounds (foldr' g 0 xss) of
+        (l', u') -> Unrolled l' u' (foldr f Z xss)
       where
-        res = foldr (\ (Unrolled l u xs) ys -> size (l, u) `take` xs ++ ys) Z xss
-        n   = foldr (\ es count -> sizeOf es + count) 0 xss
-        
-        (l', u') = unsafeBounds n
+        f = \ (Unrolled l u xs) ublist -> size (l, u) `take` xs ++ ublist
+        g = \ (Unrolled l u  _) count  -> size (l, u) + count
     
-    intersperse e (Unrolled _ _ es) = Unrolled l1 u1 (intersperse e es)
+    intersperse e (Unrolled _ _ es) = Unrolled l u $ intersperse e es
       where
-        (l1, u1) = unsafeBounds $ case n <=> 0 of {GT -> 2 * n - 1; _ -> 0}
+        (l, u) = unsafeBounds $ case n <=> 0 of {GT -> 2 * n - 1; _ -> 0}
         n = length es
     
     listL  (Unrolled l u bytes) = listL $ size (l, u) `take` bytes
@@ -287,7 +302,7 @@ instance (Index i) => Indexed (Unrolled i e) i e
         es' = es // [ (offset (l, u) i, e) | (i, e) <- ascs ]
         (l', u') = unsafeBounds $ length es'
     
-    fromIndexed es = let (l, u) = unsafeBounds (sizeOf es) in Unrolled l u (fromIndexed es)
+    fromIndexed es = let (l, u) = unsafeBounds (sizeOf es) in Unrolled l u $ fromIndexed es
     
     {-# INLINE (!^) #-}
     (Unrolled _ _ es) !^ i = es !^ i

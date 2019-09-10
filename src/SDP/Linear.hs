@@ -304,29 +304,26 @@ class (Linear s e) => Split s e | s -> e
     split      :: Int -> s -> (s, s)
     split n es =  (take n es, drop n es)
     
-    {- |
-      splits is generalization of split, that breaks a line into sublines of a
-      given sizes (and rest).
-    -}
+    {-# INLINE splits #-}
+    -- | splits splits structures into sublines by given lengths.
     splits      :: (Foldable f) => f Int -> s -> [s]
     splits ints =  splits' (toList ints)
       where
         splits'    []    xs = [xs]
         splits' (i : is) xs = let (y, ys) = split i xs in y : splits is ys
     
-    {- |
-      parts is generalization of split, that breaks a sublines into sublines
-      starting at a given indices.
-    -}
+    {-# INLINE parts #-}
+    -- | parts splits structures into parts by given initial indices.
     parts      :: (Foldable f) => f Int -> s -> [s]
     parts ints =  parts' 0 (toList ints)
       where
         parts' _ [] xs = [xs]
         parts' c (i : is) xs = let (y, ys) = split (i - c) xs in y : parts' i is ys
     
-    -- | chunks is just synonym for \ n es -> takeWhile (not . Null) parts [n, n ..] es
+    {-# INLINE chunks #-}
+    -- | chunks splits structures into chunks of a given size (and the rest).
     chunks :: Int -> s -> [s]
-    chunks n es = case split n es of {(x, Z) -> [x]; (x, xs) -> x : chunks n xs}
+    chunks n = \ es -> case split n es of {(x, Z) -> [x]; (x, xs) -> x : chunks n xs}
     
     {- Subsequence checkers. -}
     
@@ -342,7 +339,6 @@ class (Linear s e) => Split s e | s -> e
     
     -- | isInfixOf checks whether the first line is the substring of the second
     isInfixOf  :: (Eq e) => s -> s -> Bool
-    isInfixOf Z _ = True
     isInfixOf xs ys@(_ :> ys') = xs `isPrefixOf` ys || xs `isInfixOf` ys'
     isInfixOf _ _ = False
     

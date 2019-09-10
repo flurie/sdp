@@ -63,10 +63,7 @@ type role ByteList nominal representational
 
 instance (Eq e, Unboxed e, Index i) => Eq (ByteList i e)
   where
-    (ByteList l1 u1 xs) == (ByteList l2 u2 ys) = s1 == s2 && xs == ys
-      where
-        s1 = size (l1, u1)
-        s2 = size (l2, u2)
+    (ByteList l1 u1 xs) == (ByteList l2 u2 ys) = l1 == l2 && u1 == u2 && xs == ys
 
 instance (Ord e, Unboxed e, Index i) => Ord (ByteList i e)
   where
@@ -147,18 +144,15 @@ instance (Index i, Unboxed e) => Linear (ByteList i e) e
     init Z = pfail "(:<)"
     init (ByteList l u es) = ByteList l u' $ init es where u' = prev (l, u) u
     
-    fromList = fromFoldable
-    
-    fromFoldable es = let (l, u) = unsafeBounds (length es) in ByteList l u $ fromFoldable es
+    fromList es = let (l, u) = unsafeBounds (sizeOf es) in ByteList l u $ fromList es
     
     replicate n e = let (l, u) = unsafeBounds (max 0 n) in ByteList l u $ replicate n e
     
-    concat xss = ByteList l' u' res
+    concat = \ xss -> case unsafeBounds (foldr' g 0 xss) of
+        (l', u') -> ByteList l' u' (foldr f Z xss)
       where
-        res = foldr  (\ (ByteList l u xs) ublist -> size (l, u) `take` xs ++ ublist) Z xss
-        n   = foldr' (\ (ByteList l u _) count -> size (l, u) + count) 0 xss
-        
-        (l', u') = unsafeBounds (max 0 n)
+        f = \ (ByteList l u xs) ublist -> size (l, u) `take` xs ++ ublist
+        g = \ (ByteList l u  _) count  -> size (l, u) + count
     
     intersperse e (ByteList _ _ es) = ByteList l u $ intersperse e es
       where
@@ -238,7 +232,7 @@ instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
         es' = es // [ (offset (l, u) i, e) | (i, e) <- ascs ]
         (l', u') = unsafeBounds $ sizeOf es'
     
-    fromIndexed es = let (l, u) = unsafeBounds (sizeOf es) in ByteList l u (fromIndexed es)
+    fromIndexed es = let (l, u) = unsafeBounds (sizeOf es) in ByteList l u $ fromIndexed es
     
     (ByteList _ _ es) !^ i = es ! i
     
@@ -250,8 +244,8 @@ instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
 
 instance (Index i, Unboxed e) => IFold (ByteList i e) i e
   where
-    ifoldr f base (ByteList l u es) = ifoldr (\ i -> f (index (l, u) i)) base $ size (l, u) `take` es
-    ifoldl f base (ByteList l u es) = ifoldl (\ i -> f (index (l, u) i)) base $ size (l, u) `take` es
+    ifoldr  f base (ByteList l u es) = ifoldr (f . index (l, u)) base $ size (l, u) `take` es
+    ifoldl  f base (ByteList l u es) = ifoldl (f . index (l, u)) base $ size (l, u) `take` es
     
     i_foldr f base (ByteList l u es) = i_foldr f base $ size (l, u) `take` es
     i_foldl f base (ByteList l u es) = i_foldl f base $ size (l, u) `take` es
@@ -332,4 +326,5 @@ done = freeze
 
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.ByteList." ++ msg
+
 

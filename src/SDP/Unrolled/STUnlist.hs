@@ -11,7 +11,6 @@
     This module provides service type Unlist - mutable lazy boxed unrolled
     linked list for SDP.Unrolled.Unlist.
 -}
-
 module SDP.Unrolled.STUnlist
 (
   module SDP.IndexedM,
@@ -73,21 +72,20 @@ instance BorderedM (ST s) (STUnlist s e) Int e
     getUpper  es = return $ case es of {STUnlist n _ _ -> max 0 n - 1; _ -> -1}
     getSizeOf es = return $ case es of {STUnlist n _ _ -> max 0 n; _ -> 0}
     
-    getIndices es   = return $ case es of {STUnlist n _ _ -> [0 .. n - 1]; _ -> []}
-    getIndexOf es i = return $ case es of {STUnlist n _ _ -> i >= 0 && i < n; _ -> False}
+    getIndices es = return $ case es of {STUnlist n _ _ -> [0 .. n - 1]; _ -> []}
+    getIndexOf es = \ i -> return $ case es of {STUnlist n _ _ -> i >= 0 && i < n; _ -> False}
 
 instance LinearM (ST s) (STUnlist s e) e
   where
-    newLinear = fromFoldableM
-    
-    {-# INLINE fromFoldableM #-}
-    fromFoldableM es = foldr (\ x y -> toChunk' err lim x .++ y) rest' chunks
+    {-# INLINE newLinear #-}
+    newLinear es = liftA2 (foldr cat) rest' chs'
       where
-        (chunks :< rest)  = take count [ lim, lim .. ] `splits` toList es
-        (count, restSize) = length es `divMod` lim
+        rest' = toChunk err (length rest) rest
+        chs'  = forM chs $ toChunk err lim
         
-        rest' = toChunk' err restSize rest
-        err   = unreachEx "fromFoldableM"
+        cat = \ (STUnlist n mubl# STUNEmpty) acc -> STUnlist n mubl# acc
+        err = unreachEx "fromFoldableM"
+        (chs :< rest) = chunks lim es
     
     getLeft  es = case es of {STUnlist n _ _ -> mapM (es >!) [0 .. n - 1]; _ -> return []}
     getRight es = case es of {STUnlist n _ _ -> mapM (es >!) [n - 1, n - 2 .. 0]; _ -> return []}
@@ -111,9 +109,11 @@ instance LinearM (ST s) (STUnlist s e) e
 instance IndexedM (ST s) (STUnlist s e) Int e
   where
     {-# INLINE fromAssocs' #-}
-    fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
+    fromAssocs' bnds@(l, _) defvalue ascs = do
+      arr <- size bnds `filled` defvalue
+      overwrite arr [ (i - l, e) | (i, e) <- ascs ]
     
-    es !#> i = es >! i
+    (!#>) = (>!)
     
     {-# INLINE (>!) #-}
     (STUnlist n marr# marr) >! i@(I# i#) = i >= n ? marr >! (i - n) $ ST (readArray# marr# i#)
@@ -145,6 +145,7 @@ instance IndexedM (ST s) (STUnlist s e) Int e
         (curr, others) = partition (inRange (0, n - 1) . fst) ascs
         writes  = ST $ foldr (fill marr#) (done n marr# marr) curr
         others' = [ (i - n, e) | (i, e) <- others ]
+        
     
     fromIndexed' es = do
         copy <- filled n (unreachEx "fromIndexed'")
@@ -161,45 +162,46 @@ instance IndexedM (ST s) (STUnlist s e) Int e
 
 instance IFoldM (ST s) (STUnlist s e) Int e
   where
-    ifoldrM _ base STUNEmpty = return base
-    ifoldrM f base arr@(STUnlist c _ arrs) = go (ifoldrM f base arrs) 0
-      where
-        go b i = c == i ? b $ bindM2 (arr !#> i) (go b $ i + 1) (f i)
+    {-# INLINE ifoldrM #-}
+    ifoldrM f base = \ ubl -> case ubl of
+        STUNEmpty           -> return base
+        (STUnlist c _ ubls) ->
+          let go b i = c == i ? b $ bindM2 (ubl !#> i) (go b $ i + 1) (f i)
+          in  ifoldrM f base ubls `go` 0
     
-    ifoldlM _ base STUNEmpty = return base
-    ifoldlM f base arr@(STUnlist c _ arrs) = return base `go` (c - 1) >>= ifoldlM f `flip` arrs
-      where
-        go b i = -1 == i ? b $ bindM2 (go b $ i - 1) (arr !#> i) (f i)
+    {-# INLINE ifoldlM #-}
+    ifoldlM f base = \ ubl -> case ubl of
+      STUNEmpty           -> return base
+      (STUnlist c _ ubls) ->
+        let go b i = -1 == i ? b $ bindM2 (go b $ i - 1) (ubl !#> i) (f i)
+        in  return base `go` (c - 1) >>= ifoldlM f `flip` ubls
     
-    i_foldrM _ base STUNEmpty = return base
-    i_foldrM f base arr@(STUnlist c _ arrs) = go (i_foldrM f base arrs) 0
-      where
-        go b i = c == i ? b $ bindM2 (arr !#> i) (go b $ i + 1) f
+    {-# INLINE i_foldrM #-}
+    i_foldrM f base = \ ubl -> case ubl of
+      STUNEmpty           -> return base
+      (STUnlist c _ ubls) ->
+        let go b i = c == i ? b $ bindM2 (ubl !#> i) (go b $ i + 1) f
+        in  go (i_foldrM f base ubls) 0
     
-    i_foldlM _ base STUNEmpty = return base
-    i_foldlM f base arr@(STUnlist c _ arrs) = return base `go` (c - 1) >>= i_foldlM f `flip` arrs
-      where
-        go b i = -1 == i ? b $ bindM2 (go b $ i - 1) (arr !#> i) f
+    {-# INLINE i_foldlM #-}
+    i_foldlM f base = \ ubl -> case ubl of
+      STUNEmpty           -> return base
+      (STUnlist c _ ubls) ->
+        let go b i = -1 == i ? b $ bindM2 (go b $ i - 1) (ubl !#> i) f
+        in  return base `go` (c - 1) >>= i_foldlM f `flip` ubls
 
 instance SortM (ST s) (STUnlist s e) e where sortMBy = timSortBy
 
 --------------------------------------------------------------------------------
 
-{-# INLINE toChunk' #-}
-toChunk' :: e -> Int -> [e] -> ST s (STUnlist s e)
-toChunk' e n@(I# n#) es = ST $ \ s1# -> case newArray# n# e s1# of
-  (# s2#, marr# #) ->
-    let go x r = \ i# s3# -> case writeArray# marr# i# x s3# of
+{-# INLINE toChunk #-}
+toChunk :: e -> Int -> [e] -> ST s (STUnlist s e)
+toChunk e n@(I# n#) = \ es -> ST $ \ s1# -> case newArray# n# e s1# of
+  (# s2#, mubl# #) ->
+    let go x r = \ i# s3# -> case writeArray# mubl# i# x s3# of
           s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#
     in case ( if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2# ) of
-      s5# -> (# s5#, STUnlist n marr# STUNEmpty #)
-
-{-# INLINE (.++) #-}
-(.++) :: ST s (STUnlist s e) -> ST s (STUnlist s e) -> ST s (STUnlist s e)
-xs' .++ ys' = liftA2 cat xs' ys'
-  where
-    cat (STUnlist n1 marr1# marr1) y = STUnlist n1 marr1# (cat marr1 y)
-    cat STUNEmpty y = y
+      s5# -> (# s5#, STUnlist n mubl# STUNEmpty #)
 
 {-# INLINE done #-}
 done :: Int -> MutableArray# s e -> STUnlist s e -> STRep s (STUnlist s e)
@@ -214,7 +216,5 @@ unreachEx msg = throw . UnreachableException $ "in SDP.STUnlist." ++ msg
 
 lim :: Int
 lim =  1024
-
-
 
 

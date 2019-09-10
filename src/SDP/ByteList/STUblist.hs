@@ -57,7 +57,7 @@ instance (Unboxed e) => Eq (STUblist s e)
     STUBEmpty == STUBEmpty = True
     (STUblist n1 mubl1# mubls1) == (STUblist n2 mubl2# mubls2) = res
       where
-        res  = n1 == n2 && (n1 == 0 || same && mubls1 == mubls2)
+        res  = (n1 < 1 && n2 < 0) || (n1 == n2 && same && mubls1 == mubls2)
         same = isTrue# (sameMutableByteArray# mubl1# mubl2#)
     _ == _ = False
 
@@ -71,21 +71,20 @@ instance (Unboxed e) => BorderedM (ST s) (STUblist s e) Int e
     getUpper  es = return $ case es of {STUblist n _ _ -> max 0 n - 1; _ -> -1}
     getSizeOf es = return $ case es of {STUblist n _ _ -> max n 0; _ -> 0}
     
-    getIndices es   = return $ case es of {STUblist n _ _ -> [0 .. n - 1]; _ -> []}
-    getIndexOf es i = return $ case es of {STUblist n _ _ -> i >= 0 && i < n; _ -> False}
+    getIndices es = return $ case es of {STUblist n _ _ -> [0 .. n - 1]; _ -> []}
+    getIndexOf es = \ i -> return $ case es of {STUblist n _ _ -> i >= 0 && i < n; _ -> False}
 
 instance (Unboxed e) => LinearM (ST s) (STUblist s e) e
   where
-    newLinear = fromFoldableM
-    
-    {-# INLINE fromFoldableM #-}
-    fromFoldableM es = foldr (\ x y -> toChunk err lim x .++ y) rest' chunks
+    {-# INLINE newLinear #-}
+    newLinear es = liftA2 (foldr cat) rest' chs'
       where
-        (chunks :< rest)  = take count [ lim, lim .. ] `splits` toList es
-        (count, restSize) = length es `divMod` lim
+        rest' = toChunk err (length rest) rest
+        chs'  = forM chs $ toChunk err lim
         
-        rest' = toChunk err restSize rest
-        err   = unreachEx "fromFoldableM"
+        cat = \ (STUblist n mubl# STUBEmpty) acc -> STUblist n mubl# acc
+        err = unreachEx "fromFoldableM"
+        (chs :< rest) = chunks lim es
     
     getLeft  es = case es of {STUblist n _ _ -> mapM (es >!) [0 .. n - 1]; _ -> return []}
     getRight es = case es of {STUblist n _ _ -> mapM (es >!) [n - 1, n - 2 .. 0]; _ -> return []}
@@ -111,14 +110,16 @@ instance (Unboxed e) => LinearM (ST s) (STUblist s e) e
 instance (Unboxed e) => IndexedM (ST s) (STUblist s e) Int e
   where
     {-# INLINE fromAssocs #-}
-    fromAssocs bnds ascs = size bnds `filled_` err >>= (`overwrite` ascs)
-      where
-        err = throw $ UndefinedValue "in SDP.ByteList.STUblist.fromAssocs"
+    fromAssocs bnds@(l, _) ascs = do
+        ubl <- size bnds `filled_` undEx "fromAssocs"
+        overwrite ubl [ (i - l, e) | (i, e) <- ascs ]
     
     {-# INLINE fromAssocs' #-}
-    fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
+    fromAssocs' bnds@(l, _) defvalue ascs = do
+      arr <- size bnds `filled` defvalue
+      overwrite arr [ (i - l, e) | (i, e) <- ascs ]
     
-    es !#> i = es >! i
+    (!#>) = (>!)
     
     {-# INLINE (>!) #-}
     (STUblist n mubl# mubls) >! i@(I# i#) = i >= n ? mubls !> (i - n) $ ST (mubl# !># i#)
@@ -166,25 +167,33 @@ instance (Unboxed e) => IndexedM (ST s) (STUblist s e) Int e
 
 instance (Unboxed e) => IFoldM (ST s) (STUblist s e) Int e
   where
-    ifoldrM _ base STUBEmpty = return base
-    ifoldrM f base arr@(STUblist c _ arrs) = go (ifoldrM f base arrs) 0
-      where
-        go b i = c == i ? b $ bindM2 (arr !#> i) (go b $ i + 1) (f i)
+    {-# INLINE ifoldrM #-}
+    ifoldrM f base = \ ubl -> case ubl of
+        STUBEmpty           -> return base
+        (STUblist c _ ubls) ->
+          let go b i = c == i ? b $ bindM2 (ubl !#> i) (go b $ i + 1) (f i)
+          in  ifoldrM f base ubls `go` 0
     
-    ifoldlM _ base STUBEmpty = return base
-    ifoldlM f base arr@(STUblist c _ arrs) = return base `go` (c - 1) >>= ifoldlM f `flip` arrs
-      where
-        go b i = -1 == i ? b $ bindM2 (go b $ i - 1) (arr !#> i) (f i)
+    {-# INLINE ifoldlM #-}
+    ifoldlM f base = \ ubl -> case ubl of
+      STUBEmpty           -> return base
+      (STUblist c _ ubls) ->
+        let go b i = -1 == i ? b $ bindM2 (go b $ i - 1) (ubl !#> i) (f i)
+        in  return base `go` (c - 1) >>= ifoldlM f `flip` ubls
     
-    i_foldrM _ base STUBEmpty = return base
-    i_foldrM f base arr@(STUblist c _ arrs) = go (i_foldrM f base arrs) 0
-      where
-        go b i = c == i ? b $ bindM2 (arr !#> i) (go b $ i + 1) f
+    {-# INLINE i_foldrM #-}
+    i_foldrM f base = \ ubl -> case ubl of
+      STUBEmpty           -> return base
+      (STUblist c _ ubls) ->
+        let go b i = c == i ? b $ bindM2 (ubl !#> i) (go b $ i + 1) f
+        in  go (i_foldrM f base ubls) 0
     
-    i_foldlM _ base STUBEmpty = return base
-    i_foldlM f base arr@(STUblist c _ arrs) = return base `go` (c - 1) >>= i_foldlM f `flip` arrs
-      where
-        go b i = -1 == i ? b $ bindM2 (go b $ i - 1) (arr !#> i) f
+    {-# INLINE i_foldlM #-}
+    i_foldlM f base = \ ubl -> case ubl of
+      STUBEmpty           -> return base
+      (STUblist c _ ubls) ->
+        let go b i = -1 == i ? b $ bindM2 (go b $ i - 1) (ubl !#> i) f
+        in  return base `go` (c - 1) >>= i_foldlM f `flip` ubls
 
 instance (Unboxed e) => SortM (ST s) (STUblist s e) e where sortMBy = timSortBy
 
@@ -192,18 +201,12 @@ instance (Unboxed e) => SortM (ST s) (STUblist s e) e where sortMBy = timSortBy
 
 {-# INLINE toChunk #-}
 toChunk :: (Unboxed e) => e -> Int -> [e] -> ST s (STUblist s e)
-toChunk e n@(I# n#) es = ST $ \ s1# -> case newUnboxed e n# s1# of
+toChunk e n@(I# n#) = \ es -> ST $ \ s1# -> case newUnboxed e n# s1# of
   (# s2#, mubl# #) ->
     let go x r = \ i# s3# -> case writeByteArray# mubl# i# x s3# of
           s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#
     in case ( if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2# ) of
       s5# -> (# s5#, STUblist n mubl# STUBEmpty #)
-
-{-# INLINE (.++) #-}
-(.++) :: ST s (STUblist s e) -> ST s (STUblist s e) -> ST s (STUblist s e)
-(.++) = liftA2 cat
-  where
-    cat x y = case x of {STUblist n1 mubl# mubls -> STUblist n1 mubl# (cat mubls y); _ -> y}
 
 filled_ :: (Unboxed e) => Int -> e -> ST s (STUblist s e)
 filled_ n e
@@ -224,12 +227,14 @@ done n mubl# rest = \ s1# -> (# s1#, STUblist n mubl# rest #)
 fill :: (Unboxed e) => MutableByteArray# s -> (Int, e) -> STRep s a -> STRep s a
 fill mubl# (I# i#, e) nxt = \ s1# -> case writeByteArray# mubl# i# e s1# of s2# -> nxt s2#
 
+undEx :: String -> a
+undEx msg = throw . UndefinedValue $ "in SDP.ByteList.STUblist." ++ msg
+
 unreachEx :: String -> a
-unreachEx msg = throw . UnreachableException $ "in SDP.STUnlist." ++ msg
+unreachEx msg = throw . UnreachableException $ "in SDP.ByteList.STUnlist." ++ msg
 
 lim :: Int
 lim =  1024
-
 
 
 
