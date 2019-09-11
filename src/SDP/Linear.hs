@@ -86,30 +86,41 @@ class (Index i) => Bordered (b) i e | b -> i, b -> e
     bounds    :: b -> (i, i)
     bounds es =  (lower es, upper es)
     
-    {-# INLINE indices #-}
-    indices   :: b -> [i]
-    indices   =  range . bounds
-    
     {-# INLINE lower #-}
+    -- | lower bound of structure
     lower :: b -> i
     lower =  fst . bounds
     
     {-# INLINE upper #-}
+    -- | upper bound of structure
     upper :: b -> i
     upper =  snd . bounds
     
     {-# INLINE assocs #-}
+    -- | list of associations (index, element).
     default assocs :: (Linear b e) => b -> [(i, e)]
     assocs    :: b -> [(i, e)]
     assocs es =  indices es `zip` listL es
     
     {-# INLINE sizeOf #-}
+    -- | actual size of structure.
     sizeOf  :: b -> Int
     sizeOf  =  size . bounds
     
     {-# INLINE indexOf #-}
+    -- | checks if an index falls within the boundaries of the structure.
     indexOf :: b -> i -> Bool
     indexOf = inRange . bounds
+    
+    {-# INLINE indices #-}
+    -- | index range list.
+    indices :: b -> [i]
+    indices =  range . bounds
+    
+    {-# INLINE offsetOf #-}
+    -- | index offset in structure bounds.
+    offsetOf :: b -> i -> Int
+    offsetOf es = offset (bounds es)
 
 --------------------------------------------------------------------------------
 
@@ -263,6 +274,7 @@ class Linear l e | l -> e
       where
         ss es = case es of {(x :> xs) -> single x : foldr (\ ys r -> ys : (x :> ys) : r) [] (ss xs); _ -> Z}
     
+    -- | same as nubBy (==)
     nub :: (Eq e) => l -> l
     nub = nubBy (==)
     

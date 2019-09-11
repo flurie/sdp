@@ -115,11 +115,11 @@ version 0.1.1:
   Added IFold and IFoldM classes.
 
 version 0.2:
-  Added chunks function (Split).
-  Added test siute for indices.
-  
   DEPRECATED: unsafeBounds (in favour of defaultBounds) and prevTest/nextTest.
-
-
+  
+  Added chunks function (Split).
+  Added defaultBounds function (Index).
+  
+  Added test siute for indices.
 
 

@@ -14,8 +14,8 @@ the same functionality, I will usually prefer my own code.
 
 VERSION NX-MAJOR (0.2):
   
-  Removing of deprecated SDP.Tree.BinTree, perhaps, in favor SDP.Tree.Heap
-  (new class).
+  Removing of deprecated SDP.Tree.BinTree, perhaps, in favour of
+  SDP.Tree.Heap (new class).
   
   Cabal benchmarks.
 
