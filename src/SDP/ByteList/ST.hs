@@ -70,9 +70,9 @@ instance (Index i, Unboxed e) => LinearM (ST s) (STByteList s i e) e
   where
     newLinear es = STByteList l u <$> newLinear es
       where
-        (l, u) = unsafeBounds (length es)
+        (l, u) = defaultBounds $ sizeOf es
     
-    filled n e = let (l, u) = unsafeBounds n in STByteList l u <$> filled n e
+    filled n e = let (l, u) = defaultBounds n in STByteList l u <$> filled n e
     
     getLeft  (STByteList l u es) = take (size (l, u)) <$> getLeft es
     copied   (STByteList l u es) = STByteList l u <$> copied  es
@@ -122,12 +122,12 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STByteList s i e) i e
     
     fromIndexed' es = STByteList l u <$> fromIndexed' es
       where
-        (l, u) = unsafeBounds (sizeOf es)
+        (l, u) = defaultBounds $ sizeOf es
     
     fromIndexedM es = do
       es' <- fromIndexedM es
       n   <- getSizeOf es'
-      return $ let (l, u) = unsafeBounds n in STByteList l u es'
+      return $ let (l, u) = defaultBounds n in STByteList l u es'
 
 instance (Index i, Unboxed e) => IFoldM (ST s) (STByteList s i e) i e
   where

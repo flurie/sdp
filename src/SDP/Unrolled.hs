@@ -109,7 +109,7 @@ instance (Index i) => Monoid (Unrolled i e) where mempty = def
 
 instance (Index i) => Default (Unrolled i e)
   where
-    def = let (l, u) = unsafeBounds 0 in Unrolled l u def
+    def = let (l, u) = defaultBounds 0 in Unrolled l u def
 
 --------------------------------------------------------------------------------
 
@@ -177,7 +177,7 @@ instance (Index i) => Linear (Unrolled i e) e
     
     toHead e (Unrolled l u es) = Unrolled l' u' (e :> take n es)
       where
-        (l', u') = unsafeBounds (n + 1)
+        (l', u') = defaultBounds $ n + 1
         n = size (l, u)
     
     uncons Z = pfail "(:>)"
@@ -194,7 +194,7 @@ instance (Index i) => Linear (Unrolled i e) e
     
     toLast (Unrolled l u es) e = Unrolled l' u' (take n es :< e)
       where
-        (l', u') = unsafeBounds $ n + 1
+        (l', u') = defaultBounds $ n + 1
         n = size (l, u)
     
     unsnoc Z = pfail "(:<)"
@@ -209,16 +209,16 @@ instance (Index i) => Linear (Unrolled i e) e
     init Z = pfail "(:<)"
     init (Unrolled l u es) = Unrolled l u' $ init es where u' = prev (l, u) u
     
-    fromList   es = let (l, u) = unsafeBounds (sizeOf es) in Unrolled l u $ fromList es
-    replicate n e = let (l, u) = unsafeBounds (max 0 n) in Unrolled l u $ replicate n e
+    fromList   es = let (l, u) = defaultBounds $ sizeOf es in Unrolled l u $ fromList es
+    replicate n e = let (l, u) = defaultBounds $ max 0 n in Unrolled l u $ replicate n e
     
     Z  ++ ys = ys
     xs ++  Z = xs
     (Unrolled l1 u1 xs) ++ (Unrolled l2 u2 ys) = Unrolled l u $ xs ++ ys
       where
-        (l, u) = unsafeBounds $ size (l1, u1) + size (l2, u2)
+        (l, u) = defaultBounds $ size (l1, u1) + size (l2, u2)
     
-    concat = \ xss -> case unsafeBounds (foldr' g 0 xss) of
+    concat = \ xss -> case defaultBounds $ foldr' g 0 xss of
         (l', u') -> Unrolled l' u' (foldr f Z xss)
       where
         f = \ (Unrolled l u xs) ublist -> size (l, u) `take` xs ++ ublist
@@ -226,7 +226,7 @@ instance (Index i) => Linear (Unrolled i e) e
     
     intersperse e (Unrolled _ _ es) = Unrolled l u $ intersperse e es
       where
-        (l, u) = unsafeBounds $ case n <=> 0 of {GT -> 2 * n - 1; _ -> 0}
+        (l, u) = defaultBounds $ case n <=> 0 of {GT -> 2 * n - 1; _ -> 0}
         n = length es
     
     listL  (Unrolled l u bytes) = listL $ size (l, u) `take` bytes
@@ -300,9 +300,9 @@ instance (Index i) => Indexed (Unrolled i e) i e
     (Unrolled l u es) // ascs = Unrolled l' u' es'
       where
         es' = es // [ (offset (l, u) i, e) | (i, e) <- ascs ]
-        (l', u') = unsafeBounds $ length es'
+        (l', u') = defaultBounds $ length es'
     
-    fromIndexed es = let (l, u) = unsafeBounds (sizeOf es) in Unrolled l u $ fromIndexed es
+    fromIndexed es = let (l, u) = defaultBounds $ sizeOf es in Unrolled l u $ fromIndexed es
     
     {-# INLINE (!^) #-}
     (Unrolled _ _ es) !^ i = es !^ i
@@ -326,37 +326,37 @@ instance (Index i) => Set (Unrolled i e) e
     setWith f (Unrolled _ _ es) = Unrolled l u es'
       where
         es'    = setWith f es
-        (l, u) = unsafeBounds (sizeOf es')
+        (l, u) = defaultBounds $ sizeOf es'
     
     intersectionWith f (Unrolled _ _ xs) (Unrolled _ _ ys) = Unrolled l u es
       where
         es     = intersectionWith f xs ys
-        (l, u) = unsafeBounds (sizeOf es)
+        (l, u) = defaultBounds $ sizeOf es
     
     unionWith f (Unrolled _ _ xs) (Unrolled _ _ ys) = Unrolled l u es
       where
         es     = unionWith f xs ys
-        (l, u) = unsafeBounds (sizeOf es)
+        (l, u) = defaultBounds $ sizeOf es
     
     differenceWith f (Unrolled _ _ xs) (Unrolled _ _ ys) = Unrolled l u es
       where
         es     = differenceWith f xs ys
-        (l, u) = unsafeBounds (sizeOf es)
+        (l, u) = defaultBounds $ sizeOf es
     
     symdiffWith f (Unrolled _ _ xs) (Unrolled _ _ ys) = Unrolled l u es
       where
         es     = symdiffWith f xs ys
-        (l, u) = unsafeBounds (sizeOf es)
+        (l, u) = defaultBounds $ sizeOf es
     
     insertWith f e (Unrolled _ _ es) = Unrolled l u es'
       where
         es'    = insertWith f e es
-        (l, u) = unsafeBounds (sizeOf es')
+        (l, u) = defaultBounds $ sizeOf es'
     
     deleteWith f e (Unrolled _ _ es) = Unrolled l u es'
       where
         es'    = deleteWith f e es
-        (l, u) = unsafeBounds (sizeOf es')
+        (l, u) = defaultBounds $ sizeOf es'
     
     isContainedIn f e (Unrolled _ _ es) = isContainedIn f e es
 

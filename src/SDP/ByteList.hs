@@ -98,7 +98,7 @@ instance (Index i, Unboxed e) => Semigroup (ByteList i e) where xs <> ys = xs ++
 
 instance (Index i, Unboxed e) => Monoid (ByteList i e) where mempty = def
 
-instance (Index i) => Default (ByteList i e) where def = let (l, u) = unsafeBounds 0 in ByteList l u def
+instance (Index i) => Default (ByteList i e) where def = let (l, u) = defaultBounds 0 in ByteList l u def
 
 --------------------------------------------------------------------------------
 
@@ -112,7 +112,7 @@ instance (Index i, Unboxed e) => Linear (ByteList i e) e
     
     toHead e (ByteList l u es) = ByteList l' u' (e :> take n es)
       where
-        (l', u') = unsafeBounds (n + 1)
+        (l', u') = defaultBounds $ n + 1
         n = size (l, u)
     
     uncons Z = pfail "(:>)"
@@ -129,7 +129,7 @@ instance (Index i, Unboxed e) => Linear (ByteList i e) e
     
     toLast (ByteList l u es) e = ByteList l' u' (take n es :< e)
       where
-        (l', u') = unsafeBounds $ n + 1
+        (l', u') = defaultBounds $ n + 1
         n = size (l, u)
     
     unsnoc Z = pfail "(:<)"
@@ -144,11 +144,11 @@ instance (Index i, Unboxed e) => Linear (ByteList i e) e
     init Z = pfail "(:<)"
     init (ByteList l u es) = ByteList l u' $ init es where u' = prev (l, u) u
     
-    fromList es = let (l, u) = unsafeBounds (sizeOf es) in ByteList l u $ fromList es
+    fromList es = let (l, u) = defaultBounds $ sizeOf es in ByteList l u $ fromList es
     
-    replicate n e = let (l, u) = unsafeBounds (max 0 n) in ByteList l u $ replicate n e
+    replicate n e = let (l, u) = defaultBounds $ max 0 n in ByteList l u $ replicate n e
     
-    concat = \ xss -> case unsafeBounds (foldr' g 0 xss) of
+    concat = \ xss -> case defaultBounds $ foldr' g 0 xss of
         (l', u') -> ByteList l' u' (foldr f Z xss)
       where
         f = \ (ByteList l u xs) ublist -> size (l, u) `take` xs ++ ublist
@@ -156,14 +156,14 @@ instance (Index i, Unboxed e) => Linear (ByteList i e) e
     
     intersperse e (ByteList _ _ es) = ByteList l u $ intersperse e es
       where
-        (l, u) = unsafeBounds $ case n <=> 0 of {GT -> 2 * n - 1; _ -> 0}
+        (l, u) = defaultBounds $ case n <=> 0 of {GT -> 2 * n - 1; _ -> 0}
         n = sizeOf es
     
     Z  ++ ys = ys
     xs ++  Z = xs
     (ByteList l1 u1 xs) ++ (ByteList l2 u2 ys) = ByteList l u $ xs ++ ys
       where
-        (l, u) = unsafeBounds $ size (l1, u1) + size (l2, u2)
+        (l, u) = defaultBounds $ size (l1, u1) + size (l2, u2)
     
     listL (ByteList l u bytes) = listL $ size (l, u) `take` bytes
     listR (ByteList l u bytes) = listR $ size (l, u) `take` bytes
@@ -230,9 +230,9 @@ instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
     (ByteList l u es) // ascs = ByteList l' u' es'
       where
         es' = es // [ (offset (l, u) i, e) | (i, e) <- ascs ]
-        (l', u') = unsafeBounds $ sizeOf es'
+        (l', u') = defaultBounds $ sizeOf es'
     
-    fromIndexed es = let (l, u) = unsafeBounds (sizeOf es) in ByteList l u $ fromIndexed es
+    fromIndexed es = let (l, u) = defaultBounds $ sizeOf es in ByteList l u $ fromIndexed es
     
     (ByteList _ _ es) !^ i = es ! i
     
@@ -255,37 +255,37 @@ instance (Index i, Unboxed e) => Set (ByteList i e) e
     setWith f (ByteList _ _ es) = ByteList l u es'
       where
         es'    = setWith f es
-        (l, u) = unsafeBounds (sizeOf es')
+        (l, u) = defaultBounds $ sizeOf es'
     
     intersectionWith f (ByteList _ _ xs) (ByteList _ _ ys) = ByteList l u es
       where
         es     = intersectionWith f xs ys
-        (l, u) = unsafeBounds (sizeOf es)
+        (l, u) = defaultBounds $ sizeOf es
     
     unionWith f (ByteList _ _ xs) (ByteList _ _ ys) = ByteList l u es
       where
         es     = unionWith f xs ys
-        (l, u) = unsafeBounds (sizeOf es)
+        (l, u) = defaultBounds $ sizeOf es
     
     differenceWith f (ByteList _ _ xs) (ByteList _ _ ys) = ByteList l u es
       where
         es     = differenceWith f xs ys
-        (l, u) = unsafeBounds (sizeOf es)
+        (l, u) = defaultBounds $ sizeOf es
     
     symdiffWith f (ByteList _ _ xs) (ByteList _ _ ys) = ByteList l u es
       where
         es     = symdiffWith f xs ys
-        (l, u) = unsafeBounds (sizeOf es)
+        (l, u) = defaultBounds $ sizeOf es
     
     insertWith f e (ByteList _ _ es) = ByteList l u es'
       where
         es'    = insertWith f e es
-        (l, u) = unsafeBounds (sizeOf es')
+        (l, u) = defaultBounds $ sizeOf es'
     
     deleteWith f e (ByteList _ _ es) = ByteList l u es'
       where
         es'    = deleteWith f e es
-        (l, u) = unsafeBounds (sizeOf es')
+        (l, u) = defaultBounds $ sizeOf es'
     
     isContainedIn f e (ByteList _ _ es) = isContainedIn f e es
     

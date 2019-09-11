@@ -51,6 +51,7 @@ rangeTest (l, u) i = and
     not (isEmpty  (l, u))  || isUnderflow (l, u) i
   ]
 
+{-# DEPRECATED prevTest "prevTest is deprecated - too long" #-}
 -- | prevTest checks relations of prev and range.
 prevTest :: (Index i) => (i, i) -> Bool
 prevTest bnds = null r || and test
@@ -58,6 +59,7 @@ prevTest bnds = null r || and test
     test = take listSizeRestriction $ zipWith (==) r (tail $ prev bnds <$> r)
     r = range bnds
 
+{-# DEPRECATED nextTest "nextTest is deprecated - too long" #-}
 -- | nextTest checks relations of next and range.
 nextTest :: (Index i) => (i, i) -> Bool
 nextTest bnds = null r || and test
@@ -103,9 +105,6 @@ indexTest bnds i = and
     
     rangeTest bnds i,
     
-    inBoundsTest bnds i,
-    
-    prevTest bnds,
-    
-    nextTest bnds
+    inBoundsTest bnds i
   ]
+

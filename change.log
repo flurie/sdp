@@ -114,7 +114,12 @@ version 0.1.1:
   Added reshape and fromAccum procedures (IndexedM).
   Added IFold and IFoldM classes.
 
-version 0.1.2:
-  Added chunks function.
+version 0.2:
+  Added chunks function (Split).
+  Added test siute for indices.
+  
+  DEPRECATED: unsafeBounds (in favour of defaultBounds) and prevTest/nextTest.
+
+
 
 

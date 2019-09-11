@@ -88,14 +88,14 @@ instance (Index i, Unboxed e) => LinearM (ST s) (STBytes s i e) e
     newLinear = fromFoldableM
     
     {-# INLINE newLinearN #-}
-    newLinearN c es = fromFoldable' err
+    newLinearN c es = newLinearN' err
       where
-        fromFoldable' :: (Index i, Unboxed e) => e -> ST s (STBytes s i e)
-        fromFoldable' e = ST $ \ s1# -> case newUnboxed e n# s1# of
+        newLinearN' :: (Index i, Unboxed e) => e -> ST s (STBytes s i e)
+        newLinearN' e = ST $ \ s1# -> case newUnboxed e n# s1# of
           (# s2#, marr# #) ->
             let go y r = \ i# s3# -> case writeByteArray# marr# i# y s3# of
                   s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#
-            in done (unsafeBounds n) n marr# ( if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2# )
+            in done (defaultBounds n) n marr# ( if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2# )
         
         err = undEx "newLinearN"
         !n@(I# n#) = max 0 c
@@ -108,7 +108,7 @@ instance (Index i, Unboxed e) => LinearM (ST s) (STBytes s i e) e
           (# s2#, marr# #) ->
             let go y r = \ i# s3# -> case writeByteArray# marr# i# y s3# of
                   s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#
-            in done (unsafeBounds n) n marr# ( if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2# )
+            in done (defaultBounds n) n marr# ( if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2# )
         
         !n@(I# n#) = length es
     
@@ -132,7 +132,7 @@ instance (Index i, Unboxed e) => LinearM (ST s) (STBytes s i e) e
     filled n e = ST $ \ s1# -> case newUnboxed' e n# s1# of
         (# s2#, marr# #) -> (# s2#, STBytes l u n' marr# #)
       where
-        (l, u) = unsafeBounds n'
+        (l, u) = defaultBounds n'
         !n'@(I# n#) = max 0 n
 
 --------------------------------------------------------------------------------
@@ -223,7 +223,7 @@ filled_ :: (Index i, Unboxed e) => Int -> e -> ST s (STBytes s i e)
 filled_ n@(I# n#) e = ST $ \ s1# -> case newUnboxed e n# s1# of
     (# s2#, marr# #) -> (# s2#, STBytes l u n marr# #)
   where
-    (l, u) = unsafeBounds n
+    (l, u) = defaultBounds n
 
 {-# INLINE done #-}
 done :: (Unboxed e) => (i, i) -> Int -> MutableByteArray# s -> STRep s (STBytes s i e)

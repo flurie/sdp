@@ -69,9 +69,9 @@ instance (Index i) => LinearM (ST s) (STUnrolled s i e) e
   where
     newLinear es = STUnrolled l u <$> newLinear es
       where
-        (l, u) = unsafeBounds (length es)
+        (l, u) = defaultBounds $ sizeOf es
     
-    filled n e = STUnrolled l u <$> filled n e where (l, u) = unsafeBounds n
+    filled n e = STUnrolled l u <$> filled n e where (l, u) = defaultBounds n
     
     getLeft  (STUnrolled l u es) = take (size (l, u)) <$> getLeft es
     copied   (STUnrolled l u es) = STUnrolled l u <$> copied  es
@@ -115,12 +115,12 @@ instance (Index i) => IndexedM (ST s) (STUnrolled s i e) i e
     
     fromIndexed' es = STUnrolled l u <$> fromIndexed' es
       where
-        (l, u) = unsafeBounds (sizeOf es)
+        (l, u) = defaultBounds $ sizeOf es
     
     fromIndexedM es = do
       es' <- fromIndexedM es
       n   <- getSizeOf es'
-      return $ let (l, u) = unsafeBounds n in STUnrolled l u es'
+      return $ let (l, u) = defaultBounds n in STUnrolled l u es'
 
 instance (Index i) => IFoldM (ST s) (STUnrolled s i e) i e
   where

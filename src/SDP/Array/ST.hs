@@ -219,7 +219,7 @@ instance (Index i) => SortM (ST s) (STArray s i e) e where sortMBy = timSortBy
 
 {-# INLINE done #-}
 done :: (Index i) => Int -> MutableArray# s e -> STRep s (STArray s i e)
-done n marr# = \ s1# -> let (l, u) = unsafeBounds n in (# s1#, STArray l u n marr# #)
+done n marr# = \ s1# -> let (l, u) = defaultBounds n in (# s1#, STArray l u n marr# #)
 
 undEx :: String -> a
 undEx msg = throw . UndefinedValue $ "in SDP.Array.ST" ++ msg

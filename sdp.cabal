@@ -110,6 +110,32 @@ Library
 ---             | |  | |___ /\__/ /  | |   _| |_ | |\  || |_\ \              ---
 ---             \_/  \____/ \____/   \_/   \___/ \_| \_/ \____/              ---
 
+test-suite test-indices
+  default-language: Haskell2010
+  hs-source-dirs:   test, src
+  
+  type:             exitcode-stdio-1.0
+  main-is:          test-indices.hs
+  
+  other-modules:
+    Control.Exception.SDP
+    SDP.SafePrelude
+    Test.SDP.Index
+    SDP.Estimate
+    SDP.Simple
+    SDP.Index
+  
+  build-depends:
+    base                       >= 4.12  && < 5,
+    ghc-prim                   >= 0.5.3 && < 0.6,
+    bytestring                 >= 0.10  && < 0.11,
+    data-default               >= 0.7   && < 0.8,
+    QuickCheck                 >= 2.12  && < 3,
+    test-framework             >= 0.8   && < 0.9,
+    test-framework-quickcheck2 >= 0.3   && < 0.4
+  
+  ghc-options: -Wall -O2
+
 test-suite test-array
   default-language: Haskell2010
   hs-source-dirs:   test, src

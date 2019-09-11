@@ -114,7 +114,7 @@ instance (Index i, Unboxed e) => Monoid    (Bytes i e) where mempty = def
 
 instance (Index i) => Default (Bytes i e)
   where
-    def = let (l, u) = unsafeBounds 0 in runST $ ST $
+    def = let (l, u) = defaultBounds 0 in runST $ ST $
       \ s1# -> case newByteArray# 0# s1# of
         (# s2#, marr# #) -> case unsafeFreezeByteArray# marr# s2# of
           (# s3#, bytes# #) -> (# s3#, Bytes l u 0 bytes# #)
@@ -150,7 +150,7 @@ instance (Unboxed e, Index i) => Linear (Bytes i e) e
     init es = take (sizeOf es - 1) es
     
     {-# INLINE single #-}
-    single e = let (l, u) = unsafeBounds 1 in runST $ ST $
+    single e = let (l, u) = defaultBounds 1 in runST $ ST $
       \ s1# -> case newUnboxed' e 1# s1# of
         (# s2#, marr# #) -> case unsafeFreezeByteArray# marr# s2# of
           (# s3#, bytes# #) -> (# s3#, Bytes l u 1 bytes# #)
@@ -404,7 +404,7 @@ filled_ :: (Index i, Unboxed e) => Int -> e -> ST s (STBytes s i e)
 filled_ n@(I# n#) e = ST $ \ s1# -> case newUnboxed e n# s1# of
     (# s2#, marr# #) -> (# s2#, STBytes l u n marr# #)
   where
-    (l, u) = unsafeBounds n
+    (l, u) = defaultBounds n
 
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Bytes." ++ msg

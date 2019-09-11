@@ -12,10 +12,6 @@ added at all, or they will be added strongly modified.
 Don't write anything yourself if the request has been added to this file - with
 the same functionality, I will usually prefer my own code.
 
-VERSION NX-MINOR (0.1.2):
-  
-  Nothing yet, see EXPERIMENTAL
-
 VERSION NX-MAJOR (0.2):
   
   Removing of deprecated SDP.Tree.BinTree, perhaps, in favor SDP.Tree.Heap
@@ -33,7 +29,6 @@ EXPERIMENTAL
   
   TimSort optimizations (binary search, new splitting procedure,
   GaloppingMode and TryMerge).
-
 
 
 
