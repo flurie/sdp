@@ -115,11 +115,16 @@ version 0.1.1:
   Added IFold and IFoldM classes.
 
 version 0.2:
+  Fixed assoc and assoc'.
+  
   DEPRECATED: unsafeBounds (in favour of defaultBounds) and prevTest/nextTest.
   
   Added chunks function (Split).
+  Added indexOf and offsetOf (Bordered). Old indexOf renamed to indexIn.
   Added defaultBounds function (Index).
   
   Added test siute for indices.
+  
+  Foldable and IFold rewrited for inline with 2 arguments.
 
 

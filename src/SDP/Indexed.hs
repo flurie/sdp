@@ -98,7 +98,7 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
     -- | (!?) is completely safe, but very boring function.
     default (!?) :: (Bordered v i e) => v -> i -> Maybe e
     (!?) :: v -> i -> Maybe e
-    (!?) dat = (not . indexOf dat) ?: (dat .!)
+    (!?) dat = (not . indexIn dat) ?: (dat .!)
     
     -- |  Write one element to structure.
     default write_ :: (Bordered v i e) => v -> Int -> e -> v

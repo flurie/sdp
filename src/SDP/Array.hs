@@ -193,43 +193,43 @@ instance (Index i) => Applicative (Array i)
 instance (Index i) => Foldable (Array i)
   where
     {-# INLINE foldr #-}
-    foldr  f base arr = go 0
-      where
-        go i = arr ==. i ? base $ f (arr !^ i) (go $ i + 1)
+    foldr  f base = \ arr ->
+      let go i = arr ==. i ? base $ f (arr !^ i) (go $ i + 1)
+      in  go 0
     
     {-# INLINE foldl #-}
-    foldl  f base arr = go $ sizeOf arr - 1
-      where
-        go i = -1 == i ? base $ f (go $ i - 1) (arr !^ i)
+    foldl  f base = \ arr ->
+      let go i = -1 == i ? base $ f (go $ i - 1) (arr !^ i)
+      in  go $ sizeOf arr - 1
     
     {-# INLINE foldr' #-}
-    foldr' f base arr = go (sizeOf arr - 1) base
-      where
-        go i !a = -1 == i ? a $ go (i - 1) (f (arr !^ i) a)
+    foldr' f base = \ arr ->
+      let go i !a = -1 == i ? a $ go (i - 1) (f (arr !^ i) a)
+      in  go (sizeOf arr - 1) base
     
     {-# INLINE foldl' #-}
-    foldl' f base arr = go 0 base
-      where
-        go i !a = arr ==. i ? a $ go (i + 1) (f a $ arr !^ i)
+    foldl' f base = \ arr ->
+      let go i !a = arr ==. i ? a $ go (i + 1) (f a $ arr !^ i)
+      in  go 0 base
     
     {-# INLINE foldr1 #-}
-    foldr1 f arr = null arr ? pfailEx "foldr1" $ go 0
-      where
-        go i = arr ==. (i + 1) ? e $ f e (go $ i + 1) where e = arr !^ i
+    foldr1 f = \ arr ->
+      let go i = arr ==. (i + 1) ? e $ f e (go $ i + 1) where e = arr !^ i
+      in  null arr ? pfailEx "foldr1" $ go 0
     
     {-# INLINE foldl1 #-}
-    foldl1 f arr = null arr ? pfailEx "foldl1" $ go (sizeOf arr - 1)
-      where
-        go i = 0 == i ? e $ f (go $ i - 1) e where e = arr !^ i
+    foldl1 f = \ arr ->
+      let go i = 0 == i ? e $ f (go $ i - 1) e where e = arr !^ i
+      in  null arr ? pfailEx "foldl1" $ go (sizeOf arr - 1)
     
     {-# INLINE toList #-}
-    toList arr@(Array _ _ n _) = [ arr !^ i | i <- [ 0 .. n - 1 ] ]
+    toList arr = [ arr !^ i | i <- [ 0 .. sizeOf arr - 1 ] ]
     
     {-# INLINE null #-}
-    null       (Array l u n _) = isEmpty (l, u) || n < 1
+    null   (Array l u n _) = isEmpty (l, u) || n < 1
     
     {-# INLINE length #-}
-    length     (Array _ _ n _) = max 0 n
+    length (Array _ _ n _) = max 0 n
 
 instance (Index i) => Scan (Array i)
   where
@@ -378,10 +378,26 @@ instance (Index i) => Split (Array i e) e
 
 instance (Index i) => Bordered (Array i e) i e
   where
-    sizeOf (Array _ _ n _) = max 0 n
-    bounds (Array l u _ _) = (l, u)
-    lower  (Array l _ _ _) = l
-    upper  (Array _ u _ _) = u
+    {-# INLINE indexIn #-}
+    indexIn (Array l u _ _) = inRange (l, u)
+    
+    {-# INLINE indexOf #-}
+    indexOf (Array l u _ _) = index (l, u)
+    
+    {-# INLINE offsetOf #-}
+    offsetOf (Array l u _ _) = offset (l, u)
+    
+    {-# INLINE sizeOf #-}
+    sizeOf  (Array _ _ n _) = max 0 n
+    
+    {-# INLINE bounds #-}
+    bounds  (Array l u _ _) = (l, u)
+    
+    {-# INLINE lower #-}
+    lower   (Array l _ _ _) = l
+    
+    {-# INLINE upper #-}
+    upper   (Array _ u _ _) = u
 
 --------------------------------------------------------------------------------
 
@@ -410,19 +426,19 @@ instance (Index i) => Indexed (Array i e) i e
     (Array _ _ _ arr#) !^ (I# i#) = case indexArray# arr# i# of (# e #) -> e
     
     {-# INLINE (!) #-}
-    (!) arr@(Array l u _ _) i = arr !^ offset (l, u) i
+    (!) arr i = arr !^ offsetOf arr i
     
     (*$) p = ifoldr (\ i e is -> p e ? (i : is) $ is) []
 
 instance (Index i) => IFold (Array i e) i e
   where
-    ifoldr  f base arr@(Array l u n _) = go 0
-      where
-        go i =  n == i ? base $ f (index (l, u) i) (arr !^ i) (go $ i + 1)
+    ifoldr  f base = \ arr ->
+      let go i = arr ==. i ? base $ f (indexOf arr i) (arr !^ i) (go $ i + 1)
+      in  go 0
     
-    ifoldl  f base arr@(Array l u _ _) = go (sizeOf arr - 1)
-      where
-        go i = -1 == i ? base $ f (index (l, u) i) (go $ i - 1) (arr !^ i)
+    ifoldl  f base = \ arr ->
+      let go i = -1 == i ? base $ f (indexOf arr i) (go $ i - 1) (arr !^ i)
+      in  go (sizeOf arr - 1)
     
     i_foldr = foldr
     i_foldl = foldl
@@ -541,4 +557,5 @@ pfailEx msg = throw . PatternMatchFail $ "in SDP.Array." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Array." ++ msg
+
 

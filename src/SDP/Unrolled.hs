@@ -137,27 +137,27 @@ instance (Index i) => Applicative (Unrolled i)
 instance (Index i) => Foldable (Unrolled i)
   where
     {-# INLINE foldr #-}
-    foldr  f base (Unrolled l u es) = foldr  f base $ size (l, u) `take` es
+    foldr  f base = \ (Unrolled l u es) -> foldr  f base $ size (l, u) `take` es
     
     {-# INLINE foldl #-}
-    foldl  f base (Unrolled l u es) = foldl  f base $ size (l, u) `take` es
+    foldl  f base = \ (Unrolled l u es) -> foldl  f base $ size (l, u) `take` es
     
     {-# INLINE foldr' #-}
-    foldr' f base (Unrolled l u es) = foldr' f base $ size (l, u) `take` es
+    foldr' f base = \ (Unrolled l u es) -> foldr' f base $ size (l, u) `take` es
     
     {-# INLINE foldl' #-}
-    foldl' f base (Unrolled l u es) = foldl' f base $ size (l, u) `take` es
+    foldl' f base = \ (Unrolled l u es) -> foldl' f base $ size (l, u) `take` es
     
     {-# INLINE foldr1 #-}
-    foldr1 f (Unrolled l u es) = foldr1 f $ size (l, u) `take` es
+    foldr1 f = \ (Unrolled l u es) -> foldr1 f $ size (l, u) `take` es
     
     {-# INLINE foldl1 #-}
-    foldl1 f (Unrolled l u es) = foldl1 f $ size (l, u) `take` es
+    foldl1 f = \ (Unrolled l u es) -> foldl1 f $ size (l, u) `take` es
     
-    elem e   (Unrolled l u es) = elem e $ size (l, u) `take` es
-    toList   (Unrolled l u es) = size (l, u) `take` toList es
-    null     (Unrolled l u es) = isEmpty (l, u) || null es
-    length   (Unrolled l u  _) = size (l, u)
+    elem e = \ (Unrolled l u es) -> elem e $ size (l, u) `take` es
+    toList = \ (Unrolled l u es) -> size (l, u) `take` toList es
+    null   = \ (Unrolled l u es) -> isEmpty (l, u) || null es
+    length = \ (Unrolled l u  _) -> size (l, u)
 
 -- instance (Index i) => Scan (Unrolled i)
 
@@ -240,7 +240,7 @@ instance (Index i) => Split (Unrolled i e) e
     take n unr@(Unrolled l u es)
         | n <= 0 = Z
         | n >= c = unr
-        |  True  = Unrolled l u' (take n es)
+        |  True  = Unrolled l u' $ take n es
       where
         u' = index (l, u) (n - 1)
         c  = size  (l, u)
@@ -249,7 +249,7 @@ instance (Index i) => Split (Unrolled i e) e
     drop n unr@(Unrolled l u es)
         | n <= 0 = unr
         | n >= c = Z
-        |  True  = Unrolled l' u (drop n es)
+        |  True  = Unrolled l' u $ drop n es
       where
         l' = index (l, u) n
         c  = size  (l, u)
@@ -260,8 +260,8 @@ instance (Index i) => Split (Unrolled i e) e
         | n >= c = (unr, Z)
         |  True  = (Unrolled l u' take', Unrolled l' u drop')
       where
-        u' = index (l, u) $ n - 1
-        l' = index (l, u)   n
+        u' = index (l, u) (n - 1)
+        l' = index (l, u) n
         c  = size  (l, u)
         
         (take', drop') = split n es
@@ -275,10 +275,26 @@ instance (Index i) => Split (Unrolled i e) e
 
 instance (Index i) => Bordered (Unrolled i e) i e
   where
-    sizeOf (Unrolled l u _) = size (l, u)
-    bounds (Unrolled l u _) = (l, u)
-    lower  (Unrolled l _ _) = l
-    upper  (Unrolled _ u _) = u
+    {-# INLINE indexIn #-}
+    indexIn (Unrolled l u _) = inRange (l, u)
+    
+    {-# INLINE indexOf #-}
+    indexOf (Unrolled l u _) = index (l, u)
+    
+    {-# INLINE offsetOf #-}
+    offsetOf (Unrolled l u _) = offset (l, u)
+    
+    {-# INLINE sizeOf #-}
+    sizeOf  (Unrolled l u _) = size (l, u)
+    
+    {-# INLINE bounds #-}
+    bounds  (Unrolled l u _) = (l, u)
+    
+    {-# INLINE lower #-}
+    lower   (Unrolled l _ _) = l
+    
+    {-# INLINE upper #-}
+    upper   (Unrolled _ u _) = u
 
 --------------------------------------------------------------------------------
 
@@ -315,8 +331,8 @@ instance (Index i) => Indexed (Unrolled i e) i e
 
 instance (Index i) => IFold (Unrolled i e) i e
   where
-    ifoldr f base (Unrolled l u es) = ifoldr (\ i -> f (index (l, u) i)) base $ size (l, u) `take` es
-    ifoldl f base (Unrolled l u es) = ifoldl (\ i -> f (index (l, u) i)) base $ size (l, u) `take` es
+    ifoldr f base = \ (Unrolled l u es) -> ifoldr (f . index (l, u)) base $ size (l, u) `take` es
+    ifoldl f base = \ (Unrolled l u es) -> ifoldl (f . index (l, u)) base $ size (l, u) `take` es
     
     i_foldr = foldr
     i_foldl = foldl
@@ -397,4 +413,8 @@ done = freeze
 
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.Unrolled." ++ msg
+
+
+
+
 

@@ -224,10 +224,26 @@ instance (Index i, Unboxed e) => Split (Bytes i e) e
 
 instance (Index i, Unboxed e) => Bordered (Bytes i e) i e
   where
-    sizeOf (Bytes _ _ n _) = max 0 n
-    bounds (Bytes l u _ _) = (l, u)
-    lower  (Bytes l _ _ _) = l
-    upper  (Bytes _ u _ _) = u
+    {-# INLINE indexIn #-}
+    indexIn (Bytes l u _ _) = inRange (l, u)
+    
+    {-# INLINE indexOf #-}
+    indexOf (Bytes l u _ _) = index (l, u)
+    
+    {-# INLINE offsetOf #-}
+    offsetOf (Bytes l u _ _) = offset (l, u)
+    
+    {-# INLINE sizeOf #-}
+    sizeOf  (Bytes _ _ n _) = max 0 n
+    
+    {-# INLINE bounds #-}
+    bounds  (Bytes l u _ _) = (l, u)
+    
+    {-# INLINE lower #-}
+    lower   (Bytes l _ _ _) = l
+    
+    {-# INLINE upper #-}
+    upper   (Bytes _ u _ _) = u
 
 --------------------------------------------------------------------------------
 
@@ -266,24 +282,24 @@ instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
 instance (Index i, Unboxed e) => IFold (Bytes i e) i e
   where
     {-# INLINE ifoldr #-}
-    ifoldr  f base bytes@(Bytes l u n _) = go 0
-      where
-        go i =  n == i ? base $ f (index (l, u) i) (bytes !^ i) (go $ i + 1)
+    ifoldr  f base = \ bytes@(Bytes _ _ n _) ->
+      let go i = n == i ? base $ f (indexOf bytes i) (bytes !^ i) (go $ i + 1)
+      in  go 0
     
     {-# INLINE ifoldl #-}
-    ifoldl  f base bytes@(Bytes l u _ _) = go (sizeOf bytes - 1)
-      where
-        go i = -1 == i ? base $ f (index (l, u) i) (go $ i - 1) (bytes !^ i)
+    ifoldl  f base = \ bytes ->
+      let go i = -1 == i ? base $ f (indexOf bytes i) (go $ i - 1) (bytes !^ i)
+      in  go (sizeOf bytes - 1)
     
     {-# INLINE i_foldr #-}
-    i_foldr f base arr = go 0
-      where
-        go i = sizeOf arr == i ? base $ f (arr !^ i) (go $ i + 1)
+    i_foldr f base = \ arr ->
+      let go i = sizeOf arr == i ? base $ f (arr !^ i) (go $ i + 1)
+      in  go 0
     
     {-# INLINE i_foldl #-}
-    i_foldl f base arr = go (sizeOf arr - 1)
-      where
-        go i = -1 == i ? base $ f (go $ i - 1) (arr !^ i)
+    i_foldl f base = \ arr ->
+      let go i = -1 == i ? base $ f (go $ i - 1) (arr !^ i)
+      in  go (sizeOf arr - 1)
 
 instance (Index i, Unboxed e) => Set (Bytes i e) e
   where

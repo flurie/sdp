@@ -98,7 +98,9 @@ instance (Index i, Unboxed e) => Semigroup (ByteList i e) where xs <> ys = xs ++
 
 instance (Index i, Unboxed e) => Monoid (ByteList i e) where mempty = def
 
-instance (Index i) => Default (ByteList i e) where def = let (l, u) = defaultBounds 0 in ByteList l u def
+instance (Index i) => Default (ByteList i e)
+  where
+    def = let (l, u) = defaultBounds 0 in ByteList l u def
 
 --------------------------------------------------------------------------------
 
@@ -199,10 +201,26 @@ instance (Index i, Unboxed e) => Split (ByteList i e) e
 
 instance (Index i, Unboxed e) => Bordered (ByteList i e) i e
   where
-    sizeOf (ByteList l u _) = size (l, u)
-    bounds (ByteList l u _) = (l, u)
-    lower  (ByteList l _ _) = l
-    upper  (ByteList _ u _) = u
+    {-# INLINE indexIn #-}
+    indexIn (ByteList l u _) = inRange (l, u)
+    
+    {-# INLINE indexOf #-}
+    indexOf (ByteList l u _) = index (l, u)
+    
+    {-# INLINE offsetOf #-}
+    offsetOf (ByteList l u _) = offset (l, u)
+    
+    {-# INLINE sizeOf #-}
+    sizeOf  (ByteList l u _) = size (l, u)
+    
+    {-# INLINE bounds #-}
+    bounds  (ByteList l u _) = (l, u)
+    
+    {-# INLINE lower #-}
+    lower   (ByteList l _ _) = l
+    
+    {-# INLINE upper #-}
+    upper   (ByteList _ u _) = u
 
 --------------------------------------------------------------------------------
 
@@ -244,11 +262,11 @@ instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
 
 instance (Index i, Unboxed e) => IFold (ByteList i e) i e
   where
-    ifoldr  f base (ByteList l u es) = ifoldr (f . index (l, u)) base $ size (l, u) `take` es
-    ifoldl  f base (ByteList l u es) = ifoldl (f . index (l, u)) base $ size (l, u) `take` es
+    ifoldr  f base = \ (ByteList l u es) -> ifoldr (f . index (l, u)) base $ size (l, u) `take` es
+    ifoldl  f base = \ (ByteList l u es) -> ifoldl (f . index (l, u)) base $ size (l, u) `take` es
     
-    i_foldr f base (ByteList l u es) = i_foldr f base $ size (l, u) `take` es
-    i_foldl f base (ByteList l u es) = i_foldl f base $ size (l, u) `take` es
+    i_foldr f base = \ (ByteList l u es) -> i_foldr f base $ size (l, u) `take` es
+    i_foldl f base = \ (ByteList l u es) -> i_foldl f base $ size (l, u) `take` es
 
 instance (Index i, Unboxed e) => Set (ByteList i e) e
   where
@@ -326,5 +344,7 @@ done = freeze
 
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.ByteList." ++ msg
+
+
 
 

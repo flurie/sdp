@@ -107,15 +107,20 @@ class (Index i) => Bordered (b) i e | b -> i, b -> e
     sizeOf  :: b -> Int
     sizeOf  =  size . bounds
     
-    {-# INLINE indexOf #-}
+    {-# INLINE indexIn #-}
     -- | checks if an index falls within the boundaries of the structure.
-    indexOf :: b -> i -> Bool
-    indexOf = inRange . bounds
+    indexIn :: b -> i -> Bool
+    indexIn = inRange . bounds
     
     {-# INLINE indices #-}
     -- | index range list.
     indices :: b -> [i]
     indices =  range . bounds
+    
+    {-# INLINE indexOf #-}
+    -- | index by offset in structure.
+    indexOf :: b -> Int -> i
+    indexOf es = index (bounds es)
     
     {-# INLINE offsetOf #-}
     -- | index offset in structure bounds.
@@ -516,8 +521,5 @@ tails es = es : tails (tail es)
 inits :: (Linear l e) => l -> [l]
 inits Z  = Z
 inits es = es : inits (init es)
-
-
-
 
 

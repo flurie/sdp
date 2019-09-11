@@ -147,32 +147,40 @@ instance Functor Unlist
 
 instance Foldable Unlist
   where
-    foldr _ base Z = base
-    foldr f base (Unlist c arr# arrs) = go (foldr f base arrs) 0
-      where
-        go b i@(I# i#) = c == i ? b $ f (arr# !# i#) (go b $ i + 1)
+    {-# INLINE foldr #-}
+    foldr f base = \ es -> case es of
+      Z -> base
+      (Unlist c arr# arrs) ->
+        let go b i@(I# i#) = c == i ? b $ f (arr# !# i#) (go b $ i + 1)
+        in  go (foldr f base arrs) 0
     
-    foldr' _ base Z = base
-    foldr' f base (Unlist c arr# arrs) = go (foldr' f base arrs) 0
-      where
-        go b i@(I# i#) = c == i ? b $ f (arr# !# i#) (go b $ i + 1)
+    {-# INLINE foldr' #-}
+    foldr' f base = \ es -> case es of
+      Z -> base
+      (Unlist c arr# arrs) ->
+        let go b i@(I# i#) = c == i ? b $ f (arr# !# i#) (go b $ i + 1)
+        in  go (foldr' f base arrs) 0
     
-    foldl _ base Z = base
-    foldl f base (Unlist c arr# arrs) = foldl f (go base $ c - 1) arrs
-      where
-        go b i@(I# i#) = -1 == i ? b $ f (go b $ i - 1) (arr# !# i#)
+    {-# INLINE foldl #-}
+    foldl f base = \ es -> case es of
+      Z -> base
+      (Unlist c arr# arrs) ->
+        let go b i@(I# i#) = -1 == i ? b $ f (go b $ i - 1) (arr# !# i#)
+        in  foldl f (go base $ c - 1) arrs
     
-    foldl' _ base Z = base
-    foldl' f base (Unlist c arr# arrs) = foldl' f (go base c) arrs
-      where
-        go b i@(I# i#) = -1 == i ? b $ f (go b $ i - 1) (arr# !# i#)
+    {-# INLINE foldl' #-}
+    foldl' f base = \ es -> case es of
+      Z -> base
+      (Unlist c arr# arrs) ->
+        let go b i@(I# i#) = -1 == i ? b $ f (go b $ i - 1) (arr# !# i#)
+        in  foldl' f (go base c) arrs
     
     length es = case es of {Unlist n _ arrs -> max 0 n + length arrs; _ -> 0}
     
     toList Z = []
     toList (Unlist c arr# arrs) = foldr (\ (I# i#) es -> (arr# !# i#) : es) (toList arrs) [0 .. c - 1]
     
-    null es = case es of {Unlist c _ _ -> c < 1; _ -> True}
+    null = \ es -> case es of {Unlist c _ _ -> c < 1; _ -> True}
 
 --------------------------------------------------------------------------------
 
@@ -288,10 +296,12 @@ instance Split (Unlist e) e
 
 instance Bordered (Unlist e) Int e
   where
-    lower _  = 0
-    upper es = sizeOf es - 1
-    indexOf es = \ i -> i >= 0 && i < sizeOf es
     sizeOf  es = case es of {Unlist n _ unls -> max 0 n + sizeOf unls; _ -> 0}
+    indexIn es = \ i -> i >= 0 && i < sizeOf es
+    
+    lower  _  = 0
+    upper  es = sizeOf es - 1
+    bounds es = (0, sizeOf es - 1)
 
 --------------------------------------------------------------------------------
 
@@ -490,6 +500,4 @@ unreachEx msg = throw . UnreachableException $ "in SDP.Unrolled.Unlist." ++ msg
 
 lim :: Int
 lim =  1024
-
-
 

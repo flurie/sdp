@@ -222,10 +222,12 @@ instance (Unboxed e) => Split (Ublist e) e
 
 instance (Unboxed e) => Bordered (Ublist e) Int e
   where
+    sizeOf  es = case es of {Ublist n _ ubls -> max 0 n + sizeOf ubls; _ -> 0}
+    indexIn es = \ i -> i >= 0 && i < sizeOf es
+    
     lower   _  = 0
     upper   es = sizeOf es - 1
-    indexOf es = \ i -> i >= 0 && i < sizeOf es
-    sizeOf  es = case es of {Ublist n _ ubls -> max 0 n + sizeOf ubls; _ -> 0}
+    bounds  es = (0, sizeOf es - 1)
 
 --------------------------------------------------------------------------------
 
@@ -441,5 +443,8 @@ unreachEx msg = throw . UnreachableException $ "in SDP.ByteList.Ublist." ++ msg
 
 lim :: Int
 lim =  1024
+
+
+
 
 
