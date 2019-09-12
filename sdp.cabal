@@ -47,10 +47,14 @@ Library
     
     Control.Exception.SDP
     SDP.SafePrelude
-    SDP.SortM.Stuff
     SDP.Estimate
     SDP.Unboxed
     SDP.Index
+    
+    SDP.SortM.Stuff
+    
+    SDP.SortM.Insertion
+    SDP.SortM.Tim
     
     -- general class modules
     
@@ -158,7 +162,7 @@ test-suite test-array
     SDP.Simple
     SDP.Sort
     SDP.SortM
-    SDP.SortM.Stuff
+    SDP.SortM.Tim
     SDP.Zip
     Test.SDP.Indexed
     Test.SDP.Linear
@@ -197,7 +201,7 @@ test-suite test-bytes
     SDP.Simple
     SDP.Sort
     SDP.SortM
-    SDP.SortM.Stuff
+    SDP.SortM.Tim
     SDP.Unboxed
     SDP.Zip
     Test.SDP.Indexed
@@ -236,7 +240,7 @@ test-suite test-unrolled
     SDP.Simple
     SDP.Sort
     SDP.SortM
-    SDP.SortM.Stuff
+    SDP.SortM.Tim
     SDP.Unrolled
     SDP.Unrolled.ST
     SDP.Unrolled.STUnlist
@@ -281,7 +285,7 @@ test-suite test-bytelist
     SDP.Simple
     SDP.Sort
     SDP.SortM
-    SDP.SortM.Stuff
+    SDP.SortM.Tim
     SDP.Unboxed
     SDP.Zip
     Test.SDP.Indexed
@@ -321,7 +325,7 @@ test-suite test-ublist
     SDP.Simple
     SDP.Sort
     SDP.SortM
-    SDP.SortM.Stuff
+    SDP.SortM.Tim
     SDP.Unboxed
     SDP.Zip
     Test.SDP.Indexed
@@ -360,7 +364,7 @@ test-suite test-unlist
     SDP.Simple
     SDP.Sort
     SDP.SortM
-    SDP.SortM.Stuff
+    SDP.SortM.Tim
     SDP.Unrolled.STUnlist
     SDP.Unrolled.Unlist
     SDP.Zip
@@ -378,8 +382,4 @@ test-suite test-unlist
     test-framework-quickcheck2 >= 0.3   && < 0.4
   
   ghc-options: -Wall -O2
-
-
-
-
 

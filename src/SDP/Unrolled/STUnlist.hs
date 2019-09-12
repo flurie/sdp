@@ -37,7 +37,7 @@ import GHC.Base
 
 import GHC.ST ( ST (..), STRep )
 
-import SDP.SortM.Stuff
+import SDP.SortM.Tim
 import SDP.Simple
 
 default ()

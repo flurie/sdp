@@ -18,7 +18,7 @@ module SDP.Indexed
   Indexed (..),
   IFold   (..),
   
-  (>/>)
+  binarySearch, (>/>)
 )
 where
 
@@ -215,6 +215,21 @@ instance IFold [e] Int e
         go i e (x : xs) = go (i + 1) (f i e x) xs
 
 --------------------------------------------------------------------------------
+
+-- | Binary search
+binarySearch :: (Bordered v i e, Indexed v i e) => (e -> e -> Ordering) -> e -> v -> Bool
+binarySearch _ _ Z  = False
+binarySearch f e es
+  | LT <- e `f` head es = False
+  | GT <- e `f` last es = False
+  |         True        = search 0 (sizeOf es - 1)
+  where
+    search l u = l > u ? False $ case f e (es !^ j) of
+        LT -> search l (j - 1)
+        EQ -> True
+        GT -> search (j + 1) u
+      where
+        j = l + (u - l `div` 2)
 
 -- | Update one element in structure.
 (>/>) :: (Indexed v i e) => v -> [i] -> (e -> e) -> v

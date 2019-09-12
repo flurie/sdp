@@ -34,9 +34,9 @@ module SDP.Linear
   
   -- * Other functions
   -- $linearStuff
-  intercalate, tails, inits,
+  stripPrefix, stripSuffix,
   
-  stripPrefix, stripSuffix
+  intercalate, tails, inits, sorted, ascending
 )
 
 where
@@ -521,5 +521,20 @@ tails es = es : tails (tail es)
 inits :: (Linear l e) => l -> [l]
 inits Z  = Z
 inits es = es : inits (init es)
+
+-- | sorted is a function that checks for sorting.
+sorted :: (Linear l e, Ord e) => l -> Bool
+sorted Z  = True
+sorted es = and $ zipWith (<=) es' (tail es') where es' = listL es
+
+{- |
+  ascending is a function that checks if sequences of elements given in pairs
+  (start, length) are sorted in ascending order.
+-}
+ascending :: (Split s e, Ord e) => s -> [(Int, Int)] -> Bool
+ascending es ss = sorted `all` splits (snds ss) es
+
+
+
 
 

@@ -25,10 +25,10 @@ EXPERIMENTAL
   New class for heaps (SDP.Tree.Heap).
   New class for maps (dictionaries).
   New class for monadic splits (SplitM).
-  LinearM enrichment.
   
-  TimSort optimizations (binary search, new splitting procedure,
-  GaloppingMode and TryMerge).
+  TimSort optimizations (binary search, new splitting procedure, GaloppingMode
+  and TryMerge).
+
 
 
 

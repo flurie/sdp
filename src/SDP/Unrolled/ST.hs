@@ -31,7 +31,7 @@ import GHC.Base ( Int (..) )
 import GHC.ST   ( ST )
 
 import SDP.Unrolled.STUnlist
-import SDP.SortM.Stuff
+import SDP.SortM.Tim
 import SDP.Simple
 
 default ()

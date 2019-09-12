@@ -45,7 +45,7 @@ import GHC.Show ( appPrec )
 import Data.String ( IsString (..) )
 
 import SDP.ByteList.STUblist
-import SDP.SortM.Stuff
+import SDP.SortM.Tim
 import SDP.Simple
 
 default ()
@@ -369,12 +369,17 @@ instance (Unboxed e) => Set (Ublist e) e
     isContainedIn f e = contain
       where
         contain Z = False
-        contain (Ublist n arr# arrs) = contain' 0 || contain arrs
+        contain arr@(Ublist n _ arrs)
+            | LT <- f e    (arr !^ 0)    = False
+            | GT <- f e (arr !^ (n - 1)) = contain arrs
+            |            True            = search 0 (n - 1)
           where
-            contain' i@(I# i#) = i == n ? False $ case e `f` (arr# !# i#) of
-              LT -> False
-              EQ -> True
-              GT -> contain' (i + 1)
+            search l u = l > u ? contain arrs $ case f e (arr !^ j) of
+                LT -> search l (j - 1)
+                EQ -> True
+                GT -> search (j + 1) u
+              where
+                j = l + (u - l `div` 2)
     
     isSubsetWith f xs ys = all (\ x -> isContainedIn f x ys) (listL xs)
 

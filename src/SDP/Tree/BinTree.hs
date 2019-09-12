@@ -48,7 +48,7 @@ import qualified GHC.Exts as E
 import Data.String ( IsString (..) )
 
 import SDP.Unrolled.STUnlist
-import SDP.SortM.Stuff
+import SDP.SortM.Tim
 import SDP.Simple
 
 default ()

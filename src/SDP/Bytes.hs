@@ -46,7 +46,7 @@ import GHC.ST   ( runST, ST (..) )
 import qualified GHC.Exts as E
 import Data.String ( IsString (..) )
 
-import SDP.SortM.Stuff
+import SDP.SortM.Tim
 import SDP.Bytes.ST
 
 import SDP.Simple
@@ -364,13 +364,7 @@ instance (Index i, Unboxed e) => Set (Bytes i e) e
           where
             x = xs !^ i; y = ys !^ j
     
-    isContainedIn _ _ Z  = False
-    isContainedIn f e es = contained' 0
-      where
-        contained' i = i == sizeOf es ? False $ case e `f` (es !^ i) of
-          LT -> False
-          EQ -> True
-          GT -> contained' (i + 1)
+    isContainedIn = binarySearch
     
     isSubsetWith f xs ys = all (\ x -> isContainedIn f x ys) (listL xs)
 

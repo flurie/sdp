@@ -15,7 +15,9 @@ module SDP.LinearM
     module SDP.Linear,
     
     BorderedM (..),
-    LinearM   (..)
+    LinearM   (..),
+    
+    sortedM
   )
 where
 
@@ -101,6 +103,7 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     getRight    :: l -> m [e]
     getRight es =  reverse <$> getLeft es
     
+    -- | copied creates copy of structure.
     copied    :: l -> m l
     copied es = getLeft es >>= newLinear
     
@@ -118,3 +121,10 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     filled   :: Int -> e -> m l
 
 --------------------------------------------------------------------------------
+
+-- | sortedM is a procedure that checks for sorting.
+sortedM :: (LinearM m l e, Ord e) => l -> m Bool
+sortedM es = flip fmap (getLeft es) $
+  \ left -> case left of {[] -> True; _ -> and $ zipWith (<=) left (tail left)}
+
+

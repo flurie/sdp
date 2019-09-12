@@ -43,7 +43,7 @@ import Data.String ( IsString (..) )
 
 import SDP.Unrolled.Unlist
 import SDP.Unrolled.ST
-import SDP.SortM.Stuff
+import SDP.SortM.Tim
 import SDP.Simple
 
 default ()

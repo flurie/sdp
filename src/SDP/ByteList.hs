@@ -45,7 +45,7 @@ import Data.String ( IsString (..) )
 
 import SDP.ByteList.Ublist
 import SDP.ByteList.ST
-import SDP.SortM.Stuff
+import SDP.SortM.Tim
 import SDP.Simple
 
 default ()

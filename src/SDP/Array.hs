@@ -53,7 +53,7 @@ import Text.Read.Lex ( expect )
 import qualified GHC.Exts as E
 import Data.String ( IsString (..) )
 
-import SDP.SortM.Stuff
+import SDP.SortM.Tim
 import SDP.Array.ST
 
 import SDP.Simple
@@ -432,10 +432,12 @@ instance (Index i) => Indexed (Array i e) i e
 
 instance (Index i) => IFold (Array i e) i e
   where
+    {-# INLINE ifoldr #-}
     ifoldr  f base = \ arr ->
       let go i = arr ==. i ? base $ f (indexOf arr i) (arr !^ i) (go $ i + 1)
       in  go 0
     
+    {-# INLINE ifoldl #-}
     ifoldl  f base = \ arr ->
       let go i = -1 == i ? base $ f (indexOf arr i) (go $ i - 1) (arr !^ i)
       in  go (sizeOf arr - 1)
@@ -457,6 +459,7 @@ instance (Index i) => Set (Array i e) e
       where
         res = fromList . deleteWith f e $ listL es
     
+    {-# INLINE intersectionWith #-}
     intersectionWith f xs ys = fromList $ intersection' 0 0
       where
         n1 = sizeOf xs; n2 = sizeOf ys
@@ -467,6 +470,7 @@ instance (Index i) => Set (Array i e) e
           where
             x = xs !^ i; y = ys !^ j
     
+    {-# INLINE unionWith #-}
     unionWith f xs ys = fromList $ union' 0 0
       where
         n1 = sizeOf xs; n2 = sizeOf ys
@@ -480,6 +484,7 @@ instance (Index i) => Set (Array i e) e
           where
             x = xs !^ i; y = ys !^ j
     
+    {-# INLINE differenceWith #-}
     differenceWith f xs ys = fromList $ difference' 0 0
       where
         n1 = sizeOf xs; n2 = sizeOf ys
@@ -493,6 +498,7 @@ instance (Index i) => Set (Array i e) e
           where
             x = xs !^ i; y = ys !^ j
     
+    {-# INLINE symdiffWith #-}
     symdiffWith f xs ys = fromList $ symdiff' 0 0
       where
         n1 = sizeOf xs; n2 = sizeOf ys
@@ -505,6 +511,9 @@ instance (Index i) => Set (Array i e) e
               GT -> y : symdiff' i (j + 1)
           where
             x = xs !^ i; y = ys !^ j
+    
+    {-# INLINE isContainedIn #-}
+    isContainedIn = binarySearch
 
 instance (Index i) => Sort (Array i e) e
   where
