@@ -4,21 +4,28 @@ version 0.2:
   
   DEPRECATED:
     * SDP.Index.unsafeBounds (in favour of defaultBounds)
-    * SDP.SortM.Stuff (in favour of SDP.SortM.Tim)
+    * SDP.SortM.Stuff (in favour of SDP.SortM.Tim, SDP.Linear and SDP.LinearM)
     * prevTest and nextTest (Test.SDP.Index)
   
   ADDED:
-    * chunks function (Split)
-    * indexOf and offsetOf (Bordered)
-    * defaultBounds function (Index)
+    * SDP.SortM.Tim (replaces SDP.SortM.Stuff)
+    * SDP.SortM.Insertion (reexport of insertionSort from SDP.SortM.Tim)
+    
+    * offsetOf and new indexOf (Bordered)
     * binarySearch function (Indexed)
+    * defaultBounds function (Index)
+    * chunks function (Split)
+    
+    * new functions for Estimate
+    * test suite for estimate
     * test suite for indices
   
   MOVED:
-    Old indexOf (to indexIn).
+    Old indexOf (to indexIn)
   
   IMPROVED:
-    * Foldable and IFold rewrited for inline with 2 arguments.
+    * Estimate class (rewrited)
+    * Foldable and IFold rewrited for inline with 2 arguments
 
 --------------------------------------------------------------------------------
 
@@ -55,7 +62,7 @@ version 0.1:
   MOVED:
     * arrcopy procedure (internal for SDP.SortM.Stuff)
     * write function (Indexed class)
-    * Some internal common comparators (SDP.Estimate).
+    * Some internal common comparators (SDP.Estimate)
 
 --------------------------------------------------------------------------------
 
@@ -74,7 +81,7 @@ version 0.0.2:
 version 0.0.1.2:
   ADDED:
     * IsString instances
-    * IsList instances
+    * IsList   instances
 
 version 0.0.1.1:
   ADDED:
@@ -86,7 +93,7 @@ version 0.0.1.0:
     * Some bugs
   
   ADDED:
-    * UnreachableException type.
+    * UnreachableException type
 
 version 0.0.0.11:
   ADDED:
@@ -120,8 +127,8 @@ version 0.0.0.7:
 
 version 0.0.0.6:
   ADDED:
-    * Sort class.
     * New dependency: ghc-prim >= 0.5.3 (to use ~~ class)
+    * Sort class.
 
 version 0.0.0.5:
   FIXED:
@@ -163,4 +170,7 @@ version 0.0.0.1:
     * Zip class
     
     * IndexException type
+
+
+
 

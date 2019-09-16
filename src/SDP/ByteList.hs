@@ -110,7 +110,7 @@ instance (Index i) => Estimate (ByteList i e)
   where
     (ByteList l1 u1 _) <==> (ByteList l2 u2 _) = size (l1, u1) <=> size (l2, u2)
     (ByteList l1 u1 _) .>.  (ByteList l2 u2 _) = size (l1, u1)  >  size (l2, u2)
-    (ByteList l1 u1 _) .<.  (ByteList l2 u2 _) = size (l1, u1)  >  size (l2, u2)
+    (ByteList l1 u1 _) .<.  (ByteList l2 u2 _) = size (l1, u1)  <  size (l2, u2)
     (ByteList l1 u1 _) .<=. (ByteList l2 u2 _) = size (l1, u1) <=  size (l2, u2)
     (ByteList l1 u1 _) .>=. (ByteList l2 u2 _) = size (l1, u1) >=  size (l2, u2)
     

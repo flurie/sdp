@@ -21,7 +21,7 @@ VERSION NX-MAJOR (0.2):
 
 EXPERIMENTAL
   
-  New class for slices. The final separation of the Linear class.
+  New class for slices.
   New class for heaps (SDP.Tree.Heap).
   New class for maps (dictionaries).
   New class for monadic splits (SplitM).

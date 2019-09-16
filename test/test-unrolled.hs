@@ -5,6 +5,7 @@ import Test.Framework.Providers.QuickCheck2
 
 import SDP.Unrolled
 
+import Test.SDP.Estimate
 import Test.SDP.Indexed
 import Test.SDP.Linear
 import Test.SDP.Sort
@@ -36,7 +37,10 @@ main = defaultMain
     testProperty "unrolled-sort           " sortProp,
     
     -- set test
-    testProperty "unrolled-set            " setProp
+    testProperty "unrolled-set            " setProp,
+    
+    -- estimate test
+    testProperty "unrolled-estimate       " estimateProp
   ]
 
 --------------------------------------------------------------------------------
@@ -95,6 +99,12 @@ sortProp =  sortTest
 setProp :: TestSet1 (Unrolled Int) Int
 setProp =  setTest
 
+--------------------------------------------------------------------------------
+
+{- Estimate property. -}
+
+estimateProp :: TestEstimate (Unrolled Int Int)
+estimateProp =  estimateTest
 
 
 

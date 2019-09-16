@@ -5,6 +5,7 @@ import Test.Framework.Providers.QuickCheck2
 
 import SDP.ByteList.Ublist
 
+import Test.SDP.Estimate
 import Test.SDP.Indexed
 import Test.SDP.Linear
 import Test.SDP.Sort
@@ -36,7 +37,10 @@ main = defaultMain
     testProperty "ublist-sort           " sortProp,
     
     -- set test
-    testProperty "ublist-set            " setProp
+    testProperty "ublist-set            " setProp,
+    
+    -- estimate test
+    testProperty "ublist-estimate       " estimateProp
   ]
 
 --------------------------------------------------------------------------------
@@ -95,6 +99,12 @@ sortProp =  sortTest
 setProp :: TestSet1 Ublist Char
 setProp =  setTest
 
+--------------------------------------------------------------------------------
+
+{- Estimate property. -}
+
+estimateProp :: TestEstimate (Ublist Int)
+estimateProp =  estimateTest
 
 
 

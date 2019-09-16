@@ -5,6 +5,7 @@ import Test.Framework.Providers.QuickCheck2
 
 import SDP.Bytes
 
+import Test.SDP.Estimate
 import Test.SDP.Indexed
 import Test.SDP.Linear
 import Test.SDP.Sort
@@ -36,7 +37,10 @@ main = defaultMain
     testProperty "bytes-sort           " sortProp,
     
     -- set test
-    testProperty "bytes-set            " setProp
+    testProperty "bytes-set            " setProp,
+    
+    -- estimate test
+    testProperty "bytes-estimate       " estimateProp
   ]
 
 --------------------------------------------------------------------------------
@@ -95,7 +99,12 @@ sortProp =  sortTest
 setProp :: TestSet1 (Bytes Int) Char
 setProp =  setTest
 
+--------------------------------------------------------------------------------
 
+{- Estimate property. -}
+
+estimateProp :: TestEstimate (Bytes Int Int)
+estimateProp =  estimateTest
 
 
 

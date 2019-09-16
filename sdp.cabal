@@ -96,6 +96,7 @@ Library
     
     -- basic test suite
     
+    Test.SDP.Estimate
     Test.SDP.Indexed
     Test.SDP.Linear
     Test.SDP.Index
@@ -162,6 +163,7 @@ test-suite test-array
     SDP.SortM
     SDP.SortM.Tim
     SDP.Zip
+    Test.SDP.Estimate
     Test.SDP.Indexed
     Test.SDP.Linear
     Test.SDP.Sort
@@ -202,6 +204,7 @@ test-suite test-bytes
     SDP.SortM.Tim
     SDP.Unboxed
     SDP.Zip
+    Test.SDP.Estimate
     Test.SDP.Indexed
     Test.SDP.Linear
     Test.SDP.Sort
@@ -244,6 +247,7 @@ test-suite test-unrolled
     SDP.Unrolled.STUnlist
     SDP.Unrolled.Unlist
     SDP.Zip
+    Test.SDP.Estimate
     Test.SDP.Indexed
     Test.SDP.Linear
     Test.SDP.Sort
@@ -286,6 +290,7 @@ test-suite test-bytelist
     SDP.SortM.Tim
     SDP.Unboxed
     SDP.Zip
+    Test.SDP.Estimate
     Test.SDP.Indexed
     Test.SDP.Linear
     Test.SDP.Sort
@@ -326,6 +331,7 @@ test-suite test-ublist
     SDP.SortM.Tim
     SDP.Unboxed
     SDP.Zip
+    Test.SDP.Estimate
     Test.SDP.Indexed
     Test.SDP.Linear
     Test.SDP.Sort
@@ -366,6 +372,7 @@ test-suite test-unlist
     SDP.Unrolled.STUnlist
     SDP.Unrolled.Unlist
     SDP.Zip
+    Test.SDP.Estimate
     Test.SDP.Indexed
     Test.SDP.Linear
     Test.SDP.Sort

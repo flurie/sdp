@@ -103,7 +103,7 @@ class Estimate e
     
     e1 .<=. e2 = case e1 <==> e2 of {GT -> False; _ -> True}
     e1 .>=. e2 = case e1 <==> e2 of {LT -> False; _ -> True}
-    e1 ./=. e2 = case e1 <==> e2 of {LT -> False; _ -> True}
+    e1 ./=. e2 = case e1 <==> e2 of {EQ -> False; _ -> True}
 
 --------------------------------------------------------------------------------
 

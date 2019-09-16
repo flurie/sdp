@@ -5,6 +5,7 @@ import Test.Framework.Providers.QuickCheck2
 
 import SDP.Array
 
+import Test.SDP.Estimate
 import Test.SDP.Indexed
 import Test.SDP.Linear
 import Test.SDP.Sort
@@ -36,7 +37,10 @@ main = defaultMain
     testProperty "array-sort           " sortProp,
     
     -- set test
-    testProperty "array-set            " setProp
+    testProperty "array-set            " setProp,
+    
+    -- estimate test
+    testProperty "array-estimate       " estimateProp
   ]
 
 --------------------------------------------------------------------------------
@@ -95,6 +99,12 @@ sortProp =  sortTest
 setProp :: TestSet1 (Array Int) Char
 setProp =  setTest
 
+--------------------------------------------------------------------------------
+
+{- Estimate property. -}
+
+estimateProp :: TestEstimate (Array Int Int)
+estimateProp =  estimateTest
 
 
 

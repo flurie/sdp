@@ -273,7 +273,7 @@ class Linear l e | l -> e
     reverse :: l -> l
     reverse =  fromList . listR
     
-    -- | Generalization of Data.List.subsequences. May be moved.
+    -- | Generalization of Data.List.subsequences.
     subsequences     :: l -> [l]
     subsequences xxs =  Z : ss xxs
       where

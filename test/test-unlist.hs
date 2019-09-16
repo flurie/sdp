@@ -5,6 +5,7 @@ import Test.Framework.Providers.QuickCheck2
 
 import SDP.Unrolled.Unlist
 
+import Test.SDP.Estimate
 import Test.SDP.Indexed
 import Test.SDP.Linear
 import Test.SDP.Sort
@@ -36,7 +37,10 @@ main = defaultMain
     testProperty "unlist-sort           " sortProp,
     
     -- set test
-    testProperty "unlist-set            " setProp
+    testProperty "unlist-set            " setProp,
+    
+    -- estimate test
+    testProperty "unlist-estimate       " estimateProp
   ]
 
 --------------------------------------------------------------------------------
@@ -95,6 +99,12 @@ sortProp =  sortTest
 setProp :: TestSet1 Unlist Char
 setProp =  setTest
 
+--------------------------------------------------------------------------------
+
+{- Estimate property. -}
+
+estimateProp :: TestEstimate (Unlist Int)
+estimateProp =  estimateTest
 
 
 

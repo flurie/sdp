@@ -119,7 +119,7 @@ instance (Index i) => Estimate (Unrolled i e)
   where
     (Unrolled l1 u1 _) <==> (Unrolled l2 u2 _) = size (l1, u1) <=> size (l2, u2)
     (Unrolled l1 u1 _) .>.  (Unrolled l2 u2 _) = size (l1, u1)  >  size (l2, u2)
-    (Unrolled l1 u1 _) .<.  (Unrolled l2 u2 _) = size (l1, u1)  >  size (l2, u2)
+    (Unrolled l1 u1 _) .<.  (Unrolled l2 u2 _) = size (l1, u1)  <  size (l2, u2)
     (Unrolled l1 u1 _) .<=. (Unrolled l2 u2 _) = size (l1, u1) <=  size (l2, u2)
     (Unrolled l1 u1 _) .>=. (Unrolled l2 u2 _) = size (l1, u1) >=  size (l2, u2)
     
@@ -429,4 +429,7 @@ done = freeze
 
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.Unrolled." ++ msg
+
+
+
 
