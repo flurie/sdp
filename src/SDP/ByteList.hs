@@ -92,15 +92,33 @@ instance (Index i, Read i, Unboxed e, Read e) => Read (ByteList i e)
 
 --------------------------------------------------------------------------------
 
-{- Semigroup, Monoid and Default instances. -}
+{- Semigroup, Monoid, Default, Arbitrary and Estimate instances. -}
 
-instance (Index i, Unboxed e) => Semigroup (ByteList i e) where xs <> ys = xs ++ ys
+instance (Index i, Unboxed e) => Semigroup (ByteList i e) where (<>) = (++)
 
 instance (Index i, Unboxed e) => Monoid (ByteList i e) where mempty = def
 
 instance (Index i) => Default (ByteList i e)
   where
     def = let (l, u) = defaultBounds 0 in ByteList l u def
+
+instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (ByteList i e)
+  where
+    arbitrary = fromList <$> arbitrary
+
+instance (Index i) => Estimate (ByteList i e)
+  where
+    (ByteList l1 u1 _) <==> (ByteList l2 u2 _) = size (l1, u1) <=> size (l2, u2)
+    (ByteList l1 u1 _) .>.  (ByteList l2 u2 _) = size (l1, u1)  >  size (l2, u2)
+    (ByteList l1 u1 _) .<.  (ByteList l2 u2 _) = size (l1, u1)  >  size (l2, u2)
+    (ByteList l1 u1 _) .<=. (ByteList l2 u2 _) = size (l1, u1) <=  size (l2, u2)
+    (ByteList l1 u1 _) .>=. (ByteList l2 u2 _) = size (l1, u1) >=  size (l2, u2)
+    
+    (ByteList l1 u1 _) <.=> n2 = size (l1, u1) <=> n2
+    (ByteList l1 u1 _)  .>  n2 = size (l1, u1)  >  n2
+    (ByteList l1 u1 _)  .<  n2 = size (l1, u1)  <  n2
+    (ByteList l1 u1 _) .>=  n2 = size (l1, u1) >=  n2
+    (ByteList l1 u1 _) .<=  n2 = size (l1, u1) <=  n2
 
 --------------------------------------------------------------------------------
 
@@ -174,23 +192,15 @@ instance (Index i, Unboxed e) => Linear (ByteList i e) e
 
 instance (Index i, Unboxed e) => Split (ByteList i e) e
   where
-    {-# INLINE take #-}
-    take n xs@(ByteList l u es)
-        | n <= 0 = Z
-        | n >= c = xs
-        |  True  = ByteList l u' (take n es)
-      where
-        u' = index (l, u) (n - 1)
-        c  = size  (l, u)
+    take n xs@(ByteList l _ es)
+      |   n < 1  = Z
+      | n >=. xs = xs
+      |   True   = let u' = indexOf xs (n - 1) in ByteList l u' (take n es)
     
-    {-# INLINE drop #-}
-    drop n list@(ByteList l u es)
-        | n <= 0 = list
-        | n >= c = Z
-        |  True  = ByteList l' u (drop n es)
-      where
-        l' = index (l, u) n
-        c  = size  (l, u)
+    drop n xs@(ByteList l u es)
+      |   n < 1  = xs
+      | n >=. xs = Z
+      |   True   = let l' = index (l, u) n in ByteList l' u (drop n es)
     
     isPrefixOf xs ys = listL xs `isPrefixOf` listL ys
     isInfixOf  xs ys = listL xs `isInfixOf`  listL ys
@@ -324,8 +334,6 @@ instance (Index i, Unboxed e) => E.IsList (ByteList i e)
     toList    = listL
 
 instance (Index i) => IsString (ByteList i Char) where fromString = fromList
-
-instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (ByteList i e) where arbitrary = fromList <$> arbitrary
 
 --------------------------------------------------------------------------------
 

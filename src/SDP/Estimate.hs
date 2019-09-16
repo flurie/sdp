@@ -1,11 +1,9 @@
-{-# LANGUAGE ExistentialQuantification #-}
-
 {- |
     Module      :  SDP.Estimate
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC Extensions: ExistentialQuantification)
+    Portability :  portable
     
     This module is exported by "SDP.SafePrelude".
 -}
@@ -13,189 +11,145 @@ module SDP.Estimate
 (
   module Data.Functor.Classes,
   
-  Estimate (..), EL (..),
+  Estimate (..),
+  
+  Equal, Compare,
   
   (<=>), cmpfst, cmpsnd, eqfst, eqsnd,
   
-  min_, max_
+  (<=.>), (<.), (>.), (<=.), (>=.), (==.), (/=.)
 )
 where
 
 import Prelude
   (
-    Eq (..), Ord (..), Num (..), Foldable (..),
+    Eq (..), Ord (..), Num (..),
     
     Bool (..), Ordering (..), Int,
     
-    fst, snd, (&&), (||)
+    tail, fst, snd
   )
 
 import Data.Functor.Classes
 import Data.Function
 
-infixl 4 <=>, <==>, .<., .>., .<=., .>=., ==., /=., <., >., <=., >=.
+infixl 4 <=>, <==>, .<., .>., .<=., .>=., .==., ./=.
+
+infixl 4 <.=>, .<, .>, .<=, .>=, .==, ./=
+infixl 4 <=.>, <., >., <=., >=., ==., /=.
 
 default ()
 
 --------------------------------------------------------------------------------
 
-{- Common stuff. -}
+{- Common comparators. -}
+
+-- | Equal is just synonym of (e -> e -> Bool)
+type Equal   e = e -> e -> Bool
+
+-- | Compare is just synonym of (e -> e -> Ordering)
+type Compare e = e -> e -> Ordering
 
 -- | "spaceship operator" - infix version of compare.
-(<=>) :: (Ord a) => a -> a -> Ordering
+(<=>) :: (Ord o) => Compare o
 (<=>) = compare
 
 -- | Compare tuples by first elements.
-cmpfst :: (Ord a) => (a, b) -> (a, b) -> Ordering
+cmpfst :: (Ord o) => Compare (o, s)
 cmpfst = (compare `on` fst)
 
 -- | Compare tuples by second elements.
-cmpsnd :: (Ord b) => (a, b) -> (a, b) -> Ordering
+cmpsnd :: (Ord o) => Compare (f, o)
 cmpsnd = (compare `on` snd)
 
 -- | Compare tuples by first elements.
-eqfst :: (Eq a) => (a, b) -> (a, b) -> Bool
+eqfst :: (Eq e) => Equal (e, s)
 eqfst = on (==) fst
 
 -- | Compare tuples by second elements.
-eqsnd :: (Eq b) => (a, b) -> (a, b) -> Bool
+eqsnd :: (Eq e) => Equal (f, e)
 eqsnd = on (==) snd
 
--- | min_ is min which compares on length.
-min_ :: (Estimate e) => e a -> e a -> e a
-min_ xs ys = if xs .<=. ys then xs else ys
-
--- | max_ is max which compares on length.
-max_ :: (Estimate e) => e a -> e a -> e a
-max_ xs ys = if xs .>=. ys then xs else ys
-
 --------------------------------------------------------------------------------
 
 {- |
-    Type EL allows you to consistently represent all kinds of structures
-    that have an instance of Estimate.
+  Estimate class allows the lazy comparsion structures by length.
+  
+  For some types (for example, lists), this allows you to speed up the
+  comparison or make it final (in most cases). For others (e.g., arrays), it may
+  be convenient abbreviation.
 -}
-data EL e = forall o . EL (e o)
-
-{- |
-    Estimate class  allows the lazy comparsion structures by  length (including,
-  with different types of arguments).
-    For  some  types  (lists, for example),  this  allows  you  to speed up  the
-  comparison  or  make  it  finite (if  at least one  structure is finite).  For
-  others (for example, arrays) it can be a convenient abbreviation.
--}
-
-class (Foldable e, Ord1 e) => Estimate e
+class Estimate e
   where
-    {-# MINIMAL (<==>) #-}
+    {-# MINIMAL (<.=>), (<==>) #-}
     
-    {- Symmetric comparsions. -}
+    (<.=>) :: e -> Int -> Ordering
+    (<==>) :: e ->  e  -> Ordering
     
-    -- | Symmetric comparing on length by (<=>).
-    (<==>) :: e a -> e b -> Ordering
+    (.<),  (.>),  (.<=),  (.>=),  (.==),  (./=)  :: e -> Int -> Bool
+    (.<.), (.>.), (.<=.), (.>=.), (.==.), (./=.) :: e ->  e  -> Bool
     
-    -- | Symmetric comparing on length by (>).
-    (.>.)  :: e a -> e b -> Bool
+    e .<  i = case e <.=> i of {LT -> True; _ -> False}
+    e .>  i = case e <.=> i of {GT -> True; _ -> False}
+    e .== i = case e <.=> i of {EQ -> True; _ -> False}
     
-    -- | Symmetric comparing on length by (<).
-    (.<.)  :: e a -> e b -> Bool
+    e .<= i = case e <.=> i of {GT -> False; _ -> True}
+    e .>= i = case e <.=> i of {LT -> False; _ -> True}
+    e ./= i = case e <.=> i of {EQ -> False; _ -> True}
     
-    -- | Symmetric comparing on length by (<=).
-    (.<=.) :: e a -> e b -> Bool
+    e1 .<.  e2 = case e1 <==> e2 of {LT -> True; _ -> False}
+    e1 .>.  e2 = case e1 <==> e2 of {GT -> True; _ -> False}
+    e1 .==. e2 = case e1 <==> e2 of {EQ -> True; _ -> False}
     
-    -- | Symmetric comparing on length by (>=).
-    (.>=.) :: e a -> e b -> Bool
-    
-    -- | Symmetric comparing on length by (==).
-    (.==.) :: e a -> e b -> Bool
-    
-    -- | Symmetric comparing on length by (/=).
-    (./=.) :: e a -> e b -> Bool
-    
-    {- Left-side comparsion with length. -}
-    
-    -- | Left-side comparsion with known length by (>).
-    (>.)  :: e o -> Int -> Bool
-    
-    -- | Left-side comparsion with known length by (<).
-    (<.)  :: e o -> Int -> Bool
-    
-    -- | Left-side comparsion with known length by (<=).
-    (<=.) :: e o -> Int -> Bool
-    
-    -- | Left-side comparsion with known length by (>=).
-    (>=.) :: e o -> Int -> Bool
-    
-    {- Additional functions. -}
-    
-    -- | Left-side comparsion with known length by (==).
-    (==.) :: e o -> Int -> Bool
-    
-    -- | Left-side comparsion with known length by (/=).
-    (/=.) :: e o -> Int -> Bool
-    
-    -- | Same as on min length.
-    emin :: e a -> e b -> Int
-    
-    -- | Same as on max length.
-    emax :: e a -> e b -> Int
-    
-    -- | Composition of length with minimum.
-    eminimum :: (Foldable f) => f (EL e) -> Int
-    
-    -- | Composition of length with maximum.
-    emaximum :: (Foldable f) => f (EL e) -> Int
-    
-    xs .>.  ys = case xs <==> ys of {GT ->  True; _ -> False}
-    xs .<.  ys = case xs <==> ys of {LT ->  True; _ -> False}
-    
-    xs .<=. ys = case xs <==> ys of {GT -> False; _ ->  True}
-    xs .>=. ys = case xs <==> ys of {LT -> False; _ ->  True}
-    
-    xs .==. ys = case xs <==> ys of {EQ ->  True; _ -> False}
-    xs ./=. ys = case xs <==> ys of {EQ -> False; _ ->  True}
-    
-    xs  >.   n = length xs >  n
-    xs  <.   n = length xs <  n
-    xs  >=.  n = length xs >= n
-    xs  <=.  n = length xs <= n
-    
-    xs  ==.  n = length xs == n
-    xs  /=.  n = length xs /= n
-    
-    emin xs ys = if xs .>. ys then length ys else length xs
-    emax xs ys = if xs .<. ys then length ys else length xs
-    
-    eminimum   = foldl (\ len' (EL es) -> if len' < 0 || es <. len' then length es else len') (-1)
-    emaximum   = foldl (\ len' (EL es) -> if es >. len' then length es else len') 0
+    e1 .<=. e2 = case e1 <==> e2 of {GT -> False; _ -> True}
+    e1 .>=. e2 = case e1 <==> e2 of {LT -> False; _ -> True}
+    e1 ./=. e2 = case e1 <==> e2 of {LT -> False; _ -> True}
 
 --------------------------------------------------------------------------------
 
-instance Estimate []
+-- | Right-side version of (<.=>).
+(<=.>) :: (Estimate e) => Int -> e -> Ordering
+i <=.> e = case e <.=> i of {LT -> GT; EQ -> EQ; GT -> LT}
+
+-- | Right-side version of (.<).
+(<.) :: (Estimate e) => Int -> e -> Bool
+i  <.  e = e .>  i
+
+-- | Right-side version of (.>).
+(>.) :: (Estimate e) => Int -> e -> Bool
+i  >.  e = e .<  i
+
+-- | Right-side version of (.<=).
+(<=.) :: (Estimate e) => Int -> e -> Bool
+i <=.  e = e .>= i
+
+-- | Right-side version of (.>=).
+(>=.) :: (Estimate e) => Int -> e -> Bool
+i >=.  e = e .<= i
+
+-- | Right-side version of (.==).
+(==.) :: (Estimate e) => Int -> e -> Bool
+i ==. e = e .== i
+
+-- | Right-side version of (./=).
+(/=.) :: (Estimate e) => Int -> e -> Bool
+i /=. e = e ./= i
+
+--------------------------------------------------------------------------------
+
+instance Estimate [a]
   where
-    [] <==> [] = EQ
-    [] <==> _  = LT
-    _  <==> [] = GT
+    []       <==>       [] = EQ
+    _        <==>       [] = GT
+    []       <==>        _ = LT
     (_ : xs) <==> (_ : ys) = xs <==> ys
     
-    []        >. n = 0 >  n
-    (_ : xs)  >. n = 1 >  n || xs >.  (n - 1)
-    
-    []        <. n = 0 <  n
-    (_ : xs)  <. n = 1 <  n && xs <.  (n - 1)
-    
-    []       >=. n = 0 >= n
-    (_ : xs) >=. n = 1 >= n || xs >=. (n - 1)
-    
-    []       <=. n = 0 <= n
-    (_ : xs) <=. n = 1 <= n && xs <=. (n - 1)
-    
-    []       ==. n = n == 0
-    (_ : xs) ==. n = n >  0 && xs ==. (n - 1)
-    
-    []       /=. n = n /= 0
-    (_ : xs) /=. n = n <  0 || xs /=. (n - 1)
-
+    [] <.=> n = 0 <=> n
+    es <.=> n = if n < 0 then LT else go es n
+      where
+        go _  0 = GT
+        go [] c = 0 <=> c
+        go xs c = tail xs <.=> (c - 1)
 
 
 

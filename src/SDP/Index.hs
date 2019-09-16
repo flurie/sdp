@@ -1,5 +1,5 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, FlexibleContexts #-}
-{-# LANGUAGE DefaultSignatures, TypeOperators #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
+{-# LANGUAGE DefaultSignatures, TypeOperators, FlexibleContexts #-}
 {-# OPTIONS_HADDOCK ignore-exports #-}
 
 {- |
@@ -11,6 +11,12 @@
   
   Index is service class that replaces the more practice-oriented, but limitary
   "Data.Ix".
+  
+  The SDP.Index module contains over 40 instances that must be highly optimized
+  (-O2), so it takes a very long time to compile. The tests also compiled a very
+  long time, since the verification of all structures (12 + your own list)
+  needed almost all of the modules of the library. In addition, there are many
+  bottlenecks due to their interconnections.
 -}
 module SDP.Index
 (

@@ -64,8 +64,6 @@ Library
     
     -- general structure implementations
     
-    SDP.Tree.BinTree
-    
     SDP.Unrolled
     SDP.ByteList
     

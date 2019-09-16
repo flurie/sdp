@@ -5,7 +5,7 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (uses SDP.Estimate)
+    Portability :  portable
   
   Module with simple common definitions.
   
@@ -54,7 +54,7 @@ default ()
 -- > odd 1 ? "is True" $ "is False"
 -- "is True"
 {-# INLINE (?) #-}
-(?)   :: Bool -> a -> a -> a
+(?) :: Bool -> a -> a -> a
 (?) p t e = if p then t else e
 
 

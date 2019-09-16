@@ -7,7 +7,7 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC Extensions)
+    Portability :  non-portable (GHC extensions)
     
     SDP.Array provides immutable lazy boxed array type.
     This implementation of array no much different from Data.Array (array),
@@ -39,9 +39,7 @@ import GHC.Base
   (
     Array#, Int (..),
     
-    newArray#, thawArray#, unsafeFreezeArray#, writeArray#, indexArray#,
-    
-    isTrue#, (==#), (+#)
+    newArray#, thawArray#, unsafeFreezeArray#, writeArray#, indexArray#
   )
 
 import GHC.Show ( appPrec )
@@ -78,17 +76,9 @@ instance (Index i, Eq e) => Eq (Array i e) where (==) = eq1
 
 instance (Index i) => Eq1 (Array i)
   where
-    liftEq _  Z  Z  = True
-    liftEq eq xs ys = l1 == l2 && u1 == u2 && n1 == n2 && eq' 0#
-      where
-        !(Array l1 u1 n1 arr1#) = xs
-        !(Array l2 u2 n2 arr2#) = ys
-        !(I# n#) = n1
-        
-        eq' i# = isTrue# (i# ==# n#) || ((e1 `eq` e2) && eq' (i# +# 1#))
-          where
-            (# e1 #) = indexArray# arr1# i#
-            (# e2 #) = indexArray# arr2# i#
+    liftEq eq xs ys =
+      let eq' i = i ==. xs || eq (xs !^ i) (ys !^ i) && eq' (i + 1)
+      in  bounds xs == bounds ys && sizeOf xs == sizeOf ys && eq' 0
 
 --------------------------------------------------------------------------------
 
@@ -98,17 +88,47 @@ instance (Index i, Ord e) => Ord (Array i e) where compare = compare1
 
 instance (Index i) => Ord1 (Array i)
   where
-    liftCompare  _  Z  Z  = EQ
-    liftCompare cmp xs ys = (xs <==> ys) <> cmp' 0#
-      where
-        !(Array _ _ _ arr1#) = xs
-        !(Array _ _ _ arr2#) = ys
-        !(I# n#) = sizeOf xs
-        
-        cmp' i# = if isTrue# (i# ==# n#) then EQ else (e1 `cmp` e2) <> cmp' (i# +# 1#)
-          where
-            (# e1 #) = indexArray# arr1# i#
-            (# e2 #) = indexArray# arr2# i#
+    liftCompare cmp xs ys =
+      let cmp' i = i ==. xs ? EQ $ cmp (xs !^ i) (ys !^ i) <> cmp' (i + 1)
+      in  (sizeOf xs <=> sizeOf ys) <> cmp' 0
+
+--------------------------------------------------------------------------------
+
+{- Semigroup, Monoid, Default, Arbitrary and Estimate instances. -}
+
+instance (Index i) => Semigroup (Array i e) where (<>) = (++)
+instance (Index i) => Monoid    (Array i e) where mempty = Z
+instance (Index i) => Default   (Array i e) where def = Z
+
+instance (Index i, Arbitrary e) => Arbitrary (Array i e)
+  where
+    arbitrary = fromList <$> arbitrary
+
+instance Estimate (Array i e)
+  where
+    (Array _ _ n1 _) <==> (Array _ _ n2 _) = n1 <=> n2
+    (Array _ _ n1 _) .>.  (Array _ _ n2 _) = n1  >  n2
+    (Array _ _ n1 _) .<.  (Array _ _ n2 _) = n1  <  n2
+    (Array _ _ n1 _) .<=. (Array _ _ n2 _) = n1 <=  n2
+    (Array _ _ n1 _) .>=. (Array _ _ n2 _) = n1 >=  n2
+    
+    (Array _ _ n1 _) <.=> n2 = n1 <=> n2
+    (Array _ _ n1 _)  .>  n2 = n1  >  n2
+    (Array _ _ n1 _)  .<  n2 = n1  <  n2
+    (Array _ _ n1 _) .>=  n2 = n1 >=  n2
+    (Array _ _ n1 _) .<=  n2 = n1 <=  n2
+
+--------------------------------------------------------------------------------
+
+instance (Index i) => E.IsList (Array i e)
+  where
+    type Item (Array i e) = e
+    
+    fromListN = fromListN
+    fromList  = fromList
+    toList    = toList
+
+instance (Index i) => IsString (Array i Char) where fromString = fromList
 
 --------------------------------------------------------------------------------
 
@@ -130,18 +150,6 @@ instance (Index i, Read i, Read e) => Read (Array i e)
 
 --------------------------------------------------------------------------------
 
-{- Semigroup, Monoid, Default and Arbitrary instances. -}
-
-instance (Index i) => Semigroup (Array i e) where (<>) = (++)
-instance (Index i) => Monoid    (Array i e) where mempty = Z
-instance (Index i) => Default   (Array i e) where def = Z
-
-instance (Index i, Arbitrary e) => Arbitrary (Array i e)
-  where
-    arbitrary = fromList <$> arbitrary
-
---------------------------------------------------------------------------------
-
 {- Functor, Zip and Applicative instances. -}
 
 instance (Index i) => Functor (Array i)
@@ -159,27 +167,27 @@ instance (Index i) => Zip (Array i)
     zipWith f as bs              = fromListN sz $ apply <$> range (0, sz - 1)
       where
         apply i = f (as !^ i) (bs !^ i)
-        sz      = eminimum [EL as, EL bs]
+        sz      = minimum [sizeOf as, sizeOf bs]
     
     zipWith3 f as bs cs          = fromListN sz $ apply <$> range (0, sz - 1)
       where
         apply i = f (as !^ i) (bs !^ i) (cs !^ i)
-        sz      = eminimum [EL as, EL bs, EL cs]
+        sz      = minimum [sizeOf as, sizeOf bs, sizeOf cs]
     
     zipWith4 f as bs cs ds       = fromListN sz $ apply <$> range (0, sz - 1)
       where
         apply i = f (as !^ i) (bs !^ i) (cs !^ i) (ds !^ i)
-        sz      = eminimum [EL as, EL bs, EL cs, EL ds]
+        sz      = minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds]
     
     zipWith5 f as bs cs ds es    = fromListN sz $ apply <$> range (0, sz - 1)
       where
         apply i = f (as !^ i) (bs !^ i) (cs !^ i) (ds !^ i) (es !^ i)
-        sz      = eminimum [EL as, EL bs, EL cs, EL ds, EL es]
+        sz      = minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds, sizeOf es]
     
     zipWith6 f as bs cs ds es fs = fromListN sz $ apply <$> range (0, sz - 1)
       where
         apply i = f (as !^ i) (bs !^ i) (cs !^ i) (ds !^ i) (es !^ i) (fs !^ i)
-        sz      = eminimum [EL as, EL bs, EL cs, EL ds, EL es, EL fs]
+        sz      = minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds, sizeOf es, sizeOf fs]
 
 instance (Index i) => Applicative (Array i)
   where
@@ -194,13 +202,13 @@ instance (Index i) => Foldable (Array i)
   where
     {-# INLINE foldr #-}
     foldr  f base = \ arr ->
-      let go i = arr ==. i ? base $ f (arr !^ i) (go $ i + 1)
+      let go i = arr .== i ? base $ f (arr !^ i) (go $ i + 1)
       in  go 0
     
     {-# INLINE foldl #-}
     foldl  f base = \ arr ->
       let go i = -1 == i ? base $ f (go $ i - 1) (arr !^ i)
-      in  go $ sizeOf arr - 1
+      in  go (sizeOf arr - 1)
     
     {-# INLINE foldr' #-}
     foldr' f base = \ arr ->
@@ -209,12 +217,12 @@ instance (Index i) => Foldable (Array i)
     
     {-# INLINE foldl' #-}
     foldl' f base = \ arr ->
-      let go i !a = arr ==. i ? a $ go (i + 1) (f a $ arr !^ i)
+      let go i !a = arr .== i ? a $ go (i + 1) (f a $ arr !^ i)
       in  go 0 base
     
     {-# INLINE foldr1 #-}
     foldr1 f = \ arr ->
-      let go i = arr ==. (i + 1) ? e $ f e (go $ i + 1) where e = arr !^ i
+      let go i = arr .== (i + 1) ? e $ f e (go $ i + 1) where e = arr !^ i
       in  null arr ? pfailEx "foldr1" $ go 0
     
     {-# INLINE foldl1 #-}
@@ -223,10 +231,10 @@ instance (Index i) => Foldable (Array i)
       in  null arr ? pfailEx "foldl1" $ go (sizeOf arr - 1)
     
     {-# INLINE toList #-}
-    toList arr = [ arr !^ i | i <- [ 0 .. sizeOf arr - 1 ] ]
+    toList = foldr (:) []
     
     {-# INLINE null #-}
-    null   (Array l u n _) = isEmpty (l, u) || n < 1
+    null   (Array l u n _) = n < 1 || isEmpty (l, u)
     
     {-# INLINE length #-}
     length (Array _ _ n _) = max 0 n
@@ -334,17 +342,15 @@ instance (Index i) => Split (Array i e) e
   where
     {-#  INLINE take #-}
     take n es
-        | n <= 0 = Z
-        | n >= l = es
-        |  True  = fromListN n [ es !^ i | i <- [ 0 .. n - 1 ] ]
-      where
-        l = sizeOf es
+      |  n <= 0  = Z
+      | n >=. es = es
+      |   True   = fromListN n [ es !^ i | i <- [ 0 .. n - 1 ] ]
     
     {-# INLINE drop #-}
     drop n es
-        | n <= 0 = es
-        | n >= l = Z
-        |  True  = fromListN (l - n) [ es !^ i | i <- [ n .. l - 1 ] ]
+        |  n <= 0  = es
+        | n >=. es = Z
+        |   True   = fromListN (l - n) [ es !^ i | i <- [ n .. l - 1 ] ]
       where
         l = sizeOf es
     
@@ -352,29 +358,13 @@ instance (Index i) => Split (Array i e) e
     chunks ns es = fromList <$> chunks ns (listL es)
     parts  ns es = fromList <$> parts  ns (listL es)
     
-    isPrefixOf xs ys = xs .<=. ys && equals 0#
-      where
-        !(Array _ _ _ arr1#) = xs
-        !(Array _ _ _ arr2#) = ys
-        !(I# n#) = sizeOf xs
-        
-        equals i# = isTrue# (i# ==# n#) || (e1 == e2 && equals (i# +# 1#))
-          where
-            (# e1 #) = indexArray# arr1# i#
-            (# e2 #) = indexArray# arr2# i#
+    isPrefixOf xs ys =
+      let equals i = i ==. xs || (xs !^ i) == (ys !^ i) && equals (i + 1)
+      in  xs .<=. ys && equals 0
     
-    isSuffixOf xs ys = xs .<=. ys && equals 0# o#
-      where
-        !(Array _ _ _ arr1#) = xs
-        !(Array _ _ _ arr2#) = ys
-        
-        !(I# o#) = max 0 (sizeOf ys - lx)
-        !lx@(I# n#) = sizeOf xs
-        
-        equals i# j# = isTrue# (i# ==# n#) || (e1 == e2 && equals (i# +# 1#) (j# +# 1#))
-          where
-            (# e1 #) = indexArray# arr1# i#
-            (# e2 #) = indexArray# arr2# j#
+    isSuffixOf xs ys =
+      let equals i j = i ==. xs || (xs !^ i) == (ys !^ j) && equals (i + 1) (j + 1)
+      in  xs .<=. ys && equals 0 (max 0 $ sizeOf ys - sizeOf xs)
 
 instance (Index i) => Bordered (Array i e) i e
   where
@@ -433,8 +423,8 @@ instance (Index i) => Indexed (Array i e) i e
 instance (Index i) => IFold (Array i e) i e
   where
     {-# INLINE ifoldr #-}
-    ifoldr  f base = \ arr ->
-      let go i = arr ==. i ? base $ f (indexOf arr i) (arr !^ i) (go $ i + 1)
+    ifoldr  f base = \ arr@(Array _ _ n _) ->
+      let go i = n == i ? base $ f (indexOf arr i) (arr !^ i) (go $ i + 1)
       in  go 0
     
     {-# INLINE ifoldl #-}
@@ -521,20 +511,6 @@ instance (Index i) => Sort (Array i e) e
 
 --------------------------------------------------------------------------------
 
-instance (Index i) => E.IsList (Array i e)
-  where
-    type Item (Array i e) = e
-    
-    fromListN = fromListN
-    fromList  = fromList
-    toList    = toList
-
-instance (Index i) => IsString (Array i Char) where fromString = fromList
-
-instance (Index i) => Estimate (Array i) where xs <==> ys = sizeOf xs <=> sizeOf ys
-
---------------------------------------------------------------------------------
-
 {- Thaw and Freeze instances. -}
 
 instance (Index i) => Thaw (ST s) (Array i e) (STArray s i e)
@@ -566,5 +542,4 @@ pfailEx msg = throw . PatternMatchFail $ "in SDP.Array." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Array." ++ msg
-
 

@@ -11,7 +11,6 @@
     This module provides service type Unlist - lazy boxed unrolled linked list
     for SDP.Unrolled.
 -}
-
 module SDP.Unrolled.Unlist
 (
   module SDP.Indexed,
@@ -114,7 +113,7 @@ instance (Show e) => Show (Unlist e)
 
 --------------------------------------------------------------------------------
 
-{- Semigroup, Monoid, Default and Arbitrary instances. -}
+{- Semigroup, Monoid, Default, Arbitrary and Estimate instances. -}
 
 instance Semigroup (Unlist e) where (<>) = (++)
 
@@ -126,9 +125,23 @@ instance (Arbitrary e) => Arbitrary (Unlist e)
   where
     arbitrary = fromList <$> arbitrary
 
+instance Estimate (Unlist e)
+  where
+    (<==>) = go 0
+      where
+        go d Z    Z = d <=> 0
+        go d Z unls = d <=.> unls
+        go d unls Z = d > 0 ? GT $ unls <.=> (-d)
+        go d (Unlist c1 _ unls1) (Unlist c2 _ unls2) = go (d + c1 - c2) unls1 unls2
+    
+    es <.=> n2 = n2 < 0 ? GT $ go es n2
+      where
+        go          Z          m2 = 0  <=> m2
+        go (Unlist m1 _ unls') m2 = m1  >  m2 ? GT $ go unls' (m2 - m1)
+
 --------------------------------------------------------------------------------
 
-{- Functor instance. -}
+{- Functor and Applicative instances. -}
 
 instance Functor Unlist
   where
@@ -141,9 +154,14 @@ instance Functor Unlist
               else fill marr# (i, f $ arr# !# i#) (go $ i + 1) s#
           in go 0 s2#
 
+instance Applicative Unlist
+  where
+    pure = single
+    fs <*> es = (<$> es) `concatMap` fs
+
 --------------------------------------------------------------------------------
 
-{- Foldable instance. -}
+{- Foldable and Traversable instances. -}
 
 instance Foldable Unlist
   where
@@ -177,10 +195,13 @@ instance Foldable Unlist
     
     length es = case es of {Unlist n _ arrs -> max 0 n + length arrs; _ -> 0}
     
-    toList Z = []
-    toList (Unlist c arr# arrs) = foldr (\ (I# i#) es -> (arr# !# i#) : es) (toList arrs) [0 .. c - 1]
+    toList = listL
     
     null = \ es -> case es of {Unlist c _ _ -> c < 1; _ -> True}
+
+instance Traversable Unlist
+  where
+    traverse f = fmap fromList . foldr (\ x ys -> liftA2 (:) (f x) ys) (pure [])
 
 --------------------------------------------------------------------------------
 
@@ -229,7 +250,7 @@ instance Linear (Unlist e) e
     {-# INLINE single #-}
     single e = runST $ filled 1 e >>= done
     
-    listL = toList
+    listL = foldr (:) []
     
     {-# INLINE fromList #-}
     fromList es = runST $ newLinear es >>= done
@@ -251,15 +272,7 @@ instance Linear (Unlist e) e
         !(I# l#) = lim
     
     {-# INLINE reverse #-}
-    reverse = rev Z
-      where
-        rev :: Unlist e -> Unlist e -> Unlist e
-        rev tail' = \ es -> case es of
-          Z -> tail'
-          (Unlist n ubl# ubls) ->
-            let rightView = [ ubl# !# i# | (I# i#) <- [ n - 1, n - 2 .. 0 ] ]
-                !(Unlist _ rev# _) = fromList rightView `asTypeOf` tail'
-            in  rev (Unlist n rev# tail') ubls
+    reverse = fromList . i_foldl (flip (:)) []
     
     partition  p  es = let (x, y) = partition p (toList es) in (fromList x, fromList y)
     partitions ps es = fromList <$> partitions ps (toList es)
@@ -268,8 +281,8 @@ instance Split (Unlist e) e
   where
     {-# INLINE take #-}
     take n es
-        |  n <= 0  = Z
-        | es <=. n = es
+        |   n < 1  = Z
+        | es .<= n = es
         |   True   = take' n es
       where
         take' _ Z = Z
@@ -280,8 +293,8 @@ instance Split (Unlist e) e
     
     {-# INLINE drop #-}
     drop n es
-        |  n <=  0 = es
-        | es <=. n = Z
+        |   n < 1  = es
+        | es .<= n = Z
         |   True   = drop' n es
       where
         drop' _ Z = Z
@@ -297,7 +310,7 @@ instance Split (Unlist e) e
 instance Bordered (Unlist e) Int e
   where
     sizeOf  es = case es of {Unlist n _ unls -> max 0 n + sizeOf unls; _ -> 0}
-    indexIn es = \ i -> i >= 0 && i < sizeOf es
+    indexIn es = \ i -> i >= 0 && i <. es
     
     lower  _  = 0
     upper  es = sizeOf es - 1
@@ -452,16 +465,11 @@ instance Sort (Unlist e) e
 
 instance IsString (Unlist Char) where fromString = fromList
 
-instance Estimate Unlist
-  where
-    UNEmpty         <==> ys = case ys of {Unlist c2 _ _ ->  0 <=> c2; _ -> EQ}
-    (Unlist c1 _ _) <==> ys = case ys of {Unlist c2 _ _ -> c1 <=> c2; _ -> c1 <=> 0}
-
 --------------------------------------------------------------------------------
 
 instance Thaw (ST s) (Unlist e) (STUnlist s e)
   where
-    thaw Z = return (STUNEmpty)
+    thaw Z = return $ STUNEmpty
     thaw (Unlist n unl# unls) = liftA2 thaw' list (thaw unls)
       where
         thaw' = \ (STUnlist _ stunl# _) stunls -> STUnlist n stunl# stunls
@@ -505,4 +513,8 @@ unreachEx msg = throw . UnreachableException $ "in SDP.Unrolled.Unlist." ++ msg
 
 lim :: Int
 lim =  1024
+
+
+
+
 

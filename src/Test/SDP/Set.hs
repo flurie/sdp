@@ -5,8 +5,8 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
     
-    Test.SDP.Set provides simple set of test (sorry for the tautology) for
-    SDP.Set class (sorry again).
+    Test.SDP.Set provides simple set of test (sorry for the tautology) for Set
+    class (sorry again).
 -}
 
 module Test.SDP.Set

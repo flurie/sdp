@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE TypeOperators, GADTs, DefaultSignatures #-}
+{-# LANGUAGE TypeFamilies, TypeOperators, DefaultSignatures #-}
 {-# LANGUAGE PatternSynonyms, ViewPatterns #-}
 {-# LANGUAGE Trustworthy #-}
 

@@ -101,7 +101,7 @@ instance (Index i, Read i, Read e) => Read (Unrolled i e)
 
 --------------------------------------------------------------------------------
 
-{- Semigroup, Monoid and Default instances. -}
+{- Semigroup, Monoid, Default, Arbitrary and Estimate instances. -}
 
 instance (Index i) => Semigroup (Unrolled i e) where xs <> ys = xs ++ ys
 
@@ -111,11 +111,31 @@ instance (Index i) => Default (Unrolled i e)
   where
     def = let (l, u) = defaultBounds 0 in Unrolled l u def
 
+instance (Index i, Arbitrary e) => Arbitrary (Unrolled i e)
+  where
+    arbitrary = fromList <$> arbitrary
+
+instance (Index i) => Estimate (Unrolled i e)
+  where
+    (Unrolled l1 u1 _) <==> (Unrolled l2 u2 _) = size (l1, u1) <=> size (l2, u2)
+    (Unrolled l1 u1 _) .>.  (Unrolled l2 u2 _) = size (l1, u1)  >  size (l2, u2)
+    (Unrolled l1 u1 _) .<.  (Unrolled l2 u2 _) = size (l1, u1)  >  size (l2, u2)
+    (Unrolled l1 u1 _) .<=. (Unrolled l2 u2 _) = size (l1, u1) <=  size (l2, u2)
+    (Unrolled l1 u1 _) .>=. (Unrolled l2 u2 _) = size (l1, u1) >=  size (l2, u2)
+    
+    (Unrolled l1 u1 _) <.=> n2 = size (l1, u1) <=> n2
+    (Unrolled l1 u1 _)  .>  n2 = size (l1, u1)  >  n2
+    (Unrolled l1 u1 _)  .<  n2 = size (l1, u1)  <  n2
+    (Unrolled l1 u1 _) .>=  n2 = size (l1, u1) >=  n2
+    (Unrolled l1 u1 _) .<=  n2 = size (l1, u1) <=  n2
+
 --------------------------------------------------------------------------------
 
 {- Functor, Zip and Applicative instances -}
 
-instance (Index i) => Functor (Unrolled i) where fmap f (Unrolled l u es) = Unrolled l u (f <$> es)
+instance (Index i) => Functor (Unrolled i)
+  where
+    fmap f (Unrolled l u es) = Unrolled l u (f <$> es)
 
 instance (Index i) => Zip (Unrolled i)
   where
@@ -163,7 +183,7 @@ instance (Index i) => Foldable (Unrolled i)
 
 instance (Index i) => Traversable (Unrolled i)
   where
-    traverse f arr = fromList <$> foldr (\ x ys -> liftA2 (:) (f x) ys) (pure []) arr
+    traverse f (Unrolled l u es) = Unrolled l u <$> traverse f es
 
 --------------------------------------------------------------------------------
 
@@ -181,7 +201,7 @@ instance (Index i) => Linear (Unrolled i e) e
         n = size (l, u)
     
     uncons Z = pfail "(:>)"
-    uncons (Unrolled l u es) = (x, es <. 2 ? Z $ Unrolled l1 u xs)
+    uncons (Unrolled l u es) = (x, sizeOf es < 2 ? Z $ Unrolled l1 u xs)
       where
         (x, xs) = uncons es
         l1 = next (l, u) l
@@ -198,7 +218,7 @@ instance (Index i) => Linear (Unrolled i e) e
         n = size (l, u)
     
     unsnoc Z = pfail "(:<)"
-    unsnoc (Unrolled l u es) = (es <. 2 ? Z $ Unrolled l u1 xs, x)
+    unsnoc (Unrolled l u es) = (sizeOf es < 2 ? Z $ Unrolled l u1 xs, x)
       where
         (xs, x) = unsnoc es
         u1 = prev (l, u) u
@@ -392,10 +412,6 @@ instance (Index i) => E.IsList (Unrolled i e)
 
 instance (Index i) => IsString (Unrolled i Char) where fromString = fromList
 
-instance (Index i) => Estimate (Unrolled i) where xs <==> ys = length xs <=> length ys
-
-instance (Index i, Arbitrary e) => Arbitrary (Unrolled i e) where arbitrary = fromList <$> arbitrary
-
 --------------------------------------------------------------------------------
 
 instance (Index i) => Thaw (ST s) (Unrolled i e) (STUnrolled s i e)
@@ -413,8 +429,4 @@ done = freeze
 
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.Unrolled." ++ msg
-
-
-
-
 

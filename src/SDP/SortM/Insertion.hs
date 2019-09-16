@@ -3,7 +3,7 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (imports SDP.IndexedM).
+    Portability :  non-portable (require SDP.IndexedM).
     
     SDP.SortM.Stuff provides some sorting algorithms.
 -}

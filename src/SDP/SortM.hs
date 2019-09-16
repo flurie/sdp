@@ -5,7 +5,7 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC Extensions)
+    Portability :  portable
     
     SDP.SortM provides SortM - class of sortable mutable structures.
 -}
@@ -27,13 +27,13 @@ class SortM m s e | s -> m, s -> e
     {-# MINIMAL sortMBy #-}
     
     -- | sortMBy is common sorting algorithm.
-    sortMBy :: (e -> e -> Ordering) -> s -> m ()
+    sortMBy :: Compare e -> s -> m ()
     
     {- |
       mathsortMBy is sortMBy modiffication, that which is optimized for sorting
       data with a lot of repetitions.
     -}
-    mathsortMBy :: (e -> e -> Ordering) -> s -> m ()
+    mathsortMBy :: Compare e -> s -> m ()
     mathsortMBy cmp es = sortMBy cmp es
 
 -- | sortM is just synonym for sortMBy compare

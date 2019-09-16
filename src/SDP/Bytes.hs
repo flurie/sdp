@@ -1,6 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, RoleAnnotations #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns #-}
+{-# LANGUAGE RoleAnnotations, TypeFamilies #-}
 
 {- |
     Module      :  SDP.Bytes
@@ -70,22 +70,16 @@ type role Bytes nominal representational
 
 instance (Index i, Unboxed e) => Eq (Bytes i e)
   where
-    Z == Z  = True
-    xs == ys = l1 == l2 && u1 == u2 && n1 == n2 && eq' 0
-      where
-        !(Bytes l1 u1 n1 _) = xs
-        !(Bytes l2 u2 n2 _) = ys
-        
-        eq' i = i == n1 || (xs !^ i == ys !^ i) && eq' (i + 1)
+    xs == ys =
+     let eq' i = i ==. xs || (xs !^ i == ys !^ i) && eq' (i + 1)
+     in  bounds xs == bounds ys && xs .==. ys && eq' 0
 
 instance (Index i, Unboxed e, Ord e) => Ord (Bytes i e)
   where
     compare Z  Z  = EQ
-    compare xs ys = (n1 <=> n2) <> cmp' 0
-      where
-        cmp' i = if i == n1 then EQ else (xs !^ i <=> ys !^ i) <> cmp' (i + 1)
-        n1 = sizeOf xs
-        n2 = sizeOf ys
+    compare xs ys =
+      let cmp' i = i ==. xs ? EQ $ (xs !^ i <=> ys !^ i) <> cmp' (i + 1)
+      in  (xs <==> ys) <> cmp' 0
 
 --------------------------------------------------------------------------------
 
@@ -107,7 +101,7 @@ instance (Index i, Read i, Unboxed e, Read e) => Read (Bytes i e)
 
 --------------------------------------------------------------------------------
 
-{- Semigroup, Monoid and Default instances. -}
+{- Semigroup, Monoid, Default, Arbitrary and Estimate instances. -}
 
 instance (Index i, Unboxed e) => Semigroup (Bytes i e) where (<>) = (++)
 instance (Index i, Unboxed e) => Monoid    (Bytes i e) where mempty = def
@@ -122,6 +116,20 @@ instance (Index i) => Default (Bytes i e)
 instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (Bytes i e)
   where
     arbitrary = fromList <$> arbitrary
+
+instance Estimate (Bytes i e)
+  where
+    (Bytes _ _ n1 _) <==> (Bytes _ _ n2 _) = n1 <=> n2
+    (Bytes _ _ n1 _) .>.  (Bytes _ _ n2 _) = n1  >  n2
+    (Bytes _ _ n1 _) .<.  (Bytes _ _ n2 _) = n1  <  n2
+    (Bytes _ _ n1 _) .<=. (Bytes _ _ n2 _) = n1 <=  n2
+    (Bytes _ _ n1 _) .>=. (Bytes _ _ n2 _) = n1 >=  n2
+    
+    (Bytes _ _ n1 _) <.=> n2 = n1 <=> n2
+    (Bytes _ _ n1 _)  .>  n2 = n1  >  n2
+    (Bytes _ _ n1 _)  .<  n2 = n1  <  n2
+    (Bytes _ _ n1 _) .>=  n2 = n1 >=  n2
+    (Bytes _ _ n1 _) .<=  n2 = n1 <=  n2
 
 --------------------------------------------------------------------------------
 
@@ -165,7 +173,7 @@ instance (Unboxed e, Index i) => Linear (Bytes i e) e
     
     Z  ++ ys = ys
     xs ++  Z = xs
-    xs ++ ys = fromList $ listL xs ++ listL ys
+    xs ++ ys = fromList $ i_foldr (:) (listL ys) xs
     
     {-# INLINE replicate #-}
     replicate n e = runST $ filled n e >>= done
@@ -193,9 +201,9 @@ instance (Index i, Unboxed e) => Split (Bytes i e) e
     
     {-# INLINE drop #-}
     drop n es
-        | n <= 0 = es
-        | n >= l = Z
-        |  True  = fromListN (l - n) [ es !^ i | i <- [ n .. l - 1 ] ]
+        |  n <= 0  = es
+        | n >=. es = Z
+        |   True   = fromListN (l - n) [ es !^ i | i <- [ n .. l - 1 ] ]
       where
         l = sizeOf es
     
@@ -203,18 +211,13 @@ instance (Index i, Unboxed e) => Split (Bytes i e) e
     chunks ns es = fromList <$> chunks ns (listL es)
     parts  ns es = fromList <$> parts  ns (listL es)
     
-    isPrefixOf xs ys = n1 <= n2 && equals 0
-      where
-        equals i = i == n1 || (xs !^ i == ys !^ i) && equals (i + 1)
-        n1 = sizeOf xs
-        n2 = sizeOf ys
+    isPrefixOf xs ys =
+      let equals i = i ==. xs || (xs !^ i) == (ys !^ i) && equals (i + 1)
+      in  xs .<=. ys && equals 0
     
-    isSuffixOf xs ys = n1 <= n2 && equals 0 o
-      where
-        equals i j = i == n1 || (xs !^ i == ys !^ j) && equals (i + 1) (j + 1)
-        o  = max 0 (n2 - n1)
-        n1 = sizeOf xs
-        n2 = sizeOf ys
+    isSuffixOf xs ys =
+      let equals i j = i ==. xs || (xs !^ i) == (ys !^ j) && equals (i + 1) (j + 1)
+      in  xs .<=. ys && equals 0 (max 0 $ sizeOf ys - sizeOf xs)
     
     {-# INLINE prefix #-}
     prefix p = i_foldr (\ e c -> p e ? c + 1 $ 0) 0
@@ -404,6 +407,7 @@ done :: (Index i) => STBytes s i e -> ST s (Bytes i e)
 done (STBytes l u n mbytes#) = ST $ \ s1# -> case unsafeFreezeByteArray# mbytes# s1# of
   (# s2#, bytes# #) -> (# s2#, Bytes l u n bytes# #)
 
+{-# INLINE nubSorted #-}
 nubSorted :: (Index i, Unboxed e) => (e -> e -> Ordering) -> Bytes i e -> Bytes i e
 nubSorted _ Z  = Z
 nubSorted f es = fromList $ foldr fun [last es] ((es !^) <$> [0 .. sizeOf es - 2])
@@ -421,5 +425,7 @@ pfailEx msg = throw . PatternMatchFail $ "in SDP.Bytes." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Bytes." ++ msg
+
+
 
 

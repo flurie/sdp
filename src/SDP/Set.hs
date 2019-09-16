@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Trustworthy, TypeOperators, GADTs, DefaultSignatures #-}
+{-# LANGUAGE TypeOperators, TypeFamilies, DefaultSignatures #-}
+{-# LANGUAGE Trustworthy #-}
 
 {- |
     Module      :  SDP.Set

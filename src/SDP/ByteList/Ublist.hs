@@ -36,7 +36,7 @@ import GHC.Base
   (
     ByteArray#, MutableByteArray#, Int (..),
     
-    unsafeFreezeByteArray#, isTrue#, (+#), (-#), (<#)
+    unsafeFreezeByteArray#, (-#)
   )
 
 import GHC.ST   ( ST (..), STRep, runST )
@@ -96,13 +96,31 @@ instance (Unboxed e, Show e) => Show (Ublist e)
 
 --------------------------------------------------------------------------------
 
-{- Semigroup, Monoid and Default instances. -}
+{- Semigroup, Monoid, Default, Arbitrary and Estimate instances. -}
 
 instance (Unboxed e) => Semigroup (Ublist e) where (<>) = (++)
 
 instance (Unboxed e) => Monoid (Ublist e) where mempty = UBEmpty
 
 instance Default (Ublist e) where def = UBEmpty
+
+instance (Unboxed e, Arbitrary e) => Arbitrary (Ublist e)
+  where
+    arbitrary = fromList <$> arbitrary
+
+instance (Unboxed e) => Estimate (Ublist e)
+  where
+    (<==>) = go 0
+      where
+        go d Z    Z = d <=> 0
+        go d Z ubls = d <=.> ubls
+        go d ubls Z = d > 0 ? GT $ ubls <.=> (-d)
+        go d (Ublist c1 _ ubls1') (Ublist c2 _ ubls2') = go (d + c1 - c2) ubls1' ubls2'
+    
+    es <.=> n2 = n2 < 0 ? GT $ go es n2
+      where
+        go          Z          m2 = 0  <=> m2
+        go (Ublist m1 _ ubls') m2 = m1  >  m2 ? GT $ go ubls' (m2 - m1)
 
 --------------------------------------------------------------------------------
 
@@ -151,12 +169,8 @@ instance (Unboxed e) => Linear (Ublist e) e
     fromList es = runST $ newLinear es >>= done
     
     {-# INLINE listL #-}
-    listL = list' 0#
-      where
-        list' _  Z   = []
-        list' i# es@(Ublist (I# n#) ubl# ubls) = if isTrue# (i# <# n#)
-          then (ubl# !# i#) : list' (i# +# 1#) es
-          else list' 0# ubls
+    
+    listL = i_foldr (:) []
     
     Z  ++ ys = ys
     xs ++  Z = xs
@@ -173,15 +187,7 @@ instance (Unboxed e) => Linear (Ublist e) e
         !(I# l#) = lim
     
     {-# INLINE reverse #-}
-    reverse = rev Z
-      where
-        rev :: (Unboxed e) => Ublist e -> Ublist e -> Ublist e
-        rev tail' = \ es -> case es of
-          Z -> tail'
-          (Ublist n ubl# ubls) ->
-            let rightView = [ ubl# !# i# | (I# i#) <- [ n - 1, n - 2 .. 0 ] ]
-                !(Ublist _ rev# _) = fromList rightView `asTypeOf` tail'
-            in  rev (Ublist n rev# tail') ubls
+    reverse = fromList . i_foldl (flip (:)) []
     
     partitions ps es = fromList <$> partitions ps (listL es)
 
@@ -189,29 +195,27 @@ instance (Unboxed e) => Split (Ublist e) e
   where
     {-# INLINE take #-}
     take n es
-        | n <= 0 = Z
-        | l <= n = es
-        |  True  = take' n es
+        |   n < 1  = Z
+        | es .<= n = es
+        |   True   = take' n es
       where
         take' _ Z = Z
         take' n' (Ublist c ubl# ubls) = n' >= c ? Ublist c ubl# other $ fromListN n' rest
           where
             rest  = [ ubl# !# i# | (I# i#) <- [0 .. n' - 1] ]
             other = take' (n' - c) ubls
-        l = sizeOf es
     
     {-# INLINE drop #-}
     drop n es
-        | n <= 0 = es
-        | l <= n = Z
-        |  True  = drop' n es
+        |   n < 1  = es
+        | es .<= n = Z
+        |   True   = drop' n es
       where
         drop' _ Z = Z
         drop' n' (Ublist c ubl# ubls) = n' >= c ? rest $ other ++ ubls
           where
             rest  = drop' (n' - c) ubls
             other = fromListN (c - n') [ ubl# !# i# | (I# i#) <- [n' .. c - 1] ]
-        l = sizeOf es
     
     isPrefixOf xs ys = listL xs `isPrefixOf` listL ys
     isInfixOf  xs ys = listL xs `isInfixOf`  listL ys
@@ -390,10 +394,6 @@ instance (Unboxed e) => Sort (Ublist e) e
 --------------------------------------------------------------------------------
 
 instance IsString (Ublist Char) where fromString = fromList
-
-instance (Unboxed e, Arbitrary e) => Arbitrary (Ublist e)
-  where
-    arbitrary = fromList <$> arbitrary
 
 --------------------------------------------------------------------------------
 
