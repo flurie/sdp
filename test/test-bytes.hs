@@ -12,6 +12,7 @@ import Test.SDP.Sort
 import Test.SDP.Set
 
 import Test.SDP.Eq
+import Test.SDP.Ord
 
 default ()
 
@@ -22,6 +23,7 @@ main = defaultMain
   [
     -- common tests
     testProperty "bytes-eq             " eqProp,
+    testProperty "bytes-ord            " ordProp,
     
     -- linear tests
     testProperty "bytes-linear-basic   " basicLinearProp,
@@ -54,6 +56,13 @@ main = defaultMain
 
 eqProp :: TestEq (Bytes Int Int)
 eqProp =  eqTest
+
+--------------------------------------------------------------------------------
+
+{- Ord property. -}
+
+ordProp :: TestOrd (Bytes Int Int)
+ordProp =  ordTest
 
 --------------------------------------------------------------------------------
 

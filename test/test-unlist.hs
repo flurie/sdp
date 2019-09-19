@@ -12,6 +12,7 @@ import Test.SDP.Sort
 import Test.SDP.Set
 
 import Test.SDP.Eq
+import Test.SDP.Ord
 
 default ()
 
@@ -22,6 +23,7 @@ main = defaultMain
   [
     -- common tests
     testProperty "unlist-eq             " eqProp,
+    testProperty "unlist-ord            " ordProp,
     
     -- linear tests
     testProperty "unlist-linear-basic   " basicLinearProp,
@@ -54,6 +56,13 @@ main = defaultMain
 
 eqProp :: TestEq (Unlist Int)
 eqProp =  eqTest
+
+--------------------------------------------------------------------------------
+
+{- Ord property. -}
+
+ordProp :: TestOrd (Unlist Int)
+ordProp =  ordTest
 
 --------------------------------------------------------------------------------
 

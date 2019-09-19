@@ -12,6 +12,7 @@ import Test.SDP.Sort
 import Test.SDP.Set
 
 import Test.SDP.Eq
+import Test.SDP.Ord
 
 default ()
 
@@ -22,6 +23,7 @@ main = defaultMain
   [
     -- common tests
     testProperty "ublist-eq             " eqProp,
+    testProperty "ublist-ord            " ordProp,
     
     -- linear tests
     testProperty "ublist-linear-basic   " basicLinearProp,
@@ -54,6 +56,13 @@ main = defaultMain
 
 eqProp :: TestEq (Ublist Int)
 eqProp =  eqTest
+
+--------------------------------------------------------------------------------
+
+{- Ord property. -}
+
+ordProp :: TestOrd (Ublist Int)
+ordProp =  ordTest
 
 --------------------------------------------------------------------------------
 

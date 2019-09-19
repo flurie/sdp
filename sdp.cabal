@@ -97,6 +97,7 @@ Library
     -- basic test suite
     
     Test.SDP.Eq
+    Test.SDP.Ord
     
     Test.SDP.Estimate
     Test.SDP.Indexed
@@ -175,6 +176,7 @@ test-suite test-array
     Test.SDP.Set
     
     Test.SDP.Eq
+    Test.SDP.Ord
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -222,6 +224,7 @@ test-suite test-bytes
     Test.SDP.Set
     
     Test.SDP.Eq
+    Test.SDP.Ord
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -270,6 +273,7 @@ test-suite test-unrolled
     Test.SDP.Set
     
     Test.SDP.Eq
+    Test.SDP.Ord
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -319,6 +323,7 @@ test-suite test-bytelist
     Test.SDP.Set
     
     Test.SDP.Eq
+    Test.SDP.Ord
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -366,6 +371,7 @@ test-suite test-ublist
     Test.SDP.Set
     
     Test.SDP.Eq
+    Test.SDP.Ord
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -412,6 +418,7 @@ test-suite test-unlist
     Test.SDP.Set
     
     Test.SDP.Eq
+    Test.SDP.Ord
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -422,8 +429,6 @@ test-suite test-unlist
     test-framework-quickcheck2 >= 0.3   && < 0.4
   
   ghc-options: -Wall -O2
-
-
 
 
 

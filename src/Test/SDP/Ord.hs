@@ -1,19 +1,19 @@
 {- |
-    Module      :  Test.SDP.Eq
+    Module      :  Test.SDP.Ord
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
   
-  @Test.SDP.Eq@ provides basic test suite for 'Eq' instances.
+  @Test.SDP.Ord@ provides basic test suite for 'Ord' instances.
 -}
-module Test.SDP.Eq
+module Test.SDP.Ord
   (
     -- * Test type synonym
-    TestEq,
+    TestOrd,
     
     -- * Default test
-    eqTest
+    ordTest
   )
 where
 
@@ -25,20 +25,22 @@ default ()
 --------------------------------------------------------------------------------
 
 -- | TestEq is service type synonym for more comfortable quickCheck using.
-type TestEq l = l -> l -> l -> Bool
+type TestOrd l = l -> l -> l -> Bool
 
 -- | eqTest is basic test suite for 'Eq' instances.
-eqTest :: (Eq l) => l -> l -> l -> Bool
-eqTest xs ys zs = and
+ordTest :: (Ord l) => l -> l -> l -> Bool
+ordTest xs ys zs = and
   [
-    -- transitive
-    (xs == ys && ys == zs) <= (xs == zs),
+    -- antisymmetry
+    (xs <= ys && ys <= xs) <= (xs == ys),
     
-    -- symmetric
-    (xs == ys) == (ys == xs),
+    -- transitivity
+    (xs <= ys && ys <= zs) <= (xs <= zs),
     
-    -- reflexive
-    xs == xs
+    -- not ((xs <= ys) && (ys <= zs)) || (xs <= zs),
+    
+    -- totality
+    (xs <= ys) /= (xs > ys)
   ]
 
 
