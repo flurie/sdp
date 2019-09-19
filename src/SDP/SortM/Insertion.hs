@@ -5,10 +5,11 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (require SDP.IndexedM).
     
-    SDP.SortM.Stuff provides some sorting algorithms.
+    SDP.SortM.Insertion provides some sorting algorithms.
 -}
 module SDP.SortM.Insertion
 (
+  -- * Insertion Sort
   insertionSort, insertionSortBy, insertionSortOn
 )
 where
@@ -16,5 +17,4 @@ where
 import Prelude ()
 
 import SDP.SortM.Tim
-
 

@@ -7,12 +7,14 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (imports SDP.IndexedM)
     
-    SDP.SortM.Tim provides InsertionSort and TimSort algorithms.
+    @SDP.SortM.Tim@ provides @InsertionSort@ and @TimSort@ algorithms.
 -}
 module SDP.SortM.Tim
 (
+  -- * Insertion Sort
   insertionSort, insertionSortBy, insertionSortOn,
   
+  -- * TimSort
   timSort, timSortBy, timSortOn,
   
   minrunTS

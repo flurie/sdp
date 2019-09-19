@@ -4,21 +4,38 @@
 {-# LANGUAGE TypeFamilies #-}
 
 {- |
-    Module      :  SDP.Unrolled
+    Module      :  SDP.ByteList
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
     
-    This module provides ByteList - strict boxed unrolled linked list.
+    @SDP.ByteList@ provides 'ByteList' - strict unboxed unrolled linked list.
+    
+    Note that the strictness of 'ByteList' means that the values in the chunks
+    are stored raw, and not the strictness of the structure as a whole. Chunks
+    themselves are lazy and can be evaluated independently of each other (the
+    ByteArray field also isn't strict).
+    
+    A useful feature of 'ByteList' is that instead of strict boundaries, you can
+    specify a lower limit - most operations shorten ByteList to a specified size.
+    
+    Of course, an attempt to apply operations on sets to ByteList with
+    non-strict boundaries can lead to their malfunctioning (even if the data is
+    sorted).
 -}
 module SDP.ByteList
 (
+  -- * Exports
   module SDP.Indexed,
   module SDP.Sort,
   module SDP.Set,
   
-  ByteList (..), Ublist
+  -- * ByteList
+  ByteList (..),
+  
+  -- * Ublist
+  Ublist
 )
 where
 
@@ -52,7 +69,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | Bordered strict unboxed unrolled linked list.
+-- | ByteList is bordered strict unboxed unrolled linked list.
 data ByteList i e = ByteList !i !i (Ublist e)
 
 type role ByteList nominal representational
@@ -63,14 +80,15 @@ type role ByteList nominal representational
 
 instance (Eq e, Unboxed e, Index i) => Eq (ByteList i e)
   where
-    (ByteList l1 u1 xs) == (ByteList l2 u2 ys) = l1 == l2 && u1 == u2 && xs == ys
+    (ByteList l1 u1 xs) == (ByteList l2 u2 ys) = n1 == n2 && take n1 xs == take n1 ys
+      where
+        n1 = size (l1, u1); n2 = size (l2, u2)
 
 instance (Ord e, Unboxed e, Index i) => Ord (ByteList i e)
   where
-    compare (ByteList l1 u1 xs) (ByteList l2 u2 ys) = (s1 <=> s2) <> (xs <=> ys)
+    compare (ByteList l1 u1 xs) (ByteList l2 u2 ys) = (n1 <=> n2) <> (take n1 xs <=> take n1 ys)
       where
-        s1 = size (l1, u1)
-        s2 = size (l2, u2)
+        n1 = size (l1, u1); n2 = size (l2, u2)
 
 --------------------------------------------------------------------------------
 
@@ -106,6 +124,7 @@ instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (ByteList i e)
   where
     arbitrary = fromList <$> arbitrary
 
+-- | all operations is O(1).
 instance (Index i) => Estimate (ByteList i e)
   where
     (ByteList l1 u1 _) <==> (ByteList l2 u2 _) = size (l1, u1) <=> size (l2, u2)
@@ -197,10 +216,10 @@ instance (Index i, Unboxed e) => Split (ByteList i e) e
       | n >=. xs = xs
       |   True   = let u' = indexOf xs (n - 1) in ByteList l u' (take n es)
     
-    drop n xs@(ByteList l u es)
+    drop n xs@(ByteList _ u es)
       |   n < 1  = xs
       | n >=. xs = Z
-      |   True   = let l' = index (l, u) n in ByteList l' u (drop n es)
+      |   True   = let l' = indexOf xs n in ByteList l' u (drop n es)
     
     isPrefixOf xs ys = listL xs `isPrefixOf` listL ys
     isInfixOf  xs ys = listL xs `isInfixOf`  listL ys
@@ -212,25 +231,25 @@ instance (Index i, Unboxed e) => Split (ByteList i e) e
 instance (Index i, Unboxed e) => Bordered (ByteList i e) i e
   where
     {-# INLINE indexIn #-}
-    indexIn (ByteList l u _) = inRange (l, u)
+    indexIn   (ByteList l u _) = inRange (l, u)
     
     {-# INLINE indexOf #-}
-    indexOf (ByteList l u _) = index (l, u)
+    indexOf   (ByteList l u _) = index (l, u)
     
     {-# INLINE offsetOf #-}
     offsetOf (ByteList l u _) = offset (l, u)
     
     {-# INLINE sizeOf #-}
-    sizeOf  (ByteList l u _) = size (l, u)
+    sizeOf   (ByteList l u _) = size (l, u)
     
     {-# INLINE bounds #-}
-    bounds  (ByteList l u _) = (l, u)
+    bounds   (ByteList l u _) = (l, u)
     
     {-# INLINE lower #-}
-    lower   (ByteList l _ _) = l
+    lower    (ByteList l _ _) = l
     
     {-# INLINE upper #-}
-    upper   (ByteList _ u _) = u
+    upper    (ByteList _ u _) = u
 
 --------------------------------------------------------------------------------
 
@@ -352,7 +371,5 @@ done = freeze
 
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.ByteList." ++ msg
-
-
 
 

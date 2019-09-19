@@ -7,18 +7,22 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC-extensions)
   
-  IndexedM is service class of SDP, designed to read and write mutable indexable
-  data structures.
+  @SDP.IndexedM@ provides 'IndexedM', 'IFoldM', 'Freeze' and 'Thaw' classes.
 -}
 module SDP.IndexedM
   (
+    -- * Exports
     module SDP.LinearM,
     module SDP.Indexed,
     
+    -- * IndexedM
     IndexedM (..),
-    IFoldM   (..),
-    Freeze   (..),
-    Thaw     (..)
+    
+    -- * IFoldM
+    IFoldM (..),
+    
+    -- * Freeze and Thaw
+    Freeze (..), Thaw (..)
   )
 where
 
@@ -58,7 +62,7 @@ class (LinearM m v e, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
     -- | (>!) is unsafe monadic reader.
     {-# INLINE (>!) #-}
     (>!) :: v -> i -> m e
-    es >! i = es !> i
+    (>!) = (!>)
     
     -- | (!>) is well-safe monadic reader.
     {-# INLINE (!>) #-}
@@ -113,7 +117,7 @@ class (LinearM m v e, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
 
 --------------------------------------------------------------------------------
 
--- | IFoldM is just monadic IFold version.
+-- | IFoldM is monadic version of IFold.
 class (IndexedM m v i e) => IFoldM m v i e
   where
     {-# MINIMAL ifoldrM, ifoldlM #-}
@@ -153,8 +157,4 @@ class (Monad m) => Freeze m v' v | v' -> m
 
 undEx :: String -> a
 undEx msg = throw . UndefinedValue $ "in SDP.IndexedM" ++ msg
-
-
-
-
 

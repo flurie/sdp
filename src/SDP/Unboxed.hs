@@ -8,15 +8,16 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
   
-  This module provide service class Unboxed, that needed for SDP.UArray.
-  This module partially based on code Data.Array.Base (array).
+  @SDP.Unboxed@ provide service class 'Unboxed', that needed for "SDP.Bytes",
+  "SDP.ByteList" and "SDP.ByteList.Ublist".
 -}
-
 module SDP.Unboxed
   (
+    -- * Unboxed
     Unboxed (..),
-    newUnboxedByteArray,
-    safe_scale
+    
+    -- * Related functions
+    newUnboxedByteArray, safe_scale
   )
 where
 
@@ -39,9 +40,16 @@ default ()
 --------------------------------------------------------------------------------
 
 {- |
-  Unboxed is a class that allows creating, writing and reading from byte arrays.
-  It partly repeats the functionality of the MArray from the array,
-  but solves a narrower range of tasks.
+  Unboxed is an class for structures that use ByteArray and MutableByteArray
+  primitives to store data. Unboxed is a simplified analogue of Storable.
+  
+  Unboxed is abstracted from a specific data structure and contains only those
+  functions that are related to working with primitives. It does the most
+  trivial part of the job, leaving all the high-level operations and
+  implementation details to other classes.
+  
+  Unlike MArray (array), it doesn't try to do everything at once, turning the
+  instance declaration of representatives into a boilerplate.
 -}
 
 class (Eq e) => Unboxed e
@@ -140,6 +148,8 @@ instance Unboxed Int64
       (# s2#, marr# #) -> case fillByteArray# marr# n# (0 :: Int64) s2# of
         s3# -> (# s3#, marr# #)
 
+--------------------------------------------------------------------------------
+
 {- Word instances. -}
 
 instance Unboxed Word
@@ -197,6 +207,8 @@ instance Unboxed Word64
       (# s2#, marr# #) -> case fillByteArray# marr# n# (0 :: Word64) s2# of
         s3# -> (# s3#, marr# #)
 
+--------------------------------------------------------------------------------
+
 {- Pointer instances. -}
 
 instance Unboxed (Ptr a)
@@ -232,7 +244,23 @@ instance Unboxed (StablePtr a)
       (# s2#, marr# #) -> case fillByteArray# marr# n# nullStablePtr s2# of
         s3# -> (# s3#, marr# #)
 
+nullStablePtr :: StablePtr a
+nullStablePtr =  StablePtr (unsafeCoerce# 0#)
+
+--------------------------------------------------------------------------------
+
 {- Other instances. -}
+
+instance Unboxed ()
+  where
+    _ !#  _ = ()
+    _ !># _ = \ s# -> (# s#, () #)
+    
+    newUnboxed  _ _ = newByteArray# 0#
+    newUnboxed' _ _ = newByteArray# 0#
+    
+    writeByteArray# _ _ = \ _ s# -> s#
+    fillByteArray#  _ _ = \ _ s# -> s#
 
 instance Unboxed Bool
   where
@@ -288,6 +316,8 @@ instance Unboxed Double
 
 --------------------------------------------------------------------------------
 
+{- Related. -}
+
 -- | newUnboxedByteArray is service function for ordinary newUnboxed decrarations.
 {-# INLINE newUnboxedByteArray #-}
 newUnboxedByteArray :: (Int# -> Int#) -> Int# -> State# s -> (# State# s, MutableByteArray# s #)
@@ -304,10 +334,9 @@ safe_scale scale# n# = if overflow then error "in SDP.Unboxed.safe_scale" else r
     !overflow = case maxBound of (I# maxN#) -> isTrue# (maxN# `divInt#` scale# <# n#)
     !res#     = scale# *# n#
 
-nullStablePtr :: StablePtr a
-nullStablePtr =  StablePtr (unsafeCoerce# 0#)
-
 --------------------------------------------------------------------------------
+
+{- Scales. -}
 
 bool_scale   :: Int# -> Int#
 bool_scale   n# = (n# +# 7#) `uncheckedIShiftRA#` 3#

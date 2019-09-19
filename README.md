@@ -2,13 +2,16 @@
 
 This is a library for simple data processing.
 
+SDP is an evil library that hates a programmer, which has unsafe modules and
+classes that allow to shoot yourself in the foot.
+
 ## Reasons
 
 The purpose of SDP is to provide the most comfortable interface for working with
-different data structures in the same namespace, keeping sufficiently high
-quality code and speed of work. So that it can be use in practice, and
-transition programs from old and more specialized libraries did not cause
-serious problems.
+different data structures in the same namespace (without qualified import),
+keeping sufficiently high quality code and speed of work. So that it can be use
+in practice, and transition programs from old and more specialized libraries did
+not cause serious problems.
 
 Classes in SDP keep a balance between universality and efficiency. They may not
 be suitable for working with some data structures, but with the most common ones

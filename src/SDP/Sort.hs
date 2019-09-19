@@ -8,10 +8,18 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
     
-    SDP.Sort provides Sort - class of sortable immutable structures.
+    @SDP.Sort@ provides 'Sort' - class of sortable immutable structures.
 -}
 
-module SDP.Sort ( Sort (..), sort, sortOn, mathsort, mathsortOn ) where
+module SDP.Sort
+  (
+    -- * Sort
+    Sort (..),
+    
+    -- * Related functions
+    sort, sortOn, mathsort, mathsortOn
+  )
+where
 
 import Prelude ()
 import SDP.SafePrelude
@@ -37,29 +45,29 @@ class Sort s e | s -> e
       data with a lot of repetitions.
     -}
     mathsortBy :: (e -> e -> Ordering) -> s -> s
-    mathsortBy cmp es = sortBy cmp es
+    mathsortBy = sortBy
 
--- | sort is just synonym for sortBy compare
-sort   :: (Sort s e, Ord e) => s -> s
-sort es = sortBy compare es
+-- | sort is just synonym for @sortBy compare@
+sort :: (Sort s e, Ord e) => s -> s
+sort =  sortBy compare
 
 -- | Sort by comparing the results of a key function applied to each element.
-sortOn :: (Sort s e, Ord o) => (e -> o) -> s -> s
-sortOn f es = sortBy (compare `on` f) es
+sortOn   :: (Sort s e, Ord o) => (e -> o) -> s -> s
+sortOn f =  sortBy (compare `on` f)
 
--- | mathsort is just synonym for mathsortBy compare
-mathsort   :: (Sort s e, Ord e) => s -> s
-mathsort es = mathsortBy compare es
+-- | mathsort is just synonym for @mathsortBy compare@
+mathsort :: (Sort s e, Ord e) => s -> s
+mathsort =  mathsortBy compare
 
 -- | Math sort by comparing the results of a key function applied to each element.
-mathsortOn :: (Sort s e, Ord o) => (e -> o) -> s -> s
-mathsortOn f es = mathsortBy (compare `on` f) es
+mathsortOn   :: (Sort s e, Ord o) => (e -> o) -> s -> s
+mathsortOn f =  mathsortBy (compare `on` f)
 
 --------------------------------------------------------------------------------
 
 instance Sort [a] a
   where
-    sortBy f es = L.sortBy f es
+    sortBy = L.sortBy
     
     {- |
       This version of mathsort doesn't create duplicates, just split list on
@@ -73,8 +81,5 @@ instance Sort [a] a
         split' xs@(x : _) = y : split' ys
           where
             (y, ys) = L.partition (\ e -> x `f` e == EQ) xs
-
-
-
 
 

@@ -8,16 +8,17 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
     
-    SDP.Array.ST provides mutable lazy boxed array type.
-    This implementation of array no much different from Data.Array.ST (array),
+    @SDP.Array.ST@ provides 'STArray' - mutable lazy boxed array type.
+    This implementation of array no much different from @Data.Array.ST@ (array),
     but incopatible with it.
-    The main difference is the Index class instead of Ix.
 -}
 module SDP.Array.ST
 (
+  -- * Exports
   module SDP.IndexedM,
   module SDP.SortM,
   
+  -- * STArray
   STArray (..)
 )
 where
@@ -226,5 +227,6 @@ undEx msg = throw . UndefinedValue $ "in SDP.Array.ST" ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Array.ST." ++ msg
+
 
 

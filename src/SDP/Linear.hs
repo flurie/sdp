@@ -81,7 +81,7 @@ class (Index i) => Bordered (b) i e | b -> i, b -> e
     {- |
       bounds is a function that returns the exact upper and lower bounds of a
       structure. If the structure doesn't have explicitly defined boundaries
-      (list, for example), use the default bounds: unsafeBounds (sizeOf es).
+      (list, for example), use the @'defaultBounds' ('sizeOf' es)@.
     -}
     bounds    :: b -> (i, i)
     bounds es =  (lower es, upper es)
@@ -134,7 +134,7 @@ class (Index i) => Bordered (b) i e | b -> i, b -> e
   
   * simple separation: 'head', 'tail', 'init', 'last', 'uncons', 'unsnoc'
     
-  * concatenation: 'toHead', 'toLast', '(++)', 'concat', 'concatMap'
+  * concatenation: 'toHead', 'toLast', ('++'), 'concat', 'concatMap'
     
   * creation: empty ('lzero'), singleton ('single'), finite ('fromListN',
     'replicate') and, if the structure allows, potentially infinite ('fromList',
@@ -159,18 +159,18 @@ class Linear l e | l -> e
     
     {- Service functions. -}
     
-    -- | isNull - synonym for null, that doesn't requires Foldable
+    -- | isNull - synonym for 'null', check function for 'Z'.
     isNull :: l -> Bool
     
-    -- | Empty line. Service constant, synonym for Z.
+    -- | Empty line. Service constant, value for 'Z'.
     lzero :: l
     lzero =  fromList []
     
-    -- | Separates head and tail. Service function, synonym for (x :> xs).
+    -- | Separates 'head' and 'tail'. Service function, used in (':>').
     uncons      :: l -> (e, l)
     uncons xs   =  (head xs, tail xs)
     
-    -- | Adds element to head of line. Service function, synonym for (x :> xs).
+    -- | Adds element to line as 'head'. Service function, used in (':>').
     toHead      :: e -> l -> l
     toHead e es =  single e ++ es
     
@@ -180,11 +180,11 @@ class Linear l e | l -> e
     tail :: l -> l
     tail =  snd . uncons
     
-    -- | Separates init and last. Service function, synonym for (xs :< x).
+    -- | Separates 'init' and 'last'. Service function, used in (':<').
     unsnoc      :: l -> (l, e)
     unsnoc xs   =  (init xs, last xs)
     
-    -- | Adds element to end of line. Service function, synonym for (xs :< x).
+    -- | Adds element to line as 'last'. Service function, used in (':<').
     toLast      :: l -> e -> l
     toLast es e =  es ++ single e
     
@@ -200,9 +200,9 @@ class Linear l e | l -> e
     single      :: e -> l
     single x    =  fromList [x]
     
-    -- | Generalization of (Some.Module.++).
+    -- | Generalization of (++).
     (++)        :: l -> l -> l
-    xs ++ ys    =  fromList $ (listL xs) ++ (listL ys)
+    xs ++ ys    =  fromList $ listL xs ++ listL ys
     
     -- | Line of n equal elements.
     replicate   :: Int -> e -> l
@@ -212,15 +212,15 @@ class Linear l e | l -> e
     fromList    :: [e] -> l
     fromList es =  fromListN (length es) es
     
-    -- | May create finite line from infinite list. Doesn't evaluate list twice times.
+    -- | May create finite line from infinite list.
     fromListN   :: Int -> [e] -> l
     fromListN n =  fromList . take n
     
-    -- | Same as listL . reverse.
+    -- | Same as @listL . reverse@.
     listR :: l -> [e]
     listR =  listL . reverse
     
-    -- | Same as toList, but formally doesn't require 'Foldable'.
+    -- | Same as 'toList', but formally doesn't require 'Foldable'.
     listL :: l -> [e]
     listL =  reverse . listR
     
@@ -233,25 +233,25 @@ class Linear l e | l -> e
     fromFoldable :: (Foldable f) => f e -> l
     fromFoldable =  fromList . toList
     
-    -- | Generalization of Some.Module.concat.
+    -- | Generalization of concat.
     concat :: (Foldable f) => f l -> l
     concat =  foldr (++) Z
     
-    -- | Generalization of Data.List.concatMap.
+    -- | Generalization of concatMap.
     concatMap   :: (Foldable f) => (a -> l) -> f a -> l
     concatMap f =  foldr' (\ x y -> f x ++ y) Z
     
-    -- | Generalization of Data.List.intersperse. May be moved.
+    -- | Generalization of intersperse.
     intersperse   :: e -> l -> l
     intersperse e =  fromList . intersperse e . listL
     
     {- Filtering functions. -}
     
-    -- | Generalization of Some.Module.filter.
+    -- | Generalization of filter.
     filter   :: (e -> Bool) -> l -> l
     filter p =  fromList . filter p . listL
     
-    -- | Generalization of Some.Module.partition.
+    -- | Generalization of partition.
     partition      :: (e -> Bool) -> l -> (l, l)
     partition p es =  (filter p es, filter (not . p) es)
     
@@ -264,26 +264,26 @@ class Linear l e | l -> e
     
     {- Special functions -}
     
-    -- Compares lines as sorted multisets. May be rewrited and moved.
+    -- Compares lines as sorted multisets.
     isSubseqOf :: (Eq e) => l -> l -> Bool
     isSubseqOf xs@(x :> xs') (y :> ys) = x == y && xs' `isSubseqOf` ys || xs `isSubseqOf` ys
     isSubseqOf xs _ = isNull xs
     
-    -- | Generalization of Some.Module.reverse.
+    -- | Generalization of reverse.
     reverse :: l -> l
     reverse =  fromList . listR
     
-    -- | Generalization of Data.List.subsequences.
+    -- | Generalization of subsequences.
     subsequences     :: l -> [l]
     subsequences xxs =  Z : ss xxs
       where
         ss es = case es of {(x :> xs) -> single x : foldr (\ ys r -> ys : (x :> ys) : r) [] (ss xs); _ -> Z}
     
-    -- | same as nubBy (==)
+    -- | Same as nubBy ('=='), but may be faster (for bytestring, for example).
     nub :: (Eq e) => l -> l
     nub = nubBy (==)
     
-    -- | Generalization of Data.List.nubBy.
+    -- | Generalization of nubBy.
     nubBy :: (e -> e -> Bool) -> l -> l
     nubBy f = fromList . nubBy f . listL
 
@@ -317,12 +317,12 @@ class (Linear s e) => Split s e | s -> e
     drop   :: Int -> s -> s
     drop n =  snd . split n
     
-    -- | split is same as Some.Module.splitAt
+    -- | split, also known as splitAt.
     split      :: Int -> s -> (s, s)
     split n es =  (take n es, drop n es)
     
     {-# INLINE splits #-}
-    -- | splits splits structures into sublines by given lengths.
+    -- | Splits structures into sublines by given lengths.
     splits      :: (Foldable f) => f Int -> s -> [s]
     splits ints =  splits' (toList ints)
       where
@@ -330,7 +330,7 @@ class (Linear s e) => Split s e | s -> e
         splits' (i : is) xs = let (y, ys) = split i xs in y : splits is ys
     
     {-# INLINE parts #-}
-    -- | parts splits structures into parts by given initial indices.
+    -- | Splits structures into parts by given initial indices.
     parts      :: (Foldable f) => f Int -> s -> [s]
     parts ints =  parts' 0 (toList ints)
       where
@@ -338,7 +338,7 @@ class (Linear s e) => Split s e | s -> e
         parts' c (i : is) xs = let (y, ys) = split (i - c) xs in y : parts' i is ys
     
     {-# INLINE chunks #-}
-    -- | chunks splits structures into chunks of a given size (and the rest).
+    -- | Splits structures into chunks of a given size (and the rest).
     chunks :: Int -> s -> [s]
     chunks n = \ es -> case split n es of {(x, Z) -> [x]; (x, xs) -> x : chunks n xs}
     
@@ -369,33 +369,33 @@ class (Linear s e) => Split s e | s -> e
     
     {- "Clever" splitters. -}
     
-    -- | Takes the longest init.
+    -- | Takes the longest init by predicate.
     takeWhile :: (e -> Bool) -> s -> s
     takeWhile p es = take (p `prefix` es) es
     
-    -- | Drops the longest init.
+    -- | Drops the longest init by predicate.
     dropWhile :: (e -> Bool) -> s -> s
     dropWhile p es = drop (p `prefix` es) es
     
-    -- | Takes the longest tail.
+    -- | Takes the longest tail by predicate.
     takeEnd   :: (e -> Bool) -> s -> s
     
-    -- | Drops the longest tail.
+    -- | Drops the longest tail by predicate.
     dropEnd   :: (e -> Bool) -> s -> s
     
-    -- | Left-side span, generalization of Data.List.span
+    -- | Left-side span.
     spanl       :: (e -> Bool) -> s -> (s, s)
     spanl  p es =  (takeWhile p es, dropWhile p es)
     
-    -- | Left-side break, generalization of Data.List.break
+    -- | Left-side break.
     breakl      :: (e -> Bool) -> s -> (s, s)
     breakl p es =  (takeWhile (not . p) es, dropWhile (not . p) es)
     
-    -- | Right-side span. And Now for Something Completely Different.
+    -- | Right-side span.
     spanr       :: (e -> Bool) -> s -> (s, s)
     spanr p es  =  (takeEnd p es, dropEnd p es)
     
-    -- | Right-side break. See above.
+    -- | Right-side break.
     breakr      :: (e -> Bool) -> s -> (s, s)
     breakr p es = (takeEnd (not . p) es, dropEnd (not . p) es)
     
@@ -417,15 +417,15 @@ class (Linear s e) => Split s e | s -> e
   SDP.Linear also provides three overloaded patterns: 'Z', (':>') and (':<').
 -}
 
--- | Pattern Z is generalization of []. Same as isNull and lzero.
+-- | Pattern Z is overloaded empty (or incorrect) line. Same as 'isNull' and 'lzero'.
 pattern Z :: (Linear l e) => l
 pattern Z <- (isNull -> True)                           where  Z   = lzero
 
--- | Pattern (:>) is left-size view of linear. Same as uncons and toHead.
+-- | Pattern (:>) is left-size view of line. Same as 'uncons' and 'toHead'.
 pattern  (:>)   :: (Linear l e) => e -> l -> l
 pattern x :> xs <- ((isNull ?: uncons) -> Just (x, xs)) where (:>) = toHead
 
--- | Pattern (:<) is right-size view of linear. Same as unsnoc and toLast.
+-- | Pattern (:<) is right-size view of line. Same as 'unsnoc' and 'toLast'.
 pattern   (:<)  :: (Linear l e) => l -> e -> l
 pattern xs :< x <- ((isNull ?: unsnoc) -> Just (xs, x)) where (:<) = toLast
 
@@ -498,26 +498,22 @@ instance Split [e] e
 
 -- | stripPrefix sub line... strips prefix sub of line
 stripPrefix :: (Split s e, Bordered s i e, Eq e) => s -> s -> s
-stripPrefix sub line = sub `isPrefixOf` line ? drop n line $ line
-  where
-    n = sizeOf sub
+stripPrefix sub line = sub `isPrefixOf` line ? drop (sizeOf sub) line $ line
 
 -- | stripSuffix sub line... strips suffix sub of line
 stripSuffix :: (Split s e, Bordered s i e, Eq e) => s -> s -> s
-stripSuffix sub line = sub `isSuffixOf` line ? take n line $ line
-  where
-    n = sizeOf line - sizeOf sub
+stripSuffix sub line = sub `isSuffixOf` line ? take (sizeOf line - sizeOf sub) line $ line
 
--- | intercalate is generalization of Data.List.intercalate
+-- | intercalate is generalization of intercalate
 intercalate   :: (Foldable f, Linear (f l) l, Linear l e) => l -> f l -> l
 intercalate l =  concat . intersperse l
 
--- | tails is generalization of Data.List.tails.
+-- | tails is generalization of tails.
 tails :: (Linear l e) => l -> [l]
 tails Z  = Z
 tails es = es : tails (tail es)
 
--- | tails is generalization of Data.List.inits.
+-- | tails is generalization of inits.
 inits :: (Linear l e) => l -> [l]
 inits Z  = Z
 inits es = es : inits (init es)
@@ -533,7 +529,6 @@ sorted es = and $ zipWith (<=) es' (tail es') where es' = listL es
 -}
 ascending :: (Split s e, Ord e) => s -> [(Int, Int)] -> Bool
 ascending es ss = sorted `all` splits (snds ss) es
-
 
 
 

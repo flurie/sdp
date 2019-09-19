@@ -5,28 +5,32 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
     
-    Test.SDP.Linear provides simple set of test for SDP.Linear class.
+    @Test.SDP.Linear@ provides basic test suite for 'Linear' class.
 -}
 module Test.SDP.Linear
 (
+  -- * Linear test type synonyms
   TestLinear2,
   TestLinear1,
   TestLinear,
   
+  -- * Linear default test
+  linearTest,
+  
+  -- * Linear particular tests
+  deconstructionLinearTest,
+  constructionLinearTest,
+  basicLinearTest,
+  replicateTest,
+  reverseTest,
+  concatTest,
+  
+  -- * Split test type synonyms
   TestSplit2,
   TestSplit1,
   TestSplit,
   
-  basicLinearTest,
-  
-  deconstructionLinearTest,
-  constructionLinearTest,
-  
-  concatTest,
-  reverseTest,
-  replicateTest,
-  
-  linearTest,
+  -- * Split default test
   splitTest
 )
 where
@@ -49,7 +53,10 @@ type TestLinear1 f e = Int -> e -> f e -> Bool
 -- | TestLinear2 is service type synonym for more comfortable quickCheck using.
 type TestLinear2 f i e = Int -> e -> f i e -> Bool
 
--- | basicLinearTest checks relations of isNull, lzero, single and fromList.
+{- |
+  basicLinearTest checks relations of 'isNull', 'lzero', 'single' and
+  'fromList'.
+-}
 basicLinearTest :: (Linear l e, Eq l) => e -> l -> Bool
 basicLinearTest e line = and
   [
@@ -62,7 +69,10 @@ basicLinearTest e line = and
     fromList (listL line) == line
   ]
 
--- | deconstructionLinearTest checks relations of isNull, head, last, init and tail.
+{- |
+  deconstructionLinearTest checks relations of 'isNull', 'head', 'last', 'init'
+  and 'tail'.
+-}
 deconstructionLinearTest :: (Linear l e, Eq e) => l -> Bool
 deconstructionLinearTest line = and
   [
@@ -73,7 +83,7 @@ deconstructionLinearTest line = and
     isNull line || listL (tail line) == tail (listL line)
   ]
 
--- | constructionLinearTest checks relations of toHead, toLast and fromList.
+-- | constructionLinearTest checks relations of 'toHead', 'toLast' and 'fromList'.
 constructionLinearTest :: (Linear l e, Eq l) => e -> l -> Bool
 constructionLinearTest e line = and
   [
@@ -84,7 +94,7 @@ constructionLinearTest e line = and
     not . isNull $ toLast line e
   ]
 
--- | reverseTest checks rules of reverse, listL and listR.
+-- | reverseTest checks rules of 'reverse', 'listL' and 'listR'.
 reverseTest :: (Linear l e, Eq e) => l -> Bool
 reverseTest line = and
   [
@@ -92,7 +102,7 @@ reverseTest line = and
     reverse (listL line) == listR line
   ]
 
--- | replicateTest checks rules of replicate.
+-- | replicateTest checks rules of 'replicate'.
 replicateTest :: (Linear l e, Eq l, Bordered l i e) => Int -> e -> l -> Bool
 replicateTest n e line = and
   [
@@ -103,7 +113,7 @@ replicateTest n e line = and
   where
     line' = (replicate n e) `asTypeOf` line
 
--- | concatTest checks rules of (++) and concat.
+-- | concatTest checks rules of ('++') and 'concat'.
 concatTest :: (Linear l e, Eq e, Eq l) => l -> Bool
 concatTest line = and
   [
@@ -140,7 +150,7 @@ type TestSplit1 s e = Int -> s e -> Bool
 type TestSplit2 s i e = Int -> s i e -> Bool
 
 {- |
-  splitTest is pure, basic test of take, drop and split relations.
+  splitTest is pure, basic test of 'take', 'drop' and 'split' relations.
   Various types requires specific tests.
 -}
 splitTest :: (Split s e, Eq e, Eq s, Bordered s i e) => Int -> s -> Bool
@@ -154,4 +164,7 @@ splitTest n line = and
     
     (take n line, drop n line) == split n line
   ]
+
+
+
 

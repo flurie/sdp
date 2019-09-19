@@ -7,12 +7,8 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
   
-  Module with simple common definitions.
-  
-  Exports base "Prelude" (without zips, scans, some list functions), ('?') and
-  'Estimate'.
+  Module of common definitions.
 -}
-
 module SDP.SafePrelude
 (
   module Control.Applicative,
@@ -44,7 +40,7 @@ import Control.Monad
 import Data.Foldable hiding ( concat, concatMap )
 import SDP.Estimate
 
-infixr 1  ?  -- Lowest priority, compatible with infixr 0 $
+infixr 1 ? -- Lowest priority, compatible with infixr 0 $
 
 default ()
 
@@ -56,5 +52,4 @@ default ()
 {-# INLINE (?) #-}
 (?) :: Bool -> a -> a -> a
 (?) p t e = if p then t else e
-
 

@@ -5,20 +5,22 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
     
-    Test.SDP.Indexed provides simple set of test for SDP.Indexed class.
+    @Test.SDP.Indexed@ provides simple set of test for 'Indexed' class.
 -}
-
 module Test.SDP.Indexed
 (
+  -- * Test type synonyms
   TestIndexed2,
   TestIndexed1,
   TestIndexed,
   
+  -- * Default test
+  indexedTest,
+  
+  -- * Particular tests
   basicIndexedTest,
   assocIndexedTest,
-  readIndexedTest,
-  
-  indexedTest
+  readIndexedTest
 )
 where
 
@@ -42,14 +44,17 @@ type TestIndexed1 l i e = i -> l e -> Bool
 -- | TestIndexed2 is service type synonym for more comfortable quickCheck using.
 type TestIndexed2 l i e = i -> l i e -> Bool
 
--- | basicIndexedTest checks relations of isNull and safeElem
+-- | basicIndexedTest checks relations of 'isNull', 'safeElem' and 'inRange'.
 basicIndexedTest :: (Indexed l i e, Bordered l i e, Index i) => i -> l -> Bool
 basicIndexedTest i es = isNull es || inRange bnds i'
   where
     i'   = safeElem bnds i
     bnds = bounds es
 
--- | assocIndexedTest checks relations of assoc, assocs, (.$), (*$) and (//).
+{- |
+  assocIndexedTest checks relations of 'assoc', 'assocs', ('.$'), ('*$') and
+  ('//').
+-}
 assocIndexedTest :: (Indexed l i e, Bordered l i e, Index i, Eq e, Eq l) => i -> l -> Bool
 assocIndexedTest i es = and
   [
@@ -67,7 +72,7 @@ assocIndexedTest i es = and
     i'   = safeElem bnds i
     bnds = bounds es
 
--- | readIndexedTest checks relations of listL, (.!), (!) and (!?).
+-- | readIndexedTest checks relations of 'listL', ('.!'), ('!') and ('!?').
 readIndexedTest :: (Indexed l i e, Bordered l i e, Eq e, Index i) => i -> l -> Bool
 readIndexedTest i es = and
     [

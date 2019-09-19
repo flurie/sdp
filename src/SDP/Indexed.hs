@@ -8,16 +8,20 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
   
-  Indexed is one of the main classes of SDP, designed to read and write immutable
-  indexable data structures.
+  @SDP.Indexed@ provides 'Indexed' - class of indexed data structures.
 -}
 module SDP.Indexed
 (
+  -- * Exports
   module SDP.Linear,
   
+  -- * Indexed
   Indexed (..),
-  IFold   (..),
   
+  -- * IFold
+  IFold (..),
+  
+  -- * Related functions
   binarySearch, (>/>)
 )
 where
@@ -122,9 +126,8 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
 
 {- |
   IFold class for folds with index. The main reason for creating this class is
-  the increasing in Foldable definitions on containers with a limited set of
-  elements (in particular, monomorphic).
-  I don't want to call the class IFoldable due to the similarity with C#.
+  the Foldable extension to containers with a restriction on the type of
+  elements - monomorphic, Storable, Unboxed, etc.
 -}
 class (Indexed v i e) => IFold v i e
   where
@@ -217,7 +220,7 @@ instance IFold [e] Int e
 --------------------------------------------------------------------------------
 
 -- | Binary search
-binarySearch :: (Bordered v i e, Indexed v i e) => (e -> e -> Ordering) -> e -> v -> Bool
+binarySearch :: (Bordered v i e, Indexed v i e) => Compare e -> e -> v -> Bool
 binarySearch _ _ Z  = False
 binarySearch f e es
   | LT <- e `f` head es = False
@@ -237,4 +240,6 @@ binarySearch f e es
 
 undEx :: String -> a
 undEx msg = throw . UndefinedValue $ "in SDP.Indexed." ++ msg
+
+
 

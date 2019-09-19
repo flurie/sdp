@@ -5,10 +5,9 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
   
-  This module provides Scan class that doesn't so needed for practical use, but
-  good for generalization.
+  @SDP.Scan@ provides 'Scan' - class for overloaded scans. Scan needed for
+  generalization and not so useful is practice.
 -}
-
 module SDP.Scan ( Scan (..) ) where
 
 import Prelude ()
@@ -20,8 +19,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | Scan is an auxiliary class.
-
+-- | Scan is class of scans.
 class (Foldable s) => Scan s
   where
     {-# MINIMAL scanl', scanr, scanl1, scanr1 #-}
@@ -45,4 +43,3 @@ instance Scan []
     scanl1  = L.scanl1
     scanr1  = L.scanr1
 
---------------------------------------------------------------------------------

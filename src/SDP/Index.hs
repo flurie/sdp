@@ -9,31 +9,43 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
   
-  Index is service class that replaces the more practice-oriented, but limitary
-  "Data.Ix".
+  @SDP.Index@ provides 'Index' - service class of types that may represent
+  indices.
   
-  The SDP.Index module contains over 40 instances that must be highly optimized
-  (-O2), so it takes a very long time to compile. The tests also compiled a very
-  long time, since the verification of all structures (12 + your own list)
-  needed almost all of the modules of the library. In addition, there are many
-  bottlenecks due to their interconnections.
+  @SDP.Index@ based on "Data.Ix" and @Data.Array.Repa.Shape@ (repa), but has
+  more useful functions and may be eaily extended.
+  
+  I refused to use Data.Ix or create a class based on it, because in this case
+  I still had to write a new class. In addition, I don't like the Ix
+  implementation: different instances use different types of exceptions, some
+  checks restrict my implementations, @rangeSize@ is too long to write...
+  
+  Note that SDP.Index contains over 40 instances, so it takes a very mush time
+  to compile (at least, with GHC). The tests also compiled a very long time,
+  since the verification of all structures (12 own and default list) needed to
+  compile almost all of the modules in the library (including this). So it can
+  be considered one of the most noticeable bottlenecks during SDP compilation.
 -}
 module SDP.Index
 (
+  -- * Exports
   module Data.Word,
   module Data.Int,
   
-  Index   (..),
-  IndexEQ (..),
+  -- * Index class
+  InBounds (..), Bounds, Index (..),
   
-  InBounds (..), E (..), (:&) (..),
+  -- * Type of polymorphic n-dimensional index
+  E (..), (:&) (..),
   
-  Bounds, I2, I3, I4, I5, I6, I7, I8, I9, I10 , I11, I12, I13, I14, I15,
+  -- * Type synonyms and short constuctors for n-dimensional indices
+  I2, I3, I4, I5, I6, I7, I8, I9, I10 , I11, I12, I13, I14, I15,
   
   ind2,  ind3,  ind4,  ind5,  ind6,  ind7,  ind8,  ind9,
   ind10, ind11, ind12, ind13, ind14, ind15,
   
-  unsafeBounds, toBounds
+  -- * IndexEQ class
+  IndexEQ (..), unsafeBounds, toBounds
 )
 where
 
@@ -52,8 +64,8 @@ default ()
 --------------------------------------------------------------------------------
 
 {- |
-  Type synonym for very long type annotations, e.g. Bounds (Int, Int, Int, Int, Int)
-  is same as ((Int, Int, Int, Int, Int), (Int, Int, Int, Int, Int))
+  Type synonym for very long type annotation, e.g. @Bounds (Int, Int, Int, Int)@
+  is same as @((Int, Int, Int, Int), (Int, Int, Int, Int))@
 -}
 type Bounds i = (i, i)
 
@@ -67,7 +79,7 @@ data InBounds = ER {- ^ Empty Range     -}
 {- |
   Index is service class for Indexed and Bordered. It's the result of combining
   Data.Ix (base) and Data.Array.Repa.Index (repa), but adds several features of
-  its own, for example, more polymorphic instances.
+  its own and more polymorphic instances. Also module may be extended.
   
   The default definitions is correct for all (Ord, Enum) types with rank 1.
 -}
@@ -268,9 +280,12 @@ instance Index ()
     isOverflow  _ _ = False
     isUnderflow _ _ = False
     
-    unsafeIndex _ = throw $ EmptyRange "in SDP.Index.unsafeIndex ()"
+    defaultBounds = const ((), ())
     index         = const unsafeIndex
     offset  _  _  = 0
+    
+    unsafeIndex 0 = ()
+    unsafeIndex _ = throw $ EmptyRange "in SDP.Index.unsafeIndex ()"
 
 instance Index Char    where defaultBounds = defUB
 
@@ -291,7 +306,10 @@ instance Index Word64  where offset = intOffset; defaultBounds = defUB
 
 {- N-dimensional index section. -}
 
--- | N-dimensional  index  type. The  type  (head :& tail) allows  working with any finite dimension number.
+{- |
+  N-dimensional index type. The type (head :& tail) allows working with any
+  finite dimension number.
+-}
 data tail :& head = !tail :& !head deriving (Eq, Ord, Read)
 
 -- Derived instance doesn't have whitespaces, but I like whitespaces...
@@ -299,7 +317,9 @@ instance (Show tail, Show head) => Show (tail :& head)
   where
     show (es :& e) = shows es . showString " :& " $ show e
 
-instance (Arbitrary i, Arbitrary i') => Arbitrary (i' :& i) where arbitrary = applyArbitrary2 (:&)
+instance (Arbitrary i, Arbitrary i') => Arbitrary (i' :& i)
+  where
+    arbitrary = applyArbitrary2 (:&)
 
 instance (Enum i) => Enum (E :& i)
   where
@@ -350,12 +370,12 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
     range (ls :& l, us :& u) = liftA2 (:&) (range (ls, us)) (range (l, u))
     
     -- [internal]: prev and next uses safeElem. Needed to rewrite.
-    prev bounds@(ls :& l, us :& u) ix
-        | isEmpty bounds = throw $ EmptyRange "in SDP.Index.prev (n-dimensional)"
-        |     i /= l     = is :& pred i
-        |    is /= ls    = prev (ls, us) is :& u
-        |      True      = ls :& l
-      where (is :& i) = safeElem bounds ix
+    prev bnds@(ls :& l, us :& u) ix
+        | isEmpty bnds = throw $ EmptyRange "in SDP.Index.prev (n-dimensional)"
+        |    i /= l    = is :& pred i
+        |   is /= ls   = prev (ls, us) is :& u
+        |     True     = ls :& l
+      where  (is :& i) = safeElem bnds ix
     
     next bounds@(ls :& l, us :& u) ix
         | isEmpty bounds = throw $ EmptyRange "in SDP.Index.next (n-dimensional)"
@@ -364,7 +384,7 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
         |      True      = ls :& l
       where (is :& i) = safeElem bounds ix
     
-    inBounds    bs i
+    inBounds bs i
       |    isEmpty bs    = ER
       | isUnderflow bs i = UR
       | isOverflow  bs i = OR
@@ -381,11 +401,11 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
         (ls', us') = ordBounds (ls, us)
         (l', u')   = ordBounds (l, u)
     
-    index bnds c = checkBounds (0, size bnds - 1) c res "index (n-dimensional)"
+    index bnds@(ls :& l, us :& u) c = checkBounds (0, size bnds - 1) c res err
       where
-        res = index (ls, us) cs :& (unsafeIndex i)
         (cs, i) = divMod c $ size (l, u)
-        (ls :& l, us :& u) = bnds
+        res = index (ls, us) cs :& (unsafeIndex i)
+        err = "index (n-dimensional)"
     
     offset bnds ix@(is :& i) = checkBounds bnds ix res "offset (n-dimensional)"
       where
@@ -396,7 +416,7 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
 
 --------------------------------------------------------------------------------
 
--- Type synonyms are declared up to 15 dimensions.
+{- Type synonyms are declared up to 15 dimensions. -}
 
 -- | 2-dimensional index
 type  I2  i = E :& i  :& i
@@ -428,34 +448,34 @@ type  I14 i = (I13 i) :& i
 type  I15 i = (I14 i) :& i
 
 -- | 2-dimensional index clever constructor.
-ind2  :: (Index i) => i -> i                                                                       -> I2  i
+ind2  :: (Index i) => i -> i                                                                  -> I2  i
 -- | 3-dimensional index clever constructor.
-ind3  :: (Index i) => i -> i -> i                                                                  -> I3  i
+ind3  :: (Index i) => i -> i -> i                                                             -> I3  i
 -- | 4-dimensional index clever constructor.
-ind4  :: (Index i) => i -> i -> i -> i                                                             -> I4  i
+ind4  :: (Index i) => i -> i -> i -> i                                                        -> I4  i
 -- | 5-dimensional index clever constructor.
-ind5  :: (Index i) => i -> i -> i -> i -> i                                                        -> I5  i
+ind5  :: (Index i) => i -> i -> i -> i -> i                                                   -> I5  i
 -- | 6-dimensional index clever constructor.
-ind6  :: (Index i) => i -> i -> i -> i -> i -> i                                                   -> I6  i
+ind6  :: (Index i) => i -> i -> i -> i -> i -> i                                              -> I6  i
 -- | 7-dimensional index clever constructor.
-ind7  :: (Index i) => i -> i -> i -> i -> i -> i -> i                                              -> I7  i
+ind7  :: (Index i) => i -> i -> i -> i -> i -> i -> i                                         -> I7  i
 -- | 8-dimensional index clever constructor.
-ind8  :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i                                         -> I8  i
+ind8  :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i                                    -> I8  i
 -- | 9-dimensional index clever constructor.
-ind9  :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i -> i                                    -> I9  i
+ind9  :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i -> i                               -> I9  i
 -- | 10-dimensional index clever constructor.
-ind10 :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i                               -> I10 i
+ind10 :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i                          -> I10 i
 
 -- | 11-dimensional index clever constructor.
-ind11 :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i                          -> I11 i
+ind11 :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i                     -> I11 i
 -- | 12-dimensional index clever constructor.
-ind12 :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i                     -> I12 i
+ind12 :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i                -> I12 i
 -- | 13-dimensional index clever constructor.
-ind13 :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i                -> I13 i
+ind13 :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i           -> I13 i
 -- | 14-dimensional index clever constructor.
-ind14 :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i           -> I14 i
+ind14 :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i      -> I14 i
 -- | 15-dimensional index clever constructor.
-ind15 :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i      -> I15 i
+ind15 :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> I15 i
 
 ind2  a b                             = E :& a :& b
 ind3  a b c                           = E :& a :& b :& c
@@ -847,10 +867,19 @@ toBounds (l, u) = (toIndex l, toIndex u)
 
 {-# DEPRECATED unsafeBounds "unsafeBounds deprecated in favour of defaultBounds" #-}
 {-# INLINE unsafeBounds #-}
--- | unsafeBounds n is shortcut for (unsafeIndex 0, unsafeIndex $ n - 1)
+{- |
+  Old version of @unsafeBounds n@ is just @(unsafeIndex 0, unsafeIndex $ n - 1)@.
+  This realization, though not a crutch, but still restricts the permissible
+  limits for unsigned index (without this restriction in toEnum can occur
+  underflow), which is critical for the indices with a small range (Int8, Word8,
+  etc.).
+  
+  The new unsafeBounds implementation is 'defaultBounds', which handles the case
+  with an empty space more correctly (due to the possibility of overriding in
+  instance).
+-}
 unsafeBounds :: (Index i) => Int -> (i, i)
 unsafeBounds = defaultBounds
-
 
 
 

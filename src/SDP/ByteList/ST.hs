@@ -2,21 +2,23 @@
 {-# LANGUAGE Unsafe, RoleAnnotations #-}
 
 {- |
-    Module      :  SDP.STUblist
+    Module      :  SDP.ByteList.ST
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
     
-    This module provides service type STByteList - mutable version of
-    SDP.ByteList.
+    @SDP.ByteList.ST@ provides service type 'STByteList' - mutable version of
+    @ByteList@.
 -}
 
 module SDP.ByteList.ST
 (
+  -- * Exports
   module SDP.IndexedM,
   module SDP.SortM,
   
+  -- * STByteList
   STByteList (..)
 )
 where
@@ -146,5 +148,8 @@ instance (Index i, Unboxed e) => IFoldM (ST s) (STByteList s i e) i e
 instance (Index i, Unboxed e) => SortM (ST s) (STByteList s i e) e
   where
     sortMBy = timSortBy
+
+
+
 
 

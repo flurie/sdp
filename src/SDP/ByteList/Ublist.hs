@@ -2,22 +2,24 @@
 {-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns #-}
 
 {- |
-    Module      :  SDP.Unrolled.Ublist
+    Module      :  SDP.ByteList.Ublist
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
     
-    This module provides service type Ublist - strict boxed unrolled linked list
-    for SDP.ByteList.
+    @SDP.ByteList.Ublist@ provides service type 'Ublist' - strict boxed unrolled
+    linked list for @ByteList@.
 -}
 module SDP.ByteList.Ublist
 (
+  -- * Exports
   module SDP.Indexed,
   module SDP.Unboxed,
   module SDP.Sort,
   module SDP.Set,
   
+  -- * Ublist
   Ublist (..)
 )
 where
@@ -52,7 +54,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | Ublist is internal data representation.
+-- | Ublist is internal data representation for ByteList.
 data Ublist e = UBEmpty | Ublist {-# UNPACK #-} !Int (ByteArray#) (Ublist e)
 
 {-# COMPLETE Z, Ublist #-}
@@ -448,8 +450,6 @@ unreachEx msg = throw . UnreachableException $ "in SDP.ByteList.Ublist." ++ msg
 
 lim :: Int
 lim =  1024
-
-
 
 
 

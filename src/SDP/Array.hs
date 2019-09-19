@@ -9,18 +9,19 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
     
-    SDP.Array provides immutable lazy boxed array type.
-    This implementation of array no much different from Data.Array (array),
+    @SDP.Array@ provides 'Array' - immutable lazy boxed array type.
+    This implementation of array no much different from @Data.Array@ (array),
     but incopatible with it.
-    The main difference is the Index class instead of Ix.
 -}
 module SDP.Array
 (
+  -- * Exports
   module SDP.Indexed,
   module SDP.Sort,
   module SDP.Scan,
   module SDP.Set,
   
+  -- * Array
   Array (..)
 )
 where
@@ -61,8 +62,8 @@ default ()
 --------------------------------------------------------------------------------
 
 {- |
-  This Array type definition is no different from the standard GHC.Arr,
-  but I have to redefine it because of the limitation of the Ix class.
+  Array - standard type of array and an equivalent GHC.Arr and Data.Array,
+  except the types of indices.
 -}
 data Array i e = Array !i !i {-# UNPACK #-} !Int (Array# e)
 
@@ -542,4 +543,7 @@ pfailEx msg = throw . PatternMatchFail $ "in SDP.Array." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Array." ++ msg
+
+
+
 

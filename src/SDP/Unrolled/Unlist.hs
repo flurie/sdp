@@ -8,16 +8,18 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
     
-    This module provides service type Unlist - lazy boxed unrolled linked list
-    for SDP.Unrolled.
+    @SDP.Unrolled.Unlist@ provides service type 'Unlist' - lazy boxed unrolled
+    linked list for @Unrolled@.
 -}
 module SDP.Unrolled.Unlist
 (
+  -- * Exports
   module SDP.Indexed,
   module SDP.Sort,
   module SDP.Scan,
   module SDP.Set,
   
+  -- * Unlist
   Unlist (..)
 )
 where
@@ -46,13 +48,14 @@ import Data.String ( IsString (..) )
 
 import SDP.Unrolled.STUnlist
 import SDP.SortM.Tim
+
 import SDP.Simple
 
 default ()
 
 --------------------------------------------------------------------------------
 
--- | Unlist is internal data representation.
+-- | Unlist is internal data representation for Unrolled.
 data Unlist e = UNEmpty | Unlist {-# UNPACK #-} !Int (Array# e) (Unlist e)
 
 type role Unlist representational
@@ -501,6 +504,7 @@ done (STUnlist n marr# marr) = done marr >>= \ arr -> ST $
   \ s1# -> case unsafeFreezeArray# marr# s1# of
     (# s2#, arr# #) -> (# s2#, Unlist n arr# arr #)
 
+{-# INLINE nubSorted #-}
 nubSorted :: (e -> e -> Ordering) -> Unlist e -> Unlist e
 nubSorted f (xs :< x) = fromList $ foldr (\ e ls@(l : _) -> e `f` l == EQ ? ls $ e : ls) [x] xs
 nubSorted _ _ = Z
@@ -513,8 +517,4 @@ unreachEx msg = throw . UnreachableException $ "in SDP.Unrolled.Unlist." ++ msg
 
 lim :: Int
 lim =  1024
-
-
-
-
 

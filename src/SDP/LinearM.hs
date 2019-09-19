@@ -7,8 +7,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC-extensions)
   
-  LinearM is a module that provides several convenient interfaces for working
-  with mutable linear data structures.
+  @SDP.LinearM@ is a module that provides 'BorderedM' and 'LinearM' classes.
 -}
 module SDP.LinearM
   (
@@ -30,22 +29,22 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | BorderedM is Bordered version for mutable data structures.
+-- | BorderedM is 'Bordered' version for mutable data structures.
 class (Monad m, Index i) => BorderedM m b i e | b -> m, b -> i, b -> e
   where
     {-# MINIMAL (getBounds|getLower, getUpper) #-}
     
-    -- | getBounds returns bounds of mutable data structure.
+    -- | getBounds returns 'bounds' of mutable data structure.
     {-# INLINE getBounds #-}
     getBounds    :: b -> m (i, i)
     getBounds es =  liftA2 (,) (getLower es) (getUpper es)
     
-    -- | getBounds returns lower bound of mutable data structure.
+    -- | getLower returns 'lower' bound of mutable data structure.
     {-# INLINE getLower #-}
     getLower    :: b -> m i
     getLower es =  fst <$> getBounds es
     
-    -- | getBounds returns upper bound of mutable data structure.
+    -- | getUpper returns 'upper' bound of mutable data structure.
     {-# INLINE getUpper #-}
     getUpper    :: b -> m i
     getUpper es =  snd <$> getBounds es
@@ -55,17 +54,17 @@ class (Monad m, Index i) => BorderedM m b i e | b -> m, b -> i, b -> e
     getSizeOf    :: b -> m Int
     getSizeOf es =  size <$> getBounds es
     
-    -- | getIndxeOf is indexOf version for mutable data structures.
+    -- | getIndxeOf is 'indexOf' version for mutable data structures.
     {-# INLINE getIndexOf #-}
     getIndexOf :: b -> i -> m Bool
     getIndexOf es i = (`inRange` i) <$> getBounds es
     
-    -- | getBounds returns indices of mutable data structure.
+    -- | getIndices returns 'indices' of mutable data structure.
     {-# INLINE getIndices #-}
     getIndices    :: b -> m [i]
     getIndices es =  range <$> getBounds es
     
-    -- | getAssocs returns assocs of mutable data structure.
+    -- | getAssocs returns 'assocs' of mutable data structure.
     getAssocs  :: b -> m [(i, e)]
     
     default getAssocs :: (LinearM m b e) => b -> m [(i, e)]
@@ -73,7 +72,7 @@ class (Monad m, Index i) => BorderedM m b i e | b -> m, b -> i, b -> e
 
 --------------------------------------------------------------------------------
 
--- | LinearM is Linear version for mutable data structures.
+-- | LinearM is 'Linear' version for mutable data structures.
 class (Monad m) => LinearM m l e | l -> m, l -> e
   where
     {-# MINIMAL (newLinear|newLinearN), (getLeft|getRight), reversed, filled #-}
@@ -85,13 +84,13 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     
     -- | Creates new mutable line from limited list.
     {-# INLINE newLinearN #-}
-    newLinearN      :: Int -> [e] -> m l
-    newLinearN n es =  newLinear $ take n es
+    newLinearN   :: Int -> [e] -> m l
+    newLinearN n =  newLinear . take n
     
     -- | Creates new mutable line from foldable structure.
     {-# INLINE fromFoldableM #-}
-    fromFoldableM    :: (Foldable f) => f e -> m l
-    fromFoldableM es =  newLinear $ toList es
+    fromFoldableM :: (Foldable f) => f e -> m l
+    fromFoldableM =  newLinear . toList
     
     -- | Returns left view of line.
     {-# INLINE getLeft #-}
@@ -126,5 +125,6 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
 sortedM :: (LinearM m l e, Ord e) => l -> m Bool
 sortedM es = flip fmap (getLeft es) $
   \ left -> case left of {[] -> True; _ -> and $ zipWith (<=) left (tail left)}
+
 
 

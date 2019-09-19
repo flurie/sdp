@@ -8,16 +8,28 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
     
-    This module provides Unrolled - unrolled linked list.
+    @SDP.Unrolled@ provides 'Unrolled' - lazy boxed unrolled linked list.
+    
+    A useful feature of 'Unrolled' is that instead of strict boundaries, you can
+    specify a lower limit - most operations shorten Unrolled to a specified size.
+    
+    Of course, an attempt to apply operations on sets to Unrolled with
+    non-strict boundaries can lead to their malfunctioning (even if the data is
+    sorted).
 -}
 module SDP.Unrolled
 (
+  -- * Exports
   module SDP.Indexed,
   module SDP.Sort,
   module SDP.Scan,
   module SDP.Set,
   
-  Unrolled (..), Unlist
+  -- * Unrolled
+  Unrolled (..),
+  
+  -- * Unlist
+  Unlist
 )
 where
 
@@ -50,7 +62,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | Bordered unrolled linked list.
+-- | Unrolled is bordered unrolled linked list.
 data Unrolled i e = Unrolled !i !i (Unlist e)
 
 type role Unrolled nominal representational
@@ -63,10 +75,9 @@ instance (Eq e, Index i) => Eq (Unrolled i e) where (==) = eq1
 
 instance (Index i) => Eq1 (Unrolled i)
   where
-    liftEq eq (Unrolled l1 u1 xs) (Unrolled l2 u2 ys) = s1 == s2 && liftEq eq xs ys
+    liftEq eq (Unrolled l1 u1 xs) (Unrolled l2 u2 ys) = n1 == n2 && liftEq eq (take n1 xs) (take n1 ys)
       where
-        s1 = size (l1, u1)
-        s2 = size (l2, u2)
+        n1 = size (l1, u1); n2 = size (l2, u2)
 
 --------------------------------------------------------------------------------
 
@@ -76,10 +87,9 @@ instance (Ord e, Index i) => Ord (Unrolled i e) where compare = compare1
 
 instance (Index i) => Ord1 (Unrolled i)
   where
-    liftCompare cmp (Unrolled l1 u1 xs) (Unrolled l2 u2 ys) = (s1 <=> s2) <> liftCompare cmp xs ys
+    liftCompare cmp (Unrolled l1 u1 xs) (Unrolled l2 u2 ys) = (n1 <=> n2) <> liftCompare cmp (take n1 xs) (take n1 ys)
       where
-        s1 = size (l1, u1)
-        s2 = size (l2, u2)
+        n1 = size (l1, u1); n2 = size (l2, u2)
 
 --------------------------------------------------------------------------------
 
@@ -115,6 +125,7 @@ instance (Index i, Arbitrary e) => Arbitrary (Unrolled i e)
   where
     arbitrary = fromList <$> arbitrary
 
+-- | All operations is O(1).
 instance (Index i) => Estimate (Unrolled i e)
   where
     (Unrolled l1 u1 _) <==> (Unrolled l2 u2 _) = size (l1, u1) <=> size (l2, u2)
@@ -429,7 +440,6 @@ done = freeze
 
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.Unrolled." ++ msg
-
 
 
 

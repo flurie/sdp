@@ -5,18 +5,24 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
     
-    This module is exported by "SDP.SafePrelude".
+    @SDP.Estimate@ provides 'Estimate' class, typedefs and some common
+    comparators. This module is exported by "SDP.SafePrelude".
 -}
 module SDP.Estimate
 (
+  -- * Exports
   module Data.Functor.Classes,
   
+  -- * Estimate
   Estimate (..),
   
+  -- * Type synonyms
   Equal, Compare,
   
+  -- * common comparators
   (<=>), cmpfst, cmpsnd, eqfst, eqsnd,
   
+  -- * right-size versions of Estimate functions
   (<=.>), (<.), (>.), (<=.), (>=.), (==.), (/=.)
 )
 where
@@ -39,36 +45,6 @@ infixl 4 <.=>, .<, .>, .<=, .>=, .==, ./=
 infixl 4 <=.>, <., >., <=., >=., ==., /=.
 
 default ()
-
---------------------------------------------------------------------------------
-
-{- Common comparators. -}
-
--- | Equal is just synonym of (e -> e -> Bool)
-type Equal   e = e -> e -> Bool
-
--- | Compare is just synonym of (e -> e -> Ordering)
-type Compare e = e -> e -> Ordering
-
--- | "spaceship operator" - infix version of compare.
-(<=>) :: (Ord o) => Compare o
-(<=>) = compare
-
--- | Compare tuples by first elements.
-cmpfst :: (Ord o) => Compare (o, s)
-cmpfst = (compare `on` fst)
-
--- | Compare tuples by second elements.
-cmpsnd :: (Ord o) => Compare (f, o)
-cmpsnd = (compare `on` snd)
-
--- | Compare tuples by first elements.
-eqfst :: (Eq e) => Equal (e, s)
-eqfst = on (==) fst
-
--- | Compare tuples by second elements.
-eqsnd :: (Eq e) => Equal (f, e)
-eqsnd = on (==) snd
 
 --------------------------------------------------------------------------------
 
@@ -107,36 +83,6 @@ class Estimate e
 
 --------------------------------------------------------------------------------
 
--- | Right-side version of (<.=>).
-(<=.>) :: (Estimate e) => Int -> e -> Ordering
-i <=.> e = case e <.=> i of {LT -> GT; EQ -> EQ; GT -> LT}
-
--- | Right-side version of (.<).
-(<.) :: (Estimate e) => Int -> e -> Bool
-i  <.  e = e .>  i
-
--- | Right-side version of (.>).
-(>.) :: (Estimate e) => Int -> e -> Bool
-i  >.  e = e .<  i
-
--- | Right-side version of (.<=).
-(<=.) :: (Estimate e) => Int -> e -> Bool
-i <=.  e = e .>= i
-
--- | Right-side version of (.>=).
-(>=.) :: (Estimate e) => Int -> e -> Bool
-i >=.  e = e .<= i
-
--- | Right-side version of (.==).
-(==.) :: (Estimate e) => Int -> e -> Bool
-i ==. e = e .== i
-
--- | Right-side version of (./=).
-(/=.) :: (Estimate e) => Int -> e -> Bool
-i /=. e = e ./= i
-
---------------------------------------------------------------------------------
-
 instance Estimate [a]
   where
     []       <==>       [] = EQ
@@ -151,5 +97,69 @@ instance Estimate [a]
         go [] c = 0 <=> c
         go xs c = tail xs <.=> (c - 1)
 
+--------------------------------------------------------------------------------
 
+{- Type synonyms. -}
+
+-- | Equal is just synonym of (e -> e -> Bool)
+type Equal   e = e -> e -> Bool
+
+-- | Compare is just synonym of (e -> e -> Ordering)
+type Compare e = e -> e -> Ordering
+
+--------------------------------------------------------------------------------
+
+{- Common comparators. -}
+
+-- | "spaceship operator" - infix version of compare.
+(<=>) :: (Ord o) => Compare o
+(<=>) = compare
+
+-- | Compare tuples by first elements.
+cmpfst :: (Ord o) => Compare (o, s)
+cmpfst = (compare `on` fst)
+
+-- | Compare tuples by second elements.
+cmpsnd :: (Ord o) => Compare (f, o)
+cmpsnd = (compare `on` snd)
+
+-- | Compare tuples by first elements.
+eqfst :: (Eq e) => Equal (e, s)
+eqfst = on (==) fst
+
+-- | Compare tuples by second elements.
+eqsnd :: (Eq e) => Equal (f, e)
+eqsnd = on (==) snd
+
+--------------------------------------------------------------------------------
+
+{- Right-side versions of Estimate functions. -}
+
+-- | Right-side version of (<.=>).
+(<=.>) :: (Estimate e) => Int -> e -> Ordering
+i <=.> e = case e <.=> i of {LT -> GT; EQ -> EQ; GT -> LT}
+
+-- | Right-side version of (.<).
+(<.) :: (Estimate e) => Int -> e -> Bool
+(<.) = flip (.>)
+
+-- | Right-side version of (.>).
+(>.) :: (Estimate e) => Int -> e -> Bool
+(>.) = flip (.<)
+
+-- | Right-side version of (.<=).
+(<=.) :: (Estimate e) => Int -> e -> Bool
+(<=.) = flip (.>=)
+
+-- | Right-side version of (.>=).
+(>=.) :: (Estimate e) => Int -> e -> Bool
+(>=.) = flip (.<=)
+
+-- | Right-side version of (.==).
+(==.) :: (Estimate e) => Int -> e -> Bool
+(==.) = flip (.==)
+
+-- | Right-side version of (./=).
+(/=.) :: (Estimate e) => Int -> e -> Bool
+(/=.) = flip (./=)
 

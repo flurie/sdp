@@ -9,15 +9,17 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
   
-    Set is a class that allows you to create sets and perform simple operations
-  on them.
+    @SDP.Set@ provides 'Set' - class for basic set operations.
 -}
 module SDP.Set
 (
+  -- * Exports
   module SDP.Linear,
   
+  -- * Set
   Set (..),
   
+  -- * Related functions
   set, insert, delete, intersections, unions, differences, symdiffs, isSetElem,
   
   (\/), (/\), (\\), (\^/), (\?/), (/?\), (\+/)
@@ -38,19 +40,17 @@ default ()
 --------------------------------------------------------------------------------
 
 {- |
-    A class of data structures, that can represent sets.
+    Set is a class of data structures, that can represent sets.
   
-    Some implementations may be inefficient and useful for internal definitions
-  only.
+  Some implementations may be inefficient and implemented only for internal use.
   
-    This library does not provide a distinction between sets and arbitrary data,
-  but all functions relying on the definitions of this class must ensure that
-  the properties of the result are preserved (if responsibility is not
-  explicitly passed on to the programmer). Structures that are mainly used as
-  sets will impose restrictions on the conversions. However, when working with
-  lists and, for example, arrays, you must be careful.
+  SDP doesn't making the difference between sets and any arbitrary data, but the
+  function in Set (except 'setWith' and 'set') works correctly only on correct
+  sets. Some implementations may weaken the correctness condition and give more
+  guarantees, but SDP does not. However, SDP ensures that any function in Set
+  returns the correct set.
   
-    Unlike other classes in this library, Set provides fairly general functions
+  Unlike other classes in this library, Set provides highly general functions
   because I don't want to be remembered with bad words every time while creating
   another newtype. For everyday use, the synonyms below are quite enough.
 -}
@@ -114,7 +114,7 @@ class (Linear s o) => Set s o | s -> o
     isDisjointWith           :: (o -> o -> Ordering) -> s -> s -> Bool
     isDisjointWith   f xs ys =  isNull $ intersectionWith f xs ys
     
-    -- | Same as elem (Foldable), but can work faster. By default, uses find.
+    -- | Same as 'elem', but can work faster. By default, uses 'find'.
     isContainedIn     :: (o -> o -> Ordering) -> o -> s -> Bool
     
     -- | Сhecks whether a first set is a subset of second.
@@ -126,13 +126,13 @@ class (Linear s o) => Set s o | s -> o
     {- Default definitions. -}
     
     default subsets :: (Ord s, Ord o) => s -> [s]
-    subsets es      =  set . subsequences $ set es
+    subsets         =  set . subsequences . set
     
     default isSubsetWith  :: (t o ~~ s, Foldable t) => (o -> o -> Ordering) -> s -> s -> Bool
     isSubsetWith f xs ys  =  any (\ e -> isContainedIn f e ys) xs
     
     default isContainedIn :: (t o ~~ s, Foldable t) => (o -> o -> Ordering) -> o -> s -> Bool
-    isContainedIn f e es  = isJust $ find (\ x -> f e x == EQ) es
+    isContainedIn f e     =  isJust . find (\ x -> f e x == EQ)
 
 --------------------------------------------------------------------------------
 
@@ -140,78 +140,78 @@ class (Linear s o) => Set s o | s -> o
 
 -- | The same as sort . nub for list.
 {-# INLINE set #-}
-set    :: (Set s o, Ord o) => s -> s
-set es =  setWith compare es
+set :: (Set s o, Ord o) => s -> s
+set =  setWith compare
 
 -- | Same as insert compare.
 {-# INLINE insert #-}
-insert      :: (Set s o, Ord o) => o -> s -> s
-insert e es =  insertWith compare e es
+insert :: (Set s o, Ord o) => o -> s -> s
+insert =  insertWith compare
 
 -- | Same as deleteWith compare.
 {-# INLINE delete #-}
-delete      :: (Set s o, Ord o) => o -> s -> s
-delete e es =  deleteWith compare e es
+delete :: (Set s o, Ord o) => o -> s -> s
+delete =  deleteWith compare
 
 -- | Intersection of two sets.
 {-# INLINE (/\) #-}
-(/\)       :: (Set s o, Ord o) => s -> s -> s
-(/\) xs ys =  intersectionWith compare xs ys
+(/\) :: (Set s o, Ord o) => s -> s -> s
+(/\) =  intersectionWith compare
 
 -- | Union of two sets.
 {-# INLINE (\/) #-}
-(\/)       :: (Set s o, Ord o) => s -> s -> s
-(\/) xs ys =  unionWith compare xs ys
+(\/) :: (Set s o, Ord o) => s -> s -> s
+(\/) =  unionWith compare
 
 -- | Difference (relative complement, aka A / B) of two sets.
 {-# INLINE (\\) #-}
-(\\)       :: (Set s o, Ord o) => s -> s -> s
-(\\) xs ys =  differenceWith compare xs ys
+(\\) :: (Set s o, Ord o) => s -> s -> s
+(\\) =  differenceWith compare
 
 -- | Symetric difference (disjunctive union).
 {-# INLINE (\^/) #-}
-(\^/)       :: (Set s o, Ord o) => s -> s -> s
-(\^/) xs ys =  symdiffWith compare xs ys
+(\^/) :: (Set s o, Ord o) => s -> s -> s
+(\^/) =  symdiffWith compare
 
 -- | isDisjoint synonym. Mnemonic: is the intersection of sets (/\) empty?
 {-# INLINE (/?\) #-}
-(/?\)       :: (Set s o, Ord o) => s -> s -> Bool
-(/?\) xs ys =  isDisjointWith compare xs ys
+(/?\) :: (Set s o, Ord o) => s -> s -> Bool
+(/?\) =  isDisjointWith compare
 
 -- | Same as isIntersectsWith compare.
 {-# INLINE (\?/) #-}
-(\?/)       :: (Set s o, Ord o) => s -> s -> Bool
-(\?/) xs ys =  isIntersectsWith compare xs ys
+(\?/) :: (Set s o, Ord o) => s -> s -> Bool
+(\?/) =  isIntersectsWith compare
 
 -- | Same as isSubsetWith compare.
 {-# INLINE (\+/) #-}
-(\+/)       :: (Set s o, Ord o) => s -> s -> Bool
-(\+/) xs ys =  isSubsetWith compare xs ys
+(\+/) :: (Set s o, Ord o) => s -> s -> Bool
+(\+/) =  isSubsetWith compare
 
 -- | Intersection of some sets.
 {-# INLINE intersections #-}
-intersections     :: (Foldable f, Set s o, Ord o) => f s -> s
-intersections xss =  intersectionsWith compare xss
+intersections :: (Foldable f, Set s o, Ord o) => f s -> s
+intersections =  intersectionsWith compare
 
 -- | Union of some sets.
 {-# INLINE unions #-}
-unions      :: (Foldable f, Set s o, Ord o) => f s -> s
-unions  xss =  unionsWith compare xss
+unions  :: (Foldable f, Set s o, Ord o) => f s -> s
+unions  =  unionsWith compare
 
 -- | Diference of some sets.
 {-# INLINE differences #-}
-differences     :: (Foldable f, Set s o, Ord o) => f s -> s
-differences xss =  differencesWith compare xss
+differences :: (Foldable f, Set s o, Ord o) => f s -> s
+differences =  differencesWith compare
 
 -- | Symmetric difference of some sets.
 {-# INLINE symdiffs #-}
-symdiffs     :: (Foldable f, Set s o, Ord o) => f s -> s
-symdiffs xss =  symdiffsWith compare xss
+symdiffs :: (Foldable f, Set s o, Ord o) => f s -> s
+symdiffs =  symdiffsWith compare
 
--- | isSetElem o so = elem o so, but faster.
+-- | isSetElem is 'elem', but faster.
 {-# INLINE isSetElem #-}
-isSetElem      :: (Set s o, Ord o) => o -> s -> Bool
-isSetElem e es =  isContainedIn compare e es
+isSetElem :: (Set s o, Ord o) => o -> s -> Bool
+isSetElem =  isContainedIn compare
 
 --------------------------------------------------------------------------------
 
@@ -301,6 +301,5 @@ instance Set [e] e
       EQ -> False
       GT -> isDisjointWith f (x : xs) ys
     isDisjointWith _ _  _  = True
-
 
 

@@ -2,20 +2,22 @@
 {-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, RoleAnnotations #-}
 
 {- |
-    Module      :  SDP.STUblist
+    Module      :  SDP.ByteList.STUblist
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
     
-    This module provides service type Ublist - mutable strict unboxed unrolled
-    linked list for SDP.ByteList.Ublist.
+    @SDP.ByteList.STUblist@ provides service type 'STUblist' - mutable strict
+    unboxed unrolled linked list for @Ublist@.
 -}
 module SDP.ByteList.STUblist
 (
+  -- * Exports
   module SDP.IndexedM,
   module SDP.SortM,
   
+  -- * STUblist
   STUblist (..)
 )
 where
@@ -43,7 +45,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | This STUblist is mutable version of Ublist.
+-- | STUblist is mutable version of Ublist.
 data STUblist s e = STUBEmpty | STUblist {-# UNPACK #-} !Int (MutableByteArray# s) (STUblist s e)
 
 type role STUblist nominal representational

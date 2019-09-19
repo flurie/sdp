@@ -7,10 +7,18 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
     
-    SDP.SortM provides SortM - class of sortable mutable structures.
+    @SDP.SortM@ provides 'SortM' - class of sortable mutable structures.
 -}
 
-module SDP.SortM ( SortM (..), sortM, sortMOn, mathsortM, mathsortMOn ) where
+module SDP.SortM
+  (
+    -- * SortM
+    SortM (..),
+    
+    -- * Related functions
+    sortM, sortMOn, mathsortM, mathsortMOn
+  )
+where
 
 import Prelude ()
 import SDP.SafePrelude
@@ -21,7 +29,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | SortM is class class of sortable mutable structures.
+-- | SortM is class of sortable mutable structures.
 class SortM m s e | s -> m, s -> e
   where
     {-# MINIMAL sortMBy #-}
@@ -34,22 +42,24 @@ class SortM m s e | s -> m, s -> e
       data with a lot of repetitions.
     -}
     mathsortMBy :: Compare e -> s -> m ()
-    mathsortMBy cmp es = sortMBy cmp es
+    mathsortMBy =  sortMBy
 
--- | sortM is just synonym for sortMBy compare
-sortM   :: (SortM m s e, Ord e) => s -> m ()
-sortM es = sortMBy compare es
+-- | sortM is just synonym for @sortMBy compare@
+sortM :: (SortM m s e, Ord e) => s -> m ()
+sortM =  sortMBy compare
 
 -- | Sort by comparing the results of a key function applied to each element.
-sortMOn :: (SortM m s e, Ord o) => (e -> o) -> s -> m ()
-sortMOn f es = sortMBy (compare `on` f) es
+sortMOn   :: (SortM m s e, Ord o) => (e -> o) -> s -> m ()
+sortMOn f =  sortMBy (compare `on` f)
 
--- | mathsort is just synonym for mathsortBy compare
-mathsortM   :: (SortM m s e, Ord e) => s -> m ()
-mathsortM es = mathsortMBy compare es
+-- | mathsort is just synonym for @mathsortBy compare@
+mathsortM :: (SortM m s e, Ord e) => s -> m ()
+mathsortM =  mathsortMBy compare
 
 -- | Math sort by comparing the results of a key function applied to each element.
-mathsortMOn :: (SortM m s e, Ord o) => (e -> o) -> s -> m ()
-mathsortMOn f es = mathsortMBy (compare `on` f) es
+mathsortMOn   :: (SortM m s e, Ord o) => (e -> o) -> s -> m ()
+mathsortMOn f =  mathsortMBy (compare `on` f)
+
+
 
 

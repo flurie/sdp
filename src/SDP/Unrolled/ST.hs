@@ -8,15 +8,17 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
     
-    This module provides service type STUnrolled - mutable version of
-    SDP.Unrolled.
+    @SDP.Unrolled.ST@ provides service type 'STUnrolled' - mutable version of
+    @Unrolled@.
 -}
 
 module SDP.Unrolled.ST
 (
+  -- * Exports
   module SDP.IndexedM,
   module SDP.SortM,
   
+  -- * STUnrolled
   STUnrolled (..)
 )
 where

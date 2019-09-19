@@ -7,21 +7,22 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
     
-    Test.SDP.Index provides simple set of test for SDP.Index class.
+    @Test.SDP.Index@ provides basic test suite for 'Index' class.
 -}
-
 module Test.SDP.Index
 (
+  -- * Test type synonym
   TestIndex,
   
-  rangeTest,
-  inBoundsTest,
+  -- * Default test
+  indexTest,
   
+  -- * Particular tests
+  basicIndexTest,
+  inBoundsTest,
+  rangeTest,
   prevTest,
   nextTest,
-  
-  basicIndexTest,
-  indexTest,
   
   dumbSizeTest
 )
@@ -51,21 +52,17 @@ rangeTest (l, u) i = and
     not (isEmpty  (l, u))  || isUnderflow (l, u) i
   ]
 
-{-# DEPRECATED prevTest "prevTest is deprecated - too long" #-}
 -- | prevTest checks relations of prev and range.
 prevTest :: (Index i) => (i, i) -> Bool
-prevTest bnds = null r || and test
+prevTest bnds = isEmpty bnds || and test
   where
-    test = take listSizeRestriction $ zipWith (==) r (tail $ prev bnds <$> r)
-    r = range bnds
+    test = take listSizeRestriction $ zipWith (==) (range bnds) (tail $ prev bnds <$> range bnds)
 
-{-# DEPRECATED nextTest "nextTest is deprecated - too long" #-}
 -- | nextTest checks relations of next and range.
 nextTest :: (Index i) => (i, i) -> Bool
-nextTest bnds = null r || and test
+nextTest bnds = isEmpty bnds || and test
   where
-    test = take listSizeRestriction $ zipWith (==) r (tail $ prev bnds <$> r)
-    r = range bnds
+    test = take listSizeRestriction $ zipWith (==) (range bnds) (tail $ prev bnds <$> range bnds)
 
 -- | inBoundsTest checks relations of inBounds and other range functions.
 inBoundsTest :: (Index i) => (i, i) -> i -> Bool
@@ -103,8 +100,10 @@ indexTest bnds i = and
   [
     basicIndexTest bnds i,
     
+    inBoundsTest bnds i,
+    
     rangeTest bnds i,
     
-    inBoundsTest bnds i
+    prevTest bnds, nextTest bnds
   ]
 

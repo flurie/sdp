@@ -5,7 +5,6 @@ version 0.2:
   DEPRECATED:
     * SDP.Index.unsafeBounds (in favour of defaultBounds)
     * SDP.SortM.Stuff (in favour of SDP.SortM.Tim, SDP.Linear and SDP.LinearM)
-    * prevTest and nextTest (Test.SDP.Index)
   
   ADDED:
     * SDP.SortM.Tim (replaces SDP.SortM.Stuff)
@@ -26,6 +25,7 @@ version 0.2:
   IMPROVED:
     * Estimate class (rewrited)
     * Foldable and IFold rewrited for inline with 2 arguments
+    * prevTest and nextTest now work very fast (fixed memory leak in where-expr)
 
 --------------------------------------------------------------------------------
 

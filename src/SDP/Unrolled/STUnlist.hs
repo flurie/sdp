@@ -8,14 +8,16 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
     
-    This module provides service type Unlist - mutable lazy boxed unrolled
-    linked list for SDP.Unrolled.Unlist.
+    @SDP.Unrolled.STUnlist@ provides service type 'STUnlist' - mutable lazy
+    boxed unrolled linked list for @Unlist@.
 -}
 module SDP.Unrolled.STUnlist
 (
+  -- * Exports
   module SDP.IndexedM,
   module SDP.SortM,
   
+  -- * STUnlist
   STUnlist (..)
 )
 where

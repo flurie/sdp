@@ -9,18 +9,19 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
     
-    SDP.Bytes provides immutable strict unboxed array type.
-    This implementation of UArray no much different from Data.Array.Unboxed (array),
-    but incopatible with it.
-    The main difference is the Index class instead of Ix.
+    SDP.Bytes provides 'Bytes' - immutable strict unboxed array type.
+    This implementation of UArray no much different from @Data.Array.Unboxed@
+    (array), but incopatible with it.
 -}
 module SDP.Bytes
 (
+  -- * Exports
   module SDP.Unboxed,
   module SDP.Indexed,
   module SDP.Sort,
   module SDP.Set,
   
+  -- * Bytes
   Bytes (..)
 )
 where
@@ -425,7 +426,5 @@ pfailEx msg = throw . PatternMatchFail $ "in SDP.Bytes." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Bytes." ++ msg
-
-
 
 

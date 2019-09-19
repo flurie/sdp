@@ -5,25 +5,22 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
     
-    Test.SDP.Set provides simple set of test (sorry for the tautology) for Set
-    class (sorry again).
+    @Test.SDP.Set@ provides basic test quite for 'Set' class.
 -}
-
 module Test.SDP.Set
 (
+  -- * Test type synonyms
   TestSet1,
   TestSet,
   
+  -- * Default test
   setTest,
   
-  basicSetTest,
-  
+  -- * Particular tests
   insdelSetTest,
-  
+  basicSetTest,
   unintSetTest,
-  
   diffSetTest,
-  
   elemSetTest
 )
 where
@@ -44,9 +41,9 @@ type TestSet  s o = o -> s -> s -> Bool
 type TestSet1 s o = o -> s o -> s o -> Bool
 
 {- |
-  basicSetTest checks relations of set, (/?\) and (\?/).
-  Note that basicSetTest requires any (Set s o) => s, not necessarily a set (may
-  contain any data).
+  basicSetTest checks relations of 'set', ('/?\') and ('\?/').
+  Note that basicSetTest requires any @('Set' s o) => s@, not necessarily a set
+  (may contain any data).
 -}
 basicSetTest :: (Set s o, Ord s, Ord o) => s -> Bool
 basicSetTest sx = and
@@ -61,8 +58,8 @@ basicSetTest sx = and
     sx' = set sx
 
 {- |
-  insdelSetTest checks rules of insert and delete.
-  Note that insdelSetTest requires a set, not any (Set s o) => s
+  insdelSetTest checks rules of 'insert' and 'delete'.
+  Note that insdelSetTest requires a set, not any @('Set' s o) => s@.
 -}
 insdelSetTest :: (Set s o, Eq s, Ord o) => o -> s -> Bool
 insdelSetTest e sx' = and
@@ -72,9 +69,9 @@ insdelSetTest e sx' = and
   ]
 
 {- |
-  unintSetTest checks the laws of union and intersection.
-  Note that unintSetTest requires any (Set s o) => s, not necessarily a set (may
-  contain any data).
+  unintSetTest checks the laws of union ('\/') and intersection ('/\').
+  Note that unintSetTest requires any @('Set' s o) => s@, not necessarily a set
+  (may contain any data).
 -}
 unintSetTest :: (Set s o, Ord o) => s -> s -> Bool
 unintSetTest sx' sy' = and
@@ -87,8 +84,8 @@ unintSetTest sx' sy' = and
     un = sx' \/  sy'
 
 {- |
-  diffSetTest checks laws of difference and symmetric difference.
-  Note that diffSetTest requires a set, not any (Set s o) => s
+  diffSetTest checks laws of difference ('\\') and symmetric difference ('\^/').
+  Note that diffSetTest requires a set, not any @('Set' s o) => s@
 -}
 diffSetTest :: (Set s o, Ord o) => s -> s -> Bool
 diffSetTest sx' sy' = and
@@ -103,9 +100,9 @@ diffSetTest sx' sy' = and
     sd = sx' \^/ sy'
 
 {- |
-  elemSetTest checks relations of isSetElem and isSubseqOf.
-  Note that elemSetTest requires any (Set s o) => s, not necessarily a set (may
-  contain any data).
+  elemSetTest checks relations of 'isSetElem' and 'isSubseqOf'.
+  Note that elemSetTest requires any @('Set' s o) => s@, not necessarily a set
+  (may contain any data).
 -}
 elemSetTest :: (Set s o, Ord o) => o -> s -> Bool
 elemSetTest e sx = and
@@ -119,7 +116,7 @@ elemSetTest e sx = and
 
 {- |
   setTest is complex test, that includes all other tests.
-  Note that setTest requires any (Set s o) => s, not necessarily a set (may
+  Note that setTest requires any @('Set' s o) => s@, not necessarily a set (may
   contain any data).
 -}
 setTest :: (Ord o, Ord s, Set s o) => o -> s -> s -> Bool
@@ -138,8 +135,6 @@ setTest e sx sy = and
   where
     sx' = set sx
     sy' = set sy
-
-
 
 
 
