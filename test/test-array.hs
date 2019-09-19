@@ -11,6 +11,8 @@ import Test.SDP.Linear
 import Test.SDP.Sort
 import Test.SDP.Set
 
+import Test.SDP.Eq
+
 default ()
 
 --------------------------------------------------------------------------------
@@ -18,6 +20,9 @@ default ()
 main :: IO ()
 main = defaultMain
   [
+    -- common tests
+    testProperty "array-eq             " eqProp,
+    
     -- linear tests
     testProperty "array-linear-basic   " basicLinearProp,
     testProperty "array-linear-decons  " deconstructionLinearProp,
@@ -42,6 +47,13 @@ main = defaultMain
     -- estimate test
     testProperty "array-estimate       " estimateProp
   ]
+
+--------------------------------------------------------------------------------
+
+{- Eq property. -}
+
+eqProp :: TestEq (Array Int Int)
+eqProp =  eqTest
 
 --------------------------------------------------------------------------------
 

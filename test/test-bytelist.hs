@@ -11,6 +11,8 @@ import Test.SDP.Linear
 import Test.SDP.Sort
 import Test.SDP.Set
 
+import Test.SDP.Eq
+
 default ()
 
 --------------------------------------------------------------------------------
@@ -18,6 +20,9 @@ default ()
 main :: IO ()
 main = defaultMain
   [
+    -- common tests
+    testProperty "bytelist-eq             " eqProp,
+    
     -- linear tests
     testProperty "bytelist-linear-basic   " basicLinearProp,
     testProperty "bytelist-linear-decons  " deconstructionLinearProp,
@@ -42,6 +47,13 @@ main = defaultMain
     -- estimate test
     testProperty "bytelist-estimate       " estimateProp
   ]
+
+--------------------------------------------------------------------------------
+
+{- Eq property. -}
+
+eqProp :: TestEq (ByteList Int Int)
+eqProp =  eqTest
 
 --------------------------------------------------------------------------------
 

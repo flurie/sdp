@@ -11,6 +11,8 @@ import Test.SDP.Linear
 import Test.SDP.Sort
 import Test.SDP.Set
 
+import Test.SDP.Eq
+
 default ()
 
 --------------------------------------------------------------------------------
@@ -18,6 +20,9 @@ default ()
 main :: IO ()
 main = defaultMain
   [
+    -- common tests
+    testProperty "unlist-eq             " eqProp,
+    
     -- linear tests
     testProperty "unlist-linear-basic   " basicLinearProp,
     testProperty "unlist-linear-decons  " deconstructionLinearProp,
@@ -42,6 +47,13 @@ main = defaultMain
     -- estimate test
     testProperty "unlist-estimate       " estimateProp
   ]
+
+--------------------------------------------------------------------------------
+
+{- Eq property. -}
+
+eqProp :: TestEq (Unlist Int)
+eqProp =  eqTest
 
 --------------------------------------------------------------------------------
 

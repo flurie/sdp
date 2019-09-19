@@ -11,6 +11,8 @@ import Test.SDP.Linear
 import Test.SDP.Sort
 import Test.SDP.Set
 
+import Test.SDP.Eq
+
 default ()
 
 --------------------------------------------------------------------------------
@@ -18,6 +20,9 @@ default ()
 main :: IO ()
 main = defaultMain
   [
+    -- common tests
+    testProperty "ublist-eq             " eqProp,
+    
     -- linear tests
     testProperty "ublist-linear-basic   " basicLinearProp,
     testProperty "ublist-linear-decons  " deconstructionLinearProp,
@@ -42,6 +47,13 @@ main = defaultMain
     -- estimate test
     testProperty "ublist-estimate       " estimateProp
   ]
+
+--------------------------------------------------------------------------------
+
+{- Eq property. -}
+
+eqProp :: TestEq (Ublist Int)
+eqProp =  eqTest
 
 --------------------------------------------------------------------------------
 

@@ -96,6 +96,8 @@ Library
     
     -- basic test suite
     
+    Test.SDP.Eq
+    
     Test.SDP.Estimate
     Test.SDP.Indexed
     Test.SDP.Linear
@@ -146,28 +148,33 @@ test-suite test-array
   main-is:          test-array.hs
   
   other-modules:
-    Control.Exception.SDP
-    SDP.Array
     SDP.Array.ST
-    SDP.Estimate
-    SDP.Index
-    SDP.Indexed
-    SDP.IndexedM
-    SDP.Linear
-    SDP.LinearM
+    SDP.Array
+    
+    Control.Exception.SDP
     SDP.SafePrelude
+    SDP.SortM.Tim
+    SDP.Simple
+    
+    SDP.Estimate
+    SDP.IndexedM
+    SDP.Indexed
+    SDP.LinearM
+    SDP.Linear
+    SDP.Index
+    SDP.SortM
+    SDP.Sort
     SDP.Scan
     SDP.Set
-    SDP.Simple
-    SDP.Sort
-    SDP.SortM
-    SDP.SortM.Tim
     SDP.Zip
+    
     Test.SDP.Estimate
     Test.SDP.Indexed
     Test.SDP.Linear
     Test.SDP.Sort
     Test.SDP.Set
+    
+    Test.SDP.Eq
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -187,28 +194,34 @@ test-suite test-bytes
   main-is:          test-bytes.hs
   
   other-modules:
-    Control.Exception.SDP
-    SDP.Bytes
     SDP.Bytes.ST
-    SDP.Estimate
-    SDP.Index
-    SDP.Indexed
-    SDP.IndexedM
-    SDP.Linear
-    SDP.LinearM
+    SDP.Bytes
+    
+    Control.Exception.SDP
     SDP.SafePrelude
-    SDP.Set
-    SDP.Simple
-    SDP.Sort
-    SDP.SortM
     SDP.SortM.Tim
+    SDP.Simple
+    
+    SDP.Estimate
+    SDP.IndexedM
+    SDP.Indexed
     SDP.Unboxed
+    SDP.LinearM
+    SDP.Linear
+    SDP.Index
+    SDP.SortM
+    SDP.Sort
+    SDP.Scan
+    SDP.Set
     SDP.Zip
+    
     Test.SDP.Estimate
     Test.SDP.Indexed
     Test.SDP.Linear
     Test.SDP.Sort
     Test.SDP.Set
+    
+    Test.SDP.Eq
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -228,30 +241,35 @@ test-suite test-unrolled
   main-is:          test-unrolled.hs
   
   other-modules:
-    Control.Exception.SDP
-    SDP.Estimate
-    SDP.Index
-    SDP.Indexed
-    SDP.IndexedM
-    SDP.Linear
-    SDP.LinearM
-    SDP.SafePrelude
-    SDP.Scan
-    SDP.Set
-    SDP.Simple
-    SDP.Sort
-    SDP.SortM
-    SDP.SortM.Tim
-    SDP.Unrolled
-    SDP.Unrolled.ST
     SDP.Unrolled.STUnlist
     SDP.Unrolled.Unlist
+    SDP.Unrolled.ST
+    SDP.Unrolled
+    
+    Control.Exception.SDP
+    SDP.SafePrelude
+    SDP.SortM.Tim
+    SDP.Simple
+    
+    SDP.Estimate
+    SDP.IndexedM
+    SDP.Indexed
+    SDP.LinearM
+    SDP.Linear
+    SDP.Index
+    SDP.SortM
+    SDP.Sort
+    SDP.Scan
+    SDP.Set
     SDP.Zip
+    
     Test.SDP.Estimate
     Test.SDP.Indexed
     Test.SDP.Linear
     Test.SDP.Sort
     Test.SDP.Set
+    
+    Test.SDP.Eq
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -271,30 +289,36 @@ test-suite test-bytelist
   main-is:          test-bytelist.hs
   
   other-modules:
-    Control.Exception.SDP
-    SDP.ByteList
-    SDP.ByteList.ST
     SDP.ByteList.STUblist
     SDP.ByteList.Ublist
-    SDP.Estimate
-    SDP.Index
-    SDP.Indexed
-    SDP.IndexedM
-    SDP.Linear
-    SDP.LinearM
+    SDP.ByteList.ST
+    SDP.ByteList
+    
+    Control.Exception.SDP
     SDP.SafePrelude
-    SDP.Set
-    SDP.Simple
-    SDP.Sort
-    SDP.SortM
     SDP.SortM.Tim
+    SDP.Simple
+    
+    SDP.Estimate
+    SDP.IndexedM
+    SDP.Indexed
     SDP.Unboxed
+    SDP.LinearM
+    SDP.Linear
+    SDP.Index
+    SDP.SortM
+    SDP.Sort
+    SDP.Scan
+    SDP.Set
     SDP.Zip
+    
     Test.SDP.Estimate
     Test.SDP.Indexed
     Test.SDP.Linear
     Test.SDP.Sort
     Test.SDP.Set
+    
+    Test.SDP.Eq
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -314,28 +338,34 @@ test-suite test-ublist
   main-is:          test-ublist.hs
   
   other-modules:
-    Control.Exception.SDP
     SDP.ByteList.STUblist
     SDP.ByteList.Ublist
-    SDP.Estimate
-    SDP.Index
-    SDP.Indexed
-    SDP.IndexedM
-    SDP.Linear
-    SDP.LinearM
+    
+    Control.Exception.SDP
     SDP.SafePrelude
-    SDP.Set
-    SDP.Simple
-    SDP.Sort
-    SDP.SortM
     SDP.SortM.Tim
+    SDP.Simple
+    
+    SDP.Estimate
+    SDP.IndexedM
+    SDP.Indexed
     SDP.Unboxed
+    SDP.LinearM
+    SDP.Linear
+    SDP.Index
+    SDP.SortM
+    SDP.Sort
+    SDP.Scan
+    SDP.Set
     SDP.Zip
+    
     Test.SDP.Estimate
     Test.SDP.Indexed
     Test.SDP.Linear
     Test.SDP.Sort
     Test.SDP.Set
+    
+    Test.SDP.Eq
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -355,28 +385,33 @@ test-suite test-unlist
   main-is:          test-unlist.hs
   
   other-modules:
-    Control.Exception.SDP
-    SDP.Estimate
-    SDP.Index
-    SDP.Indexed
-    SDP.IndexedM
-    SDP.Linear
-    SDP.LinearM
-    SDP.SafePrelude
-    SDP.Scan
-    SDP.Set
-    SDP.Simple
-    SDP.Sort
-    SDP.SortM
-    SDP.SortM.Tim
     SDP.Unrolled.STUnlist
     SDP.Unrolled.Unlist
+    
+    Control.Exception.SDP
+    SDP.SafePrelude
+    SDP.SortM.Tim
+    SDP.Simple
+    
+    SDP.Estimate
+    SDP.IndexedM
+    SDP.Indexed
+    SDP.LinearM
+    SDP.Linear
+    SDP.Index
+    SDP.SortM
+    SDP.Sort
+    SDP.Scan
+    SDP.Set
     SDP.Zip
+    
     Test.SDP.Estimate
     Test.SDP.Indexed
     Test.SDP.Linear
     Test.SDP.Sort
     Test.SDP.Set
+    
+    Test.SDP.Eq
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -387,4 +422,9 @@ test-suite test-unlist
     test-framework-quickcheck2 >= 0.3   && < 0.4
   
   ghc-options: -Wall -O2
+
+
+
+
+
 

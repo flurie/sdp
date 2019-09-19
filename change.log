@@ -10,6 +10,8 @@ version 0.2:
     * SDP.SortM.Tim (replaces SDP.SortM.Stuff)
     * SDP.SortM.Insertion (reexport of insertionSort from SDP.SortM.Tim)
     
+    * Test.SDP.Eq test suite
+    
     * offsetOf and new indexOf (Bordered)
     * binarySearch function (Indexed)
     * defaultBounds function (Index)
