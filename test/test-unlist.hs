@@ -5,14 +5,7 @@ import Test.Framework.Providers.QuickCheck2
 
 import SDP.Unrolled.Unlist
 
-import Test.SDP.Estimate
-import Test.SDP.Indexed
-import Test.SDP.Linear
-import Test.SDP.Sort
-import Test.SDP.Set
-
-import Test.SDP.Eq
-import Test.SDP.Ord
+import Test.SDP
 
 default ()
 
@@ -126,6 +119,7 @@ setProp =  setTest
 
 estimateProp :: TestEstimate (Unlist Int)
 estimateProp =  estimateTest
+
 
 
 

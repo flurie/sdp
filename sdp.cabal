@@ -96,8 +96,7 @@ Library
     
     -- basic test suite
     
-    Test.SDP.Eq
-    Test.SDP.Ord
+    Test.SDP
     
     Test.SDP.Estimate
     Test.SDP.Indexed
@@ -105,6 +104,8 @@ Library
     Test.SDP.Index
     Test.SDP.Sort
     Test.SDP.Set
+    Test.SDP.Ord
+    Test.SDP.Eq
   
   other-modules:
     SDP.Simple
@@ -169,14 +170,15 @@ test-suite test-array
     SDP.Set
     SDP.Zip
     
+    Test.SDP
+    
     Test.SDP.Estimate
     Test.SDP.Indexed
     Test.SDP.Linear
     Test.SDP.Sort
     Test.SDP.Set
-    
-    Test.SDP.Eq
     Test.SDP.Ord
+    Test.SDP.Eq
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -217,14 +219,15 @@ test-suite test-bytes
     SDP.Set
     SDP.Zip
     
+    Test.SDP
+    
     Test.SDP.Estimate
     Test.SDP.Indexed
     Test.SDP.Linear
     Test.SDP.Sort
     Test.SDP.Set
-    
-    Test.SDP.Eq
     Test.SDP.Ord
+    Test.SDP.Eq
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -266,14 +269,15 @@ test-suite test-unrolled
     SDP.Set
     SDP.Zip
     
+    Test.SDP
+    
     Test.SDP.Estimate
     Test.SDP.Indexed
     Test.SDP.Linear
     Test.SDP.Sort
     Test.SDP.Set
-    
-    Test.SDP.Eq
     Test.SDP.Ord
+    Test.SDP.Eq
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -316,14 +320,15 @@ test-suite test-bytelist
     SDP.Set
     SDP.Zip
     
+    Test.SDP
+    
     Test.SDP.Estimate
     Test.SDP.Indexed
     Test.SDP.Linear
     Test.SDP.Sort
     Test.SDP.Set
-    
-    Test.SDP.Eq
     Test.SDP.Ord
+    Test.SDP.Eq
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -364,14 +369,15 @@ test-suite test-ublist
     SDP.Set
     SDP.Zip
     
+    Test.SDP
+    
     Test.SDP.Estimate
     Test.SDP.Indexed
     Test.SDP.Linear
     Test.SDP.Sort
     Test.SDP.Set
-    
-    Test.SDP.Eq
     Test.SDP.Ord
+    Test.SDP.Eq
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -411,14 +417,15 @@ test-suite test-unlist
     SDP.Set
     SDP.Zip
     
+    Test.SDP
+    
     Test.SDP.Estimate
     Test.SDP.Indexed
     Test.SDP.Linear
     Test.SDP.Sort
     Test.SDP.Set
-    
-    Test.SDP.Eq
     Test.SDP.Ord
+    Test.SDP.Eq
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -429,7 +436,5 @@ test-suite test-unlist
     test-framework-quickcheck2 >= 0.3   && < 0.4
   
   ghc-options: -Wall -O2
-
-
 
 

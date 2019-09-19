@@ -13,6 +13,8 @@ version 0.2:
     * Test.SDP.Eq  test suite
     * Test.SDP.Ord test suite
     
+    * Test.SDP module for short import of test suite.
+    
     * offsetOf and new indexOf (Bordered)
     * binarySearch function (Indexed)
     * defaultBounds function (Index)
@@ -173,7 +175,6 @@ version 0.0.0.1:
     * Zip class
     
     * IndexException type
-
 
 
 
