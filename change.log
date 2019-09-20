@@ -10,10 +10,12 @@ version 0.2:
     * SDP.SortM.Tim (replaces SDP.SortM.Stuff)
     * SDP.SortM.Insertion (reexport of insertionSort from SDP.SortM.Tim)
     
+    * Test.SDP module for short import of test suite.
+    
     * Test.SDP.Eq  test suite
     * Test.SDP.Ord test suite
     
-    * Test.SDP module for short import of test suite.
+    * Test.SDP.Types module with Short and Long newtypes for Arbitrary.
     
     * offsetOf and new indexOf (Bordered)
     * binarySearch function (Indexed)

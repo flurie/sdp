@@ -28,6 +28,7 @@ import Prelude ()
 import SDP.SafePrelude
 
 import Test.QuickCheck
+import Test.SDP.Types
 
 import SDP.Indexed
 import SDP.Sort
@@ -127,6 +128,14 @@ instance Default   (Unlist e) where def = UNEmpty
 instance (Arbitrary e) => Arbitrary (Unlist e)
   where
     arbitrary = fromList <$> arbitrary
+
+instance (Arbitrary e) => Arbitrary (Short (Unlist e))
+  where
+    arbitrary = arbitrary >>= \ n -> (Short . fromList) <$> vector n
+
+instance (Arbitrary e) => Arbitrary (Long (Unlist e))
+  where
+    arbitrary = arbitrary >>= \ (Large n) -> (Long . fromList) <$> vector (512 + n `mod` 15872)
 
 instance Estimate (Unlist e)
   where
@@ -517,4 +526,5 @@ unreachEx msg = throw . UnreachableException $ "in SDP.Unrolled.Unlist." ++ msg
 
 lim :: Int
 lim =  1024
+
 

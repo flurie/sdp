@@ -30,6 +30,7 @@ import Prelude ()
 import SDP.SafePrelude
 
 import Test.QuickCheck
+import Test.SDP.Types
 
 import SDP.Indexed
 import SDP.Unboxed
@@ -117,6 +118,14 @@ instance (Index i) => Default (Bytes i e)
 instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (Bytes i e)
   where
     arbitrary = fromList <$> arbitrary
+
+instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (Short (Bytes i e))
+  where
+    arbitrary = arbitrary >>= \ n -> (Short . fromList) <$> vector n
+
+instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (Long (Bytes i e))
+  where
+    arbitrary = arbitrary >>= \ (Large n) -> (Long . fromList) <$> vector (512 + n `mod` 15872)
 
 instance Estimate (Bytes i e)
   where
@@ -426,5 +435,6 @@ pfailEx msg = throw . PatternMatchFail $ "in SDP.Bytes." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Bytes." ++ msg
+
 
 

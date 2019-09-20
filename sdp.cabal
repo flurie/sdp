@@ -97,6 +97,7 @@ Library
     -- basic test suite
     
     Test.SDP
+    Test.SDP.Types
     
     Test.SDP.Estimate
     Test.SDP.Indexed

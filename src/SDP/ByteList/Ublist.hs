@@ -28,6 +28,7 @@ import Prelude ()
 import SDP.SafePrelude
 
 import Test.QuickCheck
+import Test.SDP.Types
 
 import SDP.Indexed
 import SDP.Unboxed
@@ -109,6 +110,14 @@ instance Default (Ublist e) where def = UBEmpty
 instance (Unboxed e, Arbitrary e) => Arbitrary (Ublist e)
   where
     arbitrary = fromList <$> arbitrary
+
+instance (Unboxed e, Arbitrary e) => Arbitrary (Short (Ublist e))
+  where
+    arbitrary = arbitrary >>= \ n -> (Short . fromList) <$> vector n
+
+instance (Unboxed e, Arbitrary e) => Arbitrary (Long (Ublist e))
+  where
+    arbitrary = arbitrary >>= \ (Large n) -> (Long . fromList) <$> vector (512 + n `mod` 15872)
 
 instance (Unboxed e) => Estimate (Ublist e)
   where
@@ -450,6 +459,7 @@ unreachEx msg = throw . UnreachableException $ "in SDP.ByteList.Ublist." ++ msg
 
 lim :: Int
 lim =  1024
+
 
 
 

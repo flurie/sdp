@@ -42,6 +42,7 @@ import SDP.Scan
 import SDP.Set
 
 import Test.QuickCheck
+import Test.SDP.Types
 
 import GHC.Base ( Int  (..) )
 import GHC.Show (  appPrec  )
@@ -124,6 +125,14 @@ instance (Index i) => Default (Unrolled i e)
 instance (Index i, Arbitrary e) => Arbitrary (Unrolled i e)
   where
     arbitrary = fromList <$> arbitrary
+
+instance (Index i, Arbitrary e) => Arbitrary (Short (Unrolled i e))
+  where
+    arbitrary = arbitrary >>= \ n -> (Short . fromList) <$> vector n
+
+instance (Index i, Arbitrary e) => Arbitrary (Long (Unrolled i e))
+  where
+    arbitrary = arbitrary >>= \ (Large n) -> (Long . fromList) <$> vector (512 + n `mod` 15872)
 
 -- | All operations is O(1).
 instance (Index i) => Estimate (Unrolled i e)
@@ -440,6 +449,7 @@ done = freeze
 
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.Unrolled." ++ msg
+
 
 
 
