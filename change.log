@@ -28,6 +28,8 @@ version 0.2:
     * new functions for Estimate
     * test suite for estimate
     * test suite for indices
+    
+    * benchmark for timsort
   
   MOVED:
     Old indexOf (to indexIn)

@@ -53,9 +53,11 @@ import Text.Read.Lex    ( expect )
 import qualified GHC.Exts as E
 import Data.String ( IsString (..) )
 
+import SDP.Unrolled.STUnlist
 import SDP.Unrolled.Unlist
 import SDP.Unrolled.ST
 import SDP.SortM.Tim
+
 import SDP.Simple
 
 default ()
@@ -409,7 +411,10 @@ instance (Index i) => Set (Unrolled i e) e
 
 instance (Index i) => Sort (Unrolled i e) e
   where
-    sortBy cmp es = runST $ do es' <- thaw es; timSortBy cmp es'; done es'
+    sortBy cmp (Unrolled l u es) = runST $ do
+      es' <- thaw es
+      timSortBy cmp es'
+      Unrolled l u <$> done es'
 
 --------------------------------------------------------------------------------
 
@@ -435,7 +440,7 @@ instance (Index i) => Freeze (ST s) (STUnrolled s i e) (Unrolled i e)
 
 --------------------------------------------------------------------------------
 
-done :: (Index i) => STUnrolled s i e -> ST s (Unrolled i e)
+done :: STUnlist s e -> ST s (Unlist e)
 done = freeze
 
 pfail :: String -> a

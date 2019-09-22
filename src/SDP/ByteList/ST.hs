@@ -96,7 +96,6 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STByteList s i e) i e
     fromAssocs' (l, u) defvalue ascs = STByteList l u <$> fromAssocs' bnds defvalue ies
       where
         ies  = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
-
         bnds = (0, size (l, u) - 1)
     
     (STByteList _ _ es) !#> i = es !#> i

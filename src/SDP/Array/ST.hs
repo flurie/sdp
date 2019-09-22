@@ -115,11 +115,13 @@ instance (Index i) => LinearM (ST s) (STArray s i e) e
     getLeft  es@(STArray _ _ n _) = (es !#>) `mapM` [0 .. n - 1]
     getRight es@(STArray _ _ n _) = (es !#>) `mapM` [n - 1, n - 2 .. 0]
     
+    {-# INLINE copied #-}
     copied es@(STArray _ _ n _) = do
       copy <- filled n $ unreachEx "copied"
       forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM_ copy i
       return copy
     
+    {-# INLINE copied' #-}
     copied' es l n = do
       copy <- n `filled` unreachEx "copied'"
       forM_ [0 .. n - 1] $ \ i -> es !#> (l + i) >>= writeM_ copy i
@@ -179,6 +181,7 @@ instance (Index i) => IndexedM (ST s) (STArray s i e) i e
       where
         ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
     
+    {-# INLINE fromIndexed' #-}
     fromIndexed' es = do
         copy <- filled n (unreachEx "fromIndexed'")
         forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
@@ -186,6 +189,7 @@ instance (Index i) => IndexedM (ST s) (STArray s i e) i e
       where
         n = sizeOf es
     
+    {-# INLINE fromIndexedM #-}
     fromIndexedM es = do
       n    <- getSizeOf es
       copy <- filled n (unreachEx "fromIndexedM")
@@ -227,4 +231,5 @@ undEx msg = throw . UndefinedValue $ "in SDP.Array.ST" ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Array.ST." ++ msg
+
 

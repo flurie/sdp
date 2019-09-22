@@ -60,9 +60,11 @@ import Text.Read.Lex    ( expect )
 import qualified GHC.Exts as E
 import Data.String ( IsString (..) )
 
+import SDP.ByteList.STUblist
 import SDP.ByteList.Ublist
 import SDP.ByteList.ST
 import SDP.SortM.Tim
+
 import SDP.Simple
 
 default ()
@@ -340,7 +342,10 @@ instance (Index i, Unboxed e) => Set (ByteList i e) e
 
 instance (Index i, Unboxed e) => Sort (ByteList i e) e
   where
-    sortBy cmp es = runST $ do es' <- thaw es; timSortBy cmp es'; done es'
+    sortBy cmp (ByteList l u es) = runST $ do
+      es' <- thaw es
+      timSortBy cmp es'
+      ByteList l u <$> done es'
 
 --------------------------------------------------------------------------------
 
@@ -366,7 +371,7 @@ instance (Index i, Unboxed e) => Freeze (ST s) (STByteList s i e) (ByteList i e)
 
 --------------------------------------------------------------------------------
 
-done :: (Index i, Unboxed e) => STByteList s i e -> ST s (ByteList i e)
+done :: (Unboxed e) => STUblist s e -> ST s (Ublist e)
 done = freeze
 
 pfail :: String -> a

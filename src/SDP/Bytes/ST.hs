@@ -116,11 +116,13 @@ instance (Index i, Unboxed e) => LinearM (ST s) (STBytes s i e) e
     getLeft  es@(STBytes _ _ n _) = (es !#>) `mapM` [0 .. n - 1]
     getRight es@(STBytes _ _ n _) = (es !#>) `mapM` [n - 1, n - 2 .. 0]
     
+    {-# INLINE copied #-}
     copied (STBytes _ _ n _) = do
       copy <- filled_ n (unreachEx "copied")
       forM_ [0 .. n - 1] $ \ i -> copy !#> i >>= writeM_ copy i
       return copy
     
+    {-# INLINE copied' #-}
     copied' es l n = do
       copy <- filled_ n (unreachEx "copied'")
       forM_ [0 .. n - 1] $ \ i -> es !#> (i + l) >>= writeM_ copy i
@@ -220,6 +222,7 @@ instance (Index i, Unboxed e) => SortM (ST s) (STBytes s i e) e where sortMBy = 
 
 --------------------------------------------------------------------------------
 
+{-# INLINE filled_ #-}
 filled_ :: (Index i, Unboxed e) => Int -> e -> ST s (STBytes s i e)
 filled_ n@(I# n#) e = ST $ \ s1# -> case newUnboxed e n# s1# of
     (# s2#, marr# #) -> (# s2#, STBytes l u n marr# #)
@@ -239,7 +242,4 @@ undEx msg = throw . UndefinedValue $ "in SDP.Bytes.ST." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Bytes.ST." ++ msg
-
-
-
 
