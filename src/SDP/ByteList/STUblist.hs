@@ -90,8 +90,6 @@ instance (Unboxed e) => LinearM (ST s) (STUblist s e) e
     
     getLeft  es = case es of {STUblist n _ _ -> mapM (es >!) [0 .. n - 1]; _ -> return []}
     getRight es = case es of {STUblist n _ _ -> mapM (es >!) [n - 1, n - 2 .. 0]; _ -> return []}
-    
-    {-# INLINE reversed #-}
     reversed es = liftA2 zip (getIndices es) (getRight es) >>= overwrite es
     
     -- Note: STUblist.filled is not so efficient as Ublist.replicate.
@@ -121,10 +119,10 @@ instance (Unboxed e) => IndexedM (ST s) (STUblist s e) Int e
       arr <- size bnds `filled` defvalue
       overwrite arr [ (i - l, e) | (i, e) <- ascs ]
     
-    (!#>) = (>!)
+    (!#>) = (!>)
     
     {-# INLINE (>!) #-}
-    (STUblist n mubl# mubls) >! i@(I# i#) = i >= n ? mubls !> (i - n) $ ST (mubl# !># i#)
+    (STUblist n mubl# mubls) >! i@(I# i#) = i >= n ? mubls >! (i - n) $ ST (mubl# !># i#)
     _  >! _ = error "in SDP.ByteList.STUblist.(>!)"
     
     es !> i = getBounds es >>= \ bnds -> case inBounds bnds i of
@@ -133,7 +131,7 @@ instance (Unboxed e) => IndexedM (ST s) (STUblist s e) Int e
         IN -> es >! i
         OR -> throw $ IndexOverflow  msg
       where
-        msg = "in SDP.ByteList.STUnlist.(!>)"
+        msg = "in SDP.ByteList.STUblist.(!>)"
     
     writeM_ = writeM
     

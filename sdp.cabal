@@ -97,7 +97,7 @@ Library
     -- basic test suite
     
     Test.SDP
-    Test.SDP.Types
+    Test.SDP.Gen
     
     Test.SDP.Estimate
     Test.SDP.Indexed
@@ -172,7 +172,7 @@ test-suite test-array
     SDP.Zip
     
     Test.SDP
-    Test.SDP.Types
+    Test.SDP.Gen
     
     Test.SDP.Estimate
     Test.SDP.Indexed
@@ -222,7 +222,7 @@ test-suite test-bytes
     SDP.Zip
     
     Test.SDP
-    Test.SDP.Types
+    Test.SDP.Gen
     
     Test.SDP.Estimate
     Test.SDP.Indexed
@@ -273,7 +273,7 @@ test-suite test-unrolled
     SDP.Zip
     
     Test.SDP
-    Test.SDP.Types
+    Test.SDP.Gen
     
     Test.SDP.Estimate
     Test.SDP.Indexed
@@ -325,7 +325,7 @@ test-suite test-bytelist
     SDP.Zip
     
     Test.SDP
-    Test.SDP.Types
+    Test.SDP.Gen
     
     Test.SDP.Estimate
     Test.SDP.Indexed
@@ -375,7 +375,7 @@ test-suite test-ublist
     SDP.Zip
     
     Test.SDP
-    Test.SDP.Types
+    Test.SDP.Gen
     
     Test.SDP.Estimate
     Test.SDP.Indexed
@@ -424,7 +424,7 @@ test-suite test-unlist
     SDP.Zip
     
     Test.SDP
-    Test.SDP.Types
+    Test.SDP.Gen
     
     Test.SDP.Estimate
     Test.SDP.Indexed

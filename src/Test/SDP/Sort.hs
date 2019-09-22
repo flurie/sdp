@@ -10,7 +10,7 @@
 module Test.SDP.Sort
   (
     -- * Exports
-    module Test.SDP.Types,
+    module Test.SDP.Gen,
     
     -- * Default test
     sortTest
@@ -20,7 +20,7 @@ where
 import Prelude ()
 import SDP.SafePrelude
 
-import Test.SDP.Types
+import Test.SDP.Gen
 
 import SDP.Linear
 import SDP.Sort

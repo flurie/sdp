@@ -115,20 +115,21 @@ instance IndexedM (ST s) (STUnlist s e) Int e
       arr <- size bnds `filled` defvalue
       overwrite arr [ (i - l, e) | (i, e) <- ascs ]
     
-    (!#>) = (>!)
+    (!#>) = (!>)
     
     {-# INLINE (>!) #-}
     (STUnlist n marr# marr) >! i@(I# i#) = i >= n ? marr >! (i - n) $ ST (readArray# marr# i#)
-    _ >! _ = error "SDP.Unrolled.STUnlist.(>!) tried to find element in empty STUnlist"
+    _ >! _ = error "SDP.Unrolled.STUnlist.(>!)"
     
-    STUNEmpty           !> _ = throw $ EmptyRange "in SDP.Unrolled.STUnlist.(!>)"
-    es@(STUnlist n _ _) !> i
-      | n < 1 = throw $ EmptyRange     msg
-      | i < 0 = throw $ IndexUnderflow msg
-      | i < n = es >! i
-      | True  = throw $ IndexOverflow  msg
+    es !> i = getBounds es >>= \ bnds -> case inBounds bnds i of
+        ER -> throw $ EmptyRange     msg
+        UR -> throw $ IndexUnderflow msg
+        IN -> es >! i
+        OR -> throw $ IndexOverflow  msg
       where
-        msg = "in SDP.Unrolled.STUnlist.(!>)"
+        msg = "in SDP.Unrolled.STUnlist.(!>): " ++ show i
+    
+    writeM_ = writeM
     
     writeM STUNEmpty _ _ = return ()
     writeM (STUnlist n marr# marr) i@(I# i#) e

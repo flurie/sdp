@@ -18,7 +18,7 @@ version 0.2:
     * Test.SDP.Ord test suite
     
     * Test.SDP module for short import of basic test suite.
-    * Test.SDP.Types module with Short, Medium and Long newtypes for Arbitrary.
+    * Test.SDP.Gen module with Short, Medium and Long newtypes for Arbitrary.
     
     * offsetOf and new indexOf (Bordered)
     * binarySearch function (Indexed)

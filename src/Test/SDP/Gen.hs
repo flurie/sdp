@@ -1,18 +1,21 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, UndecidableInstances #-}
 
 {- |
-    Module      :  Test.SDP.Tyoes
+    Module      :  Test.SDP.Gen
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
   
-  @Test.SDP.Types@ provides newtypes for Arbitrary.
+  @Test.SDP.Gen@ provides newtypes for Arbitrary.
 -}
-module Test.SDP.Types
+module Test.SDP.Gen
 (
   -- * Common newtypes for QuickCheck.
-  Short (..), Medium (..), Long (..)
+  Short (..), Medium (..), Long (..),
+  
+  -- * Related functions.
+  linearA
 )
 where
 
@@ -72,4 +75,11 @@ instance (Linear l e, Arbitrary e) => Arbitrary (Medium l)
 instance (Linear l e, Arbitrary e) => Arbitrary (Long l)
   where
     arbitrary = arbitrary >>= \ (Large n) -> (Long . fromList) <$> vector (1024 + n `mod` 15360)
+
+--------------------------------------------------------------------------------
+
+-- | linearA is overloaded 'vector'.
+linearA :: (Linear l e, Arbitrary e) => Int -> Gen l
+linearA n = fromList <$> vector n
+
 

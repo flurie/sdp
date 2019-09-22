@@ -107,11 +107,11 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     copied es = getLeft es >>= newLinear
     
     {- |
-      copied' es l u (where l - begining, u - count of elements)
-      returns the slice of line.
+      copied' es l n (where l - begining, n - count of elements) returns the
+      slice of line.
     -}
     copied' :: l -> Int -> Int -> m l
-    copied' es l u = getLeft es >>= newLinear . take u . drop l
+    copied' es l n = getLeft es >>= newLinearN n . drop l
     
     -- | In-place reverse of line.
     reversed :: l -> m l
