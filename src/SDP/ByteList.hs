@@ -49,7 +49,6 @@ import SDP.Sort
 import SDP.Set
 
 import Test.QuickCheck
-import Test.SDP.Types
 
 import GHC.Base ( Int  (..) )
 import GHC.Show (  appPrec  )
@@ -124,14 +123,6 @@ instance (Index i) => Default (ByteList i e)
 instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (ByteList i e)
   where
     arbitrary = fromList <$> arbitrary
-
-instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (Short (ByteList i e))
-  where
-    arbitrary = arbitrary >>= \ n -> (Short . fromList) <$> vector n
-
-instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (Long (ByteList i e))
-  where
-    arbitrary = arbitrary >>= \ (Large n) -> (Long . fromList) <$> vector (512 + n `mod` 15872)
 
 -- | all operations is O(1).
 instance (Index i) => Estimate (ByteList i e)
@@ -380,6 +371,5 @@ done = freeze
 
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.ByteList." ++ msg
-
 
 

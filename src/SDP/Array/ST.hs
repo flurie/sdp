@@ -120,9 +120,9 @@ instance (Index i) => LinearM (ST s) (STArray s i e) e
       forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM_ copy i
       return copy
     
-    copied' es l u = let n' = size (l, u) in do
-      copy <- n' `filled` unreachEx "copied'"
-      forM_ [0 .. n' - 1] $ \ i -> es !#> i >>= writeM_ copy i
+    copied' es l n = do
+      copy <- n `filled` unreachEx "copied'"
+      forM_ [0 .. n - 1] $ \ i -> es !#> (l + i) >>= writeM_ copy i
       return copy
     
     {-# INLINE reversed #-}
@@ -227,6 +227,4 @@ undEx msg = throw . UndefinedValue $ "in SDP.Array.ST" ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Array.ST." ++ msg
-
-
 

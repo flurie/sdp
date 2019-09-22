@@ -103,7 +103,7 @@ readIndexedProp  =  readIndexedTest
 
 {- Sort property. -}
 
-sortProp :: Unrolled Int Char -> Bool
+sortProp :: Medium (Unrolled Int Char) -> Bool
 sortProp =  sortTest
 
 --------------------------------------------------------------------------------

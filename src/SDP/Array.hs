@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 {-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, RoleAnnotations #-}
+
 {-# LANGUAGE TypeFamilies #-}
 
 {- |
@@ -35,7 +36,6 @@ import SDP.Scan
 import SDP.Set
 
 import Test.QuickCheck
-import Test.SDP.Types
 
 import GHC.Base
   (
@@ -105,14 +105,6 @@ instance (Index i) => Default   (Array i e) where def = Z
 instance (Index i, Arbitrary e) => Arbitrary (Array i e)
   where
     arbitrary = fromList <$> arbitrary
-
-instance (Index i, Arbitrary e) => Arbitrary (Short (Array i e))
-  where
-    arbitrary = arbitrary >>= \ n -> (Short . fromList) <$> vector n
-
-instance (Index i, Arbitrary e) => Arbitrary (Long (Array i e))
-  where
-    arbitrary = arbitrary >>= \ (Large n) -> (Long . fromList) <$> vector (512 + n `mod` 15872)
 
 instance Estimate (Array i e)
   where
@@ -552,7 +544,6 @@ pfailEx msg = throw . PatternMatchFail $ "in SDP.Array." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Array." ++ msg
-
 
 
 

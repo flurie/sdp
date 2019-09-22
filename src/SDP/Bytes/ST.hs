@@ -121,9 +121,9 @@ instance (Index i, Unboxed e) => LinearM (ST s) (STBytes s i e) e
       forM_ [0 .. n - 1] $ \ i -> copy !#> i >>= writeM_ copy i
       return copy
     
-    copied' es l u = let n = size (l, u) in do
+    copied' es l n = do
       copy <- filled_ n (unreachEx "copied'")
-      forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM_ copy i
+      forM_ [0 .. n - 1] $ \ i -> es !#> (i + l) >>= writeM_ copy i
       return copy
     
     {-# INLINE reversed #-}
@@ -239,4 +239,7 @@ undEx msg = throw . UndefinedValue $ "in SDP.Bytes.ST." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Bytes.ST." ++ msg
+
+
+
 

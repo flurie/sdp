@@ -1,6 +1,10 @@
 version 0.2:
   FIXED:
     * assoc and assoc'
+    * copied' implementation for Array and Bytes and related segfault in timSort
+    * test suite for Sort: the probability that a structure longer than 64
+    elements will be generated during the test is too small and insertionSort
+    is tested instead of timSort.
   
   DEPRECATED:
     * SDP.Index.unsafeBounds (in favour of defaultBounds)
@@ -10,12 +14,11 @@ version 0.2:
     * SDP.SortM.Tim (replaces SDP.SortM.Stuff)
     * SDP.SortM.Insertion (reexport of insertionSort from SDP.SortM.Tim)
     
-    * Test.SDP module for short import of test suite.
-    
     * Test.SDP.Eq  test suite
     * Test.SDP.Ord test suite
     
-    * Test.SDP.Types module with Short and Long newtypes for Arbitrary.
+    * Test.SDP module for short import of basic test suite.
+    * Test.SDP.Types module with Short, Medium and Long newtypes for Arbitrary.
     
     * offsetOf and new indexOf (Bordered)
     * binarySearch function (Indexed)
@@ -33,6 +36,7 @@ version 0.2:
     * Estimate class (rewrited)
     * Foldable and IFold rewrited for inline with 2 arguments
     * prevTest and nextTest now work very fast (fixed memory leak in where-expr)
+    * sortTest suite rewrited for Medium-sized structures generator.
 
 --------------------------------------------------------------------------------
 
@@ -177,6 +181,5 @@ version 0.0.0.1:
     * Zip class
     
     * IndexException type
-
 
 

@@ -9,6 +9,9 @@
 -}
 module Test.SDP.Sort
   (
+    -- * Exports
+    module Test.SDP.Types,
+    
     -- * Default test
     sortTest
   )
@@ -16,6 +19,8 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
+
+import Test.SDP.Types
 
 import SDP.Linear
 import SDP.Sort
@@ -31,8 +36,8 @@ default ()
   structures and this isn't enough for verification (if the length of the
   structure is less than 65, then TimSort uses InsertionSort).
 -}
-sortTest :: (Sort s e, Linear s e, Ord e) => s -> Bool
-sortTest =  sorted . sort
+sortTest :: (Sort s e, Linear s e, Ord e) => Medium s -> Bool
+sortTest (Medium es) =  sorted $ sort es
 
 
 
