@@ -18,6 +18,7 @@ module Test.SDP.Set
   
   -- * Particular tests
   insdelSetTest,
+  lookupSetTest,
   basicSetTest,
   unintSetTest,
   diffSetTest,
@@ -111,8 +112,25 @@ elemSetTest e sx = and
       (e' `isSubseqOf` sx) == (e `isSetElem` sx')
     ]
   where
-    sx' = set sx
-    e'  = single e
+    sx' = set sx; e' = single e
+
+{- |
+  lookupSetTest checks relations of 'lookupLT', 'lookupGT', 'lookupLE' and
+  'lookupGE'. Note that lookupSetTest requires a set, not any @('Set' s o) => s@
+-}
+lookupSetTest :: (Set s o, Ord o) => o -> s -> Bool
+lookupSetTest e sx = and
+    [
+      lookupLT e sx == lookupLT e (listL sx),
+      lookupGT e sx == lookupGT e (listL sx),
+      lookupLE e sx == lookupLE e (listL sx),
+      lookupGE e sx == lookupGE e (listL sx),
+      
+      case lookupLT e sx of {Nothing -> True; Just x -> x <  e},
+      case lookupGT e sx of {Nothing -> True; Just x -> x >  e},
+      case lookupLE e sx of {Nothing -> True; Just x -> x <= e},
+      case lookupGE e sx of {Nothing -> True; Just x -> x >= e}
+    ]
 
 {- |
   setTest is complex test, that includes all other tests.
@@ -120,21 +138,23 @@ elemSetTest e sx = and
   contain any data).
 -}
 setTest :: (Ord o, Ord s, Set s o) => o -> s -> s -> Bool
-setTest e sx sy = and
+setTest e xs ys = and
     [
-      basicSetTest sx,
+      basicSetTest xs,
       
-      insdelSetTest e sx',
+      insdelSetTest e sx,
       
-      unintSetTest sx' sy',
+      unintSetTest sx sy,
       
-      diffSetTest sx' sy',
+      diffSetTest sx sy,
       
-      elemSetTest e sx
+      elemSetTest e xs,
+      
+      lookupSetTest e sx
     ]
   where
-    sx' = set sx
-    sy' = set sy
+    sx = set xs
+    sy = set ys
 
 
 

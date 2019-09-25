@@ -408,6 +408,11 @@ instance (Index i) => Set (Unrolled i e) e
         (l, u) = defaultBounds $ sizeOf es'
     
     isContainedIn f e (Unrolled _ _ es) = isContainedIn f e es
+    
+    lookupLTWith f e (Unrolled l u es) = lookupLTWith f e $ size (l, u) `take` es
+    lookupGTWith f e (Unrolled l u es) = lookupGTWith f e $ size (l, u) `take` es
+    lookupLEWith f e (Unrolled l u es) = lookupLEWith f e $ size (l, u) `take` es
+    lookupGEWith f e (Unrolled l u es) = lookupGEWith f e $ size (l, u) `take` es
 
 instance (Index i) => Sort (Unrolled i e) e
   where

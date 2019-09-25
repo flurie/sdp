@@ -368,9 +368,76 @@ instance (Index i, Unboxed e) => Set (Bytes i e) e
           where
             x = xs !^ i; y = ys !^ j
     
-    isContainedIn = binarySearch
+    isContainedIn = binaryContain
     
     isSubsetWith f xs ys = all (\ x -> isContainedIn f x ys) (listL xs)
+    
+    lookupLTWith _ _ Z  = Nothing
+    lookupLTWith f o es
+        | GT <- o `f` last' = Just last'
+        | GT <- o `f` head' = look' head' 0 (sizeOf es - 1)
+        |       True        = Nothing
+      where
+        head' = es .! lower es
+        last' = es .! upper es
+        
+        look' r l u = if l > u then Just r else case o `f` e of
+            LT -> look' r l (j - 1)
+            EQ -> Just $ j < 1 ? r $ es !^ (j - 1)
+            GT -> look' e (j + 1) u
+          where
+            j = l + (u - l) `div` 2
+            e = es !^ j
+    
+    lookupLEWith _ _ Z  = Nothing
+    lookupLEWith f o es
+        | GT <- o `f` last' = Just last'
+        | LT <- o `f` head' = Nothing
+        |       True        = look' head' 0 (sizeOf es - 1)
+      where
+        head' = es .! lower es
+        last' = es .! upper es
+        
+        look' r l u = if l > u then Just r else case o `f` e of
+            LT -> look' r l (j - 1)
+            _  -> look' e (j + 1) u
+          where
+            j = l + (u - l) `div` 2
+            e = es !^ j
+    
+    lookupGTWith _ _ Z  = Nothing
+    lookupGTWith f o es
+        | LT <- o `f` head' = Just head'
+        | LT <- o `f` last' = look' last' 0 (sizeOf es - 1)
+        |       True        = Nothing
+      where
+        head' = es .! lower es
+        last' = es .! upper es
+        
+        look' r l u = if l > u then Just r else case o `f` e of
+            LT -> look' e l (j - 1)
+            EQ -> j >= (sizeOf es - 1) ? Nothing $ Just (es !^ (j + 1))
+            GT -> look' r (j + 1) u
+          where
+            j = l + (u - l) `div` 2
+            e = es !^ j
+    
+    lookupGEWith _ _ Z  = Nothing
+    lookupGEWith f o es
+        | GT <- o `f` last' = Nothing
+        | GT <- o `f` head' = look' last' 0 (sizeOf es - 1)
+        |       True        = Just head'
+      where
+        head' = es .! lower es
+        last' = es .! upper es
+        
+        look' r l u = if l > u then Just r else case o `f` e of
+            LT -> look' e l (j - 1)
+            EQ -> Just e
+            GT -> look' r (j + 1) u
+          where
+            j = l + (u - l) `div` 2
+            e = es !^ j
 
 instance (Index i, Unboxed e) => Sort (Bytes i e) e
   where
@@ -426,5 +493,8 @@ pfailEx msg = throw . PatternMatchFail $ "in SDP.Bytes." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Bytes." ++ msg
+
+
+
 
 

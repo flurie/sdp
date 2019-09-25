@@ -22,7 +22,7 @@ module SDP.Indexed
   IFold (..),
   
   -- * Related functions
-  binarySearch, (>/>)
+  binaryContain, (>/>)
 )
 where
 
@@ -219,18 +219,18 @@ instance IFold [e] Int e
 
 --------------------------------------------------------------------------------
 
--- | Binary search
-binarySearch :: (Bordered v i e, Indexed v i e) => Compare e -> e -> v -> Bool
-binarySearch _ _ Z  = False
-binarySearch f e es
+-- | binaryContain checks that sorted structure has equal element.
+binaryContain :: (Bordered v i e, Indexed v i e) => Compare e -> e -> v -> Bool
+binaryContain _ _ Z  = False
+binaryContain f e es
   | LT <- e `f` head es = False
   | GT <- e `f` last es = False
-  |         True        = search 0 (sizeOf es - 1)
+  |         True        = contain 0 (sizeOf es - 1)
   where
-    search l u = l > u ? False $ case f e (es !^ j) of
-        LT -> search l (j - 1)
+    contain l u = l > u ? False $ case f e (es !^ j) of
+        LT -> contain l (j - 1)
         EQ -> True
-        GT -> search (j + 1) u
+        GT -> contain (j + 1) u
       where
         j = l + (u - l `div` 2)
 

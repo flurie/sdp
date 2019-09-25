@@ -22,6 +22,8 @@ module SDP.Set
   -- * Related functions
   set, insert, delete, intersections, unions, differences, symdiffs, isSetElem,
   
+  lookupLT, lookupGT, lookupLE, lookupGE,
+  
   (\/), (/\), (\\), (\^/), (\?/), (/?\), (\+/)
 )
 where
@@ -53,85 +55,110 @@ default ()
   Unlike other classes in this library, Set provides highly general functions
   because I don't want to be remembered with bad words every time while creating
   another newtype. For everyday use, the synonyms below are quite enough.
+  
+  Note that function of type @Compare e@ must follow 'Ord' rules. If you pass
+  the “wrong” comparator, the result will be undefined. It is also necessary to
+  carefully handle equivalence classes. Example: by default, lookupLEWith and
+  lookupGEWith functions use isContainedIn to search for an equal element in the
+  set - if such an element is found, then the result is the given element (since
+  they are equal, then it doesn’t matter which one to return). This behavior is
+  perfectly normal, but implementations for all basic structures always return
+  an element of the set.
 -}
 class (Linear s o) => Set s o | s -> o
   where
-    {-# MINIMAL setWith, intersectionWith, unionWith, differenceWith #-}
+    {-# MINIMAL setWith, intersectionWith, unionWith, differenceWith, lookupLTWith, lookupGTWith #-}
     
     {- Creation functions. -}
     
     -- | Creates ordered set from linear structure.
-    setWith    :: (o -> o -> Ordering) -> s -> s
+    setWith    :: Compare o -> s -> s
     
     -- | Adding element to set.
-    insertWith :: (o -> o -> Ordering) -> o -> s -> s
+    insertWith :: Compare o -> o -> s -> s
     insertWith f e es = unionWith f es $ single e
     
     -- | Deleting element from set.
-    deleteWith :: (o -> o -> Ordering) -> o -> s -> s
+    deleteWith :: Compare o -> o -> s -> s
     deleteWith f e es = differenceWith   f es $ single e
     
     {- Basic operations on sets. -}
     
     -- | Intersection of two sets.
-    intersectionWith  :: (o -> o -> Ordering) -> s -> s -> s
+    intersectionWith  :: Compare o -> s -> s -> s
     
     -- | Difference (relative complement, aka A / B) of two sets.
-    differenceWith    :: (o -> o -> Ordering) -> s -> s -> s
+    differenceWith    :: Compare o -> s -> s -> s
     
     -- | Symmetric difference of two sets.
-    symdiffWith       :: (o -> o -> Ordering) -> s -> s -> s
+    symdiffWith       :: Compare o -> s -> s -> s
     symdiffWith f xs ys = differenceWith f (unionWith f xs ys) (intersectionWith f xs ys)
     
     -- | Union of two sets.
-    unionWith         :: (o -> o -> Ordering) -> s -> s -> s
+    unionWith         :: Compare o -> s -> s -> s
     
     {- Generalization of basic set operations on foldable. -}
     
     -- | Fold by intersectionWith.
-    intersectionsWith   :: (Foldable f) => (o -> o -> Ordering) -> f s -> s
+    intersectionsWith   :: (Foldable f) => Compare o -> f s -> s
     intersectionsWith f =  intersectionWith f `foldl` Z
     
     -- | Fold by differenceWith.
-    differencesWith     :: (Foldable f) => (o -> o -> Ordering) -> f s -> s
+    differencesWith     :: (Foldable f) => Compare o -> f s -> s
     differencesWith   f =  differenceWith f `foldl` Z
     
     -- | Fold by unionWith.
-    unionsWith          :: (Foldable f) => (o -> o -> Ordering) -> f s -> s
+    unionsWith          :: (Foldable f) => Compare o -> f s -> s
     unionsWith        f =  unionWith f `foldl` Z
     
     -- | Fold by symdiffWith.
-    symdiffsWith        :: (Foldable f) => (o -> o -> Ordering) -> f s -> s
+    symdiffsWith        :: (Foldable f) => Compare o -> f s -> s
     symdiffsWith      f =  symdiffWith f `foldl` Z
     
     {- Сomparsion operations. -}
     
     -- | Compares sets on intersection.
-    isIntersectsWith         :: (o -> o -> Ordering) -> s -> s -> Bool
+    isIntersectsWith         :: Compare o -> s -> s -> Bool
     isIntersectsWith f xs ys =  not . isNull $ intersectionWith f xs ys
     
     -- | Compares sets on disjoint.
-    isDisjointWith           :: (o -> o -> Ordering) -> s -> s -> Bool
+    isDisjointWith           :: Compare o -> s -> s -> Bool
     isDisjointWith   f xs ys =  isNull $ intersectionWith f xs ys
     
     -- | Same as 'elem', but can work faster. By default, uses 'find'.
-    isContainedIn     :: (o -> o -> Ordering) -> o -> s -> Bool
+    isContainedIn :: Compare o -> o -> s -> Bool
     
     -- | Сhecks whether a first set is a subset of second.
-    isSubsetWith :: (o -> o -> Ordering) -> s -> s -> Bool
+    isSubsetWith :: Compare o -> s -> s -> Bool
     
     -- | Generates a list of different subsets (including empty and equivalent).
     subsets  :: (Ord o) => s -> [s]
+    
+    {- Lookups. -}
+    
+    -- | lookupLTWith trying to find lesser element in set.
+    lookupLTWith :: Compare o -> o -> s -> Maybe o
+    
+    -- | lookupGTWith trying to find greater element in set.
+    lookupGTWith :: Compare o -> o -> s -> Maybe o
+    
+    -- | lookupGEWith trying to find greater or equal element in set.
+    lookupGEWith :: Compare o -> o -> s -> Maybe o
+    lookupGEWith f e es = isContainedIn f e es ? Just e $ lookupGTWith f e es
+    
+    -- | lookupLEWith trying to find lesser or equal element in set.
+    lookupLEWith :: Compare o -> o -> s -> Maybe o
+    lookupLEWith f e es = isContainedIn f e es ? Just e $ lookupLTWith f e es
     
     {- Default definitions. -}
     
     default subsets :: (Ord s, Ord o) => s -> [s]
     subsets         =  set . subsequences . set
     
-    default isSubsetWith  :: (t o ~~ s, Foldable t) => (o -> o -> Ordering) -> s -> s -> Bool
+    default isSubsetWith  :: (t o ~~ s, Foldable t) => Compare o -> s -> s -> Bool
     isSubsetWith f xs ys  =  any (\ e -> isContainedIn f e ys) xs
     
-    default isContainedIn :: (t o ~~ s, Foldable t) => (o -> o -> Ordering) -> o -> s -> Bool
+    default isContainedIn :: (t o ~~ s, Foldable t) => Compare o -> o -> s -> Bool
     isContainedIn f e     =  isJust . find (\ x -> f e x == EQ)
 
 --------------------------------------------------------------------------------
@@ -212,6 +239,22 @@ symdiffs =  symdiffsWith compare
 {-# INLINE isSetElem #-}
 isSetElem :: (Set s o, Ord o) => o -> s -> Bool
 isSetElem =  isContainedIn compare
+
+-- | lookupLT tries to search lesser element in set.
+lookupLT :: (Set s o, Ord o) => o -> s -> Maybe o
+lookupLT =  lookupLTWith compare
+
+-- | lookupGT tries to search greater element in set.
+lookupGT :: (Set s o, Ord o) => o -> s -> Maybe o
+lookupGT =  lookupGTWith compare
+
+-- | lookupLE tries to search lesser of equal element in set.
+lookupLE :: (Set s o, Ord o) => o -> s -> Maybe o
+lookupLE =  lookupLEWith compare
+
+-- | lookupGE tries to search greater or equal element in set.
+lookupGE :: (Set s o, Ord o) => o -> s -> Maybe o
+lookupGE =  lookupGEWith compare
 
 --------------------------------------------------------------------------------
 
@@ -301,5 +344,32 @@ instance Set [e] e
       EQ -> False
       GT -> isDisjointWith f (x : xs) ys
     isDisjointWith _ _  _  = True
+    
+    lookupLTWith _ _    []    = Nothing
+    lookupLTWith f o (x : xs) = case o `f` x of {GT -> look x xs; _ -> Nothing}
+      where
+        look r [] = Just r
+        look r (e : es) = case o `f` e of {GT -> look e es; _ -> Just r}
+    
+    lookupGTWith _ _    []    = Nothing
+    lookupGTWith f o (x : xs) = case o `f` x of {LT -> Just x; _ -> look xs}
+      where
+        look    []    = Nothing
+        look (e : es) = case o `f` e of {LT -> Just e; _ -> look es}
+    
+    lookupLEWith _ _    []    = Nothing
+    lookupLEWith f o (x : xs) = case o `f` x of {LT -> Nothing; _ -> look x xs}
+      where
+        look r    []    = Just r
+        look r (e : es) = case o `f` e of {LT -> Just r; _ -> look e es}
+    
+    lookupGEWith _ _    []    = Nothing
+    lookupGEWith f o (x : xs) = case o `f` x of {GT -> look xs; _ -> Just x}
+      where
+        look    []    = Nothing
+        look (e : es) = case o `f` e of {GT -> look es; _ -> Just e}
+
+
+
 
 

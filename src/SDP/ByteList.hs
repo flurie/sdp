@@ -339,6 +339,11 @@ instance (Index i, Unboxed e) => Set (ByteList i e) e
     isContainedIn f e (ByteList _ _ es) = isContainedIn f e es
     
     isSubsetWith f (ByteList _ _ xs) (ByteList _ _ ys) = isSubsetWith f xs ys
+    
+    lookupLTWith f e (ByteList l u es) = lookupLTWith f e $ size (l, u) `take` es
+    lookupGTWith f e (ByteList l u es) = lookupGTWith f e $ size (l, u) `take` es
+    lookupLEWith f e (ByteList l u es) = lookupLEWith f e $ size (l, u) `take` es
+    lookupGEWith f e (ByteList l u es) = lookupGEWith f e $ size (l, u) `take` es
 
 instance (Index i, Unboxed e) => Sort (ByteList i e) e
   where
