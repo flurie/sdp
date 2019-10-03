@@ -32,7 +32,7 @@ import Prelude ()
 import Data.List ( findIndex, findIndices )
 
 import SDP.Linear
-import SDP.Set
+import SDP.Map
 
 import SDP.Simple
 
@@ -58,6 +58,12 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
     
     -- | assoc' is safe version of assoc.
     assoc' :: (i, i) -> e -> [(i, e)] -> v
+    
+    assocMap :: (Map map i e) => (i, i) -> map -> v
+    assocMap bnds = assocMap' bnds (undEx "assocMap (default)")
+    
+    assocMap' :: (Map map i e) => (i, i) -> e -> map -> v
+    assocMap' bnds defvalue = assoc' bnds defvalue . listMap
     
     -- | fromIndexed converts indexed structure to another one.
     fromIndexed :: (Bordered v' j e, Indexed v' j e) => v' -> v
@@ -240,6 +246,5 @@ binaryContain f e es
 
 undEx :: String -> a
 undEx msg = throw . UndefinedValue $ "in SDP.Indexed." ++ msg
-
 
 

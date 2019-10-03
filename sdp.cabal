@@ -61,6 +61,7 @@ Library
     SDP.Indexed
     SDP.Linear
     SDP.Set
+    SDP.Map
     
     -- general structure implementations
     

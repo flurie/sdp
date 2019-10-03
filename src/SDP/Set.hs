@@ -95,7 +95,7 @@ class (Linear s o) => Set s o | s -> o
     groupSetWith cmp mrg = fromList . groupSetWith cmp mrg . listL
     
     -- | Adding element to set.
-    insertWith :: (o -> o -> Ordering) -> o -> s -> s
+    insertWith :: Compare o -> o -> s -> s
     insertWith f e es = unionWith f es $ single e
     
     -- | Deleting element from set.
@@ -105,17 +105,17 @@ class (Linear s o) => Set s o | s -> o
     {- Basic operations on sets. -}
     
     -- | Intersection of two sets.
-    intersectionWith  :: (o -> o -> Ordering) -> s -> s -> s
+    intersectionWith :: Compare o -> s -> s -> s
     
     -- | Difference (relative complement, aka A / B) of two sets.
-    differenceWith    :: (o -> o -> Ordering) -> s -> s -> s
+    differenceWith :: Compare o -> s -> s -> s
     
     -- | Symmetric difference of two sets.
-    symdiffWith       :: (o -> o -> Ordering) -> s -> s -> s
+    symdiffWith :: Compare o -> s -> s -> s
     symdiffWith f xs ys = differenceWith f (unionWith f xs ys) (intersectionWith f xs ys)
     
     -- | Union of two sets.
-    unionWith         :: (o -> o -> Ordering) -> s -> s -> s
+    unionWith :: Compare o -> s -> s -> s
     
     {- Generalization of basic set operations on foldable. -}
     
@@ -390,8 +390,6 @@ instance Set [e] e
           EQ -> group (e1 `mrg` e2 : es)
           _  -> e1 : group (e2 : es)
         group es = es
-
-
 
 
 

@@ -13,6 +13,7 @@ version 0.2:
   ADDED:
     * SDP.SortM.Tim (replaces SDP.SortM.Stuff)
     * SDP.SortM.Insertion (reexport of insertionSort from SDP.SortM.Tim)
+    * SDP.Map (preliminary realisation of dictionary)
     
     * Test.SDP.Eq  test suite
     * Test.SDP.Ord test suite
@@ -20,8 +21,8 @@ version 0.2:
     * Test.SDP module for short import of basic test suite.
     * Test.SDP.Gen module with Short, Medium and Long newtypes for Arbitrary.
     
+    * binaryContain, assocMap and assocMap' functions (Indexed)
     * offsetOf and new indexOf functions (Bordered)
-    * binarySearch function (Indexed)
     * defaultBounds function (Index)
     * groupSetWith function (Set)
     * chunks function (Split)
