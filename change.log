@@ -20,9 +20,10 @@ version 0.2:
     * Test.SDP module for short import of basic test suite.
     * Test.SDP.Gen module with Short, Medium and Long newtypes for Arbitrary.
     
-    * offsetOf and new indexOf (Bordered)
+    * offsetOf and new indexOf functions (Bordered)
     * binarySearch function (Indexed)
     * defaultBounds function (Index)
+    * groupSetWith function (Set)
     * chunks function (Split)
     
     * new functions for Estimate

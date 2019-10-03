@@ -22,8 +22,6 @@ module SDP.Set
   -- * Related functions
   set, insert, delete, intersections, unions, differences, symdiffs, isSetElem,
   
-  lookupLT, lookupGT, lookupLE, lookupGE,
-  
   (\/), (/\), (\\), (\^/), (\?/), (/?\), (\+/)
 )
 where
@@ -34,6 +32,7 @@ import SDP.SafePrelude
 import SDP.Linear
 
 import Data.Maybe ( isJust )
+import Data.List  ( sortBy )
 
 import GHC.Types
 
@@ -56,8 +55,8 @@ default ()
   because I don't want to be remembered with bad words every time while creating
   another newtype. For everyday use, the synonyms below are quite enough.
   
-  Note that function of type @Compare e@ must follow 'Ord' rules. If you pass
-  the “wrong” comparator, the result will be undefined. It is also necessary to
+  Note that function of type @Compare e@ must follow 'Ord' rules. If you use the
+  wrong comparator, the result will be undefined. It is also necessary to
   carefully handle equivalence classes. Example: by default, lookupLEWith and
   lookupGEWith functions use isContainedIn to search for an equal element in the
   set - if such an element is found, then the result is the given element (since
@@ -67,72 +66,97 @@ default ()
 -}
 class (Linear s o) => Set s o | s -> o
   where
-    {-# MINIMAL setWith, intersectionWith, unionWith, differenceWith, lookupLTWith, lookupGTWith #-}
+    {-# MINIMAL setWith, intersectionWith, unionWith, differenceWith #-}
     
     {- Creation functions. -}
     
-    -- | Creates ordered set from linear structure.
-    setWith    :: Compare o -> s -> s
+    {- |
+      Creates ordered set from linear structure.
+      
+      Note that there is no way to determine which of the equal elements will be
+      added to the set. Which can be critical for complex values and comparators.
+    -}
+    setWith :: Compare o -> s -> s
+    
+    {- |
+      Creates ordered set from linear structure using additional function for
+      choice between or merge equal elements.
+      
+      Note that merging function must be symmetric. If function isn't symmetric,
+      then this limitation can be easily overcome using complex comparator:
+      @(cmp1 <> cmp2)@, where @cmp1@ determines the sort order of the groups
+      (and the resulting set), and @cmp2@ determines the sort order within the
+      groups.
+    -}
+    default groupSetWith :: (Linear s o) => Compare o -> (o -> o -> o) -> s -> s
+    groupSetWith :: Compare o -> (o -> o -> o) -> s -> s
+    groupSetWith cmp mrg = fromList . groupSetWith cmp mrg . listL
     
     -- | Adding element to set.
-    insertWith :: Compare o -> o -> s -> s
+    insertWith :: (o -> o -> Ordering) -> o -> s -> s
     insertWith f e es = unionWith f es $ single e
     
     -- | Deleting element from set.
     deleteWith :: Compare o -> o -> s -> s
-    deleteWith f e es = differenceWith   f es $ single e
+    deleteWith f e es = differenceWith f es $ single e
     
     {- Basic operations on sets. -}
     
     -- | Intersection of two sets.
-    intersectionWith  :: Compare o -> s -> s -> s
+    intersectionWith  :: (o -> o -> Ordering) -> s -> s -> s
     
     -- | Difference (relative complement, aka A / B) of two sets.
-    differenceWith    :: Compare o -> s -> s -> s
+    differenceWith    :: (o -> o -> Ordering) -> s -> s -> s
     
     -- | Symmetric difference of two sets.
-    symdiffWith       :: Compare o -> s -> s -> s
+    symdiffWith       :: (o -> o -> Ordering) -> s -> s -> s
     symdiffWith f xs ys = differenceWith f (unionWith f xs ys) (intersectionWith f xs ys)
     
     -- | Union of two sets.
-    unionWith         :: Compare o -> s -> s -> s
+    unionWith         :: (o -> o -> Ordering) -> s -> s -> s
     
     {- Generalization of basic set operations on foldable. -}
     
     -- | Fold by intersectionWith.
-    intersectionsWith   :: (Foldable f) => Compare o -> f s -> s
-    intersectionsWith f =  intersectionWith f `foldl` Z
+    intersectionsWith :: (Foldable f) => Compare o -> f s -> s
+    intersectionsWith f = intersectionWith f `foldl` Z
     
     -- | Fold by differenceWith.
-    differencesWith     :: (Foldable f) => Compare o -> f s -> s
-    differencesWith   f =  differenceWith f `foldl` Z
+    differencesWith :: (Foldable f) => Compare o -> f s -> s
+    differencesWith f = differenceWith f `foldl` Z
     
     -- | Fold by unionWith.
-    unionsWith          :: (Foldable f) => Compare o -> f s -> s
-    unionsWith        f =  unionWith f `foldl` Z
+    unionsWith :: (Foldable f) => Compare o -> f s -> s
+    unionsWith f = unionWith f `foldl` Z
     
     -- | Fold by symdiffWith.
-    symdiffsWith        :: (Foldable f) => Compare o -> f s -> s
-    symdiffsWith      f =  symdiffWith f `foldl` Z
+    symdiffsWith :: (Foldable f) => Compare o -> f s -> s
+    symdiffsWith f = symdiffWith f `foldl` Z
     
     {- Сomparsion operations. -}
     
     -- | Compares sets on intersection.
-    isIntersectsWith         :: Compare o -> s -> s -> Bool
-    isIntersectsWith f xs ys =  not . isNull $ intersectionWith f xs ys
+    isIntersectsWith :: Compare o -> s -> s -> Bool
+    isIntersectsWith f xs ys = not . isNull $ intersectionWith f xs ys
     
     -- | Compares sets on disjoint.
-    isDisjointWith           :: Compare o -> s -> s -> Bool
-    isDisjointWith   f xs ys =  isNull $ intersectionWith f xs ys
+    isDisjointWith :: Compare o -> s -> s -> Bool
+    isDisjointWith f xs ys = isNull $ intersectionWith f xs ys
     
     -- | Same as 'elem', but can work faster. By default, uses 'find'.
+    default isContainedIn :: (t o ~~ s, Foldable t) => Compare o -> o -> s -> Bool
     isContainedIn :: Compare o -> o -> s -> Bool
+    isContainedIn f e = isJust . find (\ x -> f e x == EQ)
     
     -- | Сhecks whether a first set is a subset of second.
+    default isSubsetWith :: (t o ~~ s, Foldable t) => Compare o -> s -> s -> Bool
     isSubsetWith :: Compare o -> s -> s -> Bool
+    isSubsetWith f xs ys = any (\ e -> isContainedIn f e ys) xs
     
     -- | Generates a list of different subsets (including empty and equivalent).
-    subsets  :: (Ord o) => s -> [s]
+    default subsets :: (Ord s, Ord o) => s -> [s]
+    subsets :: (Ord o) => s -> [s]
+    subsets = set . subsequences . set
     
     {- Lookups. -}
     
@@ -149,17 +173,6 @@ class (Linear s o) => Set s o | s -> o
     -- | lookupLEWith trying to find lesser or equal element in set.
     lookupLEWith :: Compare o -> o -> s -> Maybe o
     lookupLEWith f e es = isContainedIn f e es ? Just e $ lookupLTWith f e es
-    
-    {- Default definitions. -}
-    
-    default subsets :: (Ord s, Ord o) => s -> [s]
-    subsets         =  set . subsequences . set
-    
-    default isSubsetWith  :: (t o ~~ s, Foldable t) => Compare o -> s -> s -> Bool
-    isSubsetWith f xs ys  =  any (\ e -> isContainedIn f e ys) xs
-    
-    default isContainedIn :: (t o ~~ s, Foldable t) => Compare o -> o -> s -> Bool
-    isContainedIn f e     =  isJust . find (\ x -> f e x == EQ)
 
 --------------------------------------------------------------------------------
 
@@ -239,22 +252,6 @@ symdiffs =  symdiffsWith compare
 {-# INLINE isSetElem #-}
 isSetElem :: (Set s o, Ord o) => o -> s -> Bool
 isSetElem =  isContainedIn compare
-
--- | lookupLT tries to search lesser element in set.
-lookupLT :: (Set s o, Ord o) => o -> s -> Maybe o
-lookupLT =  lookupLTWith compare
-
--- | lookupGT tries to search greater element in set.
-lookupGT :: (Set s o, Ord o) => o -> s -> Maybe o
-lookupGT =  lookupGTWith compare
-
--- | lookupLE tries to search lesser of equal element in set.
-lookupLE :: (Set s o, Ord o) => o -> s -> Maybe o
-lookupLE =  lookupLEWith compare
-
--- | lookupGE tries to search greater or equal element in set.
-lookupGE :: (Set s o, Ord o) => o -> s -> Maybe o
-lookupGE =  lookupGEWith compare
 
 --------------------------------------------------------------------------------
 
@@ -368,6 +365,13 @@ instance Set [e] e
       where
         look    []    = Nothing
         look (e : es) = case o `f` e of {GT -> look es; _ -> Just e}
+    
+    groupSetWith cmp mrg = group . sortBy cmp
+      where
+        group (e1 : e2 : es) = case e1 `cmp` e2 of
+          EQ -> group (e1 `mrg` e2 : es)
+          _  -> e1 : group (e2 : es)
+        group es = es
 
 
 
