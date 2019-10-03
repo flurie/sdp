@@ -22,6 +22,8 @@ module SDP.Set
   -- * Related functions
   set, insert, delete, intersections, unions, differences, symdiffs, isSetElem,
   
+  lookupLT, lookupGT, lookupLE, lookupGE,
+  
   (\/), (/\), (\\), (\^/), (\?/), (/?\), (\+/)
 )
 where
@@ -66,7 +68,7 @@ default ()
 -}
 class (Linear s o) => Set s o | s -> o
   where
-    {-# MINIMAL setWith, intersectionWith, unionWith, differenceWith #-}
+    {-# MINIMAL setWith, intersectionWith, unionWith, differenceWith, lookupLTWith, lookupGTWith #-}
     
     {- Creation functions. -}
     
@@ -252,6 +254,22 @@ symdiffs =  symdiffsWith compare
 {-# INLINE isSetElem #-}
 isSetElem :: (Set s o, Ord o) => o -> s -> Bool
 isSetElem =  isContainedIn compare
+
+-- | lookupLT tries to search lesser element in set.
+lookupLT :: (Set s o, Ord o) => o -> s -> Maybe o
+lookupLT =  lookupLTWith compare
+
+-- | lookupGT tries to search greater element in set.
+lookupGT :: (Set s o, Ord o) => o -> s -> Maybe o
+lookupGT =  lookupGTWith compare
+
+-- | lookupLE tries to search lesser of equal element in set.
+lookupLE :: (Set s o, Ord o) => o -> s -> Maybe o
+lookupLE =  lookupLEWith compare
+
+-- | lookupGE tries to search greater or equal element in set.
+lookupGE :: (Set s o, Ord o) => o -> s -> Maybe o
+lookupGE =  lookupGEWith compare
 
 --------------------------------------------------------------------------------
 
