@@ -43,7 +43,7 @@ infixl 9 !^, .!, !, !?
 --------------------------------------------------------------------------------
 
 -- | Class of indexed data structures.
-class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
+class (Index i) => Indexed v i e | v -> i, v -> e
   where
     {-# MINIMAL assoc', fromIndexed, (//), ((!)|(!?)), (*$) #-}
     
@@ -227,11 +227,13 @@ instance IFold [e] Int e
 
 -- | binaryContain checks that sorted structure has equal element.
 binaryContain :: (Bordered v i e, Indexed v i e) => Compare e -> e -> v -> Bool
-binaryContain _ _ Z  = False
-binaryContain f e es
-  | LT <- e `f` head es = False
-  | GT <- e `f` last es = False
-  |         True        = contain 0 (sizeOf es - 1)
+binaryContain f e es = and
+    [
+      s /= 0,
+      f e (es !^  0) /= LT,
+      f e (es !^ u') /= GT,
+      contain 0 u'
+    ]
   where
     contain l u = l > u ? False $ case f e (es !^ j) of
         LT -> contain l (j - 1)
@@ -239,6 +241,7 @@ binaryContain f e es
         GT -> contain (j + 1) u
       where
         j = l + (u - l `div` 2)
+    s = sizeOf es; u' = s - 1
 
 -- | Update one element in structure.
 (>/>) :: (Indexed v i e) => v -> [i] -> (e -> e) -> v
@@ -246,5 +249,7 @@ binaryContain f e es
 
 undEx :: String -> a
 undEx msg = throw . UndefinedValue $ "in SDP.Indexed." ++ msg
+
+
 
 
