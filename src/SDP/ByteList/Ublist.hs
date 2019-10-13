@@ -181,8 +181,8 @@ instance (Unboxed e) => Linear (Ublist e) e
     {-# INLINE replicate #-}
     replicate n e = copy count
       where
-        chunk  = runST $ ST $ \ s1# -> case newUnboxed' e l# s1# of (# s2#, mubl# #) -> done'    lim   Z mubl# s2#
-        rest   = runST $ ST $ \ s1# -> case newUnboxed' e r# s1# of (# s2#, mubl# #) -> done' restSize Z mubl# s2#
+        chunk  = runST $ ST $ \ s1# -> case newUnboxed' e l# s1# of (# s2#, mubl# #) -> done'    lim   mubl# Z s2#
+        rest   = runST $ ST $ \ s1# -> case newUnboxed' e r# s1# of (# s2#, mubl# #) -> done' restSize mubl# Z s2#
         copy c = case c <=> 0 of {LT -> Z; EQ -> rest; GT -> chunk ++ copy (c - 1)}
         
         !(count, restSize@(I# r#)) = n `divMod` lim
@@ -468,24 +468,24 @@ instance IsString (Ublist Char) where fromString = fromList
 
 instance (Unboxed e) => Thaw (ST s) (Ublist e) (STUblist s e)
   where
-    thaw Z = return (STUBEmpty)
-    thaw (Ublist n ubl# ubls) = liftA2 thaw' list (thaw ubls)
+    thaw Z = return STUBEmpty
+    thaw (Ublist n ubl# ubls) = liftA2 cat list (thaw ubls)
       where
-        thaw' :: (Unboxed e) => STUblist s e -> STUblist s e -> STUblist s e
-        thaw' = \ (STUblist _ stubl# _) stubls -> STUblist n stubl# stubls
+        cat  :: (Unboxed e) => STUblist s e -> STUblist s e -> STUblist s e
+        cat  =  \ (STUblist _ stubl# _) stubls -> STUblist n stubl# stubls
         
         list = newLinear [ ubl# !# i# | (I# i#) <- [0 .. n - 1] ]
 
 instance (Unboxed e) => Freeze (ST s) (STUblist s e) (Ublist e)
   where
-    freeze = done
+    freeze es = copied es >>= done
 
 --------------------------------------------------------------------------------
 
 {-# INLINE done' #-}
-done' :: (Unboxed e) => Int -> Ublist e -> MutableByteArray# s -> STRep s (Ublist e)
-done' c arrs marr# = \ s1# -> case unsafeFreezeByteArray# marr# s1# of
-  (# s2#, arr# #) -> (# s2#, Ublist c arr# arrs #)
+done' :: (Unboxed e) => Int -> MutableByteArray# s -> Ublist e -> STRep s (Ublist e)
+done' c marr# ubls = \ s1# -> case unsafeFreezeByteArray# marr# s1# of
+  (# s2#, arr# #) -> (# s2#, Ublist c arr# ubls #)
 
 {-# INLINE done #-}
 done :: STUblist s e -> ST s (Ublist e)

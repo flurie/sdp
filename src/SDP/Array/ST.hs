@@ -130,9 +130,7 @@ instance (Index i) => LinearM (ST s) (STArray s i e) e
     {-# INLINE reversed #-}
     reversed es@(STArray _ _ n _) = go 0 (n - 1) >> return es
       where
-        go i j = when (i < j) $ do
-          go (i + 1) (j - 1)
-          ei <- es !#> i; writeM_ es i =<< es !#> j; writeM_ es j ei
+        go i j = when (i < j) $ go (i + 1) (j - 1) >> swapM es i j
     
     {-# INLINE filled #-}
     filled n e = let !n'@(I# n#) = max 0 n in ST $

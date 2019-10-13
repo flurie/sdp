@@ -22,7 +22,10 @@ module SDP.IndexedM
     IFoldM (..),
     
     -- * Freeze and Thaw
-    Freeze (..), Thaw (..)
+    Freeze (..), Thaw (..),
+    
+    -- * Related functions
+    swapM
   )
 where
 
@@ -152,6 +155,13 @@ class (Monad m) => Freeze m v' v | v' -> m
   where
     -- | freeze converts a mutable structure to a immutable.
     freeze :: v' -> m v
+
+--------------------------------------------------------------------------------
+
+{-# INLINE swapM #-}
+-- | swaps two elements. And yet, I'm tired of writing this swap everywhere.
+swapM :: (IndexedM m v i e) => v -> Int -> Int -> m ()
+swapM es i j = do ei <- es !#> i; writeM_ es i =<< es !#> j; writeM_ es j ei
 
 --------------------------------------------------------------------------------
 

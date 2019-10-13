@@ -5,6 +5,7 @@ version 0.2:
     * test suite for Sort: the probability that a structure longer than 64
     elements will be generated during the test is too small and insertionSort
     is tested instead of timSort.
+    * Freeze instances for Array, Ublist and ByteList.
   
   DEPRECATED:
     * SDP.Index.unsafeBounds (in favour of defaultBounds)
@@ -14,6 +15,8 @@ version 0.2:
     * SDP.SortM.Tim (replaces SDP.SortM.Stuff)
     * SDP.SortM.Insertion (reexport of insertionSort from SDP.SortM.Tim)
     * SDP.Map (preliminary realisation of dictionary)
+    
+    * [internal] SArray# and STArray# primitives.
     
     * Test.SDP.Eq  test suite
     * Test.SDP.Ord test suite

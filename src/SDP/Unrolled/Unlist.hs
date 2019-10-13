@@ -539,15 +539,15 @@ instance IsString (Unlist Char) where fromString = fromList
 
 instance Thaw (ST s) (Unlist e) (STUnlist s e)
   where
-    thaw Z = return $ STUNEmpty
-    thaw (Unlist n unl# unls) = liftA2 thaw' list (thaw unls)
+    thaw Z = return STUNEmpty
+    thaw (Unlist n unl# unls) = liftA2 cat list (thaw unls)
       where
-        thaw' = \ (STUnlist _ stunl# _) stunls -> STUnlist n stunl# stunls
-        list  = newLinear [ unl# !# i# | (I# i#) <- [0 .. n - 1] ]
+        cat  = \ (STUnlist _ stunl# _) stunls -> STUnlist n stunl# stunls
+        list = newLinear [ unl# !# i# | (I# i#) <- [0 .. n - 1] ]
 
 instance Freeze (ST s) (STUnlist s e) (Unlist e)
   where
-    freeze = done
+    freeze es = copied es >>= done
 
 --------------------------------------------------------------------------------
 

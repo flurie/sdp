@@ -41,7 +41,8 @@ import GHC.Base
   (
     Array#, Int (..),
     
-    newArray#, thawArray#, unsafeFreezeArray#, writeArray#, indexArray#
+    newArray#, writeArray#, indexArray#, unsafeFreezeArray#,
+    thawArray#, freezeArray#
   )
 
 import GHC.Show ( appPrec )
@@ -401,11 +402,10 @@ instance (Index i) => Indexed (Array i e) i e
     assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
     
     fromIndexed es = runST $ do
+        let n = sizeOf es
         copy <- filled n (unreachEx "fromIndexed")
         forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
         done copy
-      where
-        n = sizeOf es
     
     {-# INLINE (//) #-}
     Z // ascs = null ascs ? Z $ assoc (l, u) ascs
@@ -418,7 +418,7 @@ instance (Index i) => Indexed (Array i e) i e
     (Array _ _ _ arr#) !^ (I# i#) = case indexArray# arr# i# of (# e #) -> e
     
     {-# INLINE (!) #-}
-    (!) arr i = arr !^ offsetOf arr i
+    (!) arr = \ i -> arr !^ offsetOf arr i
     
     (*$) p = ifoldr (\ i e is -> p e ? (i : is) $ is) []
 
@@ -590,7 +590,9 @@ instance (Index i) => Thaw (ST s) (Array i e) (STArray s i e)
 
 instance (Index i) => Freeze (ST s) (STArray s i e) (Array i e)
   where
-    freeze = done
+    freeze (STArray l u n@(I# n#) marr#) = ST $
+      \ s1# -> case freezeArray# marr# 0# n# s1# of
+        (# s2#, arr# #) -> (# s2#, Array l u n arr# #)
 
 --------------------------------------------------------------------------------
 
@@ -600,9 +602,8 @@ done (STArray l u n marr#) = ST $ \ s1# -> case unsafeFreezeArray# marr# s1# of
   (# s2#, arr# #) -> (# s2#, Array l u n arr# #)
 
 {-# INLINE nubSorted #-}
-nubSorted :: (Index i) => (e -> e -> Ordering) -> Array i e -> Array i e
-nubSorted _ Z  = Z
-nubSorted f es = fromList $ foldr fun [last es] ((es !^) <$> [0 .. sizeOf es - 2])
+nubSorted :: (Index i) => Compare e -> Array i e -> Array i e
+nubSorted f es = null es ? Z $ fromList . foldr fun [last es] $ init (listL es)
   where
     fun = \ e ls -> e `f` head ls == EQ ? ls $ e : ls
 
@@ -611,5 +612,4 @@ pfailEx msg = throw . PatternMatchFail $ "in SDP.Array." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Array." ++ msg
-
 

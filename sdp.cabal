@@ -110,6 +110,7 @@ Library
     Test.SDP.Eq
   
   other-modules:
+    SDP.Internal.SArray
     SDP.Simple
 
 ---            _____  _____  _____  _____  _____  _   _  _____               ---

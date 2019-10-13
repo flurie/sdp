@@ -459,14 +459,11 @@ instance (Index i) => IsString (Bytes i Char) where fromString = fromList
 
 instance (Index i, Unboxed e) => Thaw (ST s) (Bytes i e) (STBytes s i e)
   where
-    thaw es@(Bytes l u n _) = ST $ \ s1# -> case rep s1# of
-        (# s2#, es'@(STBytes _ _ _ marr#) #) -> (# s2#, (STBytes l u n marr#) `asTypeOf` es' #)
-      where
-        (ST rep) = newLinear (listL es)
+    thaw = fromIndexed'
 
 instance (Index i, Unboxed e) => Freeze (ST s) (STBytes s i e) (Bytes i e)
   where
-    freeze = done
+    freeze es = copied es >>= done
 
 --------------------------------------------------------------------------------
 
@@ -493,8 +490,6 @@ pfailEx msg = throw . PatternMatchFail $ "in SDP.Bytes." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Bytes." ++ msg
-
-
 
 
 

@@ -160,7 +160,7 @@ class (Ord k) => Map m k e | m -> k, m -> e
     differenceWith' :: (e -> e -> Maybe e) -> m -> m -> m
     
     {- |
-      @intersectionWith' f mx my@ combines elements of 'intersection' by @f@:
+      @intersectionWith' f mx my@ combines elements of 'intersection'' by @f@:
       if @'isJust' (f x y)@ (where @(k1, x) <- mx, (k2, y) <- my, k1 == k2@),
       then element is added to result map.
     -}
