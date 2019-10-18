@@ -30,13 +30,15 @@ import SDP.Sort
 import SDP.Scan
 import SDP.Set
 
-import GHC.Base
+import GHC.Exts
   (
     Array#, MutableArray#, Int (..), State#,
     
-    newArray#, indexArray#, readArray#, writeArray#, unsafeFreezeArray#,
+    newArray#, indexArray#, readArray#, writeArray#,
     
-    thawArray#, freezeArray#, cloneArray#, cloneMutableArray#,
+    thawArray#, unsafeThawArray#, freezeArray#, unsafeFreezeArray#,
+    
+    cloneArray#, cloneMutableArray#,
     
     isTrue#, sameMutableArray#, (+#), (-#), (==#)
   )
@@ -77,6 +79,8 @@ instance Eq1 SArray#
       where
         eq' i = i == c1 || eq (xs !^ i) (ys !^ i) && eq' (i + 1)
 
+instance (Show e) => Show (SArray# e) where show = show . listL
+
 --------------------------------------------------------------------------------
 
 {- Ord and Ord1 instances. -}
@@ -85,9 +89,10 @@ instance (Ord e) => Ord (SArray# e) where compare = compare1
 
 instance Ord1 SArray#
   where
-    liftCompare cmp xs@(SArray# c1 _ _) ys@(SArray# c2 _ _) = (c1 <=> c2) <> cmp' 0
+    liftCompare cmp xs@(SArray# c1 _ _) ys@(SArray# c2 _ _) = cmp' 0
       where
-        cmp' i = i == c1 ? EQ $ cmp (xs !^ i) (ys !^ i) <> cmp' (i + 1)
+        cmp' i = i == c ? (c1 <=> c2) $ cmp (xs !^ i) (ys !^ i) <> cmp' (i + 1)
+        c = min c1 c2
 
 --------------------------------------------------------------------------------
 
@@ -131,30 +136,30 @@ instance Functor SArray#
 
 instance Zip SArray#
   where
-    zipWith f as bs              = fromListN sz $ apply <$> range (0, sz - 1)
+    zipWith f as bs = fromListN sz $ apply <$> range (0, sz - 1)
       where
         apply i = f (as !^ i) (bs !^ i)
-        sz      = minimum [sizeOf as, sizeOf bs]
+        sz = minimum [sizeOf as, sizeOf bs]
     
-    zipWith3 f as bs cs          = fromListN sz $ apply <$> range (0, sz - 1)
+    zipWith3 f as bs cs = fromListN sz $ apply <$> range (0, sz - 1)
       where
         apply i = f (as !^ i) (bs !^ i) (cs !^ i)
-        sz      = minimum [sizeOf as, sizeOf bs, sizeOf cs]
+        sz = minimum [sizeOf as, sizeOf bs, sizeOf cs]
     
-    zipWith4 f as bs cs ds       = fromListN sz $ apply <$> range (0, sz - 1)
+    zipWith4 f as bs cs ds = fromListN sz $ apply <$> range (0, sz - 1)
       where
         apply i = f (as !^ i) (bs !^ i) (cs !^ i) (ds !^ i)
-        sz      = minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds]
+        sz = minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds]
     
-    zipWith5 f as bs cs ds es    = fromListN sz $ apply <$> range (0, sz - 1)
+    zipWith5 f as bs cs ds es = fromListN sz $ apply <$> range (0, sz - 1)
       where
         apply i = f (as !^ i) (bs !^ i) (cs !^ i) (ds !^ i) (es !^ i)
-        sz      = minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds, sizeOf es]
+        sz = minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds, sizeOf es]
     
     zipWith6 f as bs cs ds es fs = fromListN sz $ apply <$> range (0, sz - 1)
       where
         apply i = f (as !^ i) (bs !^ i) (cs !^ i) (ds !^ i) (es !^ i) (fs !^ i)
-        sz      = minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds, sizeOf es, sizeOf fs]
+        sz = minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds, sizeOf es, sizeOf fs]
 
 instance Applicative SArray#
   where
@@ -262,18 +267,18 @@ instance Linear (SArray# e) e
     -- | O(n) 'toHead', O(n) memory.
     toHead e es = fromListN (sizeOf es + 1) (e : listL es)
     
-    head es = isNull es ? pfailEx "(:>)" $ es !^ 0
+    head es = es !^ 0
     
     -- | O(1) 'tail', O(1) memory.
-    tail (SArray# c o arr#) = c == 0 ? pfailEx "(:>)" $ SArray# c (o + 1) arr#
+    tail (SArray# c o arr#) = SArray# (c - 1) (o + 1) arr#
     
     -- | O(n) 'toLast', O(n) memory.
     toLast es e = fromListN (sizeOf es + 1) $ foldr (:) [e] es
     
-    last es@(SArray# c _ _) = c == 0 ? pfailEx "(:<)" $ es !^ (c - 1)
+    last es@(SArray# c _ _) = es !^ (c - 1)
     
     -- | O(1) 'init', O(1) memory.
-    init (SArray# c o arr#) = c == 0 ? pfailEx "(:<)" $ SArray# (c - 1) o arr#
+    init (SArray# c o arr#) = SArray# (c - 1) o arr#
     
     fromList = fromFoldable
     
@@ -308,13 +313,17 @@ instance Split (SArray# e) e
   where
     {-# INLINE take #-}
     -- | O(1) 'take', O(1) memory.
-    take n (SArray# c o arr#) = n < 1 ? Z $ SArray# (min n c) o arr#
+    take n es@(SArray# c o arr#)
+      | n <= 0 = Z
+      | n >= c = es
+      | True = SArray# n o arr#
     
     {-# INLINE drop #-}
     -- | O(1) 'drop', O(1) memory.
-    drop n (SArray# c o arr#) = n < c ? SArray# (c - n') (o + n') arr# $ Z
-      where
-        n' = max 0 n
+    drop n es@(SArray# c o arr#)
+      | n <= 0 = es
+      | n >= c = Z
+      |  True  = SArray# (c - n) (o + n) arr#
     
     isPrefixOf xs@(SArray# c1 _ _) ys@(SArray# c2 _ _) = c1 <= c2 && eq 0
       where
@@ -529,12 +538,18 @@ instance Thaw (ST s) (SArray# e) (STArray# s e)
     thaw (SArray# c@(I# c#) (I# o#) arr#) = ST $
       \ s1# -> case thawArray# arr# o# c# s1# of
         (# s2#, marr# #) -> (# s2#, STArray# c 0 marr# #)
+    
+    unsafeThaw (SArray# c o arr#) = ST $
+      \ s1# -> case unsafeThawArray# arr# s1# of
+        (# s2#, marr# #) -> (# s2#, STArray# c o marr# #)
 
 instance Freeze (ST s) (STArray# s e) (SArray# e)
   where
     freeze (STArray# c@(I# c#) (I# o#) marr#) = ST $
       \ s1# -> case freezeArray# marr# o# c# s1# of
         (# s2#, arr# #) -> (# s2#, SArray# c 0 arr# #)
+    
+    unsafeFreeze = done
 
 --------------------------------------------------------------------------------
 
@@ -619,9 +634,9 @@ instance LinearM (ST s) (STArray# s e) e
       return copy
     
     {-# INLINE reversed #-}
-    reversed es@(STArray# n _ _) = go 0 (n - 1) >> return es
-      where
-        go i j = when (i < j) $ go (i + 1) (j - 1) >> swapM es i j
+    reversed es@(STArray# n _ _) =
+      let go i j = when (i < j) $ go (i + 1) (j - 1) >> swapM es i j
+      in  go 0 (n - 1) >> return es
     
     {-# INLINE filled #-}
     filled n e = let !n'@(I# n#) = max 0 n in ST $
@@ -636,11 +651,11 @@ instance IndexedM (ST s) (STArray# s e) Int e
   where
     fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
     
-    (!#>) = (>!)
-    (!>)  = (>!)
+    {-# INLINE (!#>) #-}
+    (!#>) (STArray# _ (I# o#) marr#) = \ (I# i#) -> ST $ readArray# marr# (o# +# i#)
     
-    {-# INLINE (>!) #-}
-    (>!) (STArray# _ (I# o#) marr#) = \ (I# i#) -> ST $ readArray# marr# (o# +# i#)
+    (>!) = (!#>)
+    (!>) = (!#>)
     
     writeM_ = writeM
     
@@ -649,9 +664,9 @@ instance IndexedM (ST s) (STArray# s e) Int e
       \ s1# -> case writeArray# marr# (o# +# i#) e s1# of s2# -> (# s2#, () #)
     
     {-# INLINE overwrite #-}
-    overwrite es@(STArray# c _ _) ascs = mapM_ (uncurry $ writeM_ es) ies >> return es
-      where
-        ies = filter (inRange (0, c - 1) . fst) ascs
+    overwrite es@(STArray# c _ _) ascs =
+      let ies = filter (inRange (0, c - 1) . fst) ascs
+      in  mapM_ (uncurry $ writeM_ es) ies >> return es
     
     {-# INLINE fromIndexed' #-}
     fromIndexed' es = do
@@ -722,13 +737,13 @@ nubSorted f es = fromList $ foldr fun [last es] ((es !^) <$> [0 .. sizeOf es - 2
     fun = \ e ls -> e `f` head ls == EQ ? ls $ e : ls
 
 undEx :: String -> a
-undEx msg = throw . UndefinedValue $ "in SDP.Internal.SArray" ++ msg
+undEx msg = throw . UndefinedValue $ "in SDP.SArray" ++ msg
 
 pfailEx :: String -> a
-pfailEx msg = throw . PatternMatchFail $ "in SDP.Internal.SArray" ++ msg
+pfailEx msg = throw . PatternMatchFail $ "in SDP.SArray" ++ msg
 
 unreachEx :: String -> a
-unreachEx msg = throw . UnreachableException $ "in SDP.Internal.SArray" ++ msg
+unreachEx msg = throw . UnreachableException $ "in SDP.SArray" ++ msg
 
 
 

@@ -17,7 +17,7 @@ literary translate a certain term (e.g. "pattern matching" translates as
 "сопоставление с образцом" - whis is ugly and too long), then write it in
 English and don't use transliteration.
 * If you don't know either Russian or English, write me an e-mail in your
-language - machine translation is better than machine translation of a machine
+language - machine translation is better than translation of a machine
 translation.
 
 ## About CoС

@@ -17,6 +17,7 @@ main = defaultMain
     -- common tests
     testProperty "array-eq             " eqProp,
     testProperty "array-ord            " ordProp,
+    testProperty "array-lexicographic  " lgoProp,
     
     -- linear tests
     testProperty "array-linear-basic   " basicLinearProp,
@@ -56,6 +57,9 @@ eqProp =  eqTest
 
 ordProp :: TestOrd (Array Int Int)
 ordProp =  ordTest
+
+lgoProp :: Long (Array Int Int) -> Long (Array Int Int) -> Bool
+lgoProp (Long xs) (Long ys) = lexicographicOrdTest xs ys
 
 --------------------------------------------------------------------------------
 
@@ -119,6 +123,7 @@ setProp =  setTest
 
 estimateProp :: TestEstimate (Array Int Int)
 estimateProp =  estimateTest
+
 
 
 

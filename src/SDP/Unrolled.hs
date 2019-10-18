@@ -9,13 +9,6 @@
     Portability :  non-portable (GHC Extensions)
     
     @SDP.Unrolled@ provides 'Unrolled' - lazy boxed unrolled linked list.
-    
-    A useful feature of 'Unrolled' is that instead of strict boundaries, you can
-    specify a lower limit - most operations shorten Unrolled to a specified size.
-    
-    Of course, an attempt to apply operations on sets to Unrolled with
-    non-strict boundaries can lead to their malfunctioning (even if the data is
-    sorted).
 -}
 module SDP.Unrolled
 (
@@ -45,7 +38,7 @@ import Test.QuickCheck
 
 import GHC.Base ( Int  (..) )
 import GHC.Show (  appPrec  )
-import GHC.ST   ( runST, ST )
+import GHC.ST   ( ST )
 
 import Text.Read hiding ( pfail )
 import Text.Read.Lex    ( expect )
@@ -56,7 +49,6 @@ import Data.String ( IsString (..) )
 import SDP.Unrolled.STUnlist
 import SDP.Unrolled.Unlist
 import SDP.Unrolled.ST
-import SDP.SortM.Tim
 
 import SDP.Simple
 
@@ -65,7 +57,7 @@ default ()
 --------------------------------------------------------------------------------
 
 -- | Unrolled is bordered unrolled linked list.
-data Unrolled i e = Unrolled !i !i (Unlist e)
+data Unrolled i e = Unrolled !i !i !(Unlist e)
 
 type role Unrolled nominal representational
 
@@ -77,21 +69,21 @@ instance (Eq e, Index i) => Eq (Unrolled i e) where (==) = eq1
 
 instance (Index i) => Eq1 (Unrolled i)
   where
-    liftEq eq (Unrolled l1 u1 xs) (Unrolled l2 u2 ys) = n1 == n2 && liftEq eq (take n1 xs) (take n1 ys)
-      where
-        n1 = size (l1, u1); n2 = size (l2, u2)
+    liftEq eq (Unrolled l1 u1 xs) (Unrolled l2 u2 ys) =
+      size (l1, u1) == size (l2, u2) && liftEq eq xs ys
 
 --------------------------------------------------------------------------------
 
 {- Ord and Ord1 innstances. -}
 
+-- | Lexicographic order.
 instance (Ord e, Index i) => Ord (Unrolled i e) where compare = compare1
 
+-- | Lexicographic order.
 instance (Index i) => Ord1 (Unrolled i)
   where
-    liftCompare cmp (Unrolled l1 u1 xs) (Unrolled l2 u2 ys) = (n1 <=> n2) <> liftCompare cmp (take n1 xs) (take n1 ys)
-      where
-        n1 = size (l1, u1); n2 = size (l2, u2)
+    liftCompare cmp (Unrolled l1 u1 xs) (Unrolled l2 u2 ys) =
+      liftCompare cmp xs ys <> (size (l1, u1) <=> size (l2, u2))
 
 --------------------------------------------------------------------------------
 
@@ -408,18 +400,14 @@ instance (Index i) => Set (Unrolled i e) e
         (l, u) = defaultBounds $ sizeOf es'
     
     isContainedIn f e (Unrolled _ _ es) = isContainedIn f e es
-    
-    lookupLTWith f e (Unrolled l u es) = lookupLTWith f e $ size (l, u) `take` es
-    lookupGTWith f e (Unrolled l u es) = lookupGTWith f e $ size (l, u) `take` es
-    lookupLEWith f e (Unrolled l u es) = lookupLEWith f e $ size (l, u) `take` es
-    lookupGEWith f e (Unrolled l u es) = lookupGEWith f e $ size (l, u) `take` es
+    lookupLTWith  f e (Unrolled _ _ es) = lookupLTWith  f e es
+    lookupGTWith  f e (Unrolled _ _ es) = lookupGTWith  f e es
+    lookupLEWith  f e (Unrolled _ _ es) = lookupLEWith  f e es
+    lookupGEWith  f e (Unrolled _ _ es) = lookupGEWith  f e es
 
 instance (Index i) => Sort (Unrolled i e) e
   where
-    sortBy cmp (Unrolled l u es) = runST $ do
-      es' <- thaw es
-      timSortBy cmp es'
-      Unrolled l u <$> done es'
+    sortBy cmp (Unrolled l u es) = Unrolled l u $ sortBy cmp es
 
 --------------------------------------------------------------------------------
 
@@ -438,18 +426,18 @@ instance (Index i) => IsString (Unrolled i Char) where fromString = fromList
 instance (Index i) => Thaw (ST s) (Unrolled i e) (STUnrolled s i e)
   where
     thaw (Unrolled l u es) = STUnrolled l u <$> thaw es
+    
+    unsafeThaw (Unrolled l u es) = STUnrolled l u <$> unsafeThaw es
 
 instance (Index i) => Freeze (ST s) (STUnrolled s i e) (Unrolled i e)
   where
     freeze (STUnrolled l u es) = Unrolled l u <$> freeze es
+    
+    unsafeFreeze (STUnrolled l u es) = Unrolled l u <$> unsafeFreeze es
 
 --------------------------------------------------------------------------------
 
-done :: STUnlist s e -> ST s (Unlist e)
-done = freeze
-
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.Unrolled." ++ msg
-
 
 

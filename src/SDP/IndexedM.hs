@@ -145,16 +145,46 @@ class (IndexedM m v i e) => IFoldM m v i e
 -- | Service class of immutable-mutable converters.
 class (Monad m) => Thaw m v v' | v' -> m
   where
-    -- | thaw converts an immutable structure to a mutable.
+    {- |
+      thaw is safe way ti convert a immutable structure to a mutable.
+      
+      thaw should copy the old structure or ensure that it will not be used
+      after calling the procedure.
+    -}
     thaw :: v -> m v'
+    
+    {- |
+      unsafeThaw is unsafe version of 'thaw'.
+      
+      unsafeThaw doesn't guarantee that the structure will be copied or locked.
+      It only guarantees that if the old structure is not used, no error will
+      occur.
+    -}
+    unsafeThaw :: v -> m v'
+    unsafeThaw =  thaw
 
 --------------------------------------------------------------------------------
 
 -- | Service class of mutable-immutable converters.
 class (Monad m) => Freeze m v' v | v' -> m
   where
-    -- | freeze converts a mutable structure to a immutable.
+    {- |
+      freeze is a safe way to convert a mutable structure to a immutable.
+      
+      freeze should copy the old structure or ensure that it will not be used
+      after calling the procedure.
+    -}
     freeze :: v' -> m v
+    
+    {- |
+      unsafeFreeze is unsafe version of 'freeze'.
+      
+      unsafeFreeze doesn't guarantee that the structure will be copied or locked.
+      It only guarantees that if the old structure is not used, no error will
+      occur.
+    -}
+    unsafeFreeze :: v' -> m v
+    unsafeFreeze =  freeze
 
 --------------------------------------------------------------------------------
 

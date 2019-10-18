@@ -2,7 +2,7 @@
 {-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, RoleAnnotations #-}
 
 {- |
-    Module      :  SDP.STUnlist
+    Module      :  SDP.Unrolled.STUnlist
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
@@ -28,18 +28,12 @@ import SDP.SafePrelude
 import SDP.IndexedM
 import SDP.SortM
 
-import GHC.Base
-  (
-    MutableArray#, Int (..),
-    
-    newArray#, writeArray#, readArray#,
-    
-    isTrue#, sameMutableArray#, (+#), (-#), (==#)
-  )
-
-import GHC.ST ( ST (..), STRep )
+import GHC.Base ( Int (..) )
+import GHC.ST   ( ST  (..) )
 
 import SDP.SortM.Tim
+
+import SDP.Internal.SArray
 import SDP.Simple
 
 default ()
@@ -47,7 +41,7 @@ default ()
 --------------------------------------------------------------------------------
 
 -- | This STUnlist is mutable version of Unlist.
-data STUnlist s e = STUNEmpty | STUnlist {-# UNPACK #-} !Int (MutableArray# s e) (STUnlist s e)
+data STUnlist s e = STUNEmpty | STUnlist !(STArray# s e) (STUnlist s e)
 
 type role STUnlist nominal representational
 
@@ -58,10 +52,7 @@ type role STUnlist nominal representational
 instance (Eq e) => Eq (STUnlist s e)
   where
     STUNEmpty == STUNEmpty = True
-    (STUnlist n1 marr1# marr1) == (STUnlist n2 marr2# marr2) = res
-      where
-        res  = n1 == n2 && (n1 == 0 || same)
-        same = isTrue# (sameMutableArray# marr1# marr2#) && marr1 == marr2
+    (STUnlist marr1# marr1) == (STUnlist marr2# marr2) = marr1# == marr2# && marr1 == marr2
     _ == _ = False
 
 --------------------------------------------------------------------------------
@@ -70,39 +61,42 @@ instance (Eq e) => Eq (STUnlist s e)
 
 instance BorderedM (ST s) (STUnlist s e) Int e
   where
-    getLower  _  = return 0
-    getUpper  es = return $ case es of {STUnlist n _ _ -> max 0 n - 1; _ -> -1}
-    getSizeOf es = return $ case es of {STUnlist n _ _ -> max 0 n; _ -> 0}
+    getLower _  = return 0
+    getUpper es = do n <- getSizeOf es; return (n - 1)
     
-    getIndices es = return $ case es of {STUnlist n _ _ -> [0 .. n - 1]; _ -> []}
-    getIndexOf es = \ i -> return $ case es of {STUnlist n _ _ -> i >= 0 && i < n; _ -> False}
+    getSizeOf (STUnlist marr# marr) = liftA2 (+) (getSizeOf marr#) (getSizeOf marr)
+    getSizeOf _ = return 0
+    
+    getIndices es = do n <- getSizeOf es; return [0 .. n - 1]
+    getIndexOf es = \ i -> i < 0 ? return False $ do n <- getSizeOf es; return (i < n)
 
 instance LinearM (ST s) (STUnlist s e) e
   where
     {-# INLINE newLinear #-}
-    newLinear es = liftA2 (foldr cat) rest' chs'
+    newLinear es = liftA2 (foldr STUnlist) rest' chs'
       where
-        rest' = toChunk err (length rest) rest
-        chs'  = forM chs $ toChunk err lim
-        
-        cat = \ (STUnlist n mubl# STUNEmpty) acc -> STUnlist n mubl# acc
-        err = unreachEx "fromFoldableM"
+        rest' = (`STUnlist` STUNEmpty) <$> newLinearN (length rest) rest
+        chs'  = forM chs (newLinearN lim)
         (chs :< rest) = chunks lim es
     
-    getLeft  es = case es of {STUnlist n _ _ -> mapM (es >!) [0 .. n - 1]; _ -> return []}
-    getRight es = case es of {STUnlist n _ _ -> mapM (es >!) [n - 1, n - 2 .. 0]; _ -> return []}
-    reversed es = liftA2 zip (getIndices es) (getRight es) >>= overwrite es
+    getLeft  (STUnlist marr# marr) = liftA2 (++) (getLeft marr#) (getLeft marr)
+    getLeft  _ = return []
+    
+    getRight (STUnlist marr marr#) = liftA2 (flip (++)) (getRight marr#) (getRight marr)
+    getRight _ = return []
+    
+    reversed es = go es STUNEmpty
+      where
+        go (STUnlist marr# marr) acc = go marr . (`STUnlist` acc) =<< reversed marr#
+        go _ acc = return acc
     
     -- Note: STUnlist.filled is not so efficient as Unlist.replicate.
     filled n e
-        | n <  1  = return STUNEmpty
-        | n < lim = ST $ \ s1# -> case newArray# l# e s1# of
-          (# s2#, marr# #) -> (# s2#, STUnlist n marr# STUNEmpty #)
-        |  True   = filled (n - lim) e >>= \ marr -> ST $
-          \ s1# -> case newArray# l# e s1# of
-            (# s2#, marr# #) -> (# s2#, STUnlist n marr# marr #)
+      | n <= 0 = return STUNEmpty
+      |  True  = liftA2 STUnlist chunk rest
       where
-        !(I# l#) = lim
+        rest  = filled (n  -  lim) e
+        chunk = filled (min n lim) e
 
 --------------------------------------------------------------------------------
 
@@ -113,13 +107,16 @@ instance IndexedM (ST s) (STUnlist s e) Int e
     {-# INLINE fromAssocs' #-}
     fromAssocs' bnds@(l, _) defvalue ascs = do
       arr <- size bnds `filled` defvalue
-      overwrite arr [ (i - l, e) | (i, e) <- ascs ]
+      overwrite arr [ (i - l, e) | (i, e) <- ascs, inRange bnds i ]
     
-    (!#>) = (!>)
+    (!#>) (STUnlist marr# marr) i = getSizeOf marr# >>=
+      \ n -> i < n ? marr# !#> i $ marr !#> (i - n)
+    (!#>) _ _ = throw $ IndexOverflow "in SDP.Unlist.STUnlist.(>!)"
     
     {-# INLINE (>!) #-}
-    (STUnlist n marr# marr) >! i@(I# i#) = i >= n ? marr >! (i - n) $ ST (readArray# marr# i#)
-    _ >! _ = error "SDP.Unrolled.STUnlist.(>!)"
+    (>!) es i = i < 0 ? err $ es !#> i
+      where
+        err = throw $ IndexUnderflow "in SDP.Unlist.STUnlist.(>!)"
     
     es !> i = getBounds es >>= \ bnds -> case inBounds bnds i of
         ER -> throw $ EmptyRange     msg
@@ -129,13 +126,11 @@ instance IndexedM (ST s) (STUnlist s e) Int e
       where
         msg = "in SDP.Unrolled.STUnlist.(!>): " ++ show i
     
-    writeM_ = writeM
+    writeM_ (STUnlist marr# marr) i e = getSizeOf marr# >>=
+      \ n -> i < n ? writeM_ marr# i e $ writeM_ marr (i - n) e
+    writeM_ _ _ _ = return ()
     
-    writeM STUNEmpty _ _ = return ()
-    writeM (STUnlist n marr# marr) i@(I# i#) e
-      | i < 0 = return ()
-      | i < n = ST $ \ s1# -> case writeArray# marr# i# e s1# of s2# -> (# s2#, () #)
-      | True  = writeM marr (i - n) e
+    writeM es i e = i < 0 ? return () $ writeM_ es i e
     
     {-# INLINE overwrite #-}
     overwrite STUNEmpty ascs = isNull ascs ? return STUNEmpty $ fromAssocs (l, u) ascs
@@ -143,79 +138,41 @@ instance IndexedM (ST s) (STUnlist s e) Int e
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
     
-    overwrite es@(STUnlist n marr# marr) ascs = writes >> overwrite marr others' >> return es
-      where
-        (curr, others) = partition (inRange (0, n - 1) . fst) ascs
-        writes  = ST $ foldr (fill marr#) (done n marr# marr) curr
-        others' = [ (i - n, e) | (i, e) <- others ]
-        
+    overwrite es@(STUnlist marr# marr) ascs = getSizeOf es >>= \ n -> do
+      let (curr, others) = partition (\ (i, _) -> i < n) ascs
+      
+      marr'  <- overwrite marr [ (i - n, e) | (i, e) <- others ]
+      marr'# <- overwrite marr# curr
+      return (STUnlist marr'# marr')
     
-    fromIndexed' es = do
-        copy <- filled n (unreachEx "fromIndexed'")
-        forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
-        return copy
-      where
-        n = sizeOf es
-    
-    fromIndexedM es = do
-      n    <- getSizeOf es
-      copy <- filled n (unreachEx "fromIndexedM")
-      forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM_ copy i
-      return copy
+    fromIndexed' es = sizeOf es == 0 ? return STUNEmpty $ (`STUnlist` STUNEmpty) <$> fromIndexed' es
+    fromIndexedM es = getSizeOf es >>= \ n -> n == 0 ? return STUNEmpty $ (`STUnlist` STUNEmpty) <$> fromIndexedM es
 
 instance IFoldM (ST s) (STUnlist s e) Int e
   where
     {-# INLINE ifoldrM #-}
-    ifoldrM f base = \ ubl -> case ubl of
-        STUNEmpty           -> return base
-        (STUnlist c _ ubls) ->
-          let go b i = c == i ? b $ bindM2 (ubl !#> i) (go b $ i + 1) (f i)
-          in  ifoldrM f base ubls `go` 0
+    ifoldrM f base (STUnlist marr# marr) = ifoldrM f base marr >>=
+      \ base' -> ifoldrM f base' marr#
+    ifoldrM _ base _ = return base
     
     {-# INLINE ifoldlM #-}
-    ifoldlM f base = \ ubl -> case ubl of
-      STUNEmpty           -> return base
-      (STUnlist c _ ubls) ->
-        let go b i = -1 == i ? b $ bindM2 (go b $ i - 1) (ubl !#> i) (f i)
-        in  return base `go` (c - 1) >>= ifoldlM f `flip` ubls
+    ifoldlM f base (STUnlist marr# marr) = ifoldlM f base marr# >>=
+      \ base' -> ifoldlM f base' marr
+    ifoldlM _ base _ = return base
     
     {-# INLINE i_foldrM #-}
-    i_foldrM f base = \ ubl -> case ubl of
-      STUNEmpty           -> return base
-      (STUnlist c _ ubls) ->
-        let go b i = c == i ? b $ bindM2 (ubl !#> i) (go b $ i + 1) f
-        in  go (i_foldrM f base ubls) 0
+    i_foldrM f base (STUnlist marr# marr) = i_foldrM f base marr >>=
+      \ base' -> i_foldrM f base' marr#
+    i_foldrM _ base _ = return base
     
     {-# INLINE i_foldlM #-}
-    i_foldlM f base = \ ubl -> case ubl of
-      STUNEmpty           -> return base
-      (STUnlist c _ ubls) ->
-        let go b i = -1 == i ? b $ bindM2 (go b $ i - 1) (ubl !#> i) f
-        in  return base `go` (c - 1) >>= i_foldlM f `flip` ubls
+    i_foldlM f base (STUnlist marr# marr) = i_foldlM f base marr# >>=
+      \ base' -> i_foldlM f base' marr
+    i_foldlM _ base _ = return base
 
 instance SortM (ST s) (STUnlist s e) e where sortMBy = timSortBy
 
 --------------------------------------------------------------------------------
-
-{-# INLINE toChunk #-}
-toChunk :: e -> Int -> [e] -> ST s (STUnlist s e)
-toChunk e n@(I# n#) = \ es -> ST $ \ s1# -> case newArray# n# e s1# of
-  (# s2#, mubl# #) ->
-    let go x r = \ i# s3# -> case writeArray# mubl# i# x s3# of
-          s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#
-    in case ( if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2# ) of
-      s5# -> (# s5#, STUnlist n mubl# STUNEmpty #)
-
-{-# INLINE done #-}
-done :: Int -> MutableArray# s e -> STUnlist s e -> STRep s (STUnlist s e)
-done n marr# rest = \ s1# -> (# s1#, STUnlist n marr# rest #)
-
-{-# INLINE fill #-}
-fill :: MutableArray# s e -> (Int, e) -> STRep s a -> STRep s a
-fill marr# (I# i#, e) nxt = \ s1# -> case writeArray# marr# i# e s1# of s2# -> nxt s2#
-
-unreachEx :: String -> a
-unreachEx msg = throw . UnreachableException $ "in SDP.STUnlist." ++ msg
 
 lim :: Int
 lim =  1024

@@ -34,21 +34,16 @@ import SDP.Sort
 import SDP.Scan
 import SDP.Set
 
-import GHC.Show ( appPrec )
-import GHC.Base
-  (
-    Array#, MutableArray#, Int (..), Int#,
-    
-    newArray#, unsafeFreezeArray#, writeArray#, indexArray#, (-#)
-  )
-
-import GHC.ST ( ST (..), STRep, runST )
+import GHC.Show ( appPrec  )
+import GHC.Base ( Int (..) )
+import GHC.ST   ( ST (..), runST )
 
 import Data.String ( IsString (..) )
 
 import SDP.Unrolled.STUnlist
 import SDP.SortM.Tim
 
+import SDP.Internal.SArray
 import SDP.Simple
 
 default ()
@@ -56,7 +51,7 @@ default ()
 --------------------------------------------------------------------------------
 
 -- | Unlist is internal data representation for Unrolled.
-data Unlist e = UNEmpty | Unlist {-# UNPACK #-} !Int (Array# e) (Unlist e)
+data Unlist e = UNEmpty | Unlist !(SArray# e) (Unlist e)
 
 type role Unlist representational
 
@@ -68,42 +63,48 @@ type role Unlist representational
 
 instance (Eq e) => Eq (Unlist e)
   where
-    (==) = go 0
+    (==) = go
       where
-        go o xs@(Unlist c1 _ xss) ys@(Unlist n2 _ yss) = if n1 > n2
-            then and [ xs !^ (o + i) == ys !^ i | i <- [0 .. n2 - 1] ] && go (o + n2) xs yss
-            else and [ xs !^ (o + i) == ys !^ i | i <- [0 .. n1 - 1] ] && go    n1    ys xss
+        go xs@(Unlist arr1# arr1) ys@(Unlist arr2# arr2) = if n1 > n2
+            then take n2 arr1# == arr2# && go (drop n2 xs) arr2
+            else take n1 arr2# == arr1# && go (drop n1 ys) arr1
           where
-            n1 = c1 - o
-        go o xs ys = sizeOf xs == o && isNull ys
+            n1 = sizeOf arr1#; n2 = sizeOf arr2#
+        go Z Z = True
+        go _ _ = False
 
 instance Eq1 Unlist
   where
-    liftEq f = go 0 0
+    liftEq f = go
       where
-        go o1 o2 xs@(Unlist c1 _ xss) ys@(Unlist c2 _ yss) = if c1 > c2 - d
-            then all (\ i -> xs !^ (d + i) `f` (ys !^ i)) [o2 .. c2 - 1] && go (d + c2) 0 xs yss
-            else all (\ i -> xs !^ i `f` (ys !^ (i - d))) [o1 .. c1 - 1] && go 0 (c1 - d) xss ys
+        go xs@(Unlist arr1# arr1) ys@(Unlist arr2# arr2) = if n1 > n2
+            then liftEq f (take n2 arr1#) arr2# && go (drop n2 xs) arr2
+            else liftEq f arr1# (take n1 arr2#) && go arr1 (drop n1 ys)
           where
-            d = o1 - o2 -- count of elements between xs and ys positions
-        go o1 o2 xs ys = sizeOf xs == o1 && sizeOf ys == o2
+            n1 = sizeOf arr1#; n2 = sizeOf arr2#
+        go Z Z = True
+        go _ _ = False
 
 --------------------------------------------------------------------------------
 
 {- Ord and Ord1 instances. -}
 
+-- | Lexicographic order.
 instance (Ord e) => Ord (Unlist e) where compare = compare1
 
+-- | Lexicographic order.
 instance Ord1 Unlist
   where
-    liftCompare cmp = go 0 0
+    liftCompare cmp = go
       where
-        go o1 o2 xs@(Unlist c1 _ xss) ys@(Unlist c2 _ yss) = if c1 > c2 - d
-            then fold [ xs !^ (d + i) `cmp` (ys !^ i) | i <- [o2 .. c2 - 1] ] <> go (d + c2) 0 xs yss
-            else fold [ xs !^ i `cmp` (ys !^ (i - d)) | i <- [o1 .. c1 - 1] ] <> go 0 (c1 - d) xss ys
+        go xs@(Unlist arr1# arr1) ys@(Unlist arr2# arr2) = if n1 > n2
+            then liftCompare cmp (take n2 arr1#) arr2# <> go (drop n2 xs) arr2
+            else liftCompare cmp arr1# (take n2 arr2#) <> go arr1 (drop n2 ys)
           where
-            d = o1 - o2 -- count of elements between xs and ys positions
-        go o1 o2 xs ys = (sizeOf xs - o1) <=> (sizeOf ys - o2)
+            n1 = sizeOf arr1#; n2 = sizeOf arr2#
+        go Z Z = EQ
+        go Z _ = LT
+        go _ Z = GT
 
 --------------------------------------------------------------------------------
 
@@ -119,9 +120,7 @@ instance (Show e) => Show (Unlist e)
 {- Semigroup, Monoid, Default, Arbitrary and Estimate instances. -}
 
 instance Semigroup (Unlist e) where (<>) = (++)
-
 instance Monoid    (Unlist e) where mempty = def
-
 instance Default   (Unlist e) where def = UNEmpty
 
 instance (Arbitrary e) => Arbitrary (Unlist e)
@@ -132,15 +131,15 @@ instance Estimate (Unlist e)
   where
     (<==>) = go 0
       where
-        go d Z    Z = d <=> 0
-        go d Z unls = d <=.> unls
-        go d unls Z = d > 0 ? GT $ unls <.=> (-d)
-        go d (Unlist c1 _ unls1) (Unlist c2 _ unls2) = go (d + c1 - c2) unls1 unls2
+        go o Z   Z = o <=> 0
+        go o xs  Z = xs <.=> (-o)
+        go o Z  ys = o <=.> ys
+        go o (Unlist arr1# arr1) (Unlist arr2# arr2) =
+          let n1 = sizeOf arr1#; n2 = sizeOf arr2#
+          in  go (o + n1 - n2) arr1 arr2
     
-    es <.=> n2 = n2 < 0 ? GT $ go es n2
-      where
-        go          Z          m2 = 0  <=> m2
-        go (Unlist m1 _ unls') m2 = m1  >  m2 ? GT $ go unls' (m2 - m1)
+    Z <.=> n = 0 <=> n
+    (Unlist arr# arr) <.=> m = arr# .> m ? GT $ arr <.=> (m - sizeOf arr#)
 
 --------------------------------------------------------------------------------
 
@@ -148,14 +147,7 @@ instance Estimate (Unlist e)
 
 instance Functor Unlist
   where
-    fmap _ UNEmpty = UNEmpty
-    fmap f (Unlist n@(I# n#) arr# arrs) = runST $ ST $ \ s1# ->
-      case newArray# n# (unreachEx "fmap") s1# of
-        (# s2#, marr# #) ->
-          let go i@(I# i#) s# = if i == n
-              then done' n (f <$> arrs) marr# s#
-              else fill marr# (i, f $ arr# !# i#) (go $ i + 1) s#
-          in go 0 s2#
+    fmap f es = case es of {Unlist arr# arr -> Unlist (f <$> arr#) (f <$> arr); _ -> Z}
 
 instance Applicative Unlist
   where
@@ -171,36 +163,26 @@ instance Foldable Unlist
     {-# INLINE foldr #-}
     foldr f base = \ es -> case es of
       Z -> base
-      (Unlist c arr# arrs) ->
-        let go b i@(I# i#) = c == i ? b $ f (arr# !# i#) (go b $ i + 1)
-        in  go (foldr f base arrs) 0
+      Unlist arr# arr -> foldr f (foldr f base arr) arr#
     
     {-# INLINE foldr' #-}
     foldr' f base = \ es -> case es of
       Z -> base
-      (Unlist c arr# arrs) ->
-        let go b i@(I# i#) = c == i ? b $ f (arr# !# i#) (go b $ i + 1)
-        in  go (foldr' f base arrs) 0
+      Unlist arr# arr -> foldr' f (foldr' f base arr) arr#
     
     {-# INLINE foldl #-}
     foldl f base = \ es -> case es of
       Z -> base
-      (Unlist c arr# arrs) ->
-        let go b i@(I# i#) = -1 == i ? b $ f (go b $ i - 1) (arr# !# i#)
-        in  foldl f (go base $ c - 1) arrs
+      Unlist arr# arr -> foldl f (foldl f base arr#) arr
     
     {-# INLINE foldl' #-}
     foldl' f base = \ es -> case es of
       Z -> base
-      (Unlist c arr# arrs) ->
-        let go b i@(I# i#) = -1 == i ? b $ f (go b $ i - 1) (arr# !# i#)
-        in  foldl' f (go base c) arrs
+      Unlist arr# arr -> foldl' f (foldl' f base arr#) arr
     
-    length es = case es of {Unlist n _ arrs -> max 0 n + length arrs; _ -> 0}
+    length es = case es of {Unlist arr# arr -> sizeOf arr# + sizeOf arr; _ -> 0}
     
-    toList = listL
-    
-    null = \ es -> case es of {Unlist c _ _ -> c < 1; _ -> True}
+    null es = case es of {UNEmpty -> True; Unlist Z UNEmpty -> True; _ -> False}
 
 instance Traversable Unlist
   where
@@ -214,97 +196,80 @@ instance Linear (Unlist e) e
   where
     isNull = null
     
-    lzero = def
+    lzero = UNEmpty
     
     toHead e Z = single e
-    toHead e (Unlist c unl# unls)
-        | c < lim = (Unlist c1  unl1#  unls)
-        |   True  = (Unlist 1  single# unls)
-      where
-        !(Unlist c1  unl1#  Z) = fromList $ e : listL (Unlist c unl# Z)
-        !(Unlist 1  single# Z) = single e
+    toHead e es@(Unlist arr# arr) = arr# .< lim ? Unlist (e :> arr#) arr $ Unlist (single e) es
     
     head Z  = pfailEx "(:>)"
     head es = es !^ 0
     
-    tail Z  = pfailEx "(:<)"
-    tail es@(Unlist _ _ Z)    = fromList . tail $ toList es
-    tail (Unlist c unl# unls) = Unlist c' new# unls
-      where
-        !(Unlist c' new# _) = tail (Unlist c unl# Z)
+    tail Z = pfailEx "(:<)"
+    tail (Unlist arr# arr) = isNull arr# ? tail arr $ Unlist (tail arr#) arr
     
     toLast Z e = single e
-    toLast es@(Unlist c unl# unls) e
-      | isNull unls && c < lim = fromList $ listL es :< e
-      |          True          = Unlist c unl# (unls :< e)
+    toLast (Unlist arr# arr) e = isNull arr# ? (arr :< e) $ Unlist arr# (arr :< e)
     
     last Z = pfailEx "(:<)"
-    last (Unlist (I# c#) unl# Z) = unl# !# (c# -# 1#)
-    last    (Unlist _ _ unls)    = last unls
+    last (Unlist arr# arr) = isNull arr ? last arr# $ last arr
     
     init Z = pfailEx "(:>)"
-    init es@(Unlist _ _ Z)    = fromList . init $ toList es
-    init (Unlist c unl# unls) = Unlist c unl# (init unls)
-    
-    init Z                    = pfailEx "(:>)"
-    init es@(Unlist _ _ Z)    = fromList . init $ listL es
-    init (Unlist c unl# unls) = Unlist c unl# (init unls)
+    init (Unlist arr# arr) = isNull arr ? Unlist (init arr#) Z $ Unlist arr# (init arr)
     
     {-# INLINE single #-}
-    single e = runST $ filled 1 e >>= done
+    single = replicate 1
     
     listL = foldr (:) []
     
     {-# INLINE fromList #-}
-    fromList es = runST $ newLinear es >>= done
+    fromList = foldr (\ list -> Unlist $ fromList list) Z . chunks lim
     
     Z ++ ys = ys
     xs ++ Z = xs
-    (Unlist c arr# arrs) ++ ys = Unlist c arr# (arrs ++ ys)
+    (Unlist arr# arr) ++ ys = Unlist arr# (arr ++ ys)
     
-    -- | Deduplicated Unlist.
+    -- | Deduplicated Unlist: O(1), O(1) memory (limited by a constant on top).
     {-# INLINE replicate #-}
+    
     replicate n e = copy count
       where
-        chunk  = runST $ ST $ \ s1# -> case newArray# l# e s1# of (# s2#, marr# #) -> done' lim Z marr# s2#
-        rest   = runST $ ST $ \ s1# -> case newArray# r# e s1# of (# s2#, marr# #) -> done' restSize Z marr# s2#
-        copy c = case c <=> 0 of {LT -> Z; EQ -> rest; GT -> chunk ++ copy (c - 1)}
+        (count, rst) = n `divMod` lim
+        copy c = case c <=> 0 of
+          LT -> Z
+          EQ -> Unlist rest Z
+          GT -> Unlist chunk (copy $ c - 1)
         
-        !(count, restSize@(I# r#)) = n `divMod` lim
-        
-        !(I# l#) = lim
+        chunk = replicate lim e
+        rest  = replicate rst e
     
     {-# INLINE reverse #-}
-    reverse = fromList . i_foldl (flip (:)) []
+    reverse = fromList . foldl (flip (:)) []
     
-    partition  p  es = let (x, y) = partition p (toList es) in (fromList x, fromList y)
-    partitions ps es = fromList <$> partitions ps (toList es)
+    partition p es = (fromList x, fromList y)
+      where
+        (x, y) = partition p $ toList es
+    
+    partitions ps = fmap fromList . partitions ps . toList
 
 instance Split (Unlist e) e
   where
     {-# INLINE take #-}
-    take n es
-        |   n < 1  = Z
-        | es .<= n = es
-        |   True   = take' n es
+    take n es | n < 1 = Z | es .<= n = es | True = take' n es
       where
-        take' _ Z = Z
-        take' n' (Unlist c arr# arrs) = n' >= c ? Unlist c arr# other $ fromListN n' rest
-          where
-            rest  = [ arr# !# i# | (I# i#) <- [0 .. n' - 1] ]
-            other = take' (n' - c) arrs
+        take' _  Z = Z
+        take' n' (Unlist arr# arr) = case n <=.> arr# of
+          LT -> Unlist (take n' arr#) Z
+          EQ -> arr
+          GT -> Unlist arr# (take (n' - sizeOf arr#) arr)
     
     {-# INLINE drop #-}
-    drop n es
-        |   n < 1  = es
-        | es .<= n = Z
-        |   True   = drop' n es
+    drop n es | n < 1 = es | es .<= n = Z | True = drop' n es
       where
         drop' _ Z = Z
-        drop' n' (Unlist c arr# arrs) = n' >= c ? rest $ other ++ arrs
-          where
-            rest  = drop' (n' - c) arrs
-            other = fromListN (c - n') [ arr# !# i# | (I# i#) <- [n' .. c - 1] ]
+        drop' n' (Unlist arr# arr) = case n' <=.> arr# of
+          LT -> Unlist (drop n' arr#) arr
+          EQ -> arr
+          GT -> drop' (n' - sizeOf arr#) arr
     
     isPrefixOf xs ys = toList xs `isPrefixOf` toList ys
     isInfixOf  xs ys = toList xs `isInfixOf`  toList ys
@@ -312,8 +277,15 @@ instance Split (Unlist e) e
 
 instance Bordered (Unlist e) Int e
   where
-    sizeOf  es = case es of {Unlist n _ unls -> max 0 n + sizeOf unls; _ -> 0}
+    sizeOf es = case es of {Unlist arr# arr -> sizeOf arr# + sizeOf arr; _ -> 0}
+    
     indexIn es = \ i -> i >= 0 && i <. es
+    
+    -- | Quick unchecked offset.
+    offsetOf = const id
+    
+    -- | Quick unchecked index.
+    indexOf = const id
     
     lower  _  = 0
     upper  es = sizeOf es - 1
@@ -343,40 +315,45 @@ instance Indexed (Unlist e) Int e
         n = sizeOf es
     
     Z !^ _ = error "in SDP.Unrolled.Unlist.(!^)"
-    (Unlist c arr# arrs) !^ i@(I# i#) = i < c ? e $ arrs !^ (i - c)
+    (Unlist arr# arr) !^ i = i < c ? arr# !^ i $ arr !^ (i - c)
       where
-        (# e #) = indexArray# arr# i#
+        c = sizeOf arr#
     
     {-# INLINE (.!) #-}
-    es .! n = es !^ (n - lower es)
+    (.!) = (!^)
     
-    (!) es n = case inBounds bs n of
-        ER -> throw $ EmptyRange     msg
-        UR -> throw $ IndexOverflow  msg
-        OR -> throw $ IndexUnderflow msg
-        IN -> es !^ offset bs n
+    (!) Z _ = throw $ EmptyRange "in SDP.Unrolled.(!)"
+    (!) (Unlist arr# arr) i
+        | isNull arr# = throw $ IndexOverflow  "in SDP.Unrolled.(!)"
+        |    i < 0    = throw $ IndexUnderflow "in SDP.Unrolled.(!)"
+        |    i < c    = arr# !^ i
+        |    True     = arr  !^ (i - c)
       where
-        msg = "in SDP.Unrolled.(!)"
-        bs  = bounds es
+        c = sizeOf arr#
     
-    p .$ es = p .$ toList es
-    p *$ es = p *$ toList es
+    {-# INLINE (.$) #-}
+    p .$ es = go es 0
+      where
+        go Z _ = Nothing
+        go (Unlist arr# arr) o = case p .$ arr# of
+          Just  i -> Just (i + o)
+          Nothing -> go arr $! o + sizeOf arr#
+    
+    {-# INLINE (*$) #-}
+    (*$) p es = go es 0
+      where
+        go Z _ = []
+        go (Unlist arr# arr) o = (p *$ arr#) ++ (go arr $! o + sizeOf arr#)
 
 instance IFold (Unlist e) Int e
   where
     {-# INLINE ifoldr #-}
-    ifoldr  f base = \ unl -> case unl of
-      Z                    -> base
-      (Unlist c unl# unls) ->
-        let go b i@(I# i#) = c == i ? b $ f i (unl# !# i#) (go b $ i + 1)
-        in  go (ifoldr f base unls) 0
+    ifoldr _ base Z = base
+    ifoldr f base (Unlist arr# arr) = ifoldr f (ifoldr f base arr) arr#
     
     {-# INLINE ifoldl #-}
-    ifoldl  f base = \ unl -> case unl of
-      Z                    -> base
-      (Unlist c unl# unls) ->
-        let go b i@(I# i#) = -1 == i ? b $ f i (go b $ i - 1) (unl# !# i#)
-        in  ifoldl f (go base $ c - 1) unls
+    ifoldl _ base Z = base
+    ifoldl f base (Unlist arr# arr) = ifoldl f (ifoldl f base arr#) arr
     
     i_foldr = foldr
     i_foldl = foldl
@@ -385,147 +362,88 @@ instance Set (Unlist e) e
   where
     setWith f = nubSorted f . sortBy f
     
-    insertWith _ e Z  = single e
-    insertWith f e es = isContainedIn f e es ? es $ res
-      where
-        res = fromList . insertWith f e $ listL es
+    insertWith _ e Z = single e
+    insertWith f e (Unlist arr# arr) = isContainedIn f e arr# ?
+      Unlist (insertWith f e arr#) arr $ Unlist arr# (insertWith f e arr)
     
-    deleteWith _ _ Z  = Z
-    deleteWith f e es = isContainedIn f e es ? es $ res
-      where
-        res = fromList . deleteWith f e $ listL es
+    deleteWith _ _ Z = Z
+    deleteWith f e (Unlist arr# arr) = isContainedIn f e arr# ?
+      Unlist (deleteWith f e arr#) arr $ Unlist arr# (deleteWith f e arr)
     
-    intersectionWith f xs ys = fromList $ intersection' 0 0
-      where
-        intersection' i j = i == n1 || j == n2 ? [] $ case x `f` y of
-            LT -> intersection' (i + 1) j
-            EQ -> x : intersection' (i + 1) (j + 1)
-            GT -> intersection' i (j + 1)
-          where
-            x = xs !^ i; n1 = sizeOf xs
-            y = ys !^ j; n2 = sizeOf ys
+    intersectionWith f xs ys = fromList $ on (intersectionWith f) listL xs ys
     
-    unionWith f xs ys = fromList $ union' 0 0
-      where
-        union' i j
-          | i == n1 = (ys !^) <$> [j .. n2 - 1]
-          | j == n2 = (xs !^) <$> [i .. n1 - 1]
-          |  True   = case x `f` y of
-            LT -> x : union' (i + 1) j
-            EQ -> x : union' (i + 1) (j + 1)
-            GT -> y : union' i (j + 1)
-          where
-            x = xs !^ i; n1 = sizeOf xs
-            y = ys !^ j; n2 = sizeOf ys
+    unionWith f xs ys = fromList $ on (unionWith f) listL xs ys
     
-    differenceWith f xs ys = fromList $ difference' 0 0
-      where
-        difference' i j
-            | i == n1 = []
-            | j == n2 = (xs !^) <$> [i .. n1 - 1]
-            |  True   = case x `f` y of
-              LT -> x : difference' (i + 1) j
-              EQ -> difference' (i + 1) (j + 1)
-              GT -> difference' i (j + 1)
-          where
-            x = xs !^ i; n1 = sizeOf xs
-            y = ys !^ j; n2 = sizeOf ys
+    differenceWith f xs ys = fromList $ on (differenceWith f) listL xs ys
     
-    symdiffWith f xs ys = fromList $ symdiff' 0 0
-      where
-        n1 = sizeOf xs; n2 = sizeOf ys
-        symdiff' i j
-            | i == n1 = (ys !^) <$> [j .. n2 - 1]
-            | j == n2 = (xs !^) <$> [i .. n1 - 1]
-            |  True   = case x `f` y of
-              LT -> x : symdiff' (i + 1) j
-              EQ -> symdiff' (i + 1) (j + 1)
-              GT -> y : symdiff' i (j + 1)
-          where
-            x = xs !^ i; y = ys !^ j
+    symdiffWith f xs ys = fromList $ on (symdiffWith f) listL xs ys
     
     lookupLTWith _ _ Z  = Nothing
     lookupLTWith f o es
         | GT <- o `f` last' = Just last'
-        | GT <- o `f` head' = look' head' 0 (sizeOf es - 1)
+        | GT <- o `f` head' = look' head' 0 (upper es)
         |       True        = Nothing
       where
-        head' = es .! lower es
-        last' = es .! upper es
+        head' = es !^ 0
+        last' = es !^ upper es
         
         look' r l u = if l > u then Just r else case o `f` e of
             LT -> look' r l (j - 1)
-            EQ -> Just $ j < 1 ? r $ es !^ (j - 1)
+            EQ -> Just (j < 1 ? r $ es !^ (j - 1))
             GT -> look' e (j + 1) u
           where
-            j = l + (u - l) `div` 2
-            e = es !^ j
+            j = center l u; e = es !^ j
     
     lookupLEWith _ _ Z  = Nothing
     lookupLEWith f o es
         | GT <- o `f` last' = Just last'
         | LT <- o `f` head' = Nothing
-        |       True        = look' head' 0 (sizeOf es - 1)
+        |       True        = look' head' 0 (upper es)
       where
-        head' = es .! lower es
-        last' = es .! upper es
+        head' = es !^ 0
+        last' = es !^ upper es
         
         look' r l u = if l > u then Just r else case o `f` e of
             LT -> look' r l (j - 1)
             _  -> look' e (j + 1) u
           where
-            j = l + (u - l) `div` 2
-            e = es !^ j
+            j = center l u; e = es !^ j
     
     lookupGTWith _ _ Z  = Nothing
     lookupGTWith f o es
         | LT <- o `f` head' = Just head'
-        | LT <- o `f` last' = look' last' 0 (sizeOf es - 1)
+        | LT <- o `f` last' = look' last' 0 (upper es)
         |       True        = Nothing
       where
-        head' = es .! lower es
-        last' = es .! upper es
+        head' = es !^ 0
+        last' = es !^ upper es
         
         look' r l u = if l > u then Just r else case o `f` e of
             LT -> look' e l (j - 1)
-            EQ -> j >= (sizeOf es - 1) ? Nothing $ Just (es !^ (j + 1))
+            EQ -> (j + 1) >=. es ? Nothing $ Just (es !^ (j + 1))
             GT -> look' r (j + 1) u
           where
-            j = l + (u - l) `div` 2
-            e = es !^ j
+            j = center l u; e = es !^ j
     
     lookupGEWith _ _ Z  = Nothing
     lookupGEWith f o es
         | GT <- o `f` last' = Nothing
-        | GT <- o `f` head' = look' last' 0 (sizeOf es - 1)
+        | GT <- o `f` head' = look' last' 0 (upper es)
         |       True        = Just head'
       where
-        head' = es .! lower es
-        last' = es .! upper es
+        head' = es !^ 0
+        last' = es !^ upper es
         
         look' r l u = if l > u then Just r else case o `f` e of
             LT -> look' e l (j - 1)
             EQ -> Just e
             GT -> look' r (j + 1) u
           where
-            j = l + (u - l) `div` 2
-            e = es !^ j
+            j = center l u; e = es !^ j
     
     {-# INLINE isContainedIn #-}
-    isContainedIn f e = contain
-      where
-        contain Z = False
-        contain arr@(Unlist n _ arrs)
-            | LT <- f e    (arr !^ 0)    = False
-            | GT <- f e (arr !^ (n - 1)) = contain arrs
-            |            True            = search 0 (n - 1)
-          where
-            search l u = l > u ? contain arrs $ case f e (arr !^ j) of
-                LT -> search l (j - 1)
-                EQ -> True
-                GT -> search (j + 1) u
-              where
-                j = l + (u - l `div` 2)
+    isContainedIn f e (Unlist arr# arr) = isContainedIn f e arr# || isContainedIn f e arr
+    isContainedIn _ _ Z = False
 
 instance Sort (Unlist e) e
   where
@@ -540,39 +458,31 @@ instance IsString (Unlist Char) where fromString = fromList
 instance Thaw (ST s) (Unlist e) (STUnlist s e)
   where
     thaw Z = return STUNEmpty
-    thaw (Unlist n unl# unls) = liftA2 cat list (thaw unls)
-      where
-        cat  = \ (STUnlist _ stunl# _) stunls -> STUnlist n stunl# stunls
-        list = newLinear [ unl# !# i# | (I# i#) <- [0 .. n - 1] ]
+    thaw (Unlist arr# arr) = liftA2 STUnlist (thaw arr#) (thaw arr)
+    
+    unsafeThaw Z = return STUNEmpty
+    unsafeThaw (Unlist arr# arr) = liftA2 STUnlist (unsafeThaw arr#) (unsafeThaw arr)
 
 instance Freeze (ST s) (STUnlist s e) (Unlist e)
   where
-    freeze es = copied es >>= done
+    freeze STUNEmpty = return Z
+    freeze (STUnlist marr# marr) = liftA2 Unlist (freeze marr#) (freeze marr)
+    
+    unsafeFreeze STUNEmpty = return Z
+    unsafeFreeze (STUnlist marr# marr) = liftA2 Unlist (unsafeFreeze marr#) (unsafeFreeze marr)
 
 --------------------------------------------------------------------------------
 
-{-# INLINE (!#) #-}
-(!#) :: Array# e -> Int# -> e
-arr# !# i# = case indexArray# arr# i# of (# e #) -> e
-
-{-# INLINE fill #-}
-fill :: MutableArray# s e -> (Int, e) -> STRep s a -> STRep s a
-fill marr# (I# i#, e) nxt = \ s1# -> case writeArray# marr# i# e s1# of s2# -> nxt s2#
-
-{-# INLINE done' #-}
-done' :: Int -> Unlist e -> MutableArray# s e -> STRep s (Unlist e)
-done' c rest marr# = \ s1# -> case unsafeFreezeArray# marr# s1# of
-  (# s2#, arr# #) -> (# s2#, Unlist c arr# rest #)
-
 {-# INLINE done #-}
 done :: STUnlist s e -> ST s (Unlist e)
-done        STUNEmpty        = return UNEmpty
-done (STUnlist n marr# marr) = done marr >>= \ arr -> ST $
-  \ s1# -> case unsafeFreezeArray# marr# s1# of
-    (# s2#, arr# #) -> (# s2#, Unlist n arr# arr #)
+done = unsafeFreeze
+
+{-# INLINE center #-}
+center :: Int -> Int -> Int
+center l u = l + (u - l) `div` 2
 
 {-# INLINE nubSorted #-}
-nubSorted :: (e -> e -> Ordering) -> Unlist e -> Unlist e
+nubSorted :: Compare e -> Unlist e -> Unlist e
 nubSorted f (xs :< x) = fromList $ foldr (\ e ls@(l : _) -> e `f` l == EQ ? ls $ e : ls) [x] xs
 nubSorted _ _ = Z
 

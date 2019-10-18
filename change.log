@@ -42,9 +42,12 @@ version 0.2:
   IMPROVED:
     * Estimate class (rewrited)
     * Foldable and IFold rewrited for inline with 2 arguments
-    * Indexed and IndexedM now independent from Linear and LinearM.
-    * prevTest and nextTest now work very fast (fixed memory leak in where-expr)
-    * sortTest suite rewrited for Medium-sized structures generator.
+    * Indexed and IndexedM now independent from Linear and LinearM resp.
+    * Ord instances - now lexicographic (Array, Unlist, Unrolled)
+    * Array, Unlist and Unrolled representation: O(1) splits, trustworthy size
+    property and just code deduplication.
+    * sortTest suite rewrited for Medium-sized structures generator
+    * prevTest and nextTest now work fast (fixed memory leak in where-expr)
 
 --------------------------------------------------------------------------------
 

@@ -17,6 +17,7 @@ main = defaultMain
     -- common tests
     testProperty "unrolled-eq             " eqProp,
     testProperty "unrolled-ord            " ordProp,
+    testProperty "unrolled-lexicographic  " lgoProp,
     
     -- linear tests
     testProperty "unrolled-linear-basic   " basicLinearProp,
@@ -56,6 +57,9 @@ eqProp =  eqTest
 
 ordProp :: TestOrd (Unrolled Int Int)
 ordProp =  ordTest
+
+lgoProp :: Long (Unrolled Int Int) -> Long (Unrolled Int Int) -> Bool
+lgoProp (Long xs) (Long ys) = lexicographicOrdTest xs ys
 
 --------------------------------------------------------------------------------
 

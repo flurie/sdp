@@ -1,128 +1,104 @@
 # SDP
 
-This is a library for simple data processing.
+This is a library for simple data processing. SDP is inspired by array, vector,
+bytestring and partly by containers and repa.
 
-SDP is an evil library that hates a programmer, which has unsafe modules and
-classes that allow to shoot yourself in the foot.
+SDP focuses on efficiency and openness, sometimes at the expense of stability
+and security. Therefore, there are unsafe functions in SDP.
+
+## tl;dr
+
+SDP is a compilation of best (in my humble opinion) features of array, vector,
+containers and bytestring. It's completely interchangeable with the first two,
+almost with the third and partly with the fourth.
 
 ## Reasons
 
 The purpose of SDP is to provide the most comfortable interface for working with
-different data structures in the same namespace (without qualified import),
+different data structures in the same namespace without qualified imports,
 keeping sufficiently high quality code and speed of work. So that it can be use
-in practice, and transition programs from old and more specialized libraries did
-not cause serious problems.
-
-Classes in SDP keep a balance between universality and efficiency. They may not
-be suitable for working with some data structures, but with the most common ones
-are perfectly combined.
+in practice, and rewriting programs from old and more specialized libraries
+didn't cause serious problems.
 
 ## Functionality
 
-SDP provides a wide range of options for data conversion, a powerful abstraction
-for generalized programming, and the most common operations, including (but not
-limited to) filtering, splitting, and sorting.
+SDP provides a lot of common data conversion functions, a powerful abstraction
+for generalized programming and the most used operations, including (but not
+limited to) filtering, splitting and sorting.
 
-Now SDP provides only 6 standard data structures for use in programs that are
-not very demanding on speed and efficiency:
+SDP provides 12 common data structures (not including lists):
+- standard list []. With SDP, list functions don't overlap analogues for other
+structures.
+- immutable arrays (lazy boxed Array and strict unboxed Bytes). Similar to
+arrays from the Haskell Platform, but have more functions. SDP borrows some
+features of vectors and strict bytestrings, which makes some operations in O(1)
+instead of O(n).
+- immutable unrolled lists (lazy boxed Unlist and Unrolled, strict unboxed
+Ublist and ByteList). Ublist is a lazy bytestring analogue, that can store
+values of any Unboxed type, not only Word8 and Char. Unlist - boxed version of
+Ublist. ByteList and Unrolled - versions of Ublist and Unlist with explicit
+bounds.
+- mutable arrays and unrolled lists (STArray, STBytes, STUnrolled, STUnlist,
+STByteList, STUblist). SDP provides common interfaces for operations with
+mutable structures too.
 
-- standard lists ([])
-- binary trees   (BinTree)
-
-- lazy    boxed  arrays (Array, STArray)
-- strict unboxed arrays (Bytes, STBytes)
-
-- lazy   unrolled linked lists (Unrolled, STUnrolled)
-- strict unrolled linked lists (ByteList, STByteList)
-
-And two service structures (may be infinite):
-
-- lazy   unrolled linked lists (Unlist, STUnlist)
-- strict unrolled linked lists (Ublist, STUblist)
-
-But matrices, bitmaps, streams, dictionaries and prefix trees will also be added
-in new versions.
+Also SDP has pseudo-primitive types (SArray#, SBytes#, STArray# and STBytes#)
+that simplifies the implementation of more complex structures. They are
+protected from tampering and provide some important guarantees.
 
 SDP provides the following classes:
 
-- Bordered/BorderedM - for getting the bounds, list of indices and associations
-(index, element).
-- Linear - for separate elements, create structure from list or Foldable, left
-and right views of structure. Also contains some generalized list functions
-(concat, intersperse, filter, partition, reverse and nubBy) and support three
-generic patterns.
-- Indexed/IndexedM - for create structure from list of associations or other
-Indexed/IndexedM, for rewriting or updating it, for reading and writing (4 and 2
-functions/procedures resp.) and for searching indices of elements by predicate.
-- IFold/IFoldM - for folds with index.
-- Sort/SortM - for sort data structures. Also SDP contain timSort algorithm
+- Bordered/BorderedM - for operations with bounds.
+- Linear, LinearM - for structure construction and deconstruction using standard
+lists or their Foldable analogues. Linear also provides useful generic patterns
+and common list-like operations (filter, concat, reverse, nub, etc.).
+- Indexed, IndexedM - for create structure from list of associations or other
+Indexed/IndexedM, for rewriting or updating it, for elementwise reading and
+writing.
+- IFold, IFoldM - for folds with index, also extends Foldable on Indexed
+structures (for example, Bytes and ByteList can't be Foldable, but can be IFold).
+- Sort, SortM - for sort data structures. Also SDP contain timSort algorithm
 implementation for all IndexedM.
-- Set - for standard set operations.
-
-- Zip and Scan - for overloaded zips and scans (only suitable for structures
+- Set, Map - for standard set and map operations.
+- Zip, Scan - for overloaded zips and scans (only suitable for structures
 generalized by element's type).
-
-- Estimate - for lazy comparings by length.
-- Unboxed - overloaded by value type interface for ByteArray creating, filling,
-reading and writing.
-- Index - for index types.
-- IndexEQ - for long trivial Index instances (it’s better to lose a little
-performance than to look for errors in a hundred lines of monotonous code).
+- Estimate - for lazy comparing by length.
+- Unboxed - overloaded interface for create, fill, read and write ByteArray#-
+based structures.
+- Index - replacement for Ix class, extendable realisation of overloaded index
+type.
 
 ## Versioning
 
-SDP and SDP-derived extensions/wrappers must follow of the Haskell community
-versioning principles with this restrictions:
-
-For the version a.b.c.d
-* d is the patch number: only bugfixes and small code improvements. Also may be
-changed valid dependency versions.
-* c is the internal library version number, used to mark changes in the API
-(only small extensions, older code must compile anyway) and code improvements.
-* b is the number of the stable version of SDP. Deprecations cannot be
-removed until the next stable version.
-* a is reserved (always 0) - necessary in case of release a new edition of SDP.
+SDP follow [https://pvp.haskell.org](Haskell Package Versioning Policy).
+To simplify the search for derivative components, I propose the following rules:
+* The MAJOR version of the derivative must match the smallest MAJOR version of
+SDP with which it's compatible.
+* The MINOR version is left to the discretion of the derivative developer.
+* All SDP extensions should be called by the rule: sdp-%extensionname%.
+* All SDP wrappers should be called by one of the follow rules.
+sdp4%libraryname% (for good libraries that already has most of the provided by
+wrapper functionality, but need a little generalization, for example, bytestring
+and vector). Or sdp2%libraryname% - for not very good and/or poor libraries that
+are greatly expanded by the wrapper.
 
 ## Differences from other similar projects
 
 * Internal consistency. Unfortunately, not all libraries are self-consistent,
 even in the Haskell Platform.
-* Maximum functionality with the minimum number of dependencies. SDP requires
-only the most necessary and commonly used packages. This is one of the reasons
-for which I refused to use some libraries as dependencies (for example,
-containers, in which a lot of duplicate code and array, which relies on a poorly
-designed Ix class).
-* Orientation to other libraries. SDP is unlikely to be used by itself, but it
-can become a bridge between other libraries and structures. SDP doesn't give its
-own implementations of structures an advantage over external ones (except,
-perhaps, voluntary-compulsory use of Index class). You can add general classes
-implementations for any data structures and they will be able to work perfectly
-with native ones and between themselves. If other developers do the same, then
-writing the code will be a little easier.
+* Maximum functionality with the minimal dependencies. SDP requires only the
+most necessary and commonly used packages. This is one of the reasons for which
+I refused to use some libraries as dependencies (for example, array, which
+relies on a poorly designed Ix class or containers, in which a lot of the code
+duplication).
 * Good extensibility. SDP is based on type classes that provide the simplest
 interfaces for working with different data structures and reduce code
-duplication. SDP will not require you to use qualified import when working with
-different structures in the same namespace.
-
-## Derivative work
-
-SDP license permits any derivative works. If you want to create some tool on the
-basis of SDP, here is a list of simple rules that will help to quickly find it,
-determine what it does, and with which versions of SDP it's compatible:
-
-### Extensions
-
-SDP extensions (libraries that adds new features to SDP) must follow naming rule
-sdp-%extensionname% (e.g. sdp-io or sdp-binary) and versioning rules.
-
-### Wrappers
-
-SDP wrappers (library that provides SDP functionality for an existing library)
-must follow one of naming rules
-* sdp4%libraryname% - for libraries that is good in itself and wrapper are
-needed only for conveniece.
-* sdp2%libraryname% - for libraries with limited functionality and/or bad API
-(a compromise between the Last Chinese Warnings to the author and fork).
+duplication. SDP will not requires qualified imports when working with different
+structures in the same namespace.
+* Orientation to other libraries. SDP, array and vector are essentially
+interchangeable. In some cases, SDP can also replace containers and, in very few
+cases, bytestring. However, this isn't its main purpose. SDP prioritizes
+openness and extensibility and helps libraries interact better with each other.
 
 ## Contributing
 
@@ -136,3 +112,4 @@ terms of the BSD3 license.
 SDP is distributed in the hope that it will be useful, but without any
 warranty, without even the implied warranty of merchantability or fitness for
 a particular purpose. See the BSD3 license for more details.
+

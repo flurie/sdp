@@ -17,6 +17,7 @@ main = defaultMain
     -- common tests
     testProperty "unlist-eq             " eqProp,
     testProperty "unlist-ord            " ordProp,
+    testProperty "unlist-lexicographic  " lgoProp,
     
     -- linear tests
     testProperty "unlist-linear-basic   " basicLinearProp,
@@ -56,6 +57,9 @@ eqProp =  eqTest
 
 ordProp :: TestOrd (Unlist Int)
 ordProp =  ordTest
+
+lgoProp :: Long (Unlist Int) -> Long (Unlist Int) -> Bool
+lgoProp (Long xs) (Long ys) = lexicographicOrdTest xs ys
 
 --------------------------------------------------------------------------------
 
@@ -119,6 +123,7 @@ setProp =  setTest
 
 estimateProp :: TestEstimate (Unlist Int)
 estimateProp =  estimateTest
+
 
 
 

@@ -13,12 +13,16 @@ module Test.SDP.Ord
     TestOrd,
     
     -- * Default test
-    ordTest
+    ordTest,
+    
+    -- * Lexicographic test
+    lexicographicOrdTest
   )
 where
 
 import Prelude ()
 import SDP.SafePrelude
+import SDP.Linear
 
 default ()
 
@@ -37,11 +41,10 @@ ordTest xs ys zs = and
     -- transitivity
     (xs <= ys && ys <= zs) <= (xs <= zs),
     
-    -- not ((xs <= ys) && (ys <= zs)) || (xs <= zs),
-    
     -- totality
     (xs <= ys) /= (xs > ys)
   ]
 
-
+lexicographicOrdTest :: (Linear l e, Ord l, Ord e) => l -> l -> Bool
+lexicographicOrdTest xs ys = (xs <=> ys) == (listL xs <=> listL ys)
 

@@ -16,13 +16,6 @@
     are stored raw, and not the strictness of the structure as a whole. Chunks
     themselves are lazy and can be evaluated independently of each other (the
     ByteArray field also isn't strict).
-    
-    A useful feature of 'ByteList' is that instead of strict boundaries, you can
-    specify a lower limit - most operations shorten ByteList to a specified size.
-    
-    Of course, an attempt to apply operations on sets to ByteList with
-    non-strict boundaries can lead to their malfunctioning (even if the data is
-    sorted).
 -}
 module SDP.ByteList
 (
@@ -52,7 +45,7 @@ import Test.QuickCheck
 
 import GHC.Base ( Int  (..) )
 import GHC.Show (  appPrec  )
-import GHC.ST   ( runST, ST )
+import GHC.ST   ( ST )
 
 import Text.Read hiding ( pfail )
 import Text.Read.Lex    ( expect )
@@ -60,10 +53,8 @@ import Text.Read.Lex    ( expect )
 import qualified GHC.Exts as E
 import Data.String ( IsString (..) )
 
-import SDP.ByteList.STUblist
 import SDP.ByteList.Ublist
 import SDP.ByteList.ST
-import SDP.SortM.Tim
 
 import SDP.Simple
 
@@ -72,7 +63,7 @@ default ()
 --------------------------------------------------------------------------------
 
 -- | ByteList is bordered strict unboxed unrolled linked list.
-data ByteList i e = ByteList !i !i (Ublist e)
+data ByteList i e = ByteList !i !i !(Ublist e)
 
 type role ByteList nominal representational
 
@@ -151,10 +142,9 @@ instance (Index i, Unboxed e) => Linear (ByteList i e) e
     
     lzero = def
     
-    toHead e (ByteList l u es) = ByteList l' u' (e :> take n es)
+    toHead e (ByteList l u es) = ByteList l' u' (e :> es)
       where
-        (l', u') = defaultBounds $ n + 1
-        n = size (l, u)
+        (l', u') = defaultBounds $ size (l, u) + 1
     
     uncons Z = pfail "(:>)"
     uncons (ByteList l u es) = (x, sizeOf es < 2 ? Z $ ByteList l' u xs)
@@ -168,10 +158,9 @@ instance (Index i, Unboxed e) => Linear (ByteList i e) e
     tail Z = pfail "(:>)"
     tail (ByteList l u es) = ByteList l' u $ tail es where l' = next (l, u) l
     
-    toLast (ByteList l u es) e = ByteList l' u' (take n es :< e)
+    toLast (ByteList l u es) e = ByteList l' u' (es :< e)
       where
-        (l', u') = defaultBounds $ n + 1
-        n = size (l, u)
+        (l', u') = defaultBounds $ size (l, u) + 1
     
     unsnoc Z = pfail "(:<)"
     unsnoc (ByteList l u es) = (sizeOf es < 2 ? Z $ ByteList l u' xs, x)
@@ -293,11 +282,11 @@ instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
 
 instance (Index i, Unboxed e) => IFold (ByteList i e) i e
   where
-    ifoldr  f base = \ (ByteList l u es) -> ifoldr (f . index (l, u)) base $ size (l, u) `take` es
-    ifoldl  f base = \ (ByteList l u es) -> ifoldl (f . index (l, u)) base $ size (l, u) `take` es
+    ifoldr  f base = \ (ByteList l u es) -> ifoldr (f . index (l, u)) base es
+    ifoldl  f base = \ (ByteList l u es) -> ifoldl (f . index (l, u)) base es
     
-    i_foldr f base = \ (ByteList l u es) -> i_foldr f base $ size (l, u) `take` es
-    i_foldl f base = \ (ByteList l u es) -> i_foldl f base $ size (l, u) `take` es
+    i_foldr f base = \ (ByteList _ _ es) -> i_foldr f base es
+    i_foldl f base = \ (ByteList _ _ es) -> i_foldl f base es
 
 instance (Index i, Unboxed e) => Set (ByteList i e) e
   where
@@ -336,21 +325,17 @@ instance (Index i, Unboxed e) => Set (ByteList i e) e
         es'    = deleteWith f e es
         (l, u) = defaultBounds $ sizeOf es'
     
-    isContainedIn f e (ByteList _ _ es) = isContainedIn f e es
-    
     isSubsetWith f (ByteList _ _ xs) (ByteList _ _ ys) = isSubsetWith f xs ys
     
-    lookupLTWith f e (ByteList l u es) = lookupLTWith f e $ size (l, u) `take` es
-    lookupGTWith f e (ByteList l u es) = lookupGTWith f e $ size (l, u) `take` es
-    lookupLEWith f e (ByteList l u es) = lookupLEWith f e $ size (l, u) `take` es
-    lookupGEWith f e (ByteList l u es) = lookupGEWith f e $ size (l, u) `take` es
+    isContainedIn f e (ByteList _ _ es) = isContainedIn f e es
+    lookupLTWith  f e (ByteList _ _ es) = lookupLTWith  f e es
+    lookupGTWith  f e (ByteList _ _ es) = lookupGTWith  f e es
+    lookupLEWith  f e (ByteList _ _ es) = lookupLEWith  f e es
+    lookupGEWith  f e (ByteList _ _ es) = lookupGEWith  f e es
 
 instance (Index i, Unboxed e) => Sort (ByteList i e) e
   where
-    sortBy cmp (ByteList l u es) = runST $ do
-      es' <- thaw es
-      timSortBy cmp es'
-      ByteList l u <$> done es'
+    sortBy cmp (ByteList l u es) = ByteList l u $ sortBy cmp es
 
 --------------------------------------------------------------------------------
 
@@ -376,10 +361,10 @@ instance (Index i, Unboxed e) => Freeze (ST s) (STByteList s i e) (ByteList i e)
 
 --------------------------------------------------------------------------------
 
-done :: (Unboxed e) => STUblist s e -> ST s (Ublist e)
-done = freeze
-
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.ByteList." ++ msg
+
+
+
 
 

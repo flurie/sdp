@@ -171,6 +171,7 @@ test-suite test-array
     SDP.Sort
     SDP.Scan
     SDP.Set
+    SDP.Map
     SDP.Zip
     
     Test.SDP
@@ -183,6 +184,8 @@ test-suite test-array
     Test.SDP.Set
     Test.SDP.Ord
     Test.SDP.Eq
+    
+    SDP.Internal.SArray
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -221,6 +224,7 @@ test-suite test-bytes
     SDP.Sort
     SDP.Scan
     SDP.Set
+    SDP.Map
     SDP.Zip
     
     Test.SDP
@@ -272,6 +276,7 @@ test-suite test-unrolled
     SDP.Sort
     SDP.Scan
     SDP.Set
+    SDP.Map
     SDP.Zip
     
     Test.SDP
@@ -284,6 +289,8 @@ test-suite test-unrolled
     Test.SDP.Set
     Test.SDP.Ord
     Test.SDP.Eq
+    
+    SDP.Internal.SArray
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -324,6 +331,7 @@ test-suite test-bytelist
     SDP.Sort
     SDP.Scan
     SDP.Set
+    SDP.Map
     SDP.Zip
     
     Test.SDP
@@ -374,6 +382,7 @@ test-suite test-ublist
     SDP.Sort
     SDP.Scan
     SDP.Set
+    SDP.Map
     SDP.Zip
     
     Test.SDP
@@ -423,6 +432,7 @@ test-suite test-unlist
     SDP.Sort
     SDP.Scan
     SDP.Set
+    SDP.Map
     SDP.Zip
     
     Test.SDP
@@ -435,6 +445,8 @@ test-suite test-unlist
     Test.SDP.Set
     Test.SDP.Ord
     Test.SDP.Eq
+    
+    SDP.Internal.SArray
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -493,9 +505,12 @@ benchmark bench-sort
     SDP.Sort
     SDP.Scan
     SDP.Set
+    SDP.Map
     SDP.Zip
     
     Test.SDP.Gen
+    
+    SDP.Internal.SArray
   
   build-depends:
     base         >= 4.12  && < 5,

@@ -11,8 +11,12 @@
     Portability :  non-portable (GHC extensions)
     
     @SDP.Array@ provides 'Array' - immutable lazy boxed array type.
-    This implementation of array no much different from @Data.Array@ (array),
-    but incopatible with it.
+    This array implementation uses Index class instead Ix and SArray\# instead
+    Array\#.
+    
+    Note that the array constructor is open for access to the Array\# primitive,
+    not for changing bounds: @(Array l u arr#)@ must satisfy
+    @size (l, u) == sizeOf arr#@.
 -}
 module SDP.Array
 (
@@ -23,7 +27,7 @@ module SDP.Array
   module SDP.Set,
   
   -- * Array
-  Array (..)
+  Array (..), SArray#, fromPseudoArray#
 )
 where
 
@@ -37,13 +41,7 @@ import SDP.Set
 
 import Test.QuickCheck
 
-import GHC.Base
-  (
-    Array#, Int (..),
-    
-    newArray#, writeArray#, indexArray#, unsafeFreezeArray#,
-    thawArray#, freezeArray#
-  )
+import GHC.Base ( Int (..) )
 
 import GHC.Show ( appPrec )
 import GHC.ST   ( ST (..), runST )
@@ -54,9 +52,9 @@ import Text.Read.Lex ( expect )
 import qualified GHC.Exts as E
 import Data.String ( IsString (..) )
 
-import SDP.SortM.Tim
 import SDP.Array.ST
 
+import SDP.Internal.SArray
 import SDP.Simple
 
 default ()
@@ -67,7 +65,7 @@ default ()
   Array - standard type of array and an equivalent GHC.Arr and Data.Array,
   except the types of indices.
 -}
-data Array i e = Array !i !i {-# UNPACK #-} !Int (Array# e)
+data Array i e = Array !i !i !(SArray# e)
 
 type role Array nominal representational
 
@@ -79,21 +77,21 @@ instance (Index i, Eq e) => Eq (Array i e) where (==) = eq1
 
 instance (Index i) => Eq1 (Array i)
   where
-    liftEq eq xs ys =
-      let eq' i = i ==. xs || eq (xs !^ i) (ys !^ i) && eq' (i + 1)
-      in  bounds xs == bounds ys && sizeOf xs == sizeOf ys && eq' 0
+    liftEq eq (Array l1 u1 arr1#) (Array l2 u2 arr2#) =
+      l1 == l2 && u1 == u2 && liftEq eq arr1# arr2#
 
 --------------------------------------------------------------------------------
 
 {- Ord and Ord1 instances. -}
 
+-- | Lexicographic order.
 instance (Index i, Ord e) => Ord (Array i e) where compare = compare1
 
+-- | Lexicographic order.
 instance (Index i) => Ord1 (Array i)
   where
-    liftCompare cmp xs ys =
-      let cmp' i = i ==. xs ? EQ $ cmp (xs !^ i) (ys !^ i) <> cmp' (i + 1)
-      in  (sizeOf xs <=> sizeOf ys) <> cmp' 0
+    liftCompare cmp (Array l1 u1 arr1#) (Array l2 u2 arr2#) =
+      liftCompare cmp arr1# arr2# <> (size (l1, u1) <=> size (l2, u2))
 
 --------------------------------------------------------------------------------
 
@@ -109,17 +107,17 @@ instance (Index i, Arbitrary e) => Arbitrary (Array i e)
 
 instance Estimate (Array i e)
   where
-    (Array _ _ n1 _) <==> (Array _ _ n2 _) = n1 <=> n2
-    (Array _ _ n1 _) .>.  (Array _ _ n2 _) = n1  >  n2
-    (Array _ _ n1 _) .<.  (Array _ _ n2 _) = n1  <  n2
-    (Array _ _ n1 _) .<=. (Array _ _ n2 _) = n1 <=  n2
-    (Array _ _ n1 _) .>=. (Array _ _ n2 _) = n1 >=  n2
+    (Array _ _ arr1#) <==> (Array _ _ arr2#) = arr1# <==> arr2#
+    (Array _ _ arr1#) .>.  (Array _ _ arr2#) = arr1# .>.  arr2#
+    (Array _ _ arr1#) .<.  (Array _ _ arr2#) = arr1# .<.  arr2#
+    (Array _ _ arr1#) .<=. (Array _ _ arr2#) = arr1# .<=. arr2#
+    (Array _ _ arr1#) .>=. (Array _ _ arr2#) = arr1# .>=. arr2#
     
-    (Array _ _ n1 _) <.=> n2 = n1 <=> n2
-    (Array _ _ n1 _)  .>  n2 = n1  >  n2
-    (Array _ _ n1 _)  .<  n2 = n1  <  n2
-    (Array _ _ n1 _) .>=  n2 = n1 >=  n2
-    (Array _ _ n1 _) .<=  n2 = n1 <=  n2
+    (Array _ _ arr1#) <.=> n2 = arr1# <.=> n2
+    (Array _ _ arr1#)  .>  n2 = arr1#  .>  n2
+    (Array _ _ arr1#)  .<  n2 = arr1#  .<  n2
+    (Array _ _ arr1#) .>=  n2 = arr1# .>=  n2
+    (Array _ _ arr1#) .<=  n2 = arr1# .<=  n2
 
 --------------------------------------------------------------------------------
 
@@ -139,10 +137,10 @@ instance (Index i) => IsString (Array i Char) where fromString = fromList
 
 instance (Index i, Show i, Show e) => Show (Array i e)
   where
-    showsPrec p arr@(Array l u _ _) = showParen (p > appPrec) $ showString "array "
-                                                              . shows (l, u)
-                                                              . showChar ' '
-                                                              . shows (assocs arr)
+    showsPrec p arr@(Array l u _) = showParen (p > appPrec) $ showString "array "
+                                                            . shows (l, u)
+                                                            . showChar ' '
+                                                            . shows (assocs arr)
 
 instance (Index i, Read i, Read e) => Read (Array i e)
   where
@@ -157,13 +155,7 @@ instance (Index i, Read i, Read e) => Read (Array i e)
 
 instance (Index i) => Functor (Array i)
   where
-    fmap f arr@(Array l u n@(I# n#) _) = runST $ ST $ \ s1# ->
-      case newArray# n# (unreachEx "fmap") s1# of
-        (# s2#, marr# #) ->
-          let go i@(I# i#) s3# = if i == n
-              then case unsafeFreezeArray# marr# s3# of (# s4#, arr# #) -> (# s4#, Array l u n arr# #)
-              else case writeArray# marr# i# (f $ arr !^ i) s3# of s5# -> go (i + 1) s5#
-          in go 0 s2#
+    fmap f (Array l u arr#) = Array l u $ f <$> arr#
 
 instance (Index i) => Zip (Array i)
   where
@@ -203,83 +195,26 @@ instance (Index i) => Applicative (Array i)
 
 instance (Index i) => Foldable (Array i)
   where
-    {-# INLINE foldr #-}
-    foldr  f base = \ arr ->
-      let go i = arr .== i ? base $ f (arr !^ i) (go $ i + 1)
-      in  go 0
+    foldr  f base (Array _ _ arr#) = foldr  f base arr#
+    foldl  f base (Array _ _ arr#) = foldl  f base arr#
+    foldr' f base (Array _ _ arr#) = foldr' f base arr#
+    foldl' f base (Array _ _ arr#) = foldl' f base arr#
     
-    {-# INLINE foldl #-}
-    foldl  f base = \ arr ->
-      let go i = -1 == i ? base $ f (go $ i - 1) (arr !^ i)
-      in  go (sizeOf arr - 1)
+    foldr1 f (Array _ _ arr#) = foldr1 f arr#
+    foldl1 f (Array _ _ arr#) = foldl1 f arr#
     
-    {-# INLINE foldr' #-}
-    foldr' f base = \ arr ->
-      let go i !a = -1 == i ? a $ go (i - 1) (f (arr !^ i) a)
-      in  go (sizeOf arr - 1) base
-    
-    {-# INLINE foldl' #-}
-    foldl' f base = \ arr ->
-      let go i !a = arr .== i ? a $ go (i + 1) (f a $ arr !^ i)
-      in  go 0 base
-    
-    {-# INLINE foldr1 #-}
-    foldr1 f = \ arr ->
-      let go i = arr .== (i + 1) ? e $ f e (go $ i + 1) where e = arr !^ i
-      in  null arr ? pfailEx "foldr1" $ go 0
-    
-    {-# INLINE foldl1 #-}
-    foldl1 f = \ arr ->
-      let go i = 0 == i ? e $ f (go $ i - 1) e where e = arr !^ i
-      in  null arr ? pfailEx "foldl1" $ go (sizeOf arr - 1)
-    
-    {-# INLINE toList #-}
-    toList = foldr (:) []
-    
-    {-# INLINE null #-}
-    null   (Array l u n _) = n < 1 || isEmpty (l, u)
-    
-    {-# INLINE length #-}
-    length (Array _ _ n _) = max 0 n
+    length (Array _ _ arr#) = length arr#
+    toList (Array _ _ arr#) = toList arr#
+    null   (Array _ _ arr#) = null   arr#
 
 instance (Index i) => Scan (Array i)
   where
-    scanl f w es = null es ? single w $ fromListN l (w : res w 0)
-      where
-        l = sizeOf es + 1
-        res !curr !n = nxt : res nxt (n + 1)
-          where
-            nxt = f curr (es !^ n)
+    scanl  f w (Array _ _ arr#) = withBounds $ scanl  f w arr#
+    scanr  f w (Array _ _ arr#) = withBounds $ scanr  f w arr#
+    scanl' f w (Array _ _ arr#) = withBounds $ scanl' f w arr#
     
-    scanr f w es = null es ? single w $ fromListN l (res w (l - 2) [w])
-      where
-        l = sizeOf es + 1
-        res !curr !n ws = n < 0 ? ws $ res prv (n - 1) (prv : ws)
-          where
-            prv = f (es !^ n) curr
-    
-    scanl' f w es = null es ? single w $ fromListN l (w : res w 0)
-      where
-        l = sizeOf es + 1
-        res !curr !n = nxt : res nxt (n + 1)
-          where
-            nxt = f curr (es !^ n)
-    
-    scanl1 f es = null es ? pfailEx "scanl1" $ fromListN l (res w 0)
-      where
-        l = sizeOf es
-        w = head es
-        res !curr !n = nxt : res nxt (n + 1)
-          where
-            nxt = f curr (es !^ n)
-    
-    scanr1 f es = null es ? pfailEx "scanr1" $ fromList (res w (l - 2) [w])
-      where
-        l = sizeOf es
-        w = last es
-        res !curr !n ws = n < 0 ? ws $ res prv (n - 1) (prv : ws)
-          where
-            prv = f (es !^ n) curr
+    scanl1 f   (Array _ _ arr#) = withBounds $ scanl1 f arr#
+    scanr1 f   (Array _ _ arr#) = withBounds $ scanr1 f arr#
 
 instance (Index i) => Traversable (Array i)
   where
@@ -294,44 +229,46 @@ instance (Index i) => Linear (Array i e) e
     isNull = null
     
     {-# INLINE lzero #-}
-    lzero = runST $ filled 0 (unreachEx "lzero") >>= done
+    lzero = withBounds Z
     
-    toHead e es = fromListN (sizeOf es + 1) (e : listL es)
+    toHead e (Array _ _ arr#) = withBounds $ e :> arr#
     
-    head Z  = pfailEx "(:>)"
-    head es = es !^ 0
+    head es = isNull es ? pfailEx "(:>)" $ es !^ 0
     
-    tail Z  = pfailEx "(:>)"
-    tail es = fromListN (sizeOf es - 1) . tail $ listL es
+    -- | O(1) 'tail', O(1) memory.
+    tail Z = pfailEx "(:>)"
+    tail (Array _ _ arr#) = withBounds $ tail arr#
     
-    toLast es e = fromListN (sizeOf es + 1) $ foldr (:) [e] es
+    toLast (Array _ _ arr#) e = withBounds $ arr# :< e
     
-    last Z  = pfailEx "(:<)"
-    last es = es !^ (sizeOf es - 1)
+    last es = isNull es ? pfailEx "(:<)" $ es !^ (sizeOf es - 1)
     
-    init Z  = pfailEx "(:<)"
-    init es = fromListN (sizeOf es - 1) $ listL es
+    -- | O(1) 'init', O(1) memory.
+    init Z = pfailEx "(:<)"
+    init (Array _ _ arr#) = withBounds $ init arr#
     
     fromList = fromFoldable
     
     {-# INLINE fromListN #-}
-    fromListN n es = runST $ newLinearN n es >>= done
+    fromListN n = withBounds . fromListN n
     
     {-# INLINE fromFoldable #-}
-    fromFoldable es = runST $ fromFoldableM es >>= done
+    fromFoldable = withBounds . fromFoldable
     
     {-# INLINE single #-}
-    single e = runST $ filled 1 e >>= done
+    single = withBounds . single
     
-    xs ++ ys = fromListN (sizeOf xs + sizeOf ys) $ foldr (:) (listL ys) xs
+    -- | O(n + m) '++', O(n + m) memory.
+    (Array _ _ xs) ++ (Array _ _ ys) = withBounds $ xs ++ ys
     
     {-# INLINE replicate #-}
-    replicate n e = runST $ filled n e >>= done
+    -- | O(n) 'replicate', O(n) memory.
+    replicate n = withBounds . replicate n
     
     listL = toList
     
     {-# INLINE listR #-}
-    listR = flip (:) `foldl` []
+    listR = \ (Array _ _ arr#) -> listR arr#
     
     {-# INLINE concatMap #-}
     concatMap f = fromList . foldr (\ a l -> foldr (:) l $ f a) []
@@ -343,54 +280,51 @@ instance (Index i) => Linear (Array i e) e
 
 instance (Index i) => Split (Array i e) e
   where
-    {-#  INLINE take #-}
-    take n es
-      |  n <= 0  = Z
-      | n >=. es = es
-      |   True   = fromListN n [ es !^ i | i <- [ 0 .. n - 1 ] ]
+    {-# INLINE take #-}
+    -- | O(1) 'take', O(1) memory.
+    take n (Array _ _ arr#) = withBounds $ take n arr#
     
     {-# INLINE drop #-}
-    drop n es
-        |  n <= 0  = es
-        | n >=. es = Z
-        |   True   = fromListN (l - n) [ es !^ i | i <- [ n .. l - 1 ] ]
-      where
-        l = sizeOf es
+    -- | O(1) 'drop', O(1) memory.
+    drop n (Array _ _ arr#) = withBounds $ drop n arr#
     
-    splits ns es = fromList <$> splits ns (listL es)
-    chunks ns es = fromList <$> chunks ns (listL es)
-    parts  ns es = fromList <$> parts  ns (listL es)
+    -- | O(m) 'splits', O(m) memory (m - sizes list length).
+    splits ns (Array _ _ arr#) = withBounds <$> splits ns arr#
     
-    isPrefixOf xs ys =
-      let equals i = i ==. xs || (xs !^ i) == (ys !^ i) && equals (i + 1)
-      in  xs .<=. ys && equals 0
+    -- | O(m) 'chuncks', O(m) memory (m - sizes list length).
+    chunks ns (Array _ _ arr#) = withBounds <$> chunks ns arr#
     
-    isSuffixOf xs ys =
-      let equals i j = i ==. xs || (xs !^ i) == (ys !^ j) && equals (i + 1) (j + 1)
-      in  xs .<=. ys && equals 0 (max 0 $ sizeOf ys - sizeOf xs)
+    -- | O(m) 'parts', O(m) memory (m - sizes list length).
+    parts  ns (Array _ _ arr#) = withBounds <$> parts  ns arr#
+    
+    isPrefixOf (Array l1 u1 arr1#) (Array l2 u2 arr2#) =
+      size (l1, u1) <= size (l2, u2) && arr1# `isPrefixOf` arr2#
+    
+    isSuffixOf (Array l1 u1 arr1#) (Array l2 u2 arr2#) =
+      size (l1, u1) <= size (l2, u2) && arr1# `isSuffixOf` arr2#
 
 instance (Index i) => Bordered (Array i e) i e
   where
     {-# INLINE indexIn #-}
-    indexIn (Array l u _ _) = inRange (l, u)
+    indexIn (Array l u _) = inRange (l, u)
     
     {-# INLINE indexOf #-}
-    indexOf (Array l u _ _) = index (l, u)
+    indexOf (Array l u _) = index (l, u)
     
     {-# INLINE offsetOf #-}
-    offsetOf (Array l u _ _) = offset (l, u)
+    offsetOf (Array l u _) = offset (l, u)
     
     {-# INLINE sizeOf #-}
-    sizeOf  (Array _ _ n _) = max 0 n
+    sizeOf  (Array _ _ arr#) = sizeOf arr#
     
     {-# INLINE bounds #-}
-    bounds  (Array l u _ _) = (l, u)
+    bounds  (Array l u _) = (l, u)
     
     {-# INLINE lower #-}
-    lower   (Array l _ _ _) = l
+    lower   (Array l _ _) = l
     
     {-# INLINE upper #-}
-    upper   (Array _ u _ _) = u
+    upper   (Array _ u _) = u
 
 --------------------------------------------------------------------------------
 
@@ -399,13 +333,12 @@ instance (Index i) => Bordered (Array i e) i e
 instance (Index i) => Indexed (Array i e) i e
   where
     {-# INLINE assoc' #-}
-    assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
+    assoc' bnds@(l, u) defvalue ascs = Array l u $ assoc' bnds' defvalue ies
+      where
+        ies   = [ (offset bnds i, e) | (i, e) <- ascs, inRange bnds i ]
+        bnds' = defaultBounds $ size bnds
     
-    fromIndexed es = runST $ do
-        let n = sizeOf es
-        copy <- filled n (unreachEx "fromIndexed")
-        forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
-        done copy
+    fromIndexed = withBounds . fromIndexed
     
     {-# INLINE (//) #-}
     Z // ascs = null ascs ? Z $ assoc (l, u) ascs
@@ -415,168 +348,57 @@ instance (Index i) => Indexed (Array i e) i e
     arr // ascs = runST $ fromFoldableM arr >>= (`overwrite` ascs) >>= done
     
     {-# INLINE (!^) #-}
-    (Array _ _ _ arr#) !^ (I# i#) = case indexArray# arr# i# of (# e #) -> e
+    (!^) (Array _ _ arr#) = (arr# !^)
     
     {-# INLINE (!) #-}
-    (!) arr = \ i -> arr !^ offsetOf arr i
+    (!) (Array l u arr#) = (arr# !^) . offset (l, u)
     
     (*$) p = ifoldr (\ i e is -> p e ? (i : is) $ is) []
 
 instance (Index i) => IFold (Array i e) i e
   where
     {-# INLINE ifoldr #-}
-    ifoldr  f base = \ arr@(Array _ _ n _) ->
-      let go i = n == i ? base $ f (indexOf arr i) (arr !^ i) (go $ i + 1)
-      in  go 0
+    ifoldr f = \ base (Array l u arr#) -> ifoldr (\ i -> f $ index (l, u) i) base arr#
     
     {-# INLINE ifoldl #-}
-    ifoldl  f base = \ arr ->
-      let go i = -1 == i ? base $ f (indexOf arr i) (go $ i - 1) (arr !^ i)
-      in  go (sizeOf arr - 1)
+    ifoldl f = \ base (Array l u arr#) -> ifoldl (\ i -> f $ index (l, u) i) base arr#
     
     i_foldr = foldr
     i_foldl = foldl
 
 instance (Index i) => Set (Array i e) e
   where
-    setWith f = nubSorted f . sortBy f
+    setWith f (Array _ _ arr#) = withBounds $ setWith f arr#
     
-    insertWith _ e Z  = single e
-    insertWith f e es = isContainedIn f e es ? es $ res
-      where
-        res = fromList . insertWith f e $ listL es
-    
-    deleteWith _ _ Z  = Z
-    deleteWith f e es = isContainedIn f e es ? es $ res
-      where
-        res = fromList . deleteWith f e $ listL es
+    insertWith f e (Array _ _ arr#) = withBounds $ insertWith f e arr#
+    deleteWith f e (Array _ _ arr#) = withBounds $ deleteWith f e arr#
     
     {-# INLINE intersectionWith #-}
-    intersectionWith f xs ys = fromList $ intersection' 0 0
-      where
-        n1 = sizeOf xs; n2 = sizeOf ys
-        intersection' i j = i == n1 || j == n2 ? [] $ case x `f` y of
-            LT -> intersection' (i + 1) j
-            EQ -> x : intersection' (i + 1) (j + 1)
-            GT -> intersection' i (j + 1)
-          where
-            x = xs !^ i; y = ys !^ j
+    intersectionWith f (Array _ _ arr1#) (Array _ _ arr2#) =
+      withBounds $ intersectionWith f arr1# arr2#
     
     {-# INLINE unionWith #-}
-    unionWith f xs ys = fromList $ union' 0 0
-      where
-        n1 = sizeOf xs; n2 = sizeOf ys
-        union' i j
-          | i == n1 = (ys !^) <$> [j .. n2 - 1]
-          | j == n2 = (xs !^) <$> [i .. n1 - 1]
-          |  True   = case x `f` y of
-            LT -> x : union' (i + 1) j
-            EQ -> x : union' (i + 1) (j + 1)
-            GT -> y : union' i (j + 1)
-          where
-            x = xs !^ i; y = ys !^ j
+    unionWith f (Array _ _ arr1#) (Array _ _ arr2#) =
+      withBounds $ unionWith f arr1# arr2#
     
     {-# INLINE differenceWith #-}
-    differenceWith f xs ys = fromList $ difference' 0 0
-      where
-        n1 = sizeOf xs; n2 = sizeOf ys
-        difference' i j
-            | i == n1 = []
-            | j == n2 = (xs !^) <$> [i .. n1 - 1]
-            |  True   = case x `f` y of
-              LT -> x : difference' (i + 1) j
-              EQ -> difference' (i + 1) (j + 1)
-              GT -> difference' i (j + 1)
-          where
-            x = xs !^ i; y = ys !^ j
+    differenceWith f (Array _ _ arr1#) (Array _ _ arr2#) =
+      withBounds $ differenceWith f arr1# arr2#
     
     {-# INLINE symdiffWith #-}
-    symdiffWith f xs ys = fromList $ symdiff' 0 0
-      where
-        n1 = sizeOf xs; n2 = sizeOf ys
-        symdiff' i j
-            | i == n1 = (ys !^) <$> [j .. n2 - 1]
-            | j == n2 = (xs !^) <$> [i .. n1 - 1]
-            |  True   = case x `f` y of
-              LT -> x : symdiff' (i + 1) j
-              EQ -> symdiff' (i + 1) (j + 1)
-              GT -> y : symdiff' i (j + 1)
-          where
-            x = xs !^ i; y = ys !^ j
+    symdiffWith f (Array _ _ arr1#) (Array _ _ arr2#) =
+      withBounds $ differenceWith f arr1# arr2#
     
-    {-# INLINE isContainedIn #-}
-    isContainedIn = binaryContain
+    isContainedIn f e (Array _ _ es) = isContainedIn f e es
     
-    lookupLTWith _ _ Z  = Nothing
-    lookupLTWith f o es
-        | GT <- o `f` last' = Just last'
-        | GT <- o `f` head' = look' head' 0 (sizeOf es - 1)
-        |       True        = Nothing
-      where
-        head' = es .! lower es
-        last' = es .! upper es
-        
-        look' r l u = if l > u then Just r else case o `f` e of
-            LT -> look' r l (j - 1)
-            EQ -> Just $ j < 1 ? r $ es !^ (j - 1)
-            GT -> look' e (j + 1) u
-          where
-            j = l + (u - l) `div` 2
-            e = es !^ j
-    
-    lookupLEWith _ _ Z  = Nothing
-    lookupLEWith f o es
-        | GT <- o `f` last' = Just last'
-        | LT <- o `f` head' = Nothing
-        |       True        = look' head' 0 (sizeOf es - 1)
-      where
-        head' = es .! lower es
-        last' = es .! upper es
-        
-        look' r l u = if l > u then Just r else case o `f` e of
-            LT -> look' r l (j - 1)
-            _  -> look' e (j + 1) u
-          where
-            j = l + (u - l) `div` 2
-            e = es !^ j
-    
-    lookupGTWith _ _ Z  = Nothing
-    lookupGTWith f o es
-        | LT <- o `f` head' = Just head'
-        | LT <- o `f` last' = look' last' 0 (sizeOf es - 1)
-        |       True        = Nothing
-      where
-        head' = es .! lower es
-        last' = es .! upper es
-        
-        look' r l u = if l > u then Just r else case o `f` e of
-            LT -> look' e l (j - 1)
-            EQ -> j >= (sizeOf es - 1) ? Nothing $ Just (es !^ (j + 1))
-            GT -> look' r (j + 1) u
-          where
-            j = l + (u - l) `div` 2
-            e = es !^ j
-    
-    lookupGEWith _ _ Z  = Nothing
-    lookupGEWith f o es
-        | GT <- o `f` last' = Nothing
-        | GT <- o `f` head' = look' last' 0 (sizeOf es - 1)
-        |       True        = Just head'
-      where
-        head' = es .! lower es
-        last' = es .! upper es
-        
-        look' r l u = if l > u then Just r else case o `f` e of
-            LT -> look' e l (j - 1)
-            EQ -> Just e
-            GT -> look' r (j + 1) u
-          where
-            j = l + (u - l) `div` 2
-            e = es !^ j
+    lookupLTWith f o (Array _ _ arr#) = lookupLTWith f o arr#
+    lookupGTWith f o (Array _ _ arr#) = lookupGTWith f o arr#
+    lookupLEWith f o (Array _ _ arr#) = lookupLEWith f o arr#
+    lookupGEWith f o (Array _ _ arr#) = lookupGEWith f o arr#
 
 instance (Index i) => Sort (Array i e) e
   where
-    sortBy cmp es = runST $ do es' <- thaw es; timSortBy cmp es'; done es'
+    sortBy cmp (Array l u arr#) = Array l u (sortBy cmp arr#)
 
 --------------------------------------------------------------------------------
 
@@ -584,32 +406,25 @@ instance (Index i) => Sort (Array i e) e
 
 instance (Index i) => Thaw (ST s) (Array i e) (STArray s i e)
   where
-    thaw (Array l u n@(I# n#) arr#) = ST $
-      \ s1# -> case thawArray# arr# 0# n# s1# of
-        (# s2#, marr# #) -> (# s2#, STArray l u n marr# #)
+    thaw       (Array l u arr#) = STArray l u <$> thaw arr#
+    unsafeThaw (Array l u arr#) = STArray l u <$> unsafeThaw arr#
 
 instance (Index i) => Freeze (ST s) (STArray s i e) (Array i e)
   where
-    freeze (STArray l u n@(I# n#) marr#) = ST $
-      \ s1# -> case freezeArray# marr# 0# n# s1# of
-        (# s2#, arr# #) -> (# s2#, Array l u n arr# #)
+    freeze       (STArray l u marr#) = Array l u <$> freeze marr#
+    unsafeFreeze (STArray l u marr#) = Array l u <$> unsafeFreeze marr#
 
 --------------------------------------------------------------------------------
 
+{-# INLINE withBounds #-}
+withBounds :: (Index i) => SArray# e -> Array i e
+withBounds arr# = let (l, u) = defaultBounds (sizeOf arr#) in Array l u arr#
+
 {-# INLINE done #-}
 done :: STArray s i e -> ST s (Array i e)
-done (STArray l u n marr#) = ST $ \ s1# -> case unsafeFreezeArray# marr# s1# of
-  (# s2#, arr# #) -> (# s2#, Array l u n arr# #)
-
-{-# INLINE nubSorted #-}
-nubSorted :: (Index i) => Compare e -> Array i e -> Array i e
-nubSorted f es = null es ? Z $ fromList . foldr fun [last es] $ init (listL es)
-  where
-    fun = \ e ls -> e `f` head ls == EQ ? ls $ e : ls
+done (STArray l u marr#) = Array l u <$> unsafeFreeze marr#
 
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Array." ++ msg
 
-unreachEx :: String -> a
-unreachEx msg = throw . UnreachableException $ "in SDP.Array." ++ msg
 
