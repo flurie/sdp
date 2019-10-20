@@ -16,6 +16,9 @@ module SDP.Unboxed
     -- * Unboxed
     Unboxed (..),
     
+    -- * Overloaded operations with primitives
+    cloneUnboxed#, copyUnboxed#, copyUnboxedM#,
+    
     -- * Related functions
     newUnboxedByteArray, safe_scale
   )
@@ -27,7 +30,7 @@ import SDP.SafePrelude
 import GHC.Stable ( StablePtr (..) )
 import GHC.Base   ( divInt# )
 import GHC.Exts
-import GHC.ST     ( ST (..), STRep )
+import GHC.ST     ( runST, ST (..), STRep )
 
 import GHC.Int  ( Int  (..), Int8  (..), Int16  (..), Int32  (..), Int64  (..) )
 import GHC.Word ( Word (..), Word8 (..), Word16 (..), Word32 (..), Word64 (..) )
@@ -74,17 +77,17 @@ class (Eq e) => Unboxed e
         of ST rep -> case rep s1# of (# s2#, () #) -> s2#
     
     {- |
-      newUnboxed creates new MutableByteArray.
+      newUnboxed creates new MutableByteArray of given count of elements.
       First argument used as type variable.
     -}
-    newUnboxed      :: e -> Int# -> State# s -> (# State# s, MutableByteArray# s #)
+    newUnboxed :: e -> Int# -> State# s -> (# State# s, MutableByteArray# s #)
     
     {-# INLINE newUnboxed' #-}
     {- |
       new Unboxed' is strict version of array, that use first argument as initial
       value. May fail when trying to write error or undefined.
     -}
-    newUnboxed'     :: e -> Int# -> State# s -> (# State# s, MutableByteArray# s #)
+    newUnboxed' :: e -> Int# -> State# s -> (# State# s, MutableByteArray# s #)
     newUnboxed' e n# = \ s1# -> case newUnboxed e n# s1# of
       (# s2#, marr# #) -> case fillByteArray# marr# n# e s2# of
         s3# -> (# s3#, marr# #)
@@ -385,9 +388,51 @@ instance Unboxed Double
 
 --------------------------------------------------------------------------------
 
+-- Just a wrapper, used once to lift ByteArray# from ST.
+data Wrap = Wrap { unwrap :: ByteArray# }
+
+{- |
+  @cloneUnboxed\# e o\# c\#@ creates byte array with @c\#@ elements of same type
+  as @e@ beginning from @o\#@ elements.
+-}
+cloneUnboxed# :: (Unboxed e) => e -> ByteArray# -> Int# -> Int# -> ByteArray#
+cloneUnboxed# e arr# o# c# = unwrap $ runST $ ST $
+  \ s1# -> case newUnboxed e c# s1# of
+    (# s2#, marr# #) -> case copyUnboxed# e arr# o# marr# 0# c# s2# of
+      s3# -> case unsafeFreezeByteArray# marr# s3# of
+        (# s4#, arr'# #) -> (# s4#, (Wrap arr'#) #)
+
+{- |
+  @copyUnboxed\# e arr\# o1\# marr\# o2\# n\#@ writes elements from @arr\#@'s
+  @[o1\# .. o1\# +\# n\#]@ range to @marr\#@'s @[o2\# .. o2\# +\# n\#]@ range.
+-}
+copyUnboxed# :: (Unboxed e) => e -> ByteArray# -> Int# -> MutableByteArray# s -> Int# -> Int# -> State# s -> State# s
+copyUnboxed# _  _    _    _    _  0# = \ sn# -> sn#
+copyUnboxed# e arr# o1# marr# o2# c# = \ s1# ->
+  case writeByteArray# marr# o2# ((arr# !# o1#) `asTypeOf` e) s1# of
+    s2# -> copyUnboxed# e arr# (o1# +# 1#) marr# (o2# +# 1#) (c# -# 1#) s2#
+
+{- |
+  @copyUnboxed\# e msrc\# o1# marr\# o2# n\#@ writes elements from @msrc\#@'s
+  @[o1\# .. o1\# +\# n\#]@ range to @marr\#@'s @[02\# .. o2\# +\# n\#]@ range.
+-}
+copyUnboxedM# :: (Unboxed e) => e -> MutableByteArray# s -> Int# -> MutableByteArray# s -> Int# -> Int# -> State# s -> State# s
+copyUnboxedM# _  _    _    _    _  0# = \ sn# -> sn#
+copyUnboxedM# e src# o1# marr# o2# n# = \ s1# -> case (!>#) src# o1# s1# of
+  (# s2#, x #) -> case writeByteArray# marr# o2# (x `asTypeOf` e) s2# of
+    s3# -> copyUnboxedM# e src# (o1# +# 1#) marr# (o2# +# 1#) (n# -# 1#) s3#
+
+--------------------------------------------------------------------------------
+
 {- Related. -}
 
--- | newUnboxedByteArray is service function for ordinary newUnboxed decrarations.
+{- |
+  newUnboxedByteArray is service function for ordinary newUnboxed decrarations.
+  
+  @newUnboxedByteArray f i\#@ creates new MutableByteArray\# of real
+  length (f i\#), where i\# - count of element, f - non-negative function
+  (e.g. @newUnboxedByteArray double_scale == newUnboxed@ for 'Float').
+-}
 {-# INLINE newUnboxedByteArray #-}
 newUnboxedByteArray :: (Int# -> Int#) -> Int# -> State# s -> (# State# s, MutableByteArray# s #)
 newUnboxedByteArray n2l = \ n# s1# -> newByteArray# (n2l n#) s1#
@@ -425,7 +470,8 @@ double_scale n# = safe_scale scale# n# where !(I# scale#) = SIZEOF_HSDOUBLE
 
 {-# INLINE bool_bit #-}
 bool_bit        :: Int# -> Word#
-bool_bit n#     =  case (SIZEOF_HSWORD * 8 - 1) of !(W# mask#) -> int2Word# 1# `uncheckedShiftL#` (word2Int# (int2Word# n# `and#` mask#))
+bool_bit n#     =  case (SIZEOF_HSWORD * 8 - 1) of
+  !(W# mask#) -> int2Word# 1# `uncheckedShiftL#` (word2Int# (int2Word# n# `and#` mask#))
 
 {-# INLINE bool_not_bit #-}
 bool_not_bit    :: Int# -> Word#
@@ -438,7 +484,6 @@ bool_index = (`uncheckedIShiftRA#` 5#)
 #elif SIZEOF_HSWORD == 8
 bool_index = (`uncheckedIShiftRA#` 6#)
 #endif
-
 
 
 

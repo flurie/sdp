@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, RoleAnnotations #-}
+{-# LANGUAGE Unsafe, MagicHash, RoleAnnotations #-}
 
 {- |
     Module      :  SDP.Unrolled.STUnlist
@@ -8,8 +8,8 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
     
-    @SDP.Unrolled.STUnlist@ provides service type 'STUnlist' - mutable lazy
-    boxed unrolled linked list for @Unlist@.
+    @SDP.Unrolled.STUnlist@ provides 'STUnlist' - mutable boxed lazy unrolled
+    linked list.
 -}
 module SDP.Unrolled.STUnlist
 (
@@ -18,7 +18,7 @@ module SDP.Unrolled.STUnlist
   module SDP.SortM,
   
   -- * STUnlist
-  STUnlist (..)
+  STUnlist (..), fromPseudoMutableArray#
 )
 where
 
@@ -41,19 +41,9 @@ default ()
 --------------------------------------------------------------------------------
 
 -- | This STUnlist is mutable version of Unlist.
-data STUnlist s e = STUNEmpty | STUnlist !(STArray# s e) (STUnlist s e)
+data STUnlist s e = STUNEmpty | STUnlist !(STArray# s e) (STUnlist s e) deriving ( Eq )
 
 type role STUnlist nominal representational
-
---------------------------------------------------------------------------------
-
-{- Eq instance. -}
-
-instance (Eq e) => Eq (STUnlist s e)
-  where
-    STUNEmpty == STUNEmpty = True
-    (STUnlist marr1# marr1) == (STUnlist marr2# marr2) = marr1# == marr2# && marr1 == marr2
-    _ == _ = False
 
 --------------------------------------------------------------------------------
 
@@ -111,12 +101,12 @@ instance IndexedM (ST s) (STUnlist s e) Int e
     
     (!#>) (STUnlist marr# marr) i = getSizeOf marr# >>=
       \ n -> i < n ? marr# !#> i $ marr !#> (i - n)
-    (!#>) _ _ = throw $ IndexOverflow "in SDP.Unlist.STUnlist.(>!)"
+    (!#>) _ _ = throw $ IndexOverflow "in SDP.Unrolled.STUnlist.(>!)"
     
     {-# INLINE (>!) #-}
     (>!) es i = i < 0 ? err $ es !#> i
       where
-        err = throw $ IndexUnderflow "in SDP.Unlist.STUnlist.(>!)"
+        err = throw $ IndexUnderflow "in SDP.Unrolled.STUnlist.(>!)"
     
     es !> i = getBounds es >>= \ bnds -> case inBounds bnds i of
         ER -> throw $ EmptyRange     msg

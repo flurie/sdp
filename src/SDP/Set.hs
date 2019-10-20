@@ -153,7 +153,7 @@ class (Linear s o) => Set s o | s -> o
     -- | Сhecks whether a first set is a subset of second.
     default isSubsetWith :: (t o ~~ s, Foldable t) => Compare o -> s -> s -> Bool
     isSubsetWith :: Compare o -> s -> s -> Bool
-    isSubsetWith f xs ys = any (\ e -> isContainedIn f e ys) xs
+    isSubsetWith f xs ys = all (\ e -> isContainedIn f e ys) xs
     
     -- | Generates a list of different subsets (including empty and equivalent).
     default subsets :: (Ord s, Ord o) => s -> [s]

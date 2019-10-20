@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Unsafe, RoleAnnotations #-}
+{-# LANGUAGE Unsafe, MagicHash, RoleAnnotations #-}
 
 {- |
     Module      :  SDP.ByteList.ST
@@ -8,8 +8,8 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
     
-    @SDP.ByteList.ST@ provides service type 'STByteList' - mutable version of
-    @ByteList@.
+    @SDP.ByteList.ST@ provides 'STByteList' - mutable unboxed strict unrolled
+    linked list.
 -}
 
 module SDP.ByteList.ST
@@ -19,7 +19,7 @@ module SDP.ByteList.ST
   module SDP.SortM,
   
   -- * STByteList
-  STByteList (..)
+  STByteList (..), fromPseudoMutableBytes#
 )
 where
 
@@ -147,8 +147,4 @@ instance (Index i, Unboxed e) => IFoldM (ST s) (STByteList s i e) i e
 instance (Index i, Unboxed e) => SortM (ST s) (STByteList s i e) e
   where
     sortMBy = timSortBy
-
-
-
-
 

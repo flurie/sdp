@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, RoleAnnotations #-}
+{-# LANGUAGE Unsafe, MagicHash, RoleAnnotations #-}
 
 {- |
     Module      :  SDP.Unrolled.Unlist
@@ -8,8 +8,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
     
-    @SDP.Unrolled.Unlist@ provides service type 'Unlist' - lazy boxed unrolled
-    linked list for @Unrolled@.
+    @SDP.Unrolled.Unlist@ provides 'Unlist' - lazy boxed unrolled linked list.
 -}
 module SDP.Unrolled.Unlist
 (
@@ -20,7 +19,7 @@ module SDP.Unrolled.Unlist
   module SDP.Set,
   
   -- * Unlist
-  Unlist (..)
+  Unlist (..), fromPseudoArray#
 )
 where
 
@@ -89,10 +88,8 @@ instance Eq1 Unlist
 
 {- Ord and Ord1 instances. -}
 
--- | Lexicographic order.
 instance (Ord e) => Ord (Unlist e) where compare = compare1
 
--- | Lexicographic order.
 instance Ord1 Unlist
   where
     liftCompare cmp = go
@@ -161,27 +158,18 @@ instance Applicative Unlist
 instance Foldable Unlist
   where
     {-# INLINE foldr #-}
-    foldr f base = \ es -> case es of
-      Z -> base
-      Unlist arr# arr -> foldr f (foldr f base arr) arr#
+    foldr  f = \ base es -> case es of {Z -> base; Unlist arr# arr -> foldr  f (foldr  f base arr) arr#}
     
     {-# INLINE foldr' #-}
-    foldr' f base = \ es -> case es of
-      Z -> base
-      Unlist arr# arr -> foldr' f (foldr' f base arr) arr#
+    foldr' f = \ base es -> case es of {Z -> base; Unlist arr# arr -> foldr' f (foldr' f base arr) arr#}
     
     {-# INLINE foldl #-}
-    foldl f base = \ es -> case es of
-      Z -> base
-      Unlist arr# arr -> foldl f (foldl f base arr#) arr
+    foldl  f = \ base es -> case es of {Z -> base; Unlist arr# arr -> foldl  f (foldl  f base arr#) arr}
     
     {-# INLINE foldl' #-}
-    foldl' f base = \ es -> case es of
-      Z -> base
-      Unlist arr# arr -> foldl' f (foldl' f base arr#) arr
+    foldl' f = \ base es -> case es of {Z -> base; Unlist arr# arr -> foldl' f (foldl' f base arr#) arr}
     
     length es = case es of {Unlist arr# arr -> sizeOf arr# + sizeOf arr; _ -> 0}
-    
     null es = case es of {UNEmpty -> True; Unlist Z UNEmpty -> True; _ -> False}
 
 instance Traversable Unlist
@@ -348,12 +336,10 @@ instance Indexed (Unlist e) Int e
 instance IFold (Unlist e) Int e
   where
     {-# INLINE ifoldr #-}
-    ifoldr _ base Z = base
-    ifoldr f base (Unlist arr# arr) = ifoldr f (ifoldr f base arr) arr#
+    ifoldr f = \ base es -> case es of {Z -> base; (Unlist arr# arr) -> ifoldr f (ifoldr f base arr) arr#}
     
     {-# INLINE ifoldl #-}
-    ifoldl _ base Z = base
-    ifoldl f base (Unlist arr# arr) = ifoldl f (ifoldl f base arr#) arr
+    ifoldl f = \ base es -> case es of {Z -> base; (Unlist arr# arr) -> ifoldl f (ifoldl f base arr#) arr}
     
     i_foldr = foldr
     i_foldl = foldl
@@ -442,8 +428,7 @@ instance Set (Unlist e) e
             j = center l u; e = es !^ j
     
     {-# INLINE isContainedIn #-}
-    isContainedIn f e (Unlist arr# arr) = isContainedIn f e arr# || isContainedIn f e arr
-    isContainedIn _ _ Z = False
+    isContainedIn = binaryContain
 
 instance Sort (Unlist e) e
   where

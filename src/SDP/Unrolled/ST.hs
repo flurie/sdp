@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Unsafe, RoleAnnotations #-}
+{-# LANGUAGE Unsafe, MagicHash, RoleAnnotations #-}
 
 {- |
     Module      :  SDP.Unrolled.ST
@@ -8,8 +8,8 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
     
-    @SDP.Unrolled.ST@ provides service type 'STUnrolled' - mutable version of
-    @Unrolled@.
+    @SDP.Unrolled.ST@ provides 'STUnrolled' - mutable boxed lazy unrolled linked
+    list.
 -}
 
 module SDP.Unrolled.ST
@@ -19,7 +19,7 @@ module SDP.Unrolled.ST
   module SDP.SortM,
   
   -- * STUnrolled
-  STUnrolled (..)
+  STUnrolled (..), fromPseudoMutableArray#
 )
 where
 
@@ -30,7 +30,7 @@ import SDP.IndexedM
 import SDP.SortM
 
 import GHC.Base ( Int (..) )
-import GHC.ST   ( ST )
+import GHC.ST   ( ST  (..) )
 
 import SDP.Unrolled.STUnlist
 import SDP.SortM.Tim
@@ -132,6 +132,9 @@ instance (Index i) => IFoldM (ST s) (STUnrolled s i e) i e
     i_foldrM f e (STUnrolled _ _ es) = i_foldrM f e es
     i_foldlM f e (STUnrolled _ _ es) = i_foldlM f e es
 
-instance (Index i) => SortM (ST s) (STUnrolled s i e) e where sortMBy = timSortBy
+instance (Index i) => SortM (ST s) (STUnrolled s i e) e
+  where
+    sortMBy = timSortBy
+
 
 

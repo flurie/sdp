@@ -17,6 +17,7 @@ main = defaultMain
     -- common tests
     testProperty "ublist-eq             " eqProp,
     testProperty "ublist-ord            " ordProp,
+    testProperty "ublist-lexicographic  " lgoProp,
     
     -- linear tests
     testProperty "ublist-linear-basic   " basicLinearProp,
@@ -56,6 +57,9 @@ eqProp =  eqTest
 
 ordProp :: TestOrd (Ublist Int)
 ordProp =  ordTest
+
+lgoProp :: Long (Ublist Int) -> Long (Ublist Int) -> Bool
+lgoProp (Long xs) (Long ys) = lexicographicOrdTest xs ys
 
 --------------------------------------------------------------------------------
 
@@ -119,6 +123,7 @@ setProp =  setTest
 
 estimateProp :: TestEstimate (Ublist Int)
 estimateProp =  estimateTest
+
 
 
 

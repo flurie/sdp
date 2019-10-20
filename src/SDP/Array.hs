@@ -1,7 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, RoleAnnotations #-}
-
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE Unsafe, MagicHash, TypeFamilies, RoleAnnotations #-}
 
 {- |
     Module      :  SDP.Array
@@ -11,12 +9,6 @@
     Portability :  non-portable (GHC extensions)
     
     @SDP.Array@ provides 'Array' - immutable lazy boxed array type.
-    This array implementation uses Index class instead Ix and SArray\# instead
-    Array\#.
-    
-    Note that the array constructor is open for access to the Array\# primitive,
-    not for changing bounds: @(Array l u arr#)@ must satisfy
-    @size (l, u) == sizeOf arr#@.
 -}
 module SDP.Array
 (
@@ -61,10 +53,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
-{- |
-  Array - standard type of array and an equivalent GHC.Arr and Data.Array,
-  except the types of indices.
--}
+-- | Array - standard type of array.
 data Array i e = Array !i !i !(SArray# e)
 
 type role Array nominal representational
@@ -84,10 +73,8 @@ instance (Index i) => Eq1 (Array i)
 
 {- Ord and Ord1 instances. -}
 
--- | Lexicographic order.
 instance (Index i, Ord e) => Ord (Array i e) where compare = compare1
 
--- | Lexicographic order.
 instance (Index i) => Ord1 (Array i)
   where
     liftCompare cmp (Array l1 u1 arr1#) (Array l2 u2 arr2#) =
@@ -195,26 +182,26 @@ instance (Index i) => Applicative (Array i)
 
 instance (Index i) => Foldable (Array i)
   where
-    foldr  f base (Array _ _ arr#) = foldr  f base arr#
-    foldl  f base (Array _ _ arr#) = foldl  f base arr#
-    foldr' f base (Array _ _ arr#) = foldr' f base arr#
-    foldl' f base (Array _ _ arr#) = foldl' f base arr#
+    foldr  f = \ base (Array _ _ arr#) -> foldr  f base arr#
+    foldl  f = \ base (Array _ _ arr#) -> foldl  f base arr#
+    foldr' f = \ base (Array _ _ arr#) -> foldr' f base arr#
+    foldl' f = \ base (Array _ _ arr#) -> foldl' f base arr#
     
-    foldr1 f (Array _ _ arr#) = foldr1 f arr#
-    foldl1 f (Array _ _ arr#) = foldl1 f arr#
+    foldr1 f = \ (Array _ _ arr#) -> foldr1 f arr#
+    foldl1 f = \ (Array _ _ arr#) -> foldl1 f arr#
     
-    length (Array _ _ arr#) = length arr#
-    toList (Array _ _ arr#) = toList arr#
-    null   (Array _ _ arr#) = null   arr#
+    length = \ (Array _ _ arr#) -> length arr#
+    toList = \ (Array _ _ arr#) -> toList arr#
+    null   = \ (Array _ _ arr#) -> null   arr#
 
 instance (Index i) => Scan (Array i)
   where
-    scanl  f w (Array _ _ arr#) = withBounds $ scanl  f w arr#
-    scanr  f w (Array _ _ arr#) = withBounds $ scanr  f w arr#
-    scanl' f w (Array _ _ arr#) = withBounds $ scanl' f w arr#
+    scanl  f = \ w (Array _ _ arr#) -> withBounds $ scanl  f w arr#
+    scanr  f = \ w (Array _ _ arr#) -> withBounds $ scanr  f w arr#
+    scanl' f = \ w (Array _ _ arr#) -> withBounds $ scanl' f w arr#
     
-    scanl1 f   (Array _ _ arr#) = withBounds $ scanl1 f arr#
-    scanr1 f   (Array _ _ arr#) = withBounds $ scanr1 f arr#
+    scanl1 f = \ (Array _ _ arr#) -> withBounds $ scanl1 f arr#
+    scanr1 f = \ (Array _ _ arr#) -> withBounds $ scanr1 f arr#
 
 instance (Index i) => Traversable (Array i)
   where
@@ -267,7 +254,6 @@ instance (Index i) => Linear (Array i e) e
     
     listL = toList
     
-    {-# INLINE listR #-}
     listR = \ (Array _ _ arr#) -> listR arr#
     
     {-# INLINE concatMap #-}
@@ -389,12 +375,11 @@ instance (Index i) => Set (Array i e) e
     symdiffWith f (Array _ _ arr1#) (Array _ _ arr2#) =
       withBounds $ differenceWith f arr1# arr2#
     
-    isContainedIn f e (Array _ _ es) = isContainedIn f e es
-    
-    lookupLTWith f o (Array _ _ arr#) = lookupLTWith f o arr#
-    lookupGTWith f o (Array _ _ arr#) = lookupGTWith f o arr#
-    lookupLEWith f o (Array _ _ arr#) = lookupLEWith f o arr#
-    lookupGEWith f o (Array _ _ arr#) = lookupGEWith f o arr#
+    isContainedIn f e (Array _ _   es) = isContainedIn f e   es
+    lookupLTWith  f o (Array _ _ arr#) = lookupLTWith  f o arr#
+    lookupGTWith  f o (Array _ _ arr#) = lookupGTWith  f o arr#
+    lookupLEWith  f o (Array _ _ arr#) = lookupLEWith  f o arr#
+    lookupGEWith  f o (Array _ _ arr#) = lookupGEWith  f o arr#
 
 instance (Index i) => Sort (Array i e) e
   where

@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, RoleAnnotations #-}
+{-# LANGUAGE Unsafe, MagicHash, RoleAnnotations #-}
 
 {- |
     Module      :  SDP.Array.ST
@@ -9,8 +9,6 @@
     Portability :  non-portable (GHC Extensions)
     
     @SDP.Array.ST@ provides 'STArray' - mutable lazy boxed array type.
-    This implementation of array no much different from @Data.Array.ST@ (array),
-    but incopatible with it.
 -}
 module SDP.Array.ST
 (
@@ -48,11 +46,10 @@ type role STArray nominal nominal representational
 
 --------------------------------------------------------------------------------
 
-{- Eq instance. -}
-
-instance (Index i, Eq e) => Eq (STArray s i e)
+instance (Index i) => Eq (STArray s i e)
   where
-    (STArray l1 u1 marr1#) == (STArray l2 u2 marr2#) = l1 == l2 && u1 == u2 && marr1# == marr2#
+    (STArray l1 u1 arr1#) == (STArray l2 u2 arr2#) =
+      isEmpty (l1, u1) == isEmpty (l2, u2) || arr1# == arr2#
 
 --------------------------------------------------------------------------------
 
@@ -149,10 +146,12 @@ instance (Index i) => IndexedM (ST s) (STArray s i e) i e
 instance (Index i) => IFoldM (ST s) (STArray s i e) i e
   where
     {-# INLINE ifoldrM #-}
-    ifoldrM  f base (STArray l u marr#) = ifoldrM (\ i -> f $ index (l, u) i) base marr#
+    ifoldrM  f base (STArray l u marr#) =
+      ifoldrM (\ i -> f $ index (l, u) i) base marr#
     
     {-# INLINE ifoldlM #-}
-    ifoldlM  f base (STArray l u marr#) = ifoldlM (\ i -> f $ index (l, u) i) base marr#
+    ifoldlM  f base (STArray l u marr#) =
+      ifoldlM (\ i -> f $ index (l, u) i) base marr#
     
     {-# INLINE i_foldrM #-}
     i_foldrM f base (STArray _ _ marr#) = i_foldrM f base marr#
@@ -167,4 +166,5 @@ instance (Index i) => SortM (ST s) (STArray s i e) e where sortMBy = timSortBy
 {-# INLINE withBounds #-}
 withBounds :: (Index i) => STArray# s e -> ST s (STArray s i e)
 withBounds marr# = (\ n -> let (l, u) = defaultBounds n in STArray l u marr#) <$> getSizeOf marr#
+
 

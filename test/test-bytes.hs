@@ -17,6 +17,7 @@ main = defaultMain
     -- common tests
     testProperty "bytes-eq             " eqProp,
     testProperty "bytes-ord            " ordProp,
+    testProperty "bytes-lexicographic  " lgoProp,
     
     -- linear tests
     testProperty "bytes-linear-basic   " basicLinearProp,
@@ -56,6 +57,9 @@ eqProp =  eqTest
 
 ordProp :: TestOrd (Bytes Int Int)
 ordProp =  ordTest
+
+lgoProp :: Long (Bytes Int Int) -> Long (Bytes Int Int) -> Bool
+lgoProp (Long xs) (Long ys) = lexicographicOrdTest xs ys
 
 --------------------------------------------------------------------------------
 
@@ -119,6 +123,7 @@ setProp =  setTest
 
 estimateProp :: TestEstimate (Bytes Int Int)
 estimateProp =  estimateTest
+
 
 
 

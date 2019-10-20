@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Unsafe, TypeFamilies, RoleAnnotations #-}
+{-# LANGUAGE Unsafe, MagicHash, TypeFamilies, RoleAnnotations #-}
 
 {- |
     Module      :  SDP.Unrolled
@@ -22,7 +22,7 @@ module SDP.Unrolled
   Unrolled (..),
   
   -- * Unlist
-  Unlist
+  Unlist, fromPseudoArray#
 )
 where
 
@@ -76,10 +76,8 @@ instance (Index i) => Eq1 (Unrolled i)
 
 {- Ord and Ord1 innstances. -}
 
--- | Lexicographic order.
 instance (Ord e, Index i) => Ord (Unrolled i e) where compare = compare1
 
--- | Lexicographic order.
 instance (Index i) => Ord1 (Unrolled i)
   where
     liftCompare cmp (Unrolled l1 u1 xs) (Unrolled l2 u2 ys) =
@@ -107,7 +105,7 @@ instance (Index i, Read i, Read e) => Read (Unrolled i e)
 
 {- Semigroup, Monoid, Default, Arbitrary and Estimate instances. -}
 
-instance (Index i) => Semigroup (Unrolled i e) where xs <> ys = xs ++ ys
+instance (Index i) => Semigroup (Unrolled i e) where (<>) = (++)
 
 instance (Index i) => Monoid (Unrolled i e) where mempty = def
 
@@ -157,34 +155,32 @@ instance (Index i) => Applicative (Unrolled i)
 
 --------------------------------------------------------------------------------
 
-{- Foldable, Scan and Traversable instances -}
+{- Foldable and Traversable instances -}
 
 instance (Index i) => Foldable (Unrolled i)
   where
     {-# INLINE foldr #-}
-    foldr  f base = \ (Unrolled l u es) -> foldr  f base $ size (l, u) `take` es
+    foldr  f base = \ (Unrolled _ _ es) -> foldr  f base es
     
     {-# INLINE foldl #-}
-    foldl  f base = \ (Unrolled l u es) -> foldl  f base $ size (l, u) `take` es
+    foldl  f base = \ (Unrolled _ _ es) -> foldl  f base es
     
     {-# INLINE foldr' #-}
-    foldr' f base = \ (Unrolled l u es) -> foldr' f base $ size (l, u) `take` es
+    foldr' f base = \ (Unrolled _ _ es) -> foldr' f base es
     
     {-# INLINE foldl' #-}
-    foldl' f base = \ (Unrolled l u es) -> foldl' f base $ size (l, u) `take` es
+    foldl' f base = \ (Unrolled _ _ es) -> foldl' f base es
     
     {-# INLINE foldr1 #-}
-    foldr1 f = \ (Unrolled l u es) -> foldr1 f $ size (l, u) `take` es
+    foldr1 f = \ (Unrolled _ _ es) -> foldr1 f es
     
     {-# INLINE foldl1 #-}
-    foldl1 f = \ (Unrolled l u es) -> foldl1 f $ size (l, u) `take` es
+    foldl1 f = \ (Unrolled _ _ es) -> foldl1 f es
     
-    elem e = \ (Unrolled l u es) -> elem e $ size (l, u) `take` es
-    toList = \ (Unrolled l u es) -> size (l, u) `take` toList es
+    elem e = \ (Unrolled _ _ es) -> elem e es
+    toList = \ (Unrolled _ _ es) -> toList es
     null   = \ (Unrolled l u es) -> isEmpty (l, u) || null es
     length = \ (Unrolled l u  _) -> size (l, u)
-
--- instance (Index i) => Scan (Unrolled i)
 
 instance (Index i) => Traversable (Unrolled i)
   where
@@ -243,7 +239,7 @@ instance (Index i) => Linear (Unrolled i e) e
       where
         (l, u) = defaultBounds $ size (l1, u1) + size (l2, u2)
     
-    concat = \ xss -> case defaultBounds $ foldr' g 0 xss of
+    concat xss = case defaultBounds $ foldr' g 0 xss of
         (l', u') -> Unrolled l' u' (foldr f Z xss)
       where
         f = \ (Unrolled l u xs) ublist -> size (l, u) `take` xs ++ ublist
@@ -254,8 +250,8 @@ instance (Index i) => Linear (Unrolled i e) e
         (l, u) = defaultBounds $ case n <=> 0 of {GT -> 2 * n - 1; _ -> 0}
         n = length es
     
-    listL  (Unrolled l u bytes) = listL $ size (l, u) `take` bytes
-    listR  (Unrolled l u bytes) = listR $ size (l, u) `take` bytes
+    listL  (Unrolled _ _ bytes) = listL bytes
+    listR  (Unrolled _ _ bytes) = listR bytes
     
     partitions ps es = fromList <$> partitions ps (toList es)
 
@@ -279,24 +275,12 @@ instance (Index i) => Split (Unrolled i e) e
         l' = index (l, u) n
         c  = size  (l, u)
     
-    {-# INLINE split #-}
-    split n unr@(Unrolled l u es)
-        | n <= 0 = (Z, unr)
-        | n >= c = (unr, Z)
-        |  True  = (Unrolled l u' take', Unrolled l' u drop')
-      where
-        u' = index (l, u) (n - 1)
-        l' = index (l, u) n
-        c  = size  (l, u)
-        
-        (take', drop') = split n es
-    
     isPrefixOf xs ys = toList xs `isPrefixOf` toList ys
     isInfixOf  xs ys = toList xs `isInfixOf`  toList ys
     isSuffixOf xs ys = toList xs `isSuffixOf` toList ys
     
-    prefix p (Unrolled l u es) = prefix p es `min` size (l, u)
-    suffix p (Unrolled l u es) = prefix p es `min` size (l, u)
+    prefix p (Unrolled _ _ es) = prefix p es
+    suffix p (Unrolled _ _ es) = suffix p es
 
 instance (Index i) => Bordered (Unrolled i e) i e
   where
@@ -356,8 +340,8 @@ instance (Index i) => Indexed (Unrolled i e) i e
 
 instance (Index i) => IFold (Unrolled i e) i e
   where
-    ifoldr f base = \ (Unrolled l u es) -> ifoldr (f . index (l, u)) base $ size (l, u) `take` es
-    ifoldl f base = \ (Unrolled l u es) -> ifoldl (f . index (l, u)) base $ size (l, u) `take` es
+    ifoldr f base = \ (Unrolled l u es) -> ifoldr (f . index (l, u)) base es
+    ifoldl f base = \ (Unrolled l u es) -> ifoldl (f . index (l, u)) base es
     
     i_foldr = foldr
     i_foldl = foldl
@@ -425,14 +409,12 @@ instance (Index i) => IsString (Unrolled i Char) where fromString = fromList
 
 instance (Index i) => Thaw (ST s) (Unrolled i e) (STUnrolled s i e)
   where
-    thaw (Unrolled l u es) = STUnrolled l u <$> thaw es
-    
+    thaw       (Unrolled l u es) = STUnrolled l u <$> thaw es
     unsafeThaw (Unrolled l u es) = STUnrolled l u <$> unsafeThaw es
 
 instance (Index i) => Freeze (ST s) (STUnrolled s i e) (Unrolled i e)
   where
-    freeze (STUnrolled l u es) = Unrolled l u <$> freeze es
-    
+    freeze       (STUnrolled l u es) = Unrolled l u <$> freeze es
     unsafeFreeze (STUnrolled l u es) = Unrolled l u <$> unsafeFreeze es
 
 --------------------------------------------------------------------------------

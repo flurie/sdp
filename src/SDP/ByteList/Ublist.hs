@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns #-}
+{-# LANGUAGE Unsafe, MagicHash, RoleAnnotations #-}
 
 {- |
     Module      :  SDP.ByteList.Ublist
@@ -8,8 +8,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
     
-    @SDP.ByteList.Ublist@ provides service type 'Ublist' - strict boxed unrolled
-    linked list for @ByteList@.
+    @SDP.ByteList.Ublist@ provides 'Ublist' - strict boxed unrolled linked list.
 -}
 module SDP.ByteList.Ublist
 (
@@ -20,7 +19,7 @@ module SDP.ByteList.Ublist
   module SDP.Set,
   
   -- * Ublist
-  Ublist (..)
+  Ublist (..), fromPseudoBytes#
 )
 where
 
@@ -34,20 +33,17 @@ import SDP.Unboxed
 import SDP.Sort
 import SDP.Set
 
-import GHC.Base
-  (
-    ByteArray#, MutableByteArray#, Int (..),
-    
-    unsafeFreezeByteArray#, (-#)
-  )
+import GHC.Base ( Int  (..) )
+import GHC.Show (  appPrec  )
 
-import GHC.ST   ( ST (..), STRep, runST )
-import GHC.Show ( appPrec )
+import GHC.ST   ( runST, ST (..) )
 
 import Data.String ( IsString (..) )
 
 import SDP.ByteList.STUblist
 import SDP.SortM.Tim
+
+import SDP.Internal.SBytes
 import SDP.Simple
 
 default ()
@@ -55,43 +51,48 @@ default ()
 --------------------------------------------------------------------------------
 
 -- | Ublist is internal data representation for ByteList.
-data Ublist e = UBEmpty | Ublist {-# UNPACK #-} !Int (ByteArray#) (Ublist e)
+data Ublist e = UBEmpty | Ublist !(SBytes# e) (Ublist e)
+
+type role Ublist representational
 
 {-# COMPLETE Z, Ublist #-}
 
 --------------------------------------------------------------------------------
 
-{- Eq and Ord instances. -}
+{- Eq and Eq1 instances. -}
 
 instance (Unboxed e) => Eq (Ublist e)
   where
-    {-# INLINE (==) #-}
-    (==) = go 0
+    (==) = go
       where
-        go o xs@(Ublist c1 _ xss) ys@(Ublist n2 _ yss) = if n1 > n2
-            then and [ xs !^ (o + i) == ys !^ i | i <- [0 .. n2 - 1] ] && go (o + n2) xs yss
-            else and [ xs !^ (o + i) == ys !^ i | i <- [0 .. n1 - 1] ] && go    n1    ys xss
+        go xs@(Ublist arr1# arr1) ys@(Ublist arr2# arr2) = if n1 > n2
+            then take n2 arr1# == arr2# && go (drop n2 xs) arr2
+            else take n1 arr2# == arr1# && go (drop n1 ys) arr1
           where
-            n1 = c1 - o
-        go o xs ys = sizeOf xs == o && isNull ys
-
-instance (Unboxed e, Ord e) => Ord (Ublist e)
-  where
-    {-# INLINE compare #-}
-    compare = go 0 0
-      where
-        go o1 o2 xs@(Ublist c1 _ xss) ys@(Ublist c2 _ yss) = if c1 > c2 - d
-            then fold [ xs !^ (d + i) <=> (ys !^ i) | i <- [o2 .. c2 - 1] ] <> go (d + c2) 0 xs yss
-            else fold [ xs !^ i <=> (ys !^ (i - d)) | i <- [o1 .. c1 - 1] ] <> go 0 (c1 - d) xss ys
-          where
-            d = o1 - o2 -- count of elements between xs and ys positions
-        go o1 o2 xs ys = (sizeOf xs - o1) <=> (sizeOf ys - o2)
+            n1 = sizeOf arr1#; n2 = sizeOf arr2#
+        go Z Z = True
+        go _ _ = False
 
 --------------------------------------------------------------------------------
 
-{- Show instances. -}
+{- Ord and Ord1 instances. -}
 
-instance (Unboxed e, Show e) => Show (Ublist e)
+instance (Ord e, Unboxed e) => Ord (Ublist e)
+  where
+    compare Z Z = EQ
+    compare Z _ = LT
+    compare _ Z = GT
+    compare xs@(Ublist arr1# arr1) ys@(Ublist arr2# arr2) = if n1 > n2
+        then (take n2 arr1# <=> arr2#) <> compare (drop n2 xs) arr2
+        else (arr1# <=> take n2 arr2#) <> compare arr1 (drop n2 ys)
+      where
+        n1 = sizeOf arr1#; n2 = sizeOf arr2#
+
+--------------------------------------------------------------------------------
+
+{- Show instance. -}
+
+instance (Show e, Unboxed e) => Show (Ublist e)
   where
     showsPrec p ubl = showParen (p > appPrec) $ showString "ublist "
                                               . shows (assocs ubl)
@@ -101,12 +102,11 @@ instance (Unboxed e, Show e) => Show (Ublist e)
 {- Semigroup, Monoid, Default, Arbitrary and Estimate instances. -}
 
 instance (Unboxed e) => Semigroup (Ublist e) where (<>) = (++)
-
-instance (Unboxed e) => Monoid (Ublist e) where mempty = UBEmpty
+instance (Unboxed e) => Monoid    (Ublist e) where mempty = def
 
 instance Default (Ublist e) where def = UBEmpty
 
-instance (Unboxed e, Arbitrary e) => Arbitrary (Ublist e)
+instance (Arbitrary e, Unboxed e) => Arbitrary (Ublist e)
   where
     arbitrary = fromList <$> arbitrary
 
@@ -114,15 +114,15 @@ instance (Unboxed e) => Estimate (Ublist e)
   where
     (<==>) = go 0
       where
-        go d Z    Z = d <=> 0
-        go d Z ubls = d <=.> ubls
-        go d ubls Z = d > 0 ? GT $ ubls <.=> (-d)
-        go d (Ublist c1 _ ubls1') (Ublist c2 _ ubls2') = go (d + c1 - c2) ubls1' ubls2'
+        go o Z   Z = o <=> 0
+        go o xs  Z = xs <.=> (-o)
+        go o Z  ys = o <=.> ys
+        go o (Ublist arr1# arr1) (Ublist arr2# arr2) =
+          let n1 = sizeOf arr1#; n2 = sizeOf arr2#
+          in  go (o + n1 - n2) arr1 arr2
     
-    es <.=> n2 = n2 < 0 ? GT $ go es n2
-      where
-        go          Z          m2 = 0  <=> m2
-        go (Ublist m1 _ ubls') m2 = m1  >  m2 ? GT $ go ubls' (m2 - m1)
+    Z <.=> n = 0 <=> n
+    (Ublist arr# arr) <.=> m = arr# .> m ? GT $ arr <.=> (m - sizeOf arr#)
 
 --------------------------------------------------------------------------------
 
@@ -130,94 +130,82 @@ instance (Unboxed e) => Estimate (Ublist e)
 
 instance (Unboxed e) => Linear (Ublist e) e
   where
-    isNull es = case es of {Ublist c _ _ -> c < 1; _ -> True}
+    isNull es = case es of {UBEmpty -> True; Ublist Z UBEmpty -> True; _ -> False}
     
-    lzero = def
-    
-    head Z  = pfailEx ".(:>)"
-    head es = es .! 0
-    
-    tail Z = pfailEx "(:<)"
-    tail es@(Ublist _ _ Z)       = fromList . tail $ listL es
-    tail es@(Ublist c ubl# ubls) = Ublist c' new# ubls
-      where
-        !(Ublist c' new# _) = (`asTypeOf` es) $ tail (Ublist c ubl# Z)
+    lzero = UBEmpty
     
     toHead e Z = single e
-    toHead e (Ublist c ubl# ubls)
-        | c < lim = (Ublist c1  ubl1#  ubls)
-        |   True  = (Ublist 1  single# ubls)
-      where
-        !(Ublist c1  ubl1#  Z) = fromList $ e : listL (Ublist c ubl# Z)
-        !(Ublist 1  single# Z) = single e
+    toHead e es@(Ublist arr# arr) = arr# .< lim ? Ublist (e :> arr#) arr $ Ublist (single e) es
     
-    last Z = pfailEx "(:<)"
-    last (Ublist (I# c#) ubl# Z) = ubl# !# (c# -# 1#)
-    last    (Ublist _ _ ubls)    = last ubls
+    head Z  = pfailEx "(:>)"
+    head es = es !^ 0
     
-    init Z                    = pfailEx "(:>)"
-    init es@(Ublist c _ Z)    = fromListN (c - 1) . init $ listL es
-    init (Ublist c arr# arrs) = Ublist c arr# (init arrs)
+    tail Z = pfailEx "(:<)"
+    tail (Ublist arr# arr) = isNull arr# ? tail arr $ Ublist (tail arr#) arr
     
     toLast Z e = single e
-    toLast es@(Ublist c ubl# ubls) e
-      | isNull ubls && c < lim = fromList $ listL es :< e
-      |          True          = Ublist c ubl# (ubls :< e)
+    toLast (Ublist arr# arr) e = isNull arr# ? (arr :< e) $ Ublist arr# (arr :< e)
+    
+    last Z = pfailEx "(:<)"
+    last (Ublist arr# arr) = isNull arr ? last arr# $ last arr
+    
+    init Z = pfailEx "(:>)"
+    init (Ublist arr# arr) = isNull arr ? Ublist (init arr#) Z $ Ublist arr# (init arr)
     
     {-# INLINE single #-}
-    single e = runST $ filled 1 e >>= done
-    
-    {-# INLINE fromList #-}
-    fromList es = runST $ newLinear es >>= done
-    
-    {-# INLINE listL #-}
+    single = replicate 1
     
     listL = i_foldr (:) []
     
-    Z  ++ ys = ys
-    xs ++  Z = xs
-    (Ublist c ubl# ubls) ++ ys = Ublist c ubl# (ubls ++ ys)
+    {-# INLINE fromList #-}
+    fromList = i_foldr (\ list -> Ublist $ fromList list) Z . chunks lim
     
+    Z ++ ys = ys
+    xs ++ Z = xs
+    (Ublist arr# arr) ++ ys = Ublist arr# (arr ++ ys)
+    
+    -- | Deduplicated Unlist: O(1), O(1) memory (limited by a constant on top).
     {-# INLINE replicate #-}
+    
     replicate n e = copy count
       where
-        chunk  = runST $ ST $ \ s1# -> case newUnboxed' e l# s1# of (# s2#, mubl# #) -> done'    lim   mubl# Z s2#
-        rest   = runST $ ST $ \ s1# -> case newUnboxed' e r# s1# of (# s2#, mubl# #) -> done' restSize mubl# Z s2#
-        copy c = case c <=> 0 of {LT -> Z; EQ -> rest; GT -> chunk ++ copy (c - 1)}
+        (count, rst) = n `divMod` lim
+        copy c = case c <=> 0 of
+          LT -> Z
+          EQ -> Ublist rest Z
+          GT -> Ublist chunk (copy $ c - 1)
         
-        !(count, restSize@(I# r#)) = n `divMod` lim
-        !(I# l#) = lim
+        chunk = replicate lim e
+        rest  = replicate rst e
     
     {-# INLINE reverse #-}
     reverse = fromList . i_foldl (flip (:)) []
     
-    partitions ps es = fromList <$> partitions ps (listL es)
+    partition p es = (fromList x, fromList y)
+      where
+        (x, y) = partition p $ listL es
+    
+    partitions ps = fmap fromList . partitions ps . listL
 
 instance (Unboxed e) => Split (Ublist e) e
   where
     {-# INLINE take #-}
-    take n es
-        |   n < 1  = Z
-        | es .<= n = es
-        |   True   = take' n es
+    take n es | n < 1 = Z | es .<= n = es | True = take' n es
       where
-        take' _ Z = Z
-        take' n' (Ublist c ubl# ubls) = n' >= c ? Ublist c ubl# other $ fromListN n' rest
-          where
-            rest  = [ ubl# !# i# | (I# i#) <- [0 .. n' - 1] ]
-            other = take' (n' - c) ubls
+        take' _  Z = Z
+        take' n' (Ublist arr# arr) = case n <=.> arr# of
+          LT -> Ublist (take n' arr#) Z
+          EQ -> arr
+          GT -> Ublist arr# (take (n' - sizeOf arr#) arr)
     
     {-# INLINE drop #-}
-    drop n es
-        |   n < 1  = es
-        | es .<= n = Z
-        |   True   = drop' n es
+    drop n es | n < 1 = es | es .<= n = Z | True = drop' n es
       where
         drop' _ Z = Z
-        drop' n' (Ublist c ubl# ubls) = n' >= c ? rest $ other ++ ubls
-          where
-            rest  = drop' (n' - c) ubls
-            other = fromListN (c - n') [ ubl# !# i# | (I# i#) <- [n' .. c - 1] ]
+        drop' n' (Ublist arr# arr) = case n' <=.> arr# of
+          LT -> Ublist (drop n' arr#) arr
+          EQ -> arr
+          GT -> drop' (n' - sizeOf arr#) arr
     
     isPrefixOf xs ys = listL xs `isPrefixOf` listL ys
     isInfixOf  xs ys = listL xs `isInfixOf`  listL ys
@@ -228,12 +216,19 @@ instance (Unboxed e) => Split (Ublist e) e
 
 instance (Unboxed e) => Bordered (Ublist e) Int e
   where
-    sizeOf  es = case es of {Ublist n _ ubls -> max 0 n + sizeOf ubls; _ -> 0}
-    indexIn es = \ i -> i >= 0 && i < sizeOf es
+    sizeOf es = case es of {Ublist arr# arr -> sizeOf arr# + sizeOf arr; _ -> 0}
     
-    lower   _  = 0
-    upper   es = sizeOf es - 1
-    bounds  es = (0, sizeOf es - 1)
+    indexIn es = \ i -> i >= 0 && i <. es
+    
+    -- | Quick unchecked offset.
+    offsetOf = const id
+    
+    -- | Quick unchecked index.
+    indexOf = const id
+    
+    lower  _  = 0
+    upper  es = sizeOf es - 1
+    bounds es = (0, sizeOf es - 1)
 
 --------------------------------------------------------------------------------
 
@@ -241,8 +236,8 @@ instance (Unboxed e) => Bordered (Ublist e) Int e
 
 instance (Unboxed e) => Indexed (Ublist e) Int e
   where
-    {-# INLINE assoc  #-}
-    assoc  bnds ascs = runST $ fromAssocs bnds ascs >>= done
+    {-# INLINE assoc #-}
+    assoc bnds ascs = runST $ fromAssocs bnds ascs >>= done
     
     {-# INLINE assoc' #-}
     assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
@@ -252,209 +247,147 @@ instance (Unboxed e) => Indexed (Ublist e) Int e
       where
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
-    es // ascs = isNull ascs ? es $ runST $ newLinear (listL es) >>= flip overwrite ascs >>= done
+    es // ascs = isNull ascs ? es $ runST $ thaw es >>= (`overwrite` ascs) >>= done
     
     fromIndexed es = runST $ do
-        copy <- filled_ n (unreachEx "fromIndexed")
+        copy <- filled n (unreachEx "fromIndexed")
         forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
         done copy
       where
         n = sizeOf es
     
-    (!^) = (.!)
+    Z !^ _ = error "in SDP.ByteList.Ublist.(!^)"
+    (Ublist arr# arr) !^ i = i < c ? arr# !^ i $ arr !^ (i - c)
+      where
+        c = sizeOf arr#
     
     {-# INLINE (.!) #-}
-    es .! i@(I# i#)
-        | isNull es = error "in SDP.ByteList.Ublist.(.!)"
-        |   i < n   = bytes# !# i#
-        |    True   = arrs .! (n - i)
-      where
-        !(Ublist n bytes# arrs) = es
+    (.!) = (!^)
     
-    (!) es i = case inBounds (bounds es) i of
-        ER -> throw $ EmptyRange     msg
-        UR -> throw $ IndexUnderflow msg
-        IN -> es .! i
-        OR -> throw $ IndexOverflow  msg
+    (!) Z _ = throw $ EmptyRange "in SDP.ByteList.Ublist.(!)"
+    (!) (Ublist arr# arr) i
+        | isNull arr# = throw $ IndexOverflow  "in SDP.ByteList.Ublist.(!)"
+        |    i < 0    = throw $ IndexUnderflow "in SDP.ByteList.Ublist.(!)"
+        |    i < c    = arr# !^ i
+        |    True     = arr  !^ (i - c)
       where
-        msg = "in SDP.ByteList.Ublist.(!)"
+        c = sizeOf arr#
     
-    p .$ es = p .$ listL es
-    p *$ es = p *$ listL es
+    {-# INLINE (.$) #-}
+    p .$ es = go es 0
+      where
+        go Z _ = Nothing
+        go (Ublist arr# arr) o = case p .$ arr# of
+          Just  i -> Just (i + o)
+          Nothing -> go arr $! o + sizeOf arr#
+    
+    {-# INLINE (*$) #-}
+    (*$) p es = go es 0
+      where
+        go Z _ = []
+        go (Ublist arr# arr) o = (p *$ arr#) ++ (go arr $! o + sizeOf arr#)
 
 instance (Unboxed e) => IFold (Ublist e) Int e
   where
-    ifoldr  f base = \ ubl -> case ubl of
-      Z                    -> base
-      (Ublist c ubl# ubls) ->
-        let go b i@(I# i#) = c == i ? b $ f i (ubl# !# i#) (go b $ i + 1)
-        in  go (ifoldr f base ubls) 0
+    {-# INLINE ifoldr #-}
+    ifoldr  f = \ base es -> case es of {Z -> base; (Ublist arr# arr) -> ifoldr  f (ifoldr  f base arr) arr#}
     
-    ifoldl  f base = \ ubl -> case ubl of
-      Z                    -> base
-      (Ublist c ubl# ubls) ->
-        let go b i@(I# i#) = -1 == i ? b $ f i (go b $ i - 1) (ubl# !# i#)
-        in  ifoldl f (go base $ c - 1) ubls
+    {-# INLINE ifoldl #-}
+    ifoldl  f = \ base es -> case es of {Z -> base; (Ublist arr# arr) -> ifoldl  f (ifoldl  f base arr#) arr}
     
-    i_foldr f base = \ ubl -> case ubl of
-      Z                    -> base
-      (Ublist c ubl# ubls) ->
-        let go b i@(I# i#) = c == i ? b $ f (ubl# !# i#) (go b $ i + 1)
-        in  go (i_foldr f base ubls) 0
+    {-# INLINE i_foldr #-}
+    i_foldr f = \ base es -> case es of {Z -> base; (Ublist arr# arr) -> i_foldr f (i_foldr f base arr) arr#}
     
-    i_foldl f base = \ ubl -> case ubl of
-      Z                    -> base
-      (Ublist c arr# arrs) ->
-        let go b i@(I# i#) = -1 == i ? b $ f (go b $ i - 1) (arr# !# i#)
-        in  i_foldl f (go base $ c - 1) arrs
+    {-# INLINE i_foldl #-}
+    i_foldl f = \ base es -> case es of {Z -> base; (Ublist arr# arr) -> i_foldl f (i_foldl f base arr#) arr}
 
 instance (Unboxed e) => Set (Ublist e) e
   where
     setWith f = nubSorted f . sortBy f
     
-    insertWith _ e Z  = single e
-    insertWith f e es = isContainedIn f e es ? es $ res
-      where
-        res = fromList . insertWith f e $ listL es
+    insertWith _ e Z = single e
+    insertWith f e (Ublist arr# arr) = isContainedIn f e arr# ?
+      Ublist (insertWith f e arr#) arr $ Ublist arr# (insertWith f e arr)
     
-    deleteWith _ _ Z  = Z
-    deleteWith f e es = isContainedIn f e es ? es $ res
-      where
-        res = fromList . deleteWith f e $ listL es
+    deleteWith _ _ Z = Z
+    deleteWith f e (Ublist arr# arr) = isContainedIn f e arr# ?
+      Ublist (deleteWith f e arr#) arr $ Ublist arr# (deleteWith f e arr)
     
-    intersectionWith f xs ys = fromList $ intersection' 0 0
-      where
-        intersection' i j = i == n1 || j == n2 ? [] $ case x `f` y of
-            LT -> intersection' (i + 1) j
-            EQ -> x : intersection' (i + 1) (j + 1)
-            GT -> intersection' i (j + 1)
-          where
-            x = xs !^ i; n1 = sizeOf xs
-            y = ys !^ j; n2 = sizeOf ys
+    intersectionWith f xs ys = fromList $ on (intersectionWith f) listL xs ys
     
-    unionWith f xs ys = fromList $ union' 0 0
-      where
-        union' i j
-          | i == n1 = (ys !^) <$> [j .. n2 - 1]
-          | j == n2 = (xs !^) <$> [i .. n1 - 1]
-          |  True   = case x `f` y of
-            LT -> x : union' (i + 1) j
-            EQ -> x : union' (i + 1) (j + 1)
-            GT -> y : union' i (j + 1)
-          where
-            x = xs !^ i; n1 = sizeOf xs
-            y = ys !^ j; n2 = sizeOf ys
+    unionWith f xs ys = fromList $ on (unionWith f) listL xs ys
     
-    differenceWith f xs ys = fromList $ difference' 0 0
-      where
-        difference' i j
-            | i == n1 = []
-            | j == n2 = (xs !^) <$> [i .. n1 - 1]
-            |  True   = case x `f` y of
-              LT -> x : difference' (i + 1) j
-              EQ -> difference' (i + 1) (j + 1)
-              GT -> difference' i (j + 1)
-          where
-            x = xs !^ i; n1 = sizeOf xs
-            y = ys !^ j; n2 = sizeOf ys
+    differenceWith f xs ys = fromList $ on (differenceWith f) listL xs ys
     
-    symdiffWith f xs ys = fromList $ symdiff' 0 0
-      where
-        n1 = sizeOf xs; n2 = sizeOf ys
-        symdiff' i j
-            | i == n1 = (ys !^) <$> [j .. n2 - 1]
-            | j == n2 = (xs !^) <$> [i .. n1 - 1]
-            |  True   = case x `f` y of
-              LT -> x : symdiff' (i + 1) j
-              EQ -> symdiff' (i + 1) (j + 1)
-              GT -> y : symdiff' i (j + 1)
-          where
-            x = xs !^ i; y = ys !^ j
+    symdiffWith f xs ys = fromList $ on (symdiffWith f) listL xs ys
     
     lookupLTWith _ _ Z  = Nothing
     lookupLTWith f o es
         | GT <- o `f` last' = Just last'
-        | GT <- o `f` head' = look' head' 0 (sizeOf es - 1)
+        | GT <- o `f` head' = look' head' 0 (upper es)
         |       True        = Nothing
       where
-        head' = es .! lower es
-        last' = es .! upper es
+        head' = es !^ 0
+        last' = es !^ upper es
         
         look' r l u = if l > u then Just r else case o `f` e of
             LT -> look' r l (j - 1)
-            EQ -> Just $ j < 1 ? r $ es !^ (j - 1)
+            EQ -> Just (j < 1 ? r $ es !^ (j - 1))
             GT -> look' e (j + 1) u
           where
-            j = l + (u - l) `div` 2
-            e = es !^ j
+            j = center l u; e = es !^ j
     
     lookupLEWith _ _ Z  = Nothing
     lookupLEWith f o es
         | GT <- o `f` last' = Just last'
         | LT <- o `f` head' = Nothing
-        |       True        = look' head' 0 (sizeOf es - 1)
+        |       True        = look' head' 0 (upper es)
       where
-        head' = es .! lower es
-        last' = es .! upper es
+        head' = es !^ 0
+        last' = es !^ upper es
         
         look' r l u = if l > u then Just r else case o `f` e of
             LT -> look' r l (j - 1)
             _  -> look' e (j + 1) u
           where
-            j = l + (u - l) `div` 2
-            e = es !^ j
+            j = center l u; e = es !^ j
     
     lookupGTWith _ _ Z  = Nothing
     lookupGTWith f o es
         | LT <- o `f` head' = Just head'
-        | LT <- o `f` last' = look' last' 0 (sizeOf es - 1)
+        | LT <- o `f` last' = look' last' 0 (upper es)
         |       True        = Nothing
       where
-        head' = es .! lower es
-        last' = es .! upper es
+        head' = es !^ 0
+        last' = es !^ upper es
         
         look' r l u = if l > u then Just r else case o `f` e of
             LT -> look' e l (j - 1)
-            EQ -> j >= (sizeOf es - 1) ? Nothing $ Just (es !^ (j + 1))
+            EQ -> (j + 1) >=. es ? Nothing $ Just (es !^ (j + 1))
             GT -> look' r (j + 1) u
           where
-            j = l + (u - l) `div` 2
-            e = es !^ j
+            j = center l u; e = es !^ j
     
     lookupGEWith _ _ Z  = Nothing
     lookupGEWith f o es
         | GT <- o `f` last' = Nothing
-        | GT <- o `f` head' = look' last' 0 (sizeOf es - 1)
+        | GT <- o `f` head' = look' last' 0 (upper es)
         |       True        = Just head'
       where
-        head' = es .! lower es
-        last' = es .! upper es
+        head' = es !^ 0
+        last' = es !^ upper es
         
         look' r l u = if l > u then Just r else case o `f` e of
             LT -> look' e l (j - 1)
             EQ -> Just e
             GT -> look' r (j + 1) u
           where
-            j = l + (u - l) `div` 2
-            e = es !^ j
+            j = center l u; e = es !^ j
     
     {-# INLINE isContainedIn #-}
-    isContainedIn f e = contain
-      where
-        contain Z = False
-        contain arr@(Ublist n _ arrs)
-            | LT <- f e    (arr !^ 0)    = False
-            | GT <- f e (arr !^ (n - 1)) = contain arrs
-            |            True            = search 0 (n - 1)
-          where
-            search l u = l > u ? contain arrs $ case f e (arr !^ j) of
-                LT -> search l (j - 1)
-                EQ -> True
-                GT -> search (j + 1) u
-              where
-                j = l + (u - l `div` 2)
+    isContainedIn = binaryContain
     
-    isSubsetWith f xs ys = all (\ x -> isContainedIn f x ys) (listL xs)
+    isSubsetWith f xs ys = i_foldr (\ e b -> b && isContainedIn f e ys) True xs
 
 instance (Unboxed e) => Sort (Ublist e) e
   where
@@ -469,43 +402,31 @@ instance IsString (Ublist Char) where fromString = fromList
 instance (Unboxed e) => Thaw (ST s) (Ublist e) (STUblist s e)
   where
     thaw Z = return STUBEmpty
-    thaw (Ublist n ubl# ubls) = liftA2 cat list (thaw ubls)
-      where
-        cat  :: (Unboxed e) => STUblist s e -> STUblist s e -> STUblist s e
-        cat  =  \ (STUblist _ stubl# _) stubls -> STUblist n stubl# stubls
-        
-        list = newLinear [ ubl# !# i# | (I# i#) <- [0 .. n - 1] ]
+    thaw (Ublist arr# arr) = liftA2 STUblist (thaw arr#) (thaw arr)
+    
+    unsafeThaw Z = return STUBEmpty
+    unsafeThaw (Ublist arr# arr) = liftA2 STUblist (unsafeThaw arr#) (unsafeThaw arr)
 
 instance (Unboxed e) => Freeze (ST s) (STUblist s e) (Ublist e)
   where
-    freeze es = copied es >>= done
+    freeze STUBEmpty = return Z
+    freeze (STUblist marr# marr) = liftA2 Ublist (freeze marr#) (freeze marr)
+    
+    unsafeFreeze STUBEmpty = return Z
+    unsafeFreeze (STUblist marr# marr) = liftA2 Ublist (unsafeFreeze marr#) (unsafeFreeze marr)
 
 --------------------------------------------------------------------------------
 
-{-# INLINE done' #-}
-done' :: (Unboxed e) => Int -> MutableByteArray# s -> Ublist e -> STRep s (Ublist e)
-done' c marr# ubls = \ s1# -> case unsafeFreezeByteArray# marr# s1# of
-  (# s2#, arr# #) -> (# s2#, Ublist c arr# ubls #)
-
 {-# INLINE done #-}
-done :: STUblist s e -> ST s (Ublist e)
-done (STUblist n marr# marr) = done marr >>= \ arr -> ST $
-  \ s1# -> case unsafeFreezeByteArray# marr# s1# of
-    (# s2#, arr# #) -> (# s2#, Ublist n arr# arr #)
-done _ = return UBEmpty
+done :: (Unboxed e) => STUblist s e -> ST s (Ublist e)
+done = unsafeFreeze
 
-filled_ :: (Unboxed e) => Int -> e -> ST s (STUblist s e)
-filled_ n e
-    | n <  1  = return STUBEmpty
-    | n < lim = ST $ \ s1# -> case newUnboxed e l# s1# of
-      (# s2#, mubl# #) -> (# s2#, STUblist n mubl# STUBEmpty #)
-    |  True   = filled_ (n - lim) e >>= \ mubls -> ST $
-      \ s1# -> case newUnboxed e l# s1# of
-        (# s2#, mubl# #) -> (# s2#, STUblist n mubl# mubls #)
-  where
-    !(I# l#) = lim
+{-# INLINE center #-}
+center :: Int -> Int -> Int
+center l u = l + (u - l) `div` 2
 
-nubSorted :: (Unboxed e) => (e -> e -> Ordering) -> Ublist e -> Ublist e
+{-# INLINE nubSorted #-}
+nubSorted :: (Unboxed e) => Compare e -> Ublist e -> Ublist e
 nubSorted f (xs :< x) = fromList $ i_foldr (\ e ls@(l : _) -> e `f` l == EQ ? ls $ e : ls) [x] xs
 nubSorted _ _ = Z
 
@@ -517,4 +438,8 @@ unreachEx msg = throw . UnreachableException $ "in SDP.ByteList.Ublist." ++ msg
 
 lim :: Int
 lim =  1024
+
+
+
+
 

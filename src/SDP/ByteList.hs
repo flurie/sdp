@@ -1,7 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, RoleAnnotations #-}
-
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE Unsafe, MagicHash, TypeFamilies, RoleAnnotations #-}
 
 {- |
     Module      :  SDP.ByteList
@@ -11,11 +9,6 @@
     Portability :  non-portable (GHC Extensions)
     
     @SDP.ByteList@ provides 'ByteList' - strict unboxed unrolled linked list.
-    
-    Note that the strictness of 'ByteList' means that the values in the chunks
-    are stored raw, and not the strictness of the structure as a whole. Chunks
-    themselves are lazy and can be evaluated independently of each other (the
-    ByteArray field also isn't strict).
 -}
 module SDP.ByteList
 (
@@ -28,7 +21,7 @@ module SDP.ByteList
   ByteList (..),
   
   -- * Ublist
-  Ublist
+  Ublist, fromPseudoBytes#
 )
 where
 
@@ -73,15 +66,12 @@ type role ByteList nominal representational
 
 instance (Eq e, Unboxed e, Index i) => Eq (ByteList i e)
   where
-    (ByteList l1 u1 xs) == (ByteList l2 u2 ys) = n1 == n2 && take n1 xs == take n1 ys
-      where
-        n1 = size (l1, u1); n2 = size (l2, u2)
+    (ByteList l1 u1 xs) == (ByteList l2 u2 ys) = size (l1, u1) == size (l2, u2) && xs == ys
 
 instance (Ord e, Unboxed e, Index i) => Ord (ByteList i e)
   where
-    compare (ByteList l1 u1 xs) (ByteList l2 u2 ys) = (n1 <=> n2) <> (take n1 xs <=> take n1 ys)
-      where
-        n1 = size (l1, u1); n2 = size (l2, u2)
+    compare (ByteList l1 u1 xs) (ByteList l2 u2 ys) =
+      (xs <=> ys) <> (size (l1, u1) <=> size (l2, u2))
 
 --------------------------------------------------------------------------------
 
@@ -117,7 +107,6 @@ instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (ByteList i e)
   where
     arbitrary = fromList <$> arbitrary
 
--- | all operations is O(1).
 instance (Index i) => Estimate (ByteList i e)
   where
     (ByteList l1 u1 _) <==> (ByteList l2 u2 _) = size (l1, u1) <=> size (l2, u2)
@@ -181,7 +170,7 @@ instance (Index i, Unboxed e) => Linear (ByteList i e) e
     concat = \ xss -> case defaultBounds $ foldr' g 0 xss of
         (l', u') -> ByteList l' u' (foldr f Z xss)
       where
-        f = \ (ByteList l u xs) ublist -> size (l, u) `take` xs ++ ublist
+        f = \ (ByteList _ _ xs) ublist -> xs ++ ublist
         g = \ (ByteList l u  _) count  -> size (l, u) + count
     
     intersperse e (ByteList _ _ es) = ByteList l u $ intersperse e es
@@ -195,8 +184,8 @@ instance (Index i, Unboxed e) => Linear (ByteList i e) e
       where
         (l, u) = defaultBounds $ size (l1, u1) + size (l2, u2)
     
-    listL (ByteList l u bytes) = listL $ size (l, u) `take` bytes
-    listR (ByteList l u bytes) = listR $ size (l, u) `take` bytes
+    listL (ByteList _ _ bytes) = listL bytes
+    listR (ByteList _ _ bytes) = listR bytes
     
     partitions ps es = fromList <$> partitions ps (listL es)
 
@@ -216,8 +205,8 @@ instance (Index i, Unboxed e) => Split (ByteList i e) e
     isInfixOf  xs ys = listL xs `isInfixOf`  listL ys
     isSuffixOf xs ys = listL xs `isSuffixOf` listL ys
     
-    prefix p (ByteList l u es) = prefix p es `min` size (l, u)
-    suffix p (ByteList l u es) = prefix p es `min` size (l, u)
+    prefix p (ByteList _ _ es) = prefix p es
+    suffix p (ByteList _ _ es) = suffix p es
 
 instance (Index i, Unboxed e) => Bordered (ByteList i e) i e
   where
@@ -282,11 +271,11 @@ instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
 
 instance (Index i, Unboxed e) => IFold (ByteList i e) i e
   where
-    ifoldr  f base = \ (ByteList l u es) -> ifoldr (f . index (l, u)) base es
-    ifoldl  f base = \ (ByteList l u es) -> ifoldl (f . index (l, u)) base es
+    ifoldr  f base (ByteList l u es) = ifoldr (f . index (l, u)) base es
+    ifoldl  f base (ByteList l u es) = ifoldl (f . index (l, u)) base es
     
-    i_foldr f base = \ (ByteList _ _ es) -> i_foldr f base es
-    i_foldl f base = \ (ByteList _ _ es) -> i_foldl f base es
+    i_foldr f base (ByteList _ _ es) = i_foldr f base es
+    i_foldl f base (ByteList _ _ es) = i_foldl f base es
 
 instance (Index i, Unboxed e) => Set (ByteList i e) e
   where
@@ -353,17 +342,18 @@ instance (Index i) => IsString (ByteList i Char) where fromString = fromList
 
 instance (Index i, Unboxed e) => Thaw (ST s) (ByteList i e) (STByteList s i e)
   where
-    thaw (ByteList l u es) = STByteList l u <$> thaw es
+    thaw       (ByteList l u es) = STByteList l u <$> thaw es
+    unsafeThaw (ByteList l u es) = STByteList l u <$> unsafeThaw es
 
 instance (Index i, Unboxed e) => Freeze (ST s) (STByteList s i e) (ByteList i e)
   where
-    freeze (STByteList l u es) = ByteList l u <$> freeze es
+    freeze       (STByteList l u es) = ByteList l u <$> freeze es
+    unsafeFreeze (STByteList l u es) = ByteList l u <$> unsafeFreeze es
 
 --------------------------------------------------------------------------------
 
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.ByteList." ++ msg
-
 
 
 

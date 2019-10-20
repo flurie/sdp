@@ -17,6 +17,7 @@ main = defaultMain
     -- common tests
     testProperty "bytelist-eq             " eqProp,
     testProperty "bytelist-ord            " ordProp,
+    testProperty "bytelist-lexicographic  " lgoProp,
     
     -- linear tests
     testProperty "bytelist-linear-basic   " basicLinearProp,
@@ -56,6 +57,9 @@ eqProp =  eqTest
 
 ordProp :: TestOrd (ByteList Int Int)
 ordProp =  ordTest
+
+lgoProp :: Long (ByteList Int Int) -> Long (ByteList Int Int) -> Bool
+lgoProp (Long xs) (Long ys) = lexicographicOrdTest xs ys
 
 --------------------------------------------------------------------------------
 
@@ -119,6 +123,7 @@ setProp =  setTest
 
 estimateProp :: TestEstimate (ByteList Int Int)
 estimateProp =  estimateTest
+
 
 
 

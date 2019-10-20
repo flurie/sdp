@@ -52,7 +52,7 @@ default ()
 --------------------------------------------------------------------------------
 
 {- |
-  SArray\# - pseudo-primitive lazy boxed immutable type with hiden constuctors.
+  SArray\# - pseudo-primitive lazy boxed immutable type.
   
   SArray\# isn't real Haskell primitive (like "GHC.Exts" types) but for
   reliability and stability, I made it inaccessible to direct work.
@@ -78,8 +78,6 @@ instance Eq1 SArray#
     liftEq eq xs@(SArray# c1 _ _) ys@(SArray# c2 _ _) = c1 == c2 && eq' 0
       where
         eq' i = i == c1 || eq (xs !^ i) (ys !^ i) && eq' (i + 1)
-
-instance (Show e) => Show (SArray# e) where show = show . listL
 
 --------------------------------------------------------------------------------
 
@@ -744,7 +742,4 @@ pfailEx msg = throw . PatternMatchFail $ "in SDP.SArray" ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.SArray" ++ msg
-
-
-
 

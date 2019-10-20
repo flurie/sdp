@@ -6,6 +6,7 @@ version 0.2:
     elements will be generated during the test is too small and insertionSort
     is tested instead of timSort.
     * Freeze instances for Array, Ublist and ByteList.
+    * some stupid bugs
   
   DEPRECATED:
     * SDP.Index.unsafeBounds (in favour of defaultBounds)
@@ -16,10 +17,9 @@ version 0.2:
     * SDP.SortM.Insertion (reexport of insertionSort from SDP.SortM.Tim)
     * SDP.Map (preliminary realisation of dictionary)
     
-    * [internal] SArray# and STArray# primitives.
+    * [internal] SArray#, SBytes#, STArray# and STBytes# primitives.
     
-    * Test.SDP.Eq  test suite
-    * Test.SDP.Ord test suite
+    * Test.SDP.Eq and Test.SDP.Ord test suites
     
     * Test.SDP module for short import of basic test suite.
     * Test.SDP.Gen module with Short, Medium and Long newtypes for Arbitrary.
@@ -30,9 +30,7 @@ version 0.2:
     * groupSetWith function (Set)
     * chunks function (Split)
     
-    * new functions for Estimate
-    * test suite for estimate
-    * test suite for indices
+    * test suites for estimate and indices
     
     * benchmark for timsort
   
@@ -40,11 +38,11 @@ version 0.2:
     Old indexOf (to indexIn)
   
   IMPROVED:
-    * Estimate class (rewrited)
+    * Estimate class rewrited
+    * Ord instances - now lexicographic, like standard list
     * Foldable and IFold rewrited for inline with 2 arguments
     * Indexed and IndexedM now independent from Linear and LinearM resp.
-    * Ord instances - now lexicographic (Array, Unlist, Unrolled)
-    * Array, Unlist and Unrolled representation: O(1) splits, trustworthy size
+    * All structures representation: O(1) splits, trustworthy size
     property and just code deduplication.
     * sortTest suite rewrited for Medium-sized structures generator
     * prevTest and nextTest now work fast (fixed memory leak in where-expr)
