@@ -3,8 +3,8 @@
 This is a library for simple data processing. SDP is inspired by array, vector,
 bytestring and partly by containers and repa.
 
-SDP focuses on efficiency and openness, sometimes at the expense of stability
-and security. Therefore, there are unsafe functions in SDP.
+SDP focuses on efficiency and openness. Therefore, there are unsafe functions in
+SDP.
 
 ## tl;dr
 
@@ -30,7 +30,7 @@ SDP provides 12 common data structures (not including lists):
 - standard list []. With SDP, list functions don't overlap analogues for other
 structures.
 - immutable arrays (lazy boxed Array and strict unboxed Bytes). Similar to
-arrays from the Haskell Platform, but have more functions. SDP borrows some
+arrays from package array, but have more functions. SDP borrows some
 features of vectors and strict bytestrings, which makes some operations in O(1)
 instead of O(n).
 - immutable unrolled lists (lazy boxed Unlist and Unrolled, strict unboxed
@@ -39,8 +39,7 @@ values of any Unboxed type, not only Word8 and Char. Unlist - boxed version of
 Ublist. ByteList and Unrolled - versions of Ublist and Unlist with explicit
 bounds.
 - mutable arrays and unrolled lists (STArray, STBytes, STUnrolled, STUnlist,
-STByteList, STUblist). SDP provides common interfaces for operations with
-mutable structures too.
+STByteList, STUblist).
 
 Also SDP has pseudo-primitive types (SArray#, SBytes#, STArray# and STBytes#)
 that simplifies the implementation of more complex structures. They are
@@ -75,30 +74,29 @@ To simplify the search for derivative components, I propose the following rules:
 * The MAJOR version of the derivative must match the smallest MAJOR version of
 SDP with which it's compatible.
 * The MINOR version is left to the discretion of the derivative developer.
-* All SDP extensions should be called by the rule: sdp-%extensionname%.
-* All SDP wrappers should be called by one of the follow rules.
-sdp4%libraryname% (for good libraries that already has most of the provided by
-wrapper functionality, but need a little generalization, for example, bytestring
-and vector). Or sdp2%libraryname% - for not very good and/or poor libraries that
-are greatly expanded by the wrapper.
+* SDP extensions should be called by the rule: sdp-%extensionname%.
+* SDP wrappers should be called by one of the follow rules.
+sdp4%libraryname% (for libraries that already has most of the provided by
+wrapper functionality, but need a little generalization). Or sdp2%libraryname% -
+for poor libraries that not only generalized, but also expanded by the wrapper.
 
 ## Differences from other similar projects
 
 * Internal consistency. Unfortunately, not all libraries are self-consistent,
 even in the Haskell Platform.
-* Maximum functionality with the minimal dependencies. SDP requires only the
-most necessary and commonly used packages. This is one of the reasons for which
-I refused to use some libraries as dependencies (for example, array, which
-relies on a poorly designed Ix class or containers, in which a lot of the code
-duplication).
+* Maximum functionality with the minimal dependencies and size. SDP requires
+only the most necessary and commonly used packages. This is one of the reasons
+for which I refused to use some libraries as dependencies (for example, array,
+which relies on a poorly designed Ix class or containers, in which a lot of the
+code duplication).
 * Good extensibility. SDP is based on type classes that provide the simplest
 interfaces for working with different data structures and reduce code
 duplication. SDP will not requires qualified imports when working with different
 structures in the same namespace.
 * Orientation to other libraries. SDP, array and vector are essentially
 interchangeable. In some cases, SDP can also replace containers and, in very few
-cases, bytestring. However, this isn't its main purpose. SDP prioritizes
-openness and extensibility and helps libraries interact better with each other.
+cases, bytestring. However, this isn't its main purpose. SDP must help other
+libraries interact better with each other.
 
 ## Contributing
 
