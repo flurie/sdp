@@ -69,7 +69,7 @@ timSort для всех IndexedM.
 
 ## Версии
 
-SDP соответствует [https://pvp.haskell.org](Haskell Package Versioning Policy).
+SDP соответствует [Haskell Package Versioning Policy](https://pvp.haskell.org).
 Для упрощения поиска производных компонентов, я предлагают такие правила:
 * МАЖОРНАЯ версия должна соответствовать наименьшей МАЖОРНОЙ версии SDP, с
 которой она совместима.

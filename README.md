@@ -69,7 +69,7 @@ type.
 
 ## Versioning
 
-SDP follow [https://pvp.haskell.org](Haskell Package Versioning Policy).
+SDP follow [Haskell Package Versioning Policy](https://pvp.haskell.org).
 To simplify the search for derivative components, I propose the following rules:
 * The MAJOR version of the derivative must match the smallest MAJOR version of
 SDP with which it's compatible.
