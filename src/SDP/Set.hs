@@ -58,13 +58,14 @@ default ()
   another newtype. For everyday use, the synonyms below are quite enough.
   
   Note that function of type @Compare e@ must follow 'Ord' rules. If you use the
-  wrong comparator, the result will be undefined. It is also necessary to
-  carefully handle equivalence classes. Example: by default, lookupLEWith and
-  lookupGEWith functions use isContainedIn to search for an equal element in the
-  set - if such an element is found, then the result is the given element (since
-  they are equal, then it doesn’t matter which one to return). This behavior is
-  perfectly normal, but implementations for all basic structures always return
-  an element of the set.
+  wrong comparator, the result will depend on the implementation of the
+  function. You must carefully handle equivalence classes.
+  
+  Example: by default, 'lookupLEWith' and 'lookupGEWith' functions use
+  'isContainedIn' to search for an equal element in the set - if such an element
+  is found, then the result is the given element (since they are equal, then it
+  doesn’t matter which one to return). This behavior is perfectly normal, but
+  implementations for all basic structures always return an element of the set.
 -}
 class (Linear s o) => Set s o | s -> o
   where
@@ -390,6 +391,5 @@ instance Set [e] e
           EQ -> group (e1 `mrg` e2 : es)
           _  -> e1 : group (e2 : es)
         group es = es
-
 
 

@@ -19,10 +19,10 @@ module SDP.Estimate
   -- * Type synonyms
   Equal, Compare,
   
-  -- * common comparators
+  -- * Common comparators
   (<=>), cmpfst, cmpsnd, eqfst, eqsnd,
   
-  -- * right-size versions of Estimate functions
+  -- * Right-size versions of Estimate functions
   (<=.>), (<.), (>.), (<=.), (>=.), (==.), (/=.)
 )
 where

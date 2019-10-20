@@ -36,7 +36,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
-{-
+{- |
   Map is class of dictionaries. It's unstable class that will expand.
   I intend to stabilize it in sdp-0.3.
 -}

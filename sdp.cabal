@@ -3,7 +3,7 @@ version:       0.2
 category:      Data Structures
 
 synopsis:      Simple Data Processing
-description:   This package provides shared interface for simplest data operations.
+description:   SDP provides shared interface for simplest data operations.
                Also this package contains a few simple data structures.
 
 author:        Andrey Mulik

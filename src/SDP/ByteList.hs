@@ -21,7 +21,7 @@ module SDP.ByteList
   ByteList (..),
   
   -- * Ublist
-  Ublist, fromPseudoBytes#
+  Ublist, SBytes#, fromPseudoBytes#
 )
 where
 

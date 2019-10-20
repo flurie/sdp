@@ -17,7 +17,7 @@ module SDP.Array.ST
   module SDP.SortM,
   
   -- * STArray
-  STArray (..), fromPseudoMutableArray#
+  STArray (..), STArray#, fromPseudoMutableArray#
 )
 where
 

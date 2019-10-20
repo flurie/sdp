@@ -10,15 +10,13 @@
     Portability :  non-portable (GHC Extensions)
   
   @SDP.Index@ provides 'Index' - service class of types that may represent
-  indices.
+  indices, based on "Data.Ix" and @Data.Array.Repa.Shape@ (repa), but has more
+  useful functions and may be eaily extended.
   
-  @SDP.Index@ based on "Data.Ix" and @Data.Array.Repa.Shape@ (repa), but has
-  more useful functions and may be eaily extended.
-  
-  I refused to use Data.Ix or create a class based on it, because in this case
-  I still had to write a new class. In addition, I don't like the Ix
-  implementation: different instances use different types of exceptions, some
-  checks restrict my implementations, @rangeSize@ is too long to write...
+  I refused to create a class based on it, because in this case I still had to
+  write a new class. In addition, I don't like the Ix implementation: different
+  instances use different types of exceptions, some checks restrict my
+  implementations, @rangeSize@ is too long to write...
   
   Note that SDP.Index contains over 40 instances, so it takes a very mush time
   to compile (at least, with GHC). The tests also compiled a very long time,
@@ -154,35 +152,28 @@ class (Ord i) => Index i
     {- |
       Checks if the index is overflow.
       
-      The default definition for isOverflow and isUnderflow gives the answer
-      True in the case of an empty range:
+      The default definition for @isOverflow@ and @isUnderflow@ returns True in
+      the case of an empty range:
       
-      isOverflow  (5, -1) x == True and isUnderflow (5, -1) x == True for all x,
-      because
+      > isOverflow  (5, -1) x == True and isUnderflow (5, -1) x == True
+      for all x because
       
-      not . elem x $ range (5, -1)
-      
-      offset (26, 0) 0 == *** Exception: empty range in SDP.Index.offset (default)
-      
-      range (26, 0) == []
-      
-      isOverflow  (26, 0) 0 == True
-      
-      isUnderflow (26, 0) 0 == True.
+      > not . elem x $ range (5, -1) == True
+      > offset (26, 0) 0 == *** Exception: empty range in SDP.Index.offset (default)
+      > range (26, 0) == []
+      > isOverflow  (26, 0) 0 == True
+      > isUnderflow (26, 0) 0 == True
       
       Other definitions in this module follow this rule. This is not a strict
       requirement, but a recommended behavior (if it's relevant to a particular
       implementation).
       
-      Generaly speaking, isOverflow and isUnderflow are not mutually exclusive,
-      and their conjunction doesn't mean that range is empty:
+      Generaly speaking (for not one-dimensional indices), @isOverflow@ and
+      @isUnderflow@ are not mutually exclusive, and their conjunction doesn't
+      mean that range is empty:
       
-      isOverflow  ((-3, 4), (2, 5)) (-4, 6) == True
-      
-      isUnderflow ((-3, 4), (2, 5)) (-4, 6) == True
-      
-      Although, for example, for one-dimensional indexes, previous 2 points it's
-      true.
+      > isOverflow  ((-3, 4), (2, 5)) (-4, 6) == True
+      > isUnderflow ((-3, 4), (2, 5)) (-4, 6) == True
       
       Also, their disjunction is interchangeable with inversion of inRange (in
       default definitions)
@@ -868,15 +859,14 @@ toBounds (l, u) = (toIndex l, toIndex u)
 {-# DEPRECATED unsafeBounds "unsafeBounds deprecated in favour of defaultBounds" #-}
 {-# INLINE unsafeBounds #-}
 {- |
-  Old version of @unsafeBounds n@ is just @(unsafeIndex 0, unsafeIndex $ n - 1)@.
-  This realization, though not a crutch, but still restricts the permissible
-  limits for unsigned index (without this restriction in toEnum can occur
-  underflow), which is critical for the indices with a small range (Int8, Word8,
-  etc.).
+  Old version of unsafeBounds n is (unsafeIndex 0, unsafeIndex $ n - 1). That
+  realization, though not a crutch, but still restricts the permissible limits
+  for unsigned index (without this restriction in toEnum can occur underflow),
+  which is critical for the indices with a small range (Int8, Word8, etc).
   
-  The new unsafeBounds implementation is 'defaultBounds', which handles the case
-  with an empty space more correctly (due to the possibility of overriding in
-  instance).
+  The actual unsafeBounds implementation is 'defaultBounds', which handles the
+  case with an empty space more correctly (due to the possibility of overriding
+  in instance).
 -}
 unsafeBounds :: (Index i) => Int -> (i, i)
 unsafeBounds = defaultBounds

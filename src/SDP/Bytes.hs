@@ -19,7 +19,7 @@ module SDP.Bytes
   module SDP.Set,
   
   -- * Bytes
-  Bytes (..), fromPseudoBytes#
+  Bytes (..), SBytes#, fromPseudoBytes#
 )
 where
 

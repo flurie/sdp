@@ -22,7 +22,7 @@ module SDP.Unrolled
   Unrolled (..),
   
   -- * Unlist
-  Unlist, fromPseudoArray#
+  Unlist, SArray#, fromPseudoArray#
 )
 where
 
@@ -117,7 +117,6 @@ instance (Index i, Arbitrary e) => Arbitrary (Unrolled i e)
   where
     arbitrary = fromList <$> arbitrary
 
--- | All operations is O(1).
 instance (Index i) => Estimate (Unrolled i e)
   where
     (Unrolled l1 u1 _) <==> (Unrolled l2 u2 _) = size (l1, u1) <=> size (l2, u2)
@@ -421,5 +420,6 @@ instance (Index i) => Freeze (ST s) (STUnrolled s i e) (Unrolled i e)
 
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.Unrolled." ++ msg
+
 
 

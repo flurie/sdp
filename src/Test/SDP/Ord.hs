@@ -28,10 +28,10 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | TestEq is service type synonym for more comfortable quickCheck using.
+-- | TestOrd is service type synonym for more comfortable quickCheck using.
 type TestOrd l = l -> l -> l -> Bool
 
--- | eqTest is basic test suite for 'Eq' instances.
+-- | ordTest is basic test suite for 'Ord' instances.
 ordTest :: (Ord l) => l -> l -> l -> Bool
 ordTest xs ys zs = and
   [
@@ -45,6 +45,11 @@ ordTest xs ys zs = and
     (xs <= ys) /= (xs > ys)
   ]
 
+-- | lexicographicOrdTest checks 'Linear' structures for lexicographic order.
 lexicographicOrdTest :: (Linear l e, Ord l, Ord e) => l -> l -> Bool
 lexicographicOrdTest xs ys = (xs <=> ys) == (listL xs <=> listL ys)
+
+
+
+
 

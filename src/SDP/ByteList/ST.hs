@@ -19,7 +19,7 @@ module SDP.ByteList.ST
   module SDP.SortM,
   
   -- * STByteList
-  STByteList (..), fromPseudoMutableBytes#
+  STByteList (..), STBytes#, fromPseudoMutableBytes#
 )
 where
 

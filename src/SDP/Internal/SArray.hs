@@ -57,8 +57,8 @@ default ()
   SArray\# isn't real Haskell primitive (like "GHC.Exts" types) but for
   reliability and stability, I made it inaccessible to direct work.
   
-  If you need a primitive type (Array\#), then you can get it only by copying
-  fromPseudoArray\# function.
+  If you need a primitive type (Array\#), then you can get it only by
+  fromPseudoArray\# (copying function).
 -}
 data SArray# e = SArray#
                         {-# UNPACK #-} !Int -- ^ Element count (not a real size)
@@ -707,12 +707,12 @@ instance SortM (ST s) (STArray# s e) e where sortMBy = timSortBy
 --------------------------------------------------------------------------------
 
 {-# INLINE fromPseudoArray# #-}
--- | fromPseudoArray\# returns ''new'' Array\# (uses cloneArray\#).
+-- | fromPseudoArray\# returns new Array\# (uses cloneArray\#).
 fromPseudoArray# :: SArray# e -> Array# e
 fromPseudoArray# (SArray# (I# c#) (I# o#) arr#) = cloneArray# arr# o# c#
 
 {-# INLINE fromPseudoMutableArray# #-}
--- | fromPseudoMutableArray\# return ''new'' MutableArray\#
+-- | fromPseudoMutableArray\# return new MutableArray\#.
 fromPseudoMutableArray# :: STArray# s e -> State# s -> (# State# s, MutableArray# s e #)
 fromPseudoMutableArray# (STArray# (I# c#) (I# o#) marr#) = cloneMutableArray# marr# o# c#
 

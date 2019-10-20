@@ -65,7 +65,7 @@ infixl 5 :<
   
   Please note that in this class only 'assocs' can throw exceptions
   ('IndexException' is recommended). Other functions must be defined everywhere,
-  including, on possible incorrect data.
+  including, if possible, incorrect data.
   
   Also note that sizeOf shouldn't return negative values (if size field is
   incorrect and recovery is not possible, the structure should be considered

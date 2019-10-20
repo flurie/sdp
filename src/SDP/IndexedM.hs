@@ -146,7 +146,7 @@ class (IndexedM m v i e) => IFoldM m v i e
 class (Monad m) => Thaw m v v' | v' -> m
   where
     {- |
-      thaw is safe way ti convert a immutable structure to a mutable.
+      thaw is safe way to convert a immutable structure to a mutable.
       
       thaw should copy the old structure or ensure that it will not be used
       after calling the procedure.

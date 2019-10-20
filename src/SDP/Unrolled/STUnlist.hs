@@ -18,7 +18,7 @@ module SDP.Unrolled.STUnlist
   module SDP.SortM,
   
   -- * STUnlist
-  STUnlist (..), fromPseudoMutableArray#
+  STUnlist (..), STArray#, fromPseudoMutableArray#
 )
 where
 

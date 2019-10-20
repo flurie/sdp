@@ -5,7 +5,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (require SDP.IndexedM).
     
-    SDP.SortM.Insertion provides some sorting algorithms.
+    SDP.SortM.Insertion provides insertion sort - simple sorting algorithm.
 -}
 module SDP.SortM.Insertion
 (

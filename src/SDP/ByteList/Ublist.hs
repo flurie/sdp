@@ -19,7 +19,7 @@ module SDP.ByteList.Ublist
   module SDP.Set,
   
   -- * Ublist
-  Ublist (..), fromPseudoBytes#
+  Ublist (..), SBytes#, fromPseudoBytes#
 )
 where
 

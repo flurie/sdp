@@ -19,7 +19,7 @@ module SDP.Unrolled.Unlist
   module SDP.Set,
   
   -- * Unlist
-  Unlist (..), fromPseudoArray#
+  Unlist (..), SArray#, fromPseudoArray#
 )
 where
 

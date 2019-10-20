@@ -19,7 +19,7 @@ module SDP.Unrolled.ST
   module SDP.SortM,
   
   -- * STUnrolled
-  STUnrolled (..), fromPseudoMutableArray#
+  STUnrolled (..), STArray#, fromPseudoMutableArray#
 )
 where
 

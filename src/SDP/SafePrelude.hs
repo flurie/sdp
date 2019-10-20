@@ -46,10 +46,15 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | Ternary operator.
--- > odd 1 ? "is True" $ "is False"
--- "is True"
+{- |
+  Ternary operator.
+  
+  > odd 1 ? "is True" $ "is False" == "is True"
+-}
 {-# INLINE (?) #-}
 (?) :: Bool -> a -> a -> a
 (?) p t e = if p then t else e
+
+
+
 
