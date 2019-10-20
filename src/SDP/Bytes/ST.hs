@@ -68,7 +68,7 @@ instance (Index i, Unboxed e) => BorderedM (ST s) (STBytes s i e) i e
     getBounds  (STBytes l u _) = return (l, u)
     
     {-# INLINE getSizeOf #-}
-    getSizeOf  (STBytes _ _ marr#) = getSizeOf marr#
+    getSizeOf  (STBytes _ _ mbytes#) = getSizeOf mbytes#
     
     {-# INLINE getIndices #-}
     getIndices (STBytes l u _) = return $ range (l, u)
@@ -86,17 +86,17 @@ instance (Index i, Unboxed e) => LinearM (ST s) (STBytes s i e) e
     {-# INLINE fromFoldableM #-}
     fromFoldableM es = fromFoldableM es >>= withBounds
     
-    getLeft  (STBytes _ _ marr#) = getLeft  marr#
-    getRight (STBytes _ _ marr#) = getRight marr#
+    getLeft  (STBytes _ _ mbytes#) = getLeft  mbytes#
+    getRight (STBytes _ _ mbytes#) = getRight mbytes#
     
     {-# INLINE copied #-}
-    copied (STBytes l u marr#) = STBytes l u <$> copied marr#
+    copied (STBytes l u mbytes#) = STBytes l u <$> copied mbytes#
     
     {-# INLINE copied' #-}
-    copied' (STBytes _ _ marr#) o c = copied' marr# o c >>= withBounds
+    copied' (STBytes _ _ mbytes#) o c = copied' mbytes# o c >>= withBounds
     
     {-# INLINE reversed #-}
-    reversed (STBytes l u marr#) = STBytes l u <$> reversed marr#
+    reversed (STBytes l u mbytes#) = STBytes l u <$> reversed mbytes#
     
     {-# INLINE filled #-}
     filled n e = filled n e >>= withBounds
@@ -108,30 +108,30 @@ instance (Index i, Unboxed e) => LinearM (ST s) (STBytes s i e) e
 instance (Index i, Unboxed e) => IndexedM (ST s) (STBytes s i e) i e
   where
     {-# INLINE fromAssocs' #-}
-    fromAssocs' bs@(l, u) defvalue ascs = STBytes l u <$> marr#
+    fromAssocs' bs@(l, u) defvalue ascs = STBytes l u <$> mbytes#
       where
-        marr# = defaultBounds (size bs) `fromAssocs'` defvalue $ ies
-        ies   = [ (offset bs i, e) | (i, e) <- ascs, inRange bs i ]
+        mbytes# = defaultBounds (size bs) `fromAssocs'` defvalue $ ies
+        ies     = [ (offset bs i, e) | (i, e) <- ascs, inRange bs i ]
     
     {-# INLINE (!#>) #-}
-    (!#>) (STBytes _ _ marr#) = (marr# !#>)
+    (!#>) (STBytes _ _ mbytes#) = (mbytes# !#>)
     
     {-# INLINE (>!) #-}
-    (>!) (STBytes l u marr#) = (marr# !#>) . offset (l, u)
+    (>!) (STBytes l u mbytes#) = (mbytes# !#>) . offset (l, u)
     
     {-# INLINE (!>) #-}
-    (!>) (STBytes l u marr#) = \ i -> case inBounds (l, u) i of
+    (!>) (STBytes l u mbytes#) = \ i -> case inBounds (l, u) i of
         ER -> throw $ EmptyRange     msg
         UR -> throw $ IndexUnderflow msg
-        IN -> marr# !#> offset (l, u) i
+        IN -> mbytes# !#> offset (l, u) i
         OR -> throw $ IndexOverflow  msg
       where
-        msg = "in SDP.Array.ST.(!>)"
+        msg = "in SDP.Bytes.ST.(!>)"
     
-    writeM_ (STBytes _ _ marr#) = writeM_ marr#
+    writeM_ (STBytes _ _ mbytes#) = writeM_ mbytes#
     
     {-# INLINE writeM #-}
-    writeM (STBytes l u marr#) = \ i -> writeM marr# $ offset (l, u) i
+    writeM (STBytes l u mbytes#) = \ i -> writeM mbytes# $ offset (l, u) i
     
     {-# INLINE overwrite #-}
     overwrite es@(STBytes l u _) ascs = mapM_ (uncurry $ writeM_ es) ies >> return es
@@ -147,18 +147,16 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STBytes s i e) i e
 instance (Index i, Unboxed e) => IFoldM (ST s) (STBytes s i e) i e
   where
     {-# INLINE ifoldrM #-}
-    ifoldrM  f = \ base (STBytes l u marr#) ->
-      ifoldrM (\ i -> f $ index (l, u) i) base marr#
+    ifoldrM  f = \ base (STBytes l u mbytes#) -> ifoldrM (f . index (l, u)) base mbytes#
     
     {-# INLINE ifoldlM #-}
-    ifoldlM  f = \ base (STBytes l u marr#) ->
-      ifoldlM (\ i -> f $ index (l, u) i) base marr#
+    ifoldlM  f = \ base (STBytes l u mbytes#) -> ifoldlM (f . index (l, u)) base mbytes#
     
     {-# INLINE i_foldrM #-}
-    i_foldrM f = \ base (STBytes _ _ marr#) -> i_foldrM f base marr#
+    i_foldrM f = \ base (STBytes _ _ mbytes#) -> i_foldrM f base mbytes#
     
     {-# INLINE i_foldlM #-}
-    i_foldlM f = \ base (STBytes _ _ marr#) -> i_foldlM f base marr#
+    i_foldlM f = \ base (STBytes _ _ mbytes#) -> i_foldlM f base mbytes#
 
 instance (Index i, Unboxed e) => SortM (ST s) (STBytes s i e) e where sortMBy = timSortBy
 
@@ -167,4 +165,6 @@ instance (Index i, Unboxed e) => SortM (ST s) (STBytes s i e) e where sortMBy = 
 {-# INLINE withBounds #-}
 withBounds :: (Index i, Unboxed e) => STBytes# s e -> ST s (STBytes s i e)
 withBounds marr# = (\ n -> let (l, u) = defaultBounds n in STBytes l u marr#) <$> getSizeOf marr#
+
+
 

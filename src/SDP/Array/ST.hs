@@ -146,12 +146,10 @@ instance (Index i) => IndexedM (ST s) (STArray s i e) i e
 instance (Index i) => IFoldM (ST s) (STArray s i e) i e
   where
     {-# INLINE ifoldrM #-}
-    ifoldrM  f base (STArray l u marr#) =
-      ifoldrM (\ i -> f $ index (l, u) i) base marr#
+    ifoldrM  f base (STArray l u marr#) = ifoldrM (f . index (l, u)) base marr#
     
     {-# INLINE ifoldlM #-}
-    ifoldlM  f base (STArray l u marr#) =
-      ifoldlM (\ i -> f $ index (l, u) i) base marr#
+    ifoldlM  f base (STArray l u marr#) = ifoldlM (f . index (l, u)) base marr#
     
     {-# INLINE i_foldrM #-}
     i_foldrM f base (STArray _ _ marr#) = i_foldrM f base marr#
@@ -166,5 +164,7 @@ instance (Index i) => SortM (ST s) (STArray s i e) e where sortMBy = timSortBy
 {-# INLINE withBounds #-}
 withBounds :: (Index i) => STArray# s e -> ST s (STArray s i e)
 withBounds marr# = (\ n -> let (l, u) = defaultBounds n in STArray l u marr#) <$> getSizeOf marr#
+
+
 
 

@@ -52,10 +52,8 @@ type role STByteList nominal nominal representational
 
 instance (Index i, Unboxed e) => Eq (STByteList s i e)
   where
-    (STByteList l1 u1 xs) == (STByteList l2 u2 ys) = e1 && e2 || xs == ys
-      where
-        e1 = isEmpty (l1, u1)
-        e2 = isEmpty (l2, u2)
+    (STByteList l1 u1 xs) == (STByteList l2 u2 ys) =
+      isEmpty (l1, u1) && isEmpty (l2, u2) || xs == ys
 
 --------------------------------------------------------------------------------
 
@@ -76,7 +74,7 @@ instance (Index i, Unboxed e) => LinearM (ST s) (STByteList s i e) e
     
     filled n e = let (l, u) = defaultBounds n in STByteList l u <$> filled n e
     
-    getLeft  (STByteList l u es) = take (size (l, u)) <$> getLeft es
+    getLeft  (STByteList _ _ es) = getLeft es
     copied   (STByteList l u es) = STByteList l u <$> copied  es
     copied'  (STByteList l u es) = \ l' u' -> STByteList l u <$> copied' es l' u'
     reversed (STByteList l u es) = STByteList l u <$> reversed es
@@ -98,24 +96,24 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STByteList s i e) i e
         ies  = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
         bnds = (0, size (l, u) - 1)
     
-    (STByteList _ _ es) !#> i = es !#> i
+    (STByteList _ _ ubl#) !#> i = ubl# !#> i
     
-    (STByteList l u es) >! i = es >! offset  (l, u) i
-    (STByteList l u es) !> i = case inBounds (l, u) i of
+    (STByteList l u ubl#) >! i = ubl# >! offset  (l, u) i
+    (STByteList l u ubl#) !> i = case inBounds (l, u) i of
         ER -> throw $ EmptyRange     msg
         UR -> throw $ IndexUnderflow msg
-        IN -> es >! offset (l, u) i
+        IN -> ubl# >! offset (l, u) i
         OR -> throw $ IndexOverflow  msg
       where
         msg = "in SDP.ByteList.ST.(!>)"
     
-    writeM_ (STByteList _ _ es) = writeM es
-    writeM  (STByteList l u es) = writeM es . offset (l, u)
+    writeM_ (STByteList _ _ ubl#) = writeM ubl#
+    writeM  (STByteList l u ubl#) = writeM ubl# . offset (l, u)
     
     overwrite es [] = return es
-    overwrite (STByteList l u es) ascs = if isEmpty (l, u)
+    overwrite (STByteList l u ubl#) ascs = if isEmpty (l, u)
         then fromAssocs (l', u') ascs
-        else STByteList l u <$> overwrite es ies
+        else STByteList l u <$> overwrite ubl# ies
       where
         ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
         l'  = fst $ minimumBy cmpfst ascs
@@ -133,18 +131,20 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STByteList s i e) i e
 instance (Index i, Unboxed e) => IFoldM (ST s) (STByteList s i e) i e
   where
     {-# INLINE ifoldrM #-}
-    ifoldrM f e (STByteList l u es) = ifoldrM (f . index (l, u)) e es
+    ifoldrM f e (STByteList l u ubl#) = ifoldrM (f . index (l, u)) e ubl#
     
     {-# INLINE ifoldlM #-}
-    ifoldlM f e (STByteList l u es) = ifoldlM (f . index (l, u)) e es
+    ifoldlM f e (STByteList l u ubl#) = ifoldlM (f . index (l, u)) e ubl#
     
     {-# INLINE i_foldrM #-}
-    i_foldrM f e (STByteList _ _ es) = i_foldrM f e es
+    i_foldrM f e (STByteList _ _ ubl#) = i_foldrM f e ubl#
     
     {-# INLINE i_foldlM #-}
-    i_foldlM f e (STByteList _ _ es) = i_foldlM f e es
+    i_foldlM f e (STByteList _ _ ubl#) = i_foldlM f e ubl#
 
 instance (Index i, Unboxed e) => SortM (ST s) (STByteList s i e) e
   where
     sortMBy = timSortBy
+
+
 

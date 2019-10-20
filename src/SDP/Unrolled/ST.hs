@@ -51,10 +51,8 @@ type role STUnrolled nominal nominal representational
 
 instance (Index i, Eq e) => Eq (STUnrolled s i e)
   where
-    (STUnrolled l1 u1 xs) == (STUnrolled l2 u2 ys) = e1 && e2 || xs == ys
-      where
-        e1 = isEmpty (l1, u1)
-        e2 = isEmpty (l2, u2)
+    (STUnrolled l1 u1 xs) == (STUnrolled l2 u2 ys) =
+      isEmpty (l1, u1) && isEmpty (l2, u2) || xs == ys
 
 --------------------------------------------------------------------------------
 
@@ -75,10 +73,10 @@ instance (Index i) => LinearM (ST s) (STUnrolled s i e) e
     
     filled n e = STUnrolled l u <$> filled n e where (l, u) = defaultBounds n
     
-    getLeft  (STUnrolled l u es) = take (size (l, u)) <$> getLeft es
-    copied   (STUnrolled l u es) = STUnrolled l u <$> copied  es
-    copied'  (STUnrolled l u es) = \ l' u' -> STUnrolled l u <$> copied' es l' u'
-    reversed (STUnrolled l u es) = STUnrolled l u <$> reversed es
+    getLeft  (STUnrolled _ _ unr#) = getLeft unr#
+    copied   (STUnrolled l u unr#) = STUnrolled l u <$> copied unr#
+    copied'  (STUnrolled l u unr#) = \ l' u' -> STUnrolled l u <$> copied' unr# l' u'
+    reversed (STUnrolled l u unr#) = STUnrolled l u <$> reversed unr#
 
 --------------------------------------------------------------------------------
 
@@ -107,9 +105,9 @@ instance (Index i) => IndexedM (ST s) (STUnrolled s i e) i e
     writeM  (STUnrolled l u es) = writeM es . offset (l, u)
     
     overwrite es [] = return es
-    overwrite (STUnrolled l u es) ascs = if isEmpty (l, u)
+    overwrite (STUnrolled l u unr#) ascs = if isEmpty (l, u)
         then fromAssocs (l', u') ascs
-        else STUnrolled l u <$> overwrite es ies
+        else STUnrolled l u <$> overwrite unr# ies
       where
         ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
         l'  = fst $ minimumBy cmpfst ascs
@@ -126,8 +124,8 @@ instance (Index i) => IndexedM (ST s) (STUnrolled s i e) i e
 
 instance (Index i) => IFoldM (ST s) (STUnrolled s i e) i e
   where
-    ifoldrM f e (STUnrolled l u es) = ifoldrM (\ i -> f (index (l, u) i)) e es
-    ifoldlM f e (STUnrolled l u es) = ifoldlM (\ i -> f (index (l, u) i)) e es
+    ifoldrM f e (STUnrolled l u es) = ifoldrM (f . index (l, u)) e es
+    ifoldlM f e (STUnrolled l u es) = ifoldlM (f . index (l, u)) e es
     
     i_foldrM f e (STUnrolled _ _ es) = i_foldrM f e es
     i_foldlM f e (STUnrolled _ _ es) = i_foldlM f e es
@@ -135,6 +133,8 @@ instance (Index i) => IFoldM (ST s) (STUnrolled s i e) i e
 instance (Index i) => SortM (ST s) (STUnrolled s i e) e
   where
     sortMBy = timSortBy
+
+
 
 
 

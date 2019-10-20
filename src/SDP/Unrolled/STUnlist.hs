@@ -65,7 +65,7 @@ instance LinearM (ST s) (STUnlist s e) e
     {-# INLINE newLinear #-}
     newLinear es = liftA2 (foldr STUnlist) rest' chs'
       where
-        rest' = (`STUnlist` STUNEmpty) <$> newLinearN (length rest) rest
+        rest' = (`STUnlist` STUNEmpty) <$> newLinear rest
         chs'  = forM chs (newLinearN lim)
         (chs :< rest) = chunks lim es
     
@@ -80,7 +80,6 @@ instance LinearM (ST s) (STUnlist s e) e
         go (STUnlist marr# marr) acc = go marr . (`STUnlist` acc) =<< reversed marr#
         go _ acc = return acc
     
-    -- Note: STUnlist.filled is not so efficient as Unlist.replicate.
     filled n e
       | n <= 0 = return STUNEmpty
       |  True  = liftA2 STUnlist chunk rest
@@ -166,5 +165,6 @@ instance SortM (ST s) (STUnlist s e) e where sortMBy = timSortBy
 
 lim :: Int
 lim =  1024
+
 
 

@@ -58,20 +58,20 @@ default ()
 class (Eq e) => Unboxed e
   where
     -- | Unsafe ByteList reader with overloaded result type.
-    (!#)            :: ByteArray# -> Int# -> e
+    (!#) :: ByteArray# -> Int# -> e
     
     -- | Unsafe MutableByteArray reader with overloaded result type.
-    (!>#)           :: MutableByteArray# s -> Int# -> STRep s e
+    (!>#) :: MutableByteArray# s -> Int# -> STRep s e
     
     -- | Unsafe MutableByteArray writer.
     writeByteArray# :: MutableByteArray# s -> Int# -> e -> State# s -> State# s
     
     {-# INLINE fillByteArray# #-}
     -- | Procedure for filling the array with the default value (like calloc).
-    fillByteArray#  :: MutableByteArray# s -> Int# -> e -> State# s -> State# s
-    fillByteArray# marr# n# e = \ s1# -> case sequence_
+    fillByteArray# :: MutableByteArray# s -> Int# -> e -> State# s -> State# s
+    fillByteArray# mbytes# n# e = \ s1# -> case sequence_
         [
-          ST $ \ sn# -> case writeByteArray# marr# i# e sn# of
+          ST $ \ sn# -> case writeByteArray# mbytes# i# e sn# of
             sn1# -> (# sn1#, () #) | (I# i#) <- [0 .. (I# n#) - 1]
         ]
         of ST rep -> case rep s1# of (# s2#, () #) -> s2#
@@ -89,8 +89,8 @@ class (Eq e) => Unboxed e
     -}
     newUnboxed' :: e -> Int# -> State# s -> (# State# s, MutableByteArray# s #)
     newUnboxed' e n# = \ s1# -> case newUnboxed e n# s1# of
-      (# s2#, marr# #) -> case fillByteArray# marr# n# e s2# of
-        s3# -> (# s3#, marr# #)
+      (# s2#, mbytes# #) -> case fillByteArray# mbytes# n# e s2# of
+        s3# -> (# s3#, mbytes# #)
 
 --------------------------------------------------------------------------------
 
@@ -105,11 +105,11 @@ instance Unboxed Int
     mbytes# !># i# = \ s1# -> case readIntArray# mbytes# i# s1# of
       (# s2#, e# #) -> (# s2#, I# e# #)
     
-    writeByteArray# marr# n# (I# e#) = writeIntArray# marr# n# e#
+    writeByteArray# mbytes# n# (I# e#) = writeIntArray# mbytes# n# e#
     
     newUnboxed _ n# = \ s1# -> case newUnboxedByteArray word_scale n# s1# of
-      (# s2#, marr# #) -> case fillByteArray# marr# n# (0 :: Int) s2# of
-        s3# -> (# s3#, marr# #)
+      (# s2#, mbytes# #) -> case fillByteArray# mbytes# n# (0 :: Int) s2# of
+        s3# -> (# s3#, mbytes# #)
 
 instance Unboxed Int8
   where
@@ -120,11 +120,11 @@ instance Unboxed Int8
     mbytes# !># i# = \ s1# -> case readInt8Array# mbytes# i# s1# of
       (# s2#, e# #) -> (# s2#, I8# e# #)
     
-    writeByteArray# marr# n# (I8#  e#) = writeInt8Array# marr# n# e#
+    writeByteArray# mbytes# n# (I8#  e#) = writeInt8Array# mbytes# n# e#
     
     newUnboxed _ n# = \ s1# -> case newUnboxedByteArray (\ x -> x) n# s1# of
-      (# s2#, marr# #) -> case fillByteArray# marr# n# (0 :: Int8) s2# of
-        s3# -> (# s3#, marr# #)
+      (# s2#, mbytes# #) -> case fillByteArray# mbytes# n# (0 :: Int8) s2# of
+        s3# -> (# s3#, mbytes# #)
 
 instance Unboxed Int16
   where
@@ -135,11 +135,11 @@ instance Unboxed Int16
     mbytes# !># i# = \ s1# -> case readInt16Array# mbytes# i# s1# of
       (# s2#, e# #) -> (# s2#, I16# e# #)
     
-    writeByteArray# marr# n# (I16# e#) = writeInt16Array# marr# n# e#
+    writeByteArray# mbytes# n# (I16# e#) = writeInt16Array# mbytes# n# e#
     
     newUnboxed _ n# = \ s1# -> case newUnboxedByteArray (safe_scale 2#) n# s1# of
-      (# s2#, marr# #) -> case fillByteArray# marr# n# (0 :: Int16) s2# of
-        s3# -> (# s3#, marr# #)
+      (# s2#, mbytes# #) -> case fillByteArray# mbytes# n# (0 :: Int16) s2# of
+        s3# -> (# s3#, mbytes# #)
 
 instance Unboxed Int32
   where
@@ -150,11 +150,11 @@ instance Unboxed Int32
     mbytes# !># i# = \ s1# -> case readInt32Array# mbytes# i# s1# of
       (# s2#, e# #) -> (# s2#, I32# e# #)
     
-    writeByteArray# marr# n# (I32# e#) = writeInt32Array# marr# n# e#
+    writeByteArray# mbytes# n# (I32# e#) = writeInt32Array# mbytes# n# e#
     
     newUnboxed _ n# = \ s1# -> case newUnboxedByteArray (safe_scale 4#) n# s1# of
-      (# s2#, marr# #) -> case fillByteArray# marr# n# (0 :: Int32) s2# of
-        s3# -> (# s3#, marr# #)
+      (# s2#, mbytes# #) -> case fillByteArray# mbytes# n# (0 :: Int32) s2# of
+        s3# -> (# s3#, mbytes# #)
 
 instance Unboxed Int64
   where
@@ -165,11 +165,11 @@ instance Unboxed Int64
     mbytes# !># i# = \ s1# -> case readInt64Array# mbytes# i# s1# of
       (# s2#, e# #) -> (# s2#, I64# e# #)
     
-    writeByteArray# marr# n# (I64# e#) = writeInt64Array# marr# n# e#
+    writeByteArray# mbytes# n# (I64# e#) = writeInt64Array# mbytes# n# e#
     
     newUnboxed _ n# = \ s1# -> case newUnboxedByteArray (safe_scale 8#) n# s1# of
-      (# s2#, marr# #) -> case fillByteArray# marr# n# (0 :: Int64) s2# of
-        s3# -> (# s3#, marr# #)
+      (# s2#, mbytes# #) -> case fillByteArray# mbytes# n# (0 :: Int64) s2# of
+        s3# -> (# s3#, mbytes# #)
 
 --------------------------------------------------------------------------------
 
@@ -184,11 +184,11 @@ instance Unboxed Word
     mbytes# !># i# = \ s1# -> case readWordArray# mbytes# i# s1# of
       (# s2#, e# #) -> (# s2#, W# e# #)
     
-    writeByteArray# marr# n# (W#   e#) = writeWordArray# marr# n# e#
+    writeByteArray# mbytes# n# (W#   e#) = writeWordArray# mbytes# n# e#
     
     newUnboxed _ n# = \ s1# -> case newUnboxedByteArray word_scale n# s1# of
-      (# s2#, marr# #) -> case fillByteArray# marr# n# (0 :: Word) s2# of
-        s3# -> (# s3#, marr# #)
+      (# s2#, mbytes# #) -> case fillByteArray# mbytes# n# (0 :: Word) s2# of
+        s3# -> (# s3#, mbytes# #)
 
 instance Unboxed Word8
   where
@@ -199,11 +199,11 @@ instance Unboxed Word8
     mbytes# !># i# = \ s1# -> case readWord8Array# mbytes# i# s1# of
       (# s2#, e# #) -> (# s2#, W8# e# #)
     
-    writeByteArray# marr# n# (W8#  e#) = writeWord8Array# marr# n# e#
+    writeByteArray# mbytes# n# (W8#  e#) = writeWord8Array# mbytes# n# e#
     
     newUnboxed _ n# = \ s1# -> case newUnboxedByteArray (\ x -> x) n# s1# of
-      (# s2#, marr# #) -> case fillByteArray# marr# n# (0 :: Word8) s2# of
-        s3# -> (# s3#, marr# #)
+      (# s2#, mbytes# #) -> case fillByteArray# mbytes# n# (0 :: Word8) s2# of
+        s3# -> (# s3#, mbytes# #)
 
 instance Unboxed Word16
   where
@@ -214,11 +214,11 @@ instance Unboxed Word16
     mbytes# !># i# = \ s1# -> case readWord16Array# mbytes# i# s1# of
       (# s2#, e# #) -> (# s2#, W16# e# #)
     
-    writeByteArray# marr# n# (W16# e#) = writeWord16Array# marr# n# e#
+    writeByteArray# mbytes# n# (W16# e#) = writeWord16Array# mbytes# n# e#
     
     newUnboxed _ n# = \ s1# -> case newUnboxedByteArray (safe_scale 2#) n# s1# of
-      (# s2#, marr# #) -> case fillByteArray# marr# n# (0 :: Word16) s2# of
-        s3# -> (# s3#, marr# #)
+      (# s2#, mbytes# #) -> case fillByteArray# mbytes# n# (0 :: Word16) s2# of
+        s3# -> (# s3#, mbytes# #)
 
 instance Unboxed Word32
   where
@@ -229,11 +229,11 @@ instance Unboxed Word32
     mbytes# !># i# = \ s1# -> case readWord32Array# mbytes# i# s1# of
       (# s2#, e# #) -> (# s2#, W32# e# #)
     
-    writeByteArray# marr# n# (W32# e#) = writeWord32Array# marr# n# e#
+    writeByteArray# mbytes# n# (W32# e#) = writeWord32Array# mbytes# n# e#
     
     newUnboxed _ n# = \ s1# -> case newUnboxedByteArray (safe_scale 4#) n# s1# of
-      (# s2#, marr# #) -> case fillByteArray# marr# n# (0 :: Word32) s2# of
-        s3# -> (# s3#, marr# #)
+      (# s2#, mbytes# #) -> case fillByteArray# mbytes# n# (0 :: Word32) s2# of
+        s3# -> (# s3#, mbytes# #)
 
 instance Unboxed Word64
   where
@@ -244,11 +244,11 @@ instance Unboxed Word64
     mbytes# !># i# = \ s1# -> case readWord64Array# mbytes# i# s1# of
       (# s2#, e# #) -> (# s2#, W64# e# #)
     
-    writeByteArray# marr# n# (W64# e#) = writeWord64Array# marr# n# e#
+    writeByteArray# mbytes# n# (W64# e#) = writeWord64Array# mbytes# n# e#
     
     newUnboxed _ n# = \ s1# -> case newUnboxedByteArray (safe_scale 8#) n# s1# of
-      (# s2#, marr# #) -> case fillByteArray# marr# n# (0 :: Word64) s2# of
-        s3# -> (# s3#, marr# #)
+      (# s2#, mbytes# #) -> case fillByteArray# mbytes# n# (0 :: Word64) s2# of
+        s3# -> (# s3#, mbytes# #)
 
 --------------------------------------------------------------------------------
 
@@ -263,11 +263,11 @@ instance Unboxed (Ptr a)
     mbytes# !># i# = \ s1# -> case readAddrArray# mbytes# i# s1# of
       (# s2#, e# #) -> (# s2#, Ptr e# #)
     
-    writeByteArray# marr# n# (Ptr e) = writeAddrArray# marr# n# e
+    writeByteArray# mbytes# n# (Ptr e) = writeAddrArray# mbytes# n# e
     
     newUnboxed _ n# = \ s1# -> case newUnboxedByteArray word_scale n# s1# of
-      (# s2#, marr# #) -> case fillByteArray# marr# n# nullPtr s2# of
-        s3# -> (# s3#, marr# #)
+      (# s2#, mbytes# #) -> case fillByteArray# mbytes# n# nullPtr s2# of
+        s3# -> (# s3#, mbytes# #)
 
 instance Unboxed (FunPtr a)
   where
@@ -278,11 +278,11 @@ instance Unboxed (FunPtr a)
     mbytes# !># i# = \ s1# -> case readAddrArray# mbytes# i# s1# of
       (# s2#, e# #) -> (# s2#, FunPtr e# #)
     
-    writeByteArray# marr# n# (FunPtr e) = writeAddrArray# marr# n# e
+    writeByteArray# mbytes# n# (FunPtr e) = writeAddrArray# mbytes# n# e
     
     newUnboxed _ n# = \ s1# -> case newUnboxedByteArray word_scale n# s1# of
-      (# s2#, marr# #) -> case fillByteArray# marr# n# nullFunPtr s2# of
-        s3# -> (# s3#, marr# #)
+      (# s2#, mbytes# #) -> case fillByteArray# mbytes# n# nullFunPtr s2# of
+        s3# -> (# s3#, mbytes# #)
 
 instance Unboxed (StablePtr a)
   where
@@ -293,11 +293,11 @@ instance Unboxed (StablePtr a)
     mbytes# !># i# = \ s1# -> case readStablePtrArray# mbytes# i# s1# of
       (# s2#, e# #) -> (# s2#, StablePtr e# #)
     
-    writeByteArray# marr# n# (StablePtr e) = writeStablePtrArray# marr# n# e
+    writeByteArray# mbytes# n# (StablePtr e) = writeStablePtrArray# mbytes# n# e
     
     newUnboxed _ n# = \ s1# -> case newUnboxedByteArray word_scale n# s1# of
-      (# s2#, marr# #) -> case fillByteArray# marr# n# nullStablePtr s2# of
-        s3# -> (# s3#, marr# #)
+      (# s2#, mbytes# #) -> case fillByteArray# mbytes# n# nullStablePtr s2# of
+        s3# -> (# s3#, mbytes# #)
 
 nullStablePtr :: StablePtr a
 nullStablePtr =  StablePtr (unsafeCoerce# 0#)
@@ -327,17 +327,17 @@ instance Unboxed Bool
     mbytes# !># i# = \ s1# -> case readWordArray# mbytes# (bool_index i#) s1# of
       (# s2#, e# #) -> (# s2#, isTrue# ((e# `and#` bool_bit i#) `neWord#` int2Word# 0#) #)
     
-    writeByteArray# marr# n# e = \ s1# -> case readWordArray# marr# i# s1# of
-        (# s2#, old_byte# #) -> writeWordArray# marr# i# (bitWrite old_byte#) s2#
+    writeByteArray# mbytes# n# e = \ s1# -> case readWordArray# mbytes# i# s1# of
+        (# s2#, old_byte# #) -> writeWordArray# mbytes# i# (bitWrite old_byte#) s2#
       where
         bitWrite old_byte# = if e then old_byte# `or#` bool_bit n# else old_byte# `and#` bool_not_bit n#
         i# = bool_index n#
     
     newUnboxed _ n# = \ s1# -> case newUnboxedByteArray word_scale n# s1# of
-      (# s2#, marr# #) -> case fillByteArray# marr# n# False s2# of
-        s3# -> (# s3#, marr# #)
+      (# s2#, mbytes# #) -> case fillByteArray# mbytes# n# False s2# of
+        s3# -> (# s3#, mbytes# #)
     
-    fillByteArray# marr# n# e = \ s1# -> setByteArray# marr# 0# (bool_scale n#) byte# s1#
+    fillByteArray# mbytes# n# e = \ s1# -> setByteArray# mbytes# 0# (bool_scale n#) byte# s1#
       where
         !(I# byte#) = e ? 0xff $ 0
 
@@ -350,11 +350,11 @@ instance Unboxed Char
     mbytes# !># i# = \ s1# -> case readWideCharArray# mbytes# i# s1# of
       (# s2#, c# #) -> (# s2#, C# c# #)
     
-    writeByteArray# marr# n# (C# e#) = \ s1# -> writeWideCharArray# marr# n# e# s1#
+    writeByteArray# mbytes# n# (C# e#) = \ s1# -> writeWideCharArray# mbytes# n# e# s1#
     
     newUnboxed _ n# = \ s1# -> case newUnboxedByteArray (safe_scale 4#) n# s1# of
-      (# s2#, marr# #) -> case fillByteArray# marr# n# '\0' s2# of
-        s3# -> (# s3#, marr# #)
+      (# s2#, mbytes# #) -> case fillByteArray# mbytes# n# '\0' s2# of
+        s3# -> (# s3#, mbytes# #)
 
 instance Unboxed Float
   where
@@ -365,11 +365,11 @@ instance Unboxed Float
     mbytes# !># i# = \ s1# -> case readFloatArray# mbytes# i# s1# of
       (# s2#, f# #) -> (# s2#, F# f# #)
     
-    writeByteArray# marr# n# (F# e#) = \ s1# -> writeFloatArray# marr# n# e# s1#
+    writeByteArray# mbytes# n# (F# e#) = \ s1# -> writeFloatArray# mbytes# n# e# s1#
     
     newUnboxed _ n# = \ s1# -> case newUnboxedByteArray float_scale n# s1# of
-      (# s2#, marr# #) -> case fillByteArray# marr# n# (0 :: Float) s2# of
-        s3# -> (# s3#, marr# #)
+      (# s2#, mbytes# #) -> case fillByteArray# mbytes# n# (0 :: Float) s2# of
+        s3# -> (# s3#, mbytes# #)
 
 instance Unboxed Double
   where
@@ -380,11 +380,11 @@ instance Unboxed Double
     mbytes# !># i# = \ s1# -> case readDoubleArray# mbytes# i# s1# of
       (# s2#, d# #) -> (# s2#, D# d# #)
     
-    writeByteArray# marr# n# (D# e#) = \ s1# -> writeDoubleArray# marr# n# e# s1#
+    writeByteArray# mbytes# n# (D# e#) = \ s1# -> writeDoubleArray# mbytes# n# e# s1#
     
     newUnboxed _ n# = \ s1# -> case newUnboxedByteArray double_scale n# s1# of
-      (# s2#, marr# #) -> case fillByteArray# marr# n# (0 :: Double) s2# of
-        s3# -> (# s3#, marr# #)
+      (# s2#, mbytes# #) -> case fillByteArray# mbytes# n# (0 :: Double) s2# of
+        s3# -> (# s3#, mbytes# #)
 
 --------------------------------------------------------------------------------
 
@@ -396,31 +396,31 @@ data Wrap = Wrap { unwrap :: ByteArray# }
   as @e@ beginning from @o\#@ elements.
 -}
 cloneUnboxed# :: (Unboxed e) => e -> ByteArray# -> Int# -> Int# -> ByteArray#
-cloneUnboxed# e arr# o# c# = unwrap $ runST $ ST $
+cloneUnboxed# e bytes# o# c# = unwrap $ runST $ ST $
   \ s1# -> case newUnboxed e c# s1# of
-    (# s2#, marr# #) -> case copyUnboxed# e arr# o# marr# 0# c# s2# of
-      s3# -> case unsafeFreezeByteArray# marr# s3# of
-        (# s4#, arr'# #) -> (# s4#, (Wrap arr'#) #)
+    (# s2#, mbytes# #) -> case copyUnboxed# e bytes# o# mbytes# 0# c# s2# of
+      s3# -> case unsafeFreezeByteArray# mbytes# s3# of
+        (# s4#, bytes'# #) -> (# s4#, (Wrap bytes'#) #)
 
 {- |
-  @copyUnboxed\# e arr\# o1\# marr\# o2\# n\#@ writes elements from @arr\#@'s
-  @[o1\# .. o1\# +\# n\#]@ range to @marr\#@'s @[o2\# .. o2\# +\# n\#]@ range.
+  @copyUnboxed\# e bytes\# o1\# mbytes\# o2\# n\#@ writes elements from @bytes\#@'s
+  @[o1\# .. o1\# +\# n\#]@ range to @mbytes\#@'s @[o2\# .. o2\# +\# n\#]@ range.
 -}
 copyUnboxed# :: (Unboxed e) => e -> ByteArray# -> Int# -> MutableByteArray# s -> Int# -> Int# -> State# s -> State# s
 copyUnboxed# _  _    _    _    _  0# = \ sn# -> sn#
-copyUnboxed# e arr# o1# marr# o2# c# = \ s1# ->
-  case writeByteArray# marr# o2# ((arr# !# o1#) `asTypeOf` e) s1# of
-    s2# -> copyUnboxed# e arr# (o1# +# 1#) marr# (o2# +# 1#) (c# -# 1#) s2#
+copyUnboxed# e bytes# o1# mbytes# o2# c# = \ s1# ->
+  case writeByteArray# mbytes# o2# ((bytes# !# o1#) `asTypeOf` e) s1# of
+    s2# -> copyUnboxed# e bytes# (o1# +# 1#) mbytes# (o2# +# 1#) (c# -# 1#) s2#
 
 {- |
-  @copyUnboxed\# e msrc\# o1# marr\# o2# n\#@ writes elements from @msrc\#@'s
-  @[o1\# .. o1\# +\# n\#]@ range to @marr\#@'s @[02\# .. o2\# +\# n\#]@ range.
+  @copyUnboxed\# e msrc\# o1# mbytes\# o2# n\#@ writes elements from @msrc\#@'s
+  @[o1\# .. o1\# +\# n\#]@ range to @mbytes\#@'s @[02\# .. o2\# +\# n\#]@ range.
 -}
 copyUnboxedM# :: (Unboxed e) => e -> MutableByteArray# s -> Int# -> MutableByteArray# s -> Int# -> Int# -> State# s -> State# s
 copyUnboxedM# _  _    _    _    _  0# = \ sn# -> sn#
-copyUnboxedM# e src# o1# marr# o2# n# = \ s1# -> case (!>#) src# o1# s1# of
-  (# s2#, x #) -> case writeByteArray# marr# o2# (x `asTypeOf` e) s2# of
-    s3# -> copyUnboxedM# e src# (o1# +# 1#) marr# (o2# +# 1#) (n# -# 1#) s3#
+copyUnboxedM# e src# o1# mbytes# o2# n# = \ s1# -> case (!>#) src# o1# s1# of
+  (# s2#, x #) -> case writeByteArray# mbytes# o2# (x `asTypeOf` e) s2# of
+    s3# -> copyUnboxedM# e src# (o1# +# 1#) mbytes# (o2# +# 1#) (n# -# 1#) s3#
 
 --------------------------------------------------------------------------------
 

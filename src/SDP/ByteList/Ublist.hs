@@ -65,11 +65,11 @@ instance (Unboxed e) => Eq (Ublist e)
   where
     (==) = go
       where
-        go xs@(Ublist arr1# arr1) ys@(Ublist arr2# arr2) = if n1 > n2
-            then take n2 arr1# == arr2# && go (drop n2 xs) arr2
-            else take n1 arr2# == arr1# && go (drop n1 ys) arr1
+        go xs@(Ublist bytes1# bytes1) ys@(Ublist bytes2# bytes2) = if n1 > n2
+            then take n2 bytes1# == bytes2# && go (drop n2 xs) bytes2
+            else take n1 bytes2# == bytes1# && go (drop n1 ys) bytes1
           where
-            n1 = sizeOf arr1#; n2 = sizeOf arr2#
+            n1 = sizeOf bytes1#; n2 = sizeOf bytes2#
         go Z Z = True
         go _ _ = False
 
@@ -82,11 +82,11 @@ instance (Ord e, Unboxed e) => Ord (Ublist e)
     compare Z Z = EQ
     compare Z _ = LT
     compare _ Z = GT
-    compare xs@(Ublist arr1# arr1) ys@(Ublist arr2# arr2) = if n1 > n2
-        then (take n2 arr1# <=> arr2#) <> compare (drop n2 xs) arr2
-        else (arr1# <=> take n2 arr2#) <> compare arr1 (drop n2 ys)
+    compare xs@(Ublist bytes1# bytes1) ys@(Ublist bytes2# bytes2) = if n1 > n2
+        then (take n2 bytes1# <=> bytes2#) <> compare (drop n2 xs) bytes2
+        else (bytes1# <=> take n2 bytes2#) <> compare bytes1 (drop n2 ys)
       where
-        n1 = sizeOf arr1#; n2 = sizeOf arr2#
+        n1 = sizeOf bytes1#; n2 = sizeOf bytes2#
 
 --------------------------------------------------------------------------------
 
@@ -117,12 +117,12 @@ instance (Unboxed e) => Estimate (Ublist e)
         go o Z   Z = o <=> 0
         go o xs  Z = xs <.=> (-o)
         go o Z  ys = o <=.> ys
-        go o (Ublist arr1# arr1) (Ublist arr2# arr2) =
-          let n1 = sizeOf arr1#; n2 = sizeOf arr2#
-          in  go (o + n1 - n2) arr1 arr2
+        go o (Ublist bytes1# bytes1) (Ublist bytes2# bytes2) =
+          let n1 = sizeOf bytes1#; n2 = sizeOf bytes2#
+          in  go (o + n1 - n2) bytes1 bytes2
     
     Z <.=> n = 0 <=> n
-    (Ublist arr# arr) <.=> m = arr# .> m ? GT $ arr <.=> (m - sizeOf arr#)
+    (Ublist bytes# bytes) <.=> m = bytes# .> m ? GT $ bytes <.=> (m - sizeOf bytes#)
 
 --------------------------------------------------------------------------------
 
@@ -135,22 +135,22 @@ instance (Unboxed e) => Linear (Ublist e) e
     lzero = UBEmpty
     
     toHead e Z = single e
-    toHead e es@(Ublist arr# arr) = arr# .< lim ? Ublist (e :> arr#) arr $ Ublist (single e) es
+    toHead e es@(Ublist bytes# bytes) = bytes# .< lim ? Ublist (e :> bytes#) bytes $ Ublist (single e) es
     
     head Z  = pfailEx "(:>)"
     head es = es !^ 0
     
     tail Z = pfailEx "(:<)"
-    tail (Ublist arr# arr) = isNull arr# ? tail arr $ Ublist (tail arr#) arr
+    tail (Ublist bytes# bytes) = isNull bytes# ? tail bytes $ Ublist (tail bytes#) bytes
     
     toLast Z e = single e
-    toLast (Ublist arr# arr) e = isNull arr# ? (arr :< e) $ Ublist arr# (arr :< e)
+    toLast (Ublist bytes# bytes) e = isNull bytes# ? (bytes :< e) $ Ublist bytes# (bytes :< e)
     
     last Z = pfailEx "(:<)"
-    last (Ublist arr# arr) = isNull arr ? last arr# $ last arr
+    last (Ublist bytes# bytes) = isNull bytes ? last bytes# $ last bytes
     
     init Z = pfailEx "(:>)"
-    init (Ublist arr# arr) = isNull arr ? Ublist (init arr#) Z $ Ublist arr# (init arr)
+    init (Ublist bytes# bytes) = isNull bytes ? Ublist (init bytes#) Z $ Ublist bytes# (init bytes)
     
     {-# INLINE single #-}
     single = replicate 1
@@ -162,7 +162,7 @@ instance (Unboxed e) => Linear (Ublist e) e
     
     Z ++ ys = ys
     xs ++ Z = xs
-    (Ublist arr# arr) ++ ys = Ublist arr# (arr ++ ys)
+    (Ublist bytes# bytes) ++ ys = Ublist bytes# (bytes ++ ys)
     
     -- | Deduplicated Unlist: O(1), O(1) memory (limited by a constant on top).
     {-# INLINE replicate #-}
@@ -193,19 +193,19 @@ instance (Unboxed e) => Split (Ublist e) e
     take n es | n < 1 = Z | es .<= n = es | True = take' n es
       where
         take' _  Z = Z
-        take' n' (Ublist arr# arr) = case n <=.> arr# of
-          LT -> Ublist (take n' arr#) Z
-          EQ -> arr
-          GT -> Ublist arr# (take (n' - sizeOf arr#) arr)
+        take' n' (Ublist bytes# bytes) = case n <=.> bytes# of
+          LT -> Ublist (take n' bytes#) Z
+          EQ -> bytes
+          GT -> Ublist bytes# (take (n' - sizeOf bytes#) bytes)
     
     {-# INLINE drop #-}
     drop n es | n < 1 = es | es .<= n = Z | True = drop' n es
       where
         drop' _ Z = Z
-        drop' n' (Ublist arr# arr) = case n' <=.> arr# of
-          LT -> Ublist (drop n' arr#) arr
-          EQ -> arr
-          GT -> drop' (n' - sizeOf arr#) arr
+        drop' n' (Ublist bytes# bytes) = case n' <=.> bytes# of
+          LT -> Ublist (drop n' bytes#) bytes
+          EQ -> bytes
+          GT -> drop' (n' - sizeOf bytes#) bytes
     
     isPrefixOf xs ys = listL xs `isPrefixOf` listL ys
     isInfixOf  xs ys = listL xs `isInfixOf`  listL ys
@@ -216,7 +216,7 @@ instance (Unboxed e) => Split (Ublist e) e
 
 instance (Unboxed e) => Bordered (Ublist e) Int e
   where
-    sizeOf es = case es of {Ublist arr# arr -> sizeOf arr# + sizeOf arr; _ -> 0}
+    sizeOf es = case es of {Ublist bytes# bytes -> sizeOf bytes# + sizeOf bytes; _ -> 0}
     
     indexIn es = \ i -> i >= 0 && i <. es
     
@@ -257,61 +257,61 @@ instance (Unboxed e) => Indexed (Ublist e) Int e
         n = sizeOf es
     
     Z !^ _ = error "in SDP.ByteList.Ublist.(!^)"
-    (Ublist arr# arr) !^ i = i < c ? arr# !^ i $ arr !^ (i - c)
+    (Ublist bytes# bytes) !^ i = i < c ? bytes# !^ i $ bytes !^ (i - c)
       where
-        c = sizeOf arr#
+        c = sizeOf bytes#
     
     {-# INLINE (.!) #-}
     (.!) = (!^)
     
     (!) Z _ = throw $ EmptyRange "in SDP.ByteList.Ublist.(!)"
-    (!) (Ublist arr# arr) i
-        | isNull arr# = throw $ IndexOverflow  "in SDP.ByteList.Ublist.(!)"
+    (!) (Ublist bytes# bytes) i
+        | isNull bytes# = throw $ IndexOverflow  "in SDP.ByteList.Ublist.(!)"
         |    i < 0    = throw $ IndexUnderflow "in SDP.ByteList.Ublist.(!)"
-        |    i < c    = arr# !^ i
-        |    True     = arr  !^ (i - c)
+        |    i < c    = bytes# !^ i
+        |    True     = bytes  !^ (i - c)
       where
-        c = sizeOf arr#
+        c = sizeOf bytes#
     
     {-# INLINE (.$) #-}
     p .$ es = go es 0
       where
         go Z _ = Nothing
-        go (Ublist arr# arr) o = case p .$ arr# of
+        go (Ublist bytes# bytes) o = case p .$ bytes# of
           Just  i -> Just (i + o)
-          Nothing -> go arr $! o + sizeOf arr#
+          Nothing -> go bytes $! o + sizeOf bytes#
     
     {-# INLINE (*$) #-}
     (*$) p es = go es 0
       where
         go Z _ = []
-        go (Ublist arr# arr) o = (p *$ arr#) ++ (go arr $! o + sizeOf arr#)
+        go (Ublist bytes# bytes) o = (p *$ bytes#) ++ (go bytes $! o + sizeOf bytes#)
 
 instance (Unboxed e) => IFold (Ublist e) Int e
   where
     {-# INLINE ifoldr #-}
-    ifoldr  f = \ base es -> case es of {Z -> base; (Ublist arr# arr) -> ifoldr  f (ifoldr  f base arr) arr#}
+    ifoldr  f = \ base es -> case es of {Z -> base; (Ublist bytes# bytes) -> ifoldr  f (ifoldr  f base bytes) bytes#}
     
     {-# INLINE ifoldl #-}
-    ifoldl  f = \ base es -> case es of {Z -> base; (Ublist arr# arr) -> ifoldl  f (ifoldl  f base arr#) arr}
+    ifoldl  f = \ base es -> case es of {Z -> base; (Ublist bytes# bytes) -> ifoldl  f (ifoldl  f base bytes#) bytes}
     
     {-# INLINE i_foldr #-}
-    i_foldr f = \ base es -> case es of {Z -> base; (Ublist arr# arr) -> i_foldr f (i_foldr f base arr) arr#}
+    i_foldr f = \ base es -> case es of {Z -> base; (Ublist bytes# bytes) -> i_foldr f (i_foldr f base bytes) bytes#}
     
     {-# INLINE i_foldl #-}
-    i_foldl f = \ base es -> case es of {Z -> base; (Ublist arr# arr) -> i_foldl f (i_foldl f base arr#) arr}
+    i_foldl f = \ base es -> case es of {Z -> base; (Ublist bytes# bytes) -> i_foldl f (i_foldl f base bytes#) bytes}
 
 instance (Unboxed e) => Set (Ublist e) e
   where
     setWith f = nubSorted f . sortBy f
     
     insertWith _ e Z = single e
-    insertWith f e (Ublist arr# arr) = isContainedIn f e arr# ?
-      Ublist (insertWith f e arr#) arr $ Ublist arr# (insertWith f e arr)
+    insertWith f e (Ublist bytes# bytes) = isContainedIn f e bytes# ?
+      Ublist (insertWith f e bytes#) bytes $ Ublist bytes# (insertWith f e bytes)
     
     deleteWith _ _ Z = Z
-    deleteWith f e (Ublist arr# arr) = isContainedIn f e arr# ?
-      Ublist (deleteWith f e arr#) arr $ Ublist arr# (deleteWith f e arr)
+    deleteWith f e (Ublist bytes# bytes) = isContainedIn f e bytes# ?
+      Ublist (deleteWith f e bytes#) bytes $ Ublist bytes# (deleteWith f e bytes)
     
     intersectionWith f xs ys = fromList $ on (intersectionWith f) listL xs ys
     
@@ -402,18 +402,18 @@ instance IsString (Ublist Char) where fromString = fromList
 instance (Unboxed e) => Thaw (ST s) (Ublist e) (STUblist s e)
   where
     thaw Z = return STUBEmpty
-    thaw (Ublist arr# arr) = liftA2 STUblist (thaw arr#) (thaw arr)
+    thaw (Ublist bytes# bytes) = liftA2 STUblist (thaw bytes#) (thaw bytes)
     
     unsafeThaw Z = return STUBEmpty
-    unsafeThaw (Ublist arr# arr) = liftA2 STUblist (unsafeThaw arr#) (unsafeThaw arr)
+    unsafeThaw (Ublist bytes# bytes) = liftA2 STUblist (unsafeThaw bytes#) (unsafeThaw bytes)
 
 instance (Unboxed e) => Freeze (ST s) (STUblist s e) (Ublist e)
   where
     freeze STUBEmpty = return Z
-    freeze (STUblist marr# marr) = liftA2 Ublist (freeze marr#) (freeze marr)
+    freeze (STUblist mbytes# mbytes) = liftA2 Ublist (freeze mbytes#) (freeze mbytes)
     
     unsafeFreeze STUBEmpty = return Z
-    unsafeFreeze (STUblist marr# marr) = liftA2 Ublist (unsafeFreeze marr#) (unsafeFreeze marr)
+    unsafeFreeze (STUblist mbytes# mbytes) = liftA2 Ublist (unsafeFreeze mbytes#) (unsafeFreeze mbytes)
 
 --------------------------------------------------------------------------------
 

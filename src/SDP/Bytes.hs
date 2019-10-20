@@ -64,8 +64,8 @@ type role Bytes nominal representational
 
 instance (Index i, Unboxed e, Ord e) => Ord (Bytes i e)
   where
-    compare (Bytes l1 u1 arr1#) (Bytes l2 u2 arr2#) =
-      (arr1# <=> arr2#) <> (size (l1, u1) <=> size (l2, u2))
+    compare (Bytes l1 u1 bytes1#) (Bytes l2 u2 bytes2#) =
+      (bytes1# <=> bytes2#) <> (size (l1, u1) <=> size (l2, u2))
 
 --------------------------------------------------------------------------------
 
@@ -83,17 +83,17 @@ instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (Bytes i e)
 
 instance Estimate (Bytes i e)
   where
-    (Bytes _ _ arr1#) <==> (Bytes _ _ arr2#) = arr1# <==> arr2#
-    (Bytes _ _ arr1#) .>.  (Bytes _ _ arr2#) = arr1# .>.  arr2#
-    (Bytes _ _ arr1#) .<.  (Bytes _ _ arr2#) = arr1# .<.  arr2#
-    (Bytes _ _ arr1#) .<=. (Bytes _ _ arr2#) = arr1# .<=. arr2#
-    (Bytes _ _ arr1#) .>=. (Bytes _ _ arr2#) = arr1# .>=. arr2#
+    (Bytes _ _ bytes1#) <==> (Bytes _ _ bytes2#) = bytes1# <==> bytes2#
+    (Bytes _ _ bytes1#) .>.  (Bytes _ _ bytes2#) = bytes1# .>.  bytes2#
+    (Bytes _ _ bytes1#) .<.  (Bytes _ _ bytes2#) = bytes1# .<.  bytes2#
+    (Bytes _ _ bytes1#) .<=. (Bytes _ _ bytes2#) = bytes1# .<=. bytes2#
+    (Bytes _ _ bytes1#) .>=. (Bytes _ _ bytes2#) = bytes1# .>=. bytes2#
     
-    (Bytes _ _ arr1#) <.=> n2 = arr1# <.=> n2
-    (Bytes _ _ arr1#)  .>  n2 = arr1#  .>  n2
-    (Bytes _ _ arr1#)  .<  n2 = arr1#  .<  n2
-    (Bytes _ _ arr1#) .>=  n2 = arr1# .>=  n2
-    (Bytes _ _ arr1#) .<=  n2 = arr1# .<=  n2
+    (Bytes _ _ bytes1#) <.=> n2 = bytes1# <.=> n2
+    (Bytes _ _ bytes1#)  .>  n2 = bytes1#  .>  n2
+    (Bytes _ _ bytes1#)  .<  n2 = bytes1#  .<  n2
+    (Bytes _ _ bytes1#) .>=  n2 = bytes1# .>=  n2
+    (Bytes _ _ bytes1#) .<=  n2 = bytes1# .<=  n2
 
 --------------------------------------------------------------------------------
 
@@ -113,10 +113,10 @@ instance (Index i) => IsString (Bytes i Char) where fromString = fromList
 
 instance (Index i, Unboxed e, Show i, Show e) => Show (Bytes i e)
   where
-    showsPrec p arr@(Bytes l u _) = showParen (p > appPrec) $ showString "bytes "
+    showsPrec p bytes@(Bytes l u _) = showParen (p > appPrec) $ showString "bytes "
                                                             . shows (l, u)
                                                             . showChar ' '
-                                                            . shows (assocs arr)
+                                                            . shows (assocs bytes)
 
 instance (Index i, Unboxed e, Read i, Read e) => Read (Bytes i e)
   where
@@ -131,26 +131,26 @@ instance (Index i, Unboxed e, Read i, Read e) => Read (Bytes i e)
 
 instance (Index i, Unboxed e) => Linear (Bytes i e) e
   where
-    isNull (Bytes _ _ arr#) = isNull arr#
+    isNull (Bytes _ _ bytes#) = isNull bytes#
     
     {-# INLINE lzero #-}
     lzero = withBounds Z
     
-    toHead e (Bytes _ _ arr#) = withBounds $ e :> arr#
+    toHead e (Bytes _ _ bytes#) = withBounds $ e :> bytes#
     
     head es = isNull es ? pfailEx "(:>)" $ es !^ 0
     
     -- | O(1) 'tail', O(1) memory.
     tail Z = pfailEx "(:>)"
-    tail (Bytes _ _ arr#) = withBounds $ tail arr#
+    tail (Bytes _ _ bytes#) = withBounds $ tail bytes#
     
-    toLast (Bytes _ _ arr#) e = withBounds $ arr# :< e
+    toLast (Bytes _ _ bytes#) e = withBounds $ bytes# :< e
     
     last es = isNull es ? pfailEx "(:<)" $ es !^ (sizeOf es - 1)
     
     -- | O(1) 'init', O(1) memory.
     init Z = pfailEx "(:<)"
-    init (Bytes _ _ arr#) = withBounds $ init arr#
+    init (Bytes _ _ bytes#) = withBounds $ init bytes#
     
     fromList = fromFoldable
     
@@ -170,8 +170,8 @@ instance (Index i, Unboxed e) => Linear (Bytes i e) e
     -- | O(n) 'replicate', O(n) memory.
     replicate n = withBounds . replicate n
     
-    listL (Bytes _ _ arr#) = listL arr#
-    listR (Bytes _ _ arr#) = listR arr#
+    listL (Bytes _ _ bytes#) = listL bytes#
+    listR (Bytes _ _ bytes#) = listR bytes#
     
     {-# INLINE concatMap #-}
     concatMap f = fromList . foldr (\ a l -> i_foldr (:) l $ f a) []
@@ -185,26 +185,26 @@ instance (Index i, Unboxed e) => Split (Bytes i e) e
   where
     {-# INLINE take #-}
     -- | O(1) 'take', O(1) memory.
-    take n (Bytes _ _ arr#) = withBounds $ take n arr#
+    take n (Bytes _ _ bytes#) = withBounds $ take n bytes#
     
     {-# INLINE drop #-}
     -- | O(1) 'drop', O(1) memory.
-    drop n (Bytes _ _ arr#) = withBounds $ drop n arr#
+    drop n (Bytes _ _ bytes#) = withBounds $ drop n bytes#
     
     -- | O(m) 'splits', O(m) memory (m - sizes list length).
-    splits ns (Bytes _ _ arr#) = withBounds <$> splits ns arr#
+    splits ns (Bytes _ _ bytes#) = withBounds <$> splits ns bytes#
     
     -- | O(m) 'chuncks', O(m) memory (m - sizes list length).
-    chunks ns (Bytes _ _ arr#) = withBounds <$> chunks ns arr#
+    chunks ns (Bytes _ _ bytes#) = withBounds <$> chunks ns bytes#
     
     -- | O(m) 'parts', O(m) memory (m - sizes list length).
-    parts  ns (Bytes _ _ arr#) = withBounds <$> parts  ns arr#
+    parts  ns (Bytes _ _ bytes#) = withBounds <$> parts  ns bytes#
     
-    isPrefixOf (Bytes l1 u1 arr1#) (Bytes l2 u2 arr2#) =
-      size (l1, u1) <= size (l2, u2) && arr1# `isPrefixOf` arr2#
+    isPrefixOf (Bytes l1 u1 bytes1#) (Bytes l2 u2 bytes2#) =
+      size (l1, u1) <= size (l2, u2) && bytes1# `isPrefixOf` bytes2#
     
-    isSuffixOf (Bytes l1 u1 arr1#) (Bytes l2 u2 arr2#) =
-      size (l1, u1) <= size (l2, u2) && arr1# `isSuffixOf` arr2#
+    isSuffixOf (Bytes l1 u1 bytes1#) (Bytes l2 u2 bytes2#) =
+      size (l1, u1) <= size (l2, u2) && bytes1# `isSuffixOf` bytes2#
     
     {-# INLINE prefix #-}
     prefix p = i_foldr (\ e c -> p e ? c + 1 $ 0) 0
@@ -224,7 +224,7 @@ instance (Index i, Unboxed e) => Bordered (Bytes i e) i e
     indexOf  (Bytes l u _) = index (l, u)
     
     {-# INLINE sizeOf #-}
-    sizeOf (Bytes _ _ arr#) = sizeOf arr#
+    sizeOf (Bytes _ _ bytes#) = sizeOf bytes#
     
     {-# INLINE bounds #-}
     bounds (Bytes l u _) = (l, u)
@@ -260,64 +260,64 @@ instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
       where
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
-    arr // ascs = runST $ thaw arr >>= (`overwrite` ascs) >>= done
+    bytes // ascs = runST $ thaw bytes >>= (`overwrite` ascs) >>= done
     
     {-# INLINE (!^) #-}
-    (!^) (Bytes _ _ arr#) = (arr# !^)
+    (!^) (Bytes _ _ bytes#) = (bytes# !^)
     
     {-# INLINE (!) #-}
-    (!) (Bytes l u arr#) = (arr# !^) . offset (l, u)
+    (!) (Bytes l u bytes#) = (bytes# !^) . offset (l, u)
     
     (*$) p = ifoldr (\ i e is -> p e ? (i : is) $ is) []
 
 instance (Index i, Unboxed e) => IFold (Bytes i e) i e
   where
     {-# INLINE ifoldr #-}
-    ifoldr f = \ base (Bytes l u arr#) -> ifoldr (\ i -> f $ index (l, u) i) base arr#
+    ifoldr f = \ base (Bytes l u bytes#) -> ifoldr (\ i -> f $ index (l, u) i) base bytes#
     
     {-# INLINE ifoldl #-}
-    ifoldl f = \ base (Bytes l u arr#) -> ifoldl (\ i -> f $ index (l, u) i) base arr#
+    ifoldl f = \ base (Bytes l u bytes#) -> ifoldl (\ i -> f $ index (l, u) i) base bytes#
     
     {-# INLINE i_foldr #-}
-    i_foldr f = \ base (Bytes _ _ arr#) -> i_foldr f base arr#
+    i_foldr f = \ base (Bytes _ _ bytes#) -> i_foldr f base bytes#
     
     {-# INLINE i_foldl #-}
-    i_foldl f = \ base (Bytes _ _ arr#) -> i_foldl f base arr#
+    i_foldl f = \ base (Bytes _ _ bytes#) -> i_foldl f base bytes#
 
 instance (Index i, Unboxed e) => Set (Bytes i e) e
   where
-    setWith f (Bytes _ _ arr#) = withBounds $ setWith f arr#
+    setWith f (Bytes _ _ bytes#) = withBounds $ setWith f bytes#
     
-    insertWith f e (Bytes _ _ arr#) = withBounds $ insertWith f e arr#
-    deleteWith f e (Bytes _ _ arr#) = withBounds $ deleteWith f e arr#
+    insertWith f e (Bytes _ _ bytes#) = withBounds $ insertWith f e bytes#
+    deleteWith f e (Bytes _ _ bytes#) = withBounds $ deleteWith f e bytes#
     
     {-# INLINE intersectionWith #-}
-    intersectionWith f (Bytes _ _ arr1#) (Bytes _ _ arr2#) =
-      withBounds $ intersectionWith f arr1# arr2#
+    intersectionWith f (Bytes _ _ bytes1#) (Bytes _ _ bytes2#) =
+      withBounds $ intersectionWith f bytes1# bytes2#
     
     {-# INLINE unionWith #-}
-    unionWith f (Bytes _ _ arr1#) (Bytes _ _ arr2#) =
-      withBounds $ unionWith f arr1# arr2#
+    unionWith f (Bytes _ _ bytes1#) (Bytes _ _ bytes2#) =
+      withBounds $ unionWith f bytes1# bytes2#
     
     {-# INLINE differenceWith #-}
-    differenceWith f (Bytes _ _ arr1#) (Bytes _ _ arr2#) =
-      withBounds $ differenceWith f arr1# arr2#
+    differenceWith f (Bytes _ _ bytes1#) (Bytes _ _ bytes2#) =
+      withBounds $ differenceWith f bytes1# bytes2#
     
     {-# INLINE symdiffWith #-}
-    symdiffWith f (Bytes _ _ arr1#) (Bytes _ _ arr2#) =
-      withBounds $ differenceWith f arr1# arr2#
+    symdiffWith f (Bytes _ _ bytes1#) (Bytes _ _ bytes2#) =
+      withBounds $ differenceWith f bytes1# bytes2#
     
-    isContainedIn f e (Bytes _ _   es) = isContainedIn f e   es
-    lookupLTWith  f o (Bytes _ _ arr#) = lookupLTWith  f o arr#
-    lookupGTWith  f o (Bytes _ _ arr#) = lookupGTWith  f o arr#
-    lookupLEWith  f o (Bytes _ _ arr#) = lookupLEWith  f o arr#
-    lookupGEWith  f o (Bytes _ _ arr#) = lookupGEWith  f o arr#
+    isContainedIn f e (Bytes _ _     es) = isContainedIn f e     es
+    lookupLTWith  f o (Bytes _ _ bytes#) = lookupLTWith  f o bytes#
+    lookupGTWith  f o (Bytes _ _ bytes#) = lookupGTWith  f o bytes#
+    lookupLEWith  f o (Bytes _ _ bytes#) = lookupLEWith  f o bytes#
+    lookupGEWith  f o (Bytes _ _ bytes#) = lookupGEWith  f o bytes#
     
     isSubsetWith f (Bytes _ _ xs) (Bytes _ _ ys) = isSubsetWith f xs ys
 
 instance (Index i, Unboxed e) => Sort (Bytes i e) e
   where
-    sortBy cmp (Bytes l u arr#) = Bytes l u (sortBy cmp arr#)
+    sortBy cmp (Bytes l u bytes#) = Bytes l u (sortBy cmp bytes#)
 
 --------------------------------------------------------------------------------
 
@@ -325,23 +325,23 @@ instance (Index i, Unboxed e) => Sort (Bytes i e) e
 
 instance (Index i, Unboxed e) => Thaw (ST s) (Bytes i e) (STBytes s i e)
   where
-    thaw       (Bytes l u arr#) = STBytes l u <$> thaw arr#
-    unsafeThaw (Bytes l u arr#) = STBytes l u <$> unsafeThaw arr#
+    thaw       (Bytes l u bytes#) = STBytes l u <$> thaw bytes#
+    unsafeThaw (Bytes l u bytes#) = STBytes l u <$> unsafeThaw bytes#
 
 instance (Index i, Unboxed e) => Freeze (ST s) (STBytes s i e) (Bytes i e)
   where
-    freeze       (STBytes l u marr#) = Bytes l u <$> freeze marr#
-    unsafeFreeze (STBytes l u marr#) = Bytes l u <$> unsafeFreeze marr#
+    freeze       (STBytes l u mbytes#) = Bytes l u <$> freeze mbytes#
+    unsafeFreeze (STBytes l u mbytes#) = Bytes l u <$> unsafeFreeze mbytes#
 
 --------------------------------------------------------------------------------
 
 {-# INLINE withBounds #-}
 withBounds :: (Index i, Unboxed e) => SBytes# e -> Bytes i e
-withBounds arr# = let (l, u) = defaultBounds (sizeOf arr#) in Bytes l u arr#
+withBounds bytes# = let (l, u) = defaultBounds (sizeOf bytes#) in Bytes l u bytes#
 
 {-# INLINE done #-}
 done :: (Unboxed e) => STBytes s i e -> ST s (Bytes i e)
-done (STBytes l u marr#) = Bytes l u <$> unsafeFreeze marr#
+done (STBytes l u mbytes#) = Bytes l u <$> unsafeFreeze mbytes#
 
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Bytes." ++ msg
