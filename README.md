@@ -98,6 +98,29 @@ interchangeable. In some cases, SDP can also replace containers and, in very few
 cases, bytestring. However, this isn't its main purpose. SDP must help other
 libraries interact better with each other.
 
+## SDP category using
+
+SDP category must be used for:
+* type classes declared in SDP and extensions
+* types whose names are occupied in the Data category (for example, Array can't
+be placed in the Data.Array module due to a conflict with the array package)
+* types similar to those already in the SDP category (for example, Bytes is
+similar to Array and putting it into Data.Bytes would be counterintuitive)
+* types based on pseudo-primitives SDP (STUnlist, STUblist, as well as based on
+them Unrolled and ByteList)
+* wrapper modules, so as not to pile up 3-5-level hierarchies (for example, the
+wrapper for Data.ByteString is SDP.ByteString, not Data.ByteString.SDP and the
+wrapper for Data.ByteString.Lazy is SDP.ByteString.Lazy, not
+Data.ByteString.Lazy.SDP or Data.ByteString.SDP.Lazy)
+
+SDP category mustn't be used for:
+* types from Foreign and other important categories (for example, instances for
+Foreign.C types should be in Foreign.C.SDP, and not in SDP.C or SDP.Foreign.C)
+* exception types (like Control.Exception.SDP)
+* non-library modules (must be in SDP.Internal)
+
+Test.SDP should be used to test classes only.
+
 ## Contributing
 
 For details of the process for submitting pull requests, please read
@@ -110,4 +133,8 @@ terms of the BSD3 license.
 SDP is distributed in the hope that it will be useful, but without any
 warranty, without even the implied warranty of merchantability or fitness for
 a particular purpose. See the BSD3 license for more details.
+
+
+
+
 
