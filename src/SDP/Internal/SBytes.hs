@@ -556,14 +556,14 @@ instance (Unboxed e) => IndexedM (ST s) (STBytes# s e) Int e
     {-# INLINE fromIndexed' #-}
     fromIndexed' es = do
         let n = sizeOf es
-        copy <- filled n (unreachEx "fromIndexed'")
+        copy <- filled_ n
         forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
         return copy
     
     {-# INLINE fromIndexedM #-}
     fromIndexedM es = do
       n    <- getSizeOf es
-      copy <- filled n (unreachEx "fromIndexedM")
+      copy <- filled_ n
       forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM_ copy i
       return copy
 
@@ -657,9 +657,9 @@ nubSorted f es = fromList $ foldr fun [last es] ((es !^) <$> [0 .. sizeOf es - 2
     fun = \ e ls -> e `f` head ls == EQ ? ls $ e : ls
 
 undEx :: String -> a
-undEx msg = throw . UndefinedValue $ "in SDP.SBytes" ++ msg
+undEx msg = throw . UndefinedValue $ "in SDP.SBytes." ++ msg
 
 unreachEx :: String -> a
-unreachEx msg = throw . UnreachableException $ "in SDP.SBytes" ++ msg
+unreachEx msg = throw . UnreachableException $ "in SDP.SBytes." ++ msg
 
 

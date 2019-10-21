@@ -17,19 +17,14 @@ VERSION NX-MAJOR (0.2):
   Removing of deprecated SDP.Tree.BinTree, perhaps, in favour of
   SDP.Tree.Heap (new class).
   
+  New class for maps (dictionaries).
+  
   Cabal benchmarks.
 
 EXPERIMENTAL
   
-  New class for slices.
   New class for heaps (SDP.Tree.Heap).
-  New class for maps (dictionaries).
-  New class for monadic splits (SplitM).
   
   TimSort optimizations (binary search, new splitting procedure, GaloppingMode
   and TryMerge).
-
-
-
-
 

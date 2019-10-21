@@ -314,7 +314,7 @@ instance Split (SArray# e) e
     take n es@(SArray# c o arr#)
       | n <= 0 = Z
       | n >= c = es
-      | True = SArray# n o arr#
+      |  True  = SArray# n o arr#
     
     {-# INLINE drop #-}
     -- | O(1) 'drop', O(1) memory.
@@ -461,11 +461,12 @@ instance Set (SArray# e) e
     lookupLTWith _ _ Z  = Nothing
     lookupLTWith f o es
         | GT <- o `f` last' = Just last'
-        | GT <- o `f` head' = look' head' 0 (sizeOf es - 1)
+        | GT <- o `f` head' = look' head' 0 u'
         |       True        = Nothing
       where
-        head' = es .! lower es
-        last' = es .! upper es
+        head' = es .! 0
+        last' = es .! u'
+        u' = upper es
         
         look' r l u = l > u ? Just r $ case o `f` e of
             LT -> look' r l (j - 1)
@@ -479,10 +480,11 @@ instance Set (SArray# e) e
     lookupLEWith f o es
         | GT <- o `f` last' = Just last'
         | LT <- o `f` head' = Nothing
-        |       True        = look' head' 0 (sizeOf es - 1)
+        |       True        = look' head' 0 u'
       where
-        head' = es .! lower es
-        last' = es .! upper es
+        head' = es .! 0
+        last' = es .! u'
+        u' = upper es
         
         look' r l u = if l > u then Just r else case o `f` e of
             LT -> look' r l (j - 1)
@@ -494,15 +496,16 @@ instance Set (SArray# e) e
     lookupGTWith _ _ Z  = Nothing
     lookupGTWith f o es
         | LT <- o `f` head' = Just head'
-        | LT <- o `f` last' = look' last' 0 (sizeOf es - 1)
+        | LT <- o `f` last' = look' last' 0 u'
         |       True        = Nothing
       where
-        head' = es .! lower es
-        last' = es .! upper es
+        head' = es .! 0
+        last' = es .! u'
+        u' = upper es
         
         look' r l u = if l > u then Just r else case o `f` e of
             LT -> look' e l (j - 1)
-            EQ -> j >= (sizeOf es - 1) ? Nothing $ Just (es !^ (j + 1))
+            EQ -> j >= u' ? Nothing $ Just (es !^ (j + 1))
             GT -> look' r (j + 1) u
           where
             j = l + (u - l) `div` 2
@@ -511,11 +514,12 @@ instance Set (SArray# e) e
     lookupGEWith _ _ Z  = Nothing
     lookupGEWith f o es
         | GT <- o `f` last' = Nothing
-        | GT <- o `f` head' = look' last' 0 (sizeOf es - 1)
+        | GT <- o `f` head' = look' last' 0 u'
         |       True        = Just head'
       where
-        head' = es .! lower es
-        last' = es .! upper es
+        head' = es .! 0
+        last' = es .! u'
+        u' = upper es
         
         look' r l u = if l > u then Just r else case o `f` e of
             LT -> look' e l (j - 1)
@@ -735,11 +739,12 @@ nubSorted f es = fromList $ foldr fun [last es] ((es !^) <$> [0 .. sizeOf es - 2
     fun = \ e ls -> e `f` head ls == EQ ? ls $ e : ls
 
 undEx :: String -> a
-undEx msg = throw . UndefinedValue $ "in SDP.SArray" ++ msg
+undEx msg = throw . UndefinedValue $ "in SDP.SArray." ++ msg
 
 pfailEx :: String -> a
-pfailEx msg = throw . PatternMatchFail $ "in SDP.SArray" ++ msg
+pfailEx msg = throw . PatternMatchFail $ "in SDP.SArray." ++ msg
 
 unreachEx :: String -> a
-unreachEx msg = throw . UnreachableException $ "in SDP.SArray" ++ msg
+unreachEx msg = throw . UnreachableException $ "in SDP.SArray." ++ msg
+
 
