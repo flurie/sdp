@@ -626,11 +626,11 @@ done (STBytes# n o marr#) = ST $ \ s1# -> case unsafeFreezeByteArray# marr# s1# 
 done' :: Int -> MutableByteArray# s -> STRep s (STBytes# s e)
 done' n marr# = \ s1# -> (# s1#, STBytes# n 0 marr# #)
 
-{- |
-  filled_ is an internal function that can never be exported.
+{-
+  filled_ is an internal function that must never be exported.
   
-  It creates an uninitialized pseudo-primitive and is used only once -
-  in SDP.ByteList.Ublist.fromAssocs and must be removed in one of next commits.
+  It creates filled by default value pseudo-primitive and is used only once - in
+  SDP.ByteList.Ublist.fromAssocs.
 -}
 filled_ :: (Unboxed e) => Int -> ST s (STBytes# s e)
 filled_ c@(I# c#) = fill' (unreachEx "filled_")
