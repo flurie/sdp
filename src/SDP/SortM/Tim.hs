@@ -121,8 +121,8 @@ timSortBy cmp es = getSizeOf es >>= timSort'
     merging rope = evalInit rope 3 >>= \ (begin, rope') -> mergeAll begin rope'
     
     mergeAll [x@(bx, sx), y@(by, sy), z@(_, sz)] rope' = if rules || sz <= sx
-        then do merge y z; (nxt, rope'') <- evalInit rope' 1; mergeAll ([x, (by, sy + sz)] ++ nxt) rope''
-        else do merge x y; (nxt, rope'') <- evalInit rope' 1; mergeAll ([(bx, sx + sy), z] ++ nxt) rope''
+        then do merge y z; (nxt, rope'') <- nextR rope'; mergeAll ([x, (by, sy + sz)] ++ nxt) rope''
+        else do merge x y; (nxt, rope'') <- nextR rope'; mergeAll ([(bx, sx + sy), z] ++ nxt) rope''
       where
         rules = sx > sy + sy && sy > sz
     mergeAll [x, y] _ = merge x y

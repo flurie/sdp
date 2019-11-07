@@ -1,5 +1,14 @@
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
 
+{- |
+    Module      :  Control.Monad.Rope
+    Copyright   :  (c) Andrey Mulik 2019
+    License     :  BSD-style
+    Maintainer  :  work.a.mulik@gmail.com
+    Portability :  portable
+    
+    @Control.Monad.Rope@ provides 'RopeM' - lazy monadic stream.
+-}
 module Control.Monad.Rope
 (
   RopeM (..),
@@ -37,9 +46,5 @@ evalInit = \ rope n -> n < 1 ? return ([], rope) $ eval n rope
       return (a : as, rest)
 
 nextR :: (Monad m) => RopeM m a -> m ([a], RopeM m a)
-nextR    RopeEnd   = return ([], RopeEnd)
-nextR (RopeM rope) = (\ (a, rope') -> ([a], rope')) <$> rope
-
-
-
+nextR rope = evalInit rope 1
 
