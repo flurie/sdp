@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 {-# LANGUAGE Unsafe, MagicHash, RoleAnnotations #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 {- |
     Module      :  SDP.ByteList.Ublist
@@ -26,12 +27,14 @@ where
 import Prelude ()
 import SDP.SafePrelude
 
-import Test.QuickCheck
-
 import SDP.Indexed
 import SDP.Unboxed
 import SDP.Sort
 import SDP.Set
+
+import Test.QuickCheck
+
+import GHC.Generics ( Generic (..) )
 
 import GHC.Base ( Int  (..) )
 import GHC.Show (  appPrec  )
@@ -51,7 +54,7 @@ default ()
 --------------------------------------------------------------------------------
 
 -- | Ublist is internal data representation for ByteList.
-data Ublist e = UBEmpty | Ublist !(SBytes# e) (Ublist e)
+data Ublist e = UBEmpty | Ublist !(SBytes# e) (Ublist e) deriving ( Generic )
 
 type role Ublist representational
 
@@ -438,8 +441,5 @@ unreachEx msg = throw . UnreachableException $ "in SDP.ByteList.Ublist." ++ msg
 
 lim :: Int
 lim =  1024
-
-
-
 
 

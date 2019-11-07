@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 {-# LANGUAGE Unsafe, MagicHash, RoleAnnotations #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 {- |
     Module      :  SDP.Unrolled.Unlist
@@ -26,12 +27,14 @@ where
 import Prelude ()
 import SDP.SafePrelude
 
-import Test.QuickCheck
-
 import SDP.Indexed
 import SDP.Sort
 import SDP.Scan
 import SDP.Set
+
+import Test.QuickCheck
+
+import GHC.Generics ( Generic (..) )
 
 import GHC.Show ( appPrec  )
 import GHC.Base ( Int (..) )
@@ -50,7 +53,7 @@ default ()
 --------------------------------------------------------------------------------
 
 -- | Unlist is internal data representation for Unrolled.
-data Unlist e = UNEmpty | Unlist !(SArray# e) (Unlist e)
+data Unlist e = UNEmpty | Unlist !(SArray# e) (Unlist e) deriving ( Generic )
 
 type role Unlist representational
 
@@ -479,7 +482,4 @@ unreachEx msg = throw . UnreachableException $ "in SDP.Unrolled.Unlist." ++ msg
 
 lim :: Int
 lim =  1024
-
-
-
 

@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 {-# LANGUAGE Unsafe, MagicHash, TypeFamilies, RoleAnnotations #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 {- |
     Module      :  SDP.ByteList
@@ -36,6 +37,8 @@ import SDP.Set
 
 import Test.QuickCheck
 
+import GHC.Generics ( Generic (..) )
+
 import GHC.Base ( Int  (..) )
 import GHC.Show (  appPrec  )
 import GHC.ST   ( ST )
@@ -56,7 +59,7 @@ default ()
 --------------------------------------------------------------------------------
 
 -- | ByteList is bordered strict unboxed unrolled linked list.
-data ByteList i e = ByteList !i !i !(Ublist e)
+data ByteList i e = ByteList !i !i !(Ublist e) deriving ( Generic )
 
 type role ByteList nominal representational
 
@@ -354,7 +357,4 @@ instance (Index i, Unboxed e) => Freeze (ST s) (STByteList s i e) (ByteList i e)
 
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.ByteList." ++ msg
-
-
-
 

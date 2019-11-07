@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 {-# LANGUAGE Unsafe, MagicHash, TypeFamilies, RoleAnnotations #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 {- |
     Module      :  SDP.Array
@@ -33,6 +34,8 @@ import SDP.Set
 
 import Test.QuickCheck
 
+import GHC.Generics ( Generic (..) )
+
 import GHC.Base ( Int (..) )
 
 import GHC.Show ( appPrec )
@@ -54,7 +57,7 @@ default ()
 --------------------------------------------------------------------------------
 
 -- | Array - standard type of array.
-data Array i e = Array !i !i !(SArray# e)
+data Array i e = Array !i !i !(SArray# e) deriving ( Generic )
 
 type role Array nominal representational
 
@@ -411,5 +414,7 @@ done (STArray l u marr#) = Array l u <$> unsafeFreeze marr#
 
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Array." ++ msg
+
+
 
 

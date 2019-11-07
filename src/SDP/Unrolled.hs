@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 {-# LANGUAGE Unsafe, MagicHash, TypeFamilies, RoleAnnotations #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 {- |
     Module      :  SDP.Unrolled
@@ -36,6 +37,8 @@ import SDP.Set
 
 import Test.QuickCheck
 
+import GHC.Generics ( Generic (..) )
+
 import GHC.Base ( Int  (..) )
 import GHC.Show (  appPrec  )
 import GHC.ST   ( ST )
@@ -57,7 +60,7 @@ default ()
 --------------------------------------------------------------------------------
 
 -- | Unrolled is bordered unrolled linked list.
-data Unrolled i e = Unrolled !i !i !(Unlist e)
+data Unrolled i e = Unrolled !i !i !(Unlist e) deriving ( Generic )
 
 type role Unrolled nominal representational
 
@@ -420,6 +423,8 @@ instance (Index i) => Freeze (ST s) (STUnrolled s i e) (Unrolled i e)
 
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.Unrolled." ++ msg
+
+
 
 
 

@@ -17,6 +17,8 @@ version 0.2:
     * SDP.SortM.Insertion (reexport of insertionSort from SDP.SortM.Tim)
     * SDP.Map (preliminary realisation of dictionary)
     
+    * Generic instances for all structures.
+    
     * [internal] SArray#, SBytes#, STArray# and STBytes# primitives.
     
     * Test.SDP.Eq and Test.SDP.Ord test suites

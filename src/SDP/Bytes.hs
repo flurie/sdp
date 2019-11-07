@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 {-# LANGUAGE Unsafe, MagicHash, TypeFamilies, RoleAnnotations #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 {- |
     Module      :  SDP.Bytes
@@ -28,6 +29,8 @@ import SDP.SafePrelude
 
 import Test.QuickCheck
 
+import GHC.Generics ( Generic (..) )
+
 import SDP.Indexed
 import SDP.Unboxed
 import SDP.Sort
@@ -54,7 +57,7 @@ default ()
 --------------------------------------------------------------------------------
 
 -- | Bytes - unboxed array.
-data Bytes i e = Bytes !i !i !(SBytes# e) deriving ( Eq )
+data Bytes i e = Bytes !i !i !(SBytes# e) deriving ( Eq, Generic )
 
 type role Bytes nominal representational
 
@@ -345,6 +348,8 @@ done (STBytes l u mbytes#) = Bytes l u <$> unsafeFreeze mbytes#
 
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Bytes." ++ msg
+
+
 
 
 
