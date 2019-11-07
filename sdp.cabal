@@ -61,6 +61,7 @@ Library
     
     SDP.Indexed
     SDP.Linear
+    SDP.Tree
     SDP.Set
     SDP.Map
     
