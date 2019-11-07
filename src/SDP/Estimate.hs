@@ -33,7 +33,7 @@ import Prelude
     
     Bool (..), Ordering (..), Int,
     
-    tail, fst, snd
+    null, tail, fst, snd
   )
 
 import Data.Functor.Classes
@@ -93,9 +93,7 @@ instance Estimate [a]
     [] <.=> n = 0 <=> n
     es <.=> n = if n < 0 then LT else go es n
       where
-        go _  0 = GT
-        go [] c = 0 <=> c
-        go xs c = tail xs <.=> (c - 1)
+        go xs c | c == 0 = GT | null xs = 0 <=> c | True = tail xs `go` (c - 1)
 
 --------------------------------------------------------------------------------
 
@@ -162,4 +160,6 @@ i <=.> e = case e <.=> i of {LT -> GT; EQ -> EQ; GT -> LT}
 -- | Right-side version of (./=).
 (/=.) :: (Estimate e) => Int -> e -> Bool
 (/=.) = flip (./=)
+
+
 

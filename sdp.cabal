@@ -46,6 +46,7 @@ Library
     -- common definitions
     
     Control.Exception.SDP
+    Control.Monad.Rope
     SDP.SafePrelude
     SDP.Estimate
     SDP.Unboxed
@@ -158,6 +159,7 @@ test-suite test-array
     SDP.Array
     
     Control.Exception.SDP
+    Control.Monad.Rope
     SDP.SafePrelude
     SDP.SortM.Tim
     SDP.Simple
@@ -210,6 +212,7 @@ test-suite test-bytes
     SDP.Bytes
     
     Control.Exception.SDP
+    Control.Monad.Rope
     SDP.SafePrelude
     SDP.SortM.Tim
     SDP.Simple
@@ -265,6 +268,7 @@ test-suite test-unrolled
     SDP.Unrolled
     
     Control.Exception.SDP
+    Control.Monad.Rope
     SDP.SafePrelude
     SDP.SortM.Tim
     SDP.Simple
@@ -319,6 +323,7 @@ test-suite test-bytelist
     SDP.ByteList
     
     Control.Exception.SDP
+    Control.Monad.Rope
     SDP.SafePrelude
     SDP.SortM.Tim
     SDP.Simple
@@ -372,6 +377,7 @@ test-suite test-ublist
     SDP.ByteList.Ublist
     
     Control.Exception.SDP
+    Control.Monad.Rope
     SDP.SafePrelude
     SDP.SortM.Tim
     SDP.Simple
@@ -425,6 +431,7 @@ test-suite test-unlist
     SDP.Unrolled.Unlist
     
     Control.Exception.SDP
+    Control.Monad.Rope
     SDP.SafePrelude
     SDP.SortM.Tim
     SDP.Simple
@@ -497,6 +504,7 @@ benchmark bench-sort
     SDP.Bytes
     
     Control.Exception.SDP
+    Control.Monad.Rope
     SDP.SafePrelude
     SDP.SortM.Tim
     SDP.Simple

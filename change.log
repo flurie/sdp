@@ -21,6 +21,8 @@ version 0.2:
     
     * [internal] SArray#, SBytes#, STArray# and STBytes# primitives.
     
+    * RopeM service structure for efficient splitting in TimSort.
+    
     * Test.SDP.Eq and Test.SDP.Ord test suites
     
     * Test.SDP module for short import of basic test suite.

@@ -22,13 +22,14 @@ module SDP.SortM.Tim
 where
 
 import Prelude ()
-import SDP.SafePrelude
 
+import SDP.SafePrelude
 import SDP.IndexedM
+import SDP.Simple
+
+import Control.Monad.Rope
 
 import Data.Bits
-
-import SDP.Simple
 
 default ()
 
@@ -87,42 +88,45 @@ timSortOn f es = timSortBy (compare `on` f) es
   using any comparison function and having O (nlogn) complexity in the worst
   case.
 -}
-timSortBy :: (BorderedM m v i e, LinearM m v e, IndexedM m v i e) => (e -> e -> Ordering) -> v -> m ()
+timSortBy :: (BorderedM m v i e, LinearM m v e, IndexedM m v i e) => Compare e -> v -> m ()
 timSortBy cmp es = getSizeOf es >>= timSort'
   where
     timSort' n
       |  n < 0  = return ()
       | n <= 64 = insertionSortBy cmp es
-      |   True  = ascSubs n 0 >>= mergeAll
+      |   True  = merging (ascSubs 0 n)
     
-    ascSubs n o
-        |   o   == n = return []
-        | o + 1 == n = return [(o, 1)]
-        | o + 2 == n = bindM2 (es !#> o) (es !#> o + 1) $
-          \ e0 e1 -> do when (e0 `gt` e1) $ swapM es o (o + 1); return [(o, 2)]
-        |    True    = do
-          end  <- normalized =<< actual
-          nxts <- ascSubs n end
-          return $ (o, end - o) : nxts
+    ascSubs o n
+        |   o   == n = RopeEnd
+        | o + 1 == n = RopeM $ return ((o, 1), RopeEnd)
+        | o + 2 == n = RopeM $ bindM2 (es !#> o) (es !#> o + 1) $
+          \ e0 e1 -> do (e0 `gt` e1) `when` swapM es o (o + 1); return ((o, 2), RopeEnd)
+        |    True    = RopeM $ do
+          end <- normalized =<< actual
+          return ((o, end - o), ascSubs end n)
       where
         actual = bindM2 (es !#> o) (es !#> o + 1) $
-          \ e0 e1 -> if e0 `gt` e1 then desc e1 (o + 2) else asc e1 (o + 2)
+          \ e0 e1 -> e0 `gt` e1 ? desc e1 (o + 2) $ asc e1 (o + 2)
           where
-            asc  p i = do c <- es !#> i; if p `gt` c then return i else i /= n - 1 ? asc  c (i + 1) $ return (i + 1)
-            desc p i = do c <- es !#> i; if p `lt` c then rev' o i else i /= n - 1 ? desc c (i + 1) $ rev' o (i + 1)
+            asc  p i = do c <- es !#> i; p `gt` c ? return i $ i /= n - 1 ? asc  c (i + 1) $ return (i + 1)
+            desc p i = do c <- es !#> i; p `lt` c ? rev' o i $ i /= n - 1 ? desc c (i + 1) $ rev' o (i + 1)
             rev  f l = when (f < l) $ do swapM es f l; rev (f + 1) (l - 1)
-            rev' f l = rev f (l - 1) >> return l
+            rev' f l = do rev f (l - 1); return l
         
-        normalized s = do when (ex > s) $ insertionSort_ cmp es o (s - 1) (ex - 1); return (max ex s)
-        ex = min n (o + minrunTS n) -- expected ending
+        normalized s = do
+          let ex = min n (o + minrunTS n) -- minimal expected ending
+          when (ex > s) $ insertionSort_ cmp es o (s - 1) (ex - 1)
+          return $ max ex s
     
-    mergeAll (x@(bx, sx) : y@(by, sy) : z@(_, sz) : bnds) = if rules || sz <= sx
-        then do merge y z; mergeAll $ x : (by, sy + sz) : bnds
-        else do merge x y; mergeAll $ (bx, sx + sy) : z : bnds
+    merging rope = evalInit rope 3 >>= \ (begin, rope') -> mergeAll begin rope'
+    
+    mergeAll [x@(bx, sx), y@(by, sy), z@(_, sz)] rope' = if rules || sz <= sx
+        then do merge y z; (nxt, rope'') <- evalInit rope' 1; mergeAll ([x, (by, sy + sz)] ++ nxt) rope''
+        else do merge x y; (nxt, rope'') <- evalInit rope' 1; mergeAll ([(bx, sx + sy), z] ++ nxt) rope''
       where
-        rules = sx > sy + sz && sy > sz
-    mergeAll [x,y] = merge x y
-    mergeAll   _   = return ()
+        rules = sx > sy + sy && sy > sz
+    mergeAll [x, y] _ = merge x y
+    mergeAll    _   _ = return ()
     
     merge (bx, sx) (by, sy) = copied' es bx sx >>= mergeGo bx 0 by
       where
@@ -157,4 +161,5 @@ arrcopy xs ys ix iy count = copy ix iy (max 0 count)
     -- I chose 0 as the recursion base because -1 doesn't look pretty.
     copy _  _  0 = return ()
     copy ox oy c = xs !#> ox >>= writeM_ ys oy >> copy (ox + 1) (oy + 1) (c - 1)
+
 
