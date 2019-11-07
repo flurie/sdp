@@ -49,7 +49,7 @@ type role STUnrolled nominal nominal representational
 
 {- Eq instance. -}
 
-instance (Index i, Eq e) => Eq (STUnrolled s i e)
+instance (Index i) => Eq (STUnrolled s i e)
   where
     (STUnrolled l1 u1 xs) == (STUnrolled l2 u2 ys) =
       isEmpty (l1, u1) && isEmpty (l2, u2) || xs == ys

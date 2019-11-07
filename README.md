@@ -1,4 +1,4 @@
-# SDP
+# Simple Data Processing
 
 This is a library for simple data processing. SDP is inspired by array, vector,
 bytestring and partly by containers and repa.

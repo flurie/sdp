@@ -1,4 +1,4 @@
-# SDP
+# Simple Data Processing
 
 Это библиотека для простой обработки данных. SDP вдохновлена array, vector,
 bytestring, отчасти containers и repa.

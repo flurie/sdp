@@ -50,7 +50,7 @@ type role STByteList nominal nominal representational
 
 {- Eq instance. -}
 
-instance (Index i, Unboxed e) => Eq (STByteList s i e)
+instance (Index i) => Eq (STByteList s i e)
   where
     (STByteList l1 u1 xs) == (STByteList l2 u2 ys) =
       isEmpty (l1, u1) && isEmpty (l2, u2) || xs == ys
