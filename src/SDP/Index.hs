@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 {-# LANGUAGE DefaultSignatures, TypeOperators, FlexibleContexts #-}
+{-# LANGUAGE CPP #-}
 {-# OPTIONS_HADDOCK ignore-exports #-}
 
 {- |
@@ -492,345 +493,130 @@ class (Index i, Index j) => IndexEQ i j | i -> j
     toIndex   :: i -> j
     fromIndex :: j -> i
 
-instance (Index i, Enum i, Bounded i) => IndexEQ (i, i) (I2 i)
+instance (Index i, Enum i, Bounded i) => IndexEQ (i,i) (I2 i)
   where
-    toIndex       (i1, i2)    = ind2 i1 i2
-    fromIndex (E :& i1 :& i2) = (i1, i2)
+    toIndex (a, b) = ind2 a b
+    
+    fromIndex (E :& a :& b) = (a, b)
 
-instance (Index i, Enum i, Bounded i) => IndexEQ (i, i, i) (I3 i)
+instance (Index i, Enum i, Bounded i) => IndexEQ (i,i,i) (I3 i)
   where
-    toIndex        (i1, i2, i3)     = ind3 i1 i2 i3
-    fromIndex (E :& i1 :& i2 :& i3) = (i1, i2, i3)
+    toIndex (a, b, c) = ind3 a b c
+    
+    fromIndex (E :& a :& b :& c) = (a, b, c)
 
-instance (Index i, Enum i, Bounded i) => IndexEQ (i, i, i, i) (I4 i)
+instance (Index i, Enum i, Bounded i) => IndexEQ (i,i,i,i) (I4 i)
   where
-    toIndex         (i1, i2, i3, i4)      = ind4 i1 i2 i3 i4
-    fromIndex (E :& i1 :& i2 :& i3 :& i4) = (i1, i2, i3, i4)
+    toIndex (a, b, c, d) = ind4 a b c d
+    
+    fromIndex (E :& a :& b :& c :& d) = (a, b, c, d)
 
-instance (Index i, Enum i, Bounded i) => IndexEQ (i, i, i, i, i) (I5 i)
+instance (Index i, Enum i, Bounded i) => IndexEQ (i,i,i,i,i) (I5 i)
   where
-    toIndex          (i1, i2, i3, i4, i5)       = ind5 i1 i2 i3 i4 i5
-    fromIndex (E :& i1 :& i2 :& i3 :& i4 :& i5) = (i1, i2, i3, i4, i5)
+    toIndex (a, b, c, d, e) = ind5 a b c d e
+    
+    fromIndex (E :& a :& b :& c :& d :& e) = (a, b, c, d, e)
 
-instance (Index i, Enum i, Bounded i) => IndexEQ (i, i, i, i, i, i) (I6 i)
+instance (Index i, Enum i, Bounded i) => IndexEQ (i,i,i,i,i,i) (I6 i)
   where
-    toIndex           (i1, i2, i3, i4, i5, i6)        = ind6 i1 i2 i3 i4 i5 i6
-    fromIndex (E :& i1 :& i2 :& i3 :& i4 :& i5 :& i6) = (i1, i2, i3, i4, i5, i6)
+    toIndex (a, b, c, d, e, f) = ind6 a b c d e f
+    
+    fromIndex (E :& a :& b :& c :& d :& e :& f) = (a, b, c, d, e, f)
 
-instance (Index i, Enum i, Bounded i) => IndexEQ (i, i, i, i, i, i, i) (I7 i)
+instance (Index i, Enum i, Bounded i) => IndexEQ (i,i,i,i,i,i,i) (I7 i)
   where
-    toIndex            (i1, i2, i3, i4, i5, i6, i7)         = ind7 i1 i2 i3 i4 i5 i6 i7
-    fromIndex (E :& i1 :& i2 :& i3 :& i4 :& i5 :& i6 :& i7) = (i1, i2, i3, i4, i5, i6, i7)
+    toIndex (a, b, c, d, e, f, g) = ind7 a b c d e f g
+    
+    fromIndex (E :& a :& b :& c :& d :& e :& f :& g) = (a, b, c, d, e, f, g)
 
-instance (Index i, Enum i, Bounded i) => IndexEQ (i, i, i, i, i, i, i, i) (I8 i)
+instance (Index i, Enum i, Bounded i) => IndexEQ (i,i,i,i,i,i,i,i) (I8 i)
   where
-    toIndex             (i1, i2, i3, i4, i5, i6, i7, i8)          = ind8 i1 i2 i3 i4 i5 i6 i7 i8
-    fromIndex (E :& i1 :& i2 :& i3 :& i4 :& i5 :& i6 :& i7 :& i8) = (i1, i2, i3, i4, i5, i6, i7, i8)
+    toIndex (a, b, c, d, e, f, g, h) = ind8 a b c d e f g h
+    
+    fromIndex (E :& a :& b :& c :& d :& e :& f :& g :& h) = (a, b, c, d, e, f, g, h)
 
-instance (Index i, Enum i, Bounded i) => IndexEQ (i, i, i, i, i, i, i, i, i) (I9 i)
+instance (Index i, Enum i, Bounded i) => IndexEQ (i,i,i,i,i,i,i,i,i) (I9 i)
   where
-    toIndex              (i1, i2, i3, i4, i5, i6, i7, i8, i9)           = ind9 i1 i2 i3 i4 i5 i6 i7 i8 i9
-    fromIndex (E :& i1 :& i2 :& i3 :& i4 :& i5 :& i6 :& i7 :& i8 :& i9) = (i1, i2, i3, i4, i5, i6, i7, i8, i9)
+    toIndex (a, b, c, d, e, f, g, h, i) = ind9 a b c d e f g h i
+    
+    fromIndex (E :& a :& b :& c :& d :& e :& f :& g :& h :& i) = (a, b, c, d, e, f, g, h, i)
 
-instance (Index i, Enum i, Bounded i) => IndexEQ (i, i, i, i, i, i, i, i, i, i) (I10 i)
+instance (Index i, Enum i, Bounded i) => IndexEQ (i,i,i,i,i,i,i,i,i,i) (I10 i)
   where
-    toIndex               (i1, i2, i3, i4, i5, i6, i7, i8, i9, i10)            = ind10 i1 i2 i3 i4 i5 i6 i7 i8 i9 i10
-    fromIndex (E :& i1 :& i2 :& i3 :& i4 :& i5 :& i6 :& i7 :& i8 :& i9 :& i10) = (i1, i2, i3, i4, i5, i6, i7, i8, i9, i10)
+    toIndex (a, b, c, d, e, f, g, h, i, j) = ind10 a b c d e f g h i j
+    
+    fromIndex (E :& a :& b :& c :& d :& e :& f :& g :& h :& i :& j) = (a, b, c, d, e, f, g, h, i, j)
 
-instance (Index i, Enum i, Bounded i) => IndexEQ (i, i, i, i, i, i, i, i, i, i, i) (I11 i)
+instance (Index i, Enum i, Bounded i) => IndexEQ (i,i,i,i,i,i,i,i,i,i,i) (I11 i)
   where
-    toIndex                (i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11)             = ind11 i1 i2 i3 i4 i5 i6 i7 i8 i9 i10 i11
-    fromIndex (E :& i1 :& i2 :& i3 :& i4 :& i5 :& i6 :& i7 :& i8 :& i9 :& i10 :& i11) = (i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11)
+    toIndex (a, b, c, d, e, f, g, h, i, j, k) = ind11 a b c d e f g h i j k
+    
+    fromIndex (E :& a :& b :& c :& d :& e :& f :& g :& h :& i :& j :& k) = (a, b, c, d, e, f, g, h, i, j, k)
 
-instance (Index i, Enum i, Bounded i) => IndexEQ (i, i, i, i, i, i, i, i, i, i, i, i) (I12 i)
+instance (Index i, Enum i, Bounded i) => IndexEQ (i,i,i,i,i,i,i,i,i,i,i,i) (I12 i)
   where
-    toIndex                 (i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11, i12)              = ind12 i1 i2 i3 i4 i5 i6 i7 i8 i9 i10 i11 i12
-    fromIndex (E :& i1 :& i2 :& i3 :& i4 :& i5 :& i6 :& i7 :& i8 :& i9 :& i10 :& i11 :& i12) = (i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11, i12)
+    toIndex (a, b, c, d, e, f, g, h, i, j, k, l) = ind12 a b c d e f g h i j k l
+    
+    fromIndex (E :& a :& b :& c :& d :& e :& f :& g :& h :& i :& j :& k :& l) = (a, b, c, d, e, f, g, h, i, j, k, l)
 
-instance (Index i, Enum i, Bounded i) => IndexEQ (i, i, i, i, i, i, i, i, i, i, i, i, i) (I13 i)
+instance (Index i, Enum i, Bounded i) => IndexEQ (i,i,i,i,i,i,i,i,i,i,i,i,i) (I13 i)
   where
-    toIndex                  (i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11, i12, i13)               = ind13 i1 i2 i3 i4 i5 i6 i7 i8 i9 i10 i11 i12 i13
-    fromIndex (E :& i1 :& i2 :& i3 :& i4 :& i5 :& i6 :& i7 :& i8 :& i9 :& i10 :& i11 :& i12 :& i13) = (i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11, i12, i13)
+    toIndex (a, b, c, d, e, f, g, h, i, j, k, l, m) = ind13 a b c d e f g h i j k l m
+    
+    fromIndex (E :& a :& b :& c :& d :& e :& f :& g :& h :& i :& j :& k :& l :& m) = (a, b, c, d, e, f, g, h, i, j, k, l, m)
 
-instance (Index i, Enum i, Bounded i) => IndexEQ (i, i, i, i, i, i, i, i, i, i, i, i, i, i) (I14 i)
+instance (Index i, Enum i, Bounded i) => IndexEQ (i,i,i,i,i,i,i,i,i,i,i,i,i,i) (I14 i)
   where
-    toIndex                   (i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11, i12, i13, i14)                = ind14 i1 i2 i3 i4 i5 i6 i7 i8 i9 i10 i11 i12 i13 i14
-    fromIndex (E :& i1 :& i2 :& i3 :& i4 :& i5 :& i6 :& i7 :& i8 :& i9 :& i10 :& i11 :& i12 :& i13 :& i14) = (i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11, i12, i13, i14)
+    toIndex (a, b, c, d, e, f, g, h, i, j, k, l, m, n) = ind14 a b c d e f g h i j k l m n
+    
+    fromIndex (E :& a :& b :& c :& d :& e :& f :& g :& h :& i :& j :& k :& l :& m :& n) = (a, b, c, d, e, f, g, h, i, j, k, l, m, n)
 
-instance (Index i, Enum i, Bounded i) => IndexEQ (i, i, i, i, i, i, i, i, i, i, i, i, i, i, i) (I15 i)
+instance (Index i, Enum i, Bounded i) => IndexEQ (i,i,i,i,i,i,i,i,i,i,i,i,i,i,i) (I15 i)
   where
-    toIndex                    (i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11, i12, i13, i14, i15)                 = ind15 i1 i2 i3 i4 i5 i6 i7 i8 i9 i10 i11 i12 i13 i14 i15
-    fromIndex (E :& i1 :& i2 :& i3 :& i4 :& i5 :& i6 :& i7 :& i8 :& i9 :& i10 :& i11 :& i12 :& i13 :& i14 :& i15) = (i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11, i12, i13, i14, i15)
+    toIndex (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o) = ind15 a b c d e f g h i j k l m n o
+    
+    fromIndex (E :& a :& b :& c :& d :& e :& f :& g :& h :& i :& j :& k :& l :& m :& n :& o) = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o)
 
 --------------------------------------------------------------------------------
 
 {- Tuple instances. -}
 
-instance (Index i, Enum i, Bounded i) => Index (i, i)
-  where
-    rank             = const 2
-    size             = size . toBounds
-    sizes            = sizes . toBounds
-    range            = fmap fromIndex . range . toBounds
-    inRange     bs i = toBounds bs `inRange` toIndex i
-    next        bs i = fromIndex $ toBounds bs `next` toIndex i
-    prev        bs i = fromIndex $ toBounds bs `prev` toIndex i
-    inBounds    bs i | isEmpty bs = ER | isUnderflow bs i = UR | isOverflow bs i = OR | True = IN
-    isEmpty          = isEmpty . toBounds
-    isOverflow  bs i = toBounds bs `isOverflow`  toIndex i
-    isUnderflow bs i = toBounds bs `isUnderflow` toIndex i
-    safeElem    bs i = fromIndex $ toBounds bs `safeElem` (toIndex i)
-    ordBounds   bs   = let (f, s) = ordBounds $ toBounds bs in (fromIndex f, fromIndex s)
-    offset      bs i = toBounds bs `offset` toIndex i
-    index       bs c = fromIndex $ toBounds bs `index` c
-    unsafeIndex      = fromIndex . unsafeIndex
+#define INDEX_INSTANCE(TYPEi) instance (Index i, Enum i, Bounded i) => Index TYPEi where\
+{\
+rank             = const 2;\
+size             = size . toBounds;\
+sizes            = sizes . toBounds;\
+range            = fmap fromIndex . range . toBounds;\
+inRange     bs i = toBounds bs `inRange` toIndex i;\
+next        bs i = fromIndex $ toBounds bs `next` toIndex i;\
+prev        bs i = fromIndex $ toBounds bs `prev` toIndex i;\
+inBounds    bs i | isEmpty bs = ER | isUnderflow bs i = UR | isOverflow bs i = OR | True = IN;\
+isEmpty          = isEmpty . toBounds;\
+isOverflow  bs i = toBounds bs `isOverflow`  toIndex i;\
+isUnderflow bs i = toBounds bs `isUnderflow` toIndex i;\
+safeElem    bs i = fromIndex $ toBounds bs `safeElem` (toIndex i);\
+ordBounds   bs   = let (f, s) = ordBounds $ toBounds bs in (fromIndex f, fromIndex s);\
+offset      bs i = toBounds bs `offset` toIndex i;\
+index       bs c = fromIndex $ toBounds bs `index` c;\
+unsafeIndex      = fromIndex . unsafeIndex;\
+}
 
-instance (Index i, Enum i, Bounded i) => Index (i, i, i)
-  where
-    rank             = const 3
-    size             = size . toBounds
-    sizes            = sizes . toBounds
-    range            = fmap fromIndex . range . toBounds
-    inRange     bs i = toBounds bs `inRange` toIndex i
-    next        bs i = fromIndex $ toBounds bs `next` toIndex i
-    prev        bs i = fromIndex $ toBounds bs `prev` toIndex i
-    inBounds    bs i | isEmpty bs = ER | isUnderflow bs i = UR | isOverflow bs i = OR | True = IN
-    isEmpty          = isEmpty . toBounds
-    isOverflow  bs i = toBounds bs `isOverflow`  toIndex i
-    isUnderflow bs i = toBounds bs `isUnderflow` toIndex i
-    safeElem    bs i = fromIndex $ toBounds bs `safeElem` (toIndex i)
-    ordBounds   bs   = let (f, s) = ordBounds $ toBounds bs in (fromIndex f, fromIndex s)
-    offset      bs i = toBounds bs `offset` toIndex i
-    index       bs c = fromIndex $ toBounds bs `index` c
-    unsafeIndex      = fromIndex . unsafeIndex
+INDEX_INSTANCE((i,i))
+INDEX_INSTANCE((i,i,i))
+INDEX_INSTANCE((i,i,i,i))
+INDEX_INSTANCE((i,i,i,i,i))
+INDEX_INSTANCE((i,i,i,i,i,i))
+INDEX_INSTANCE((i,i,i,i,i,i,i))
+INDEX_INSTANCE((i,i,i,i,i,i,i,i))
+INDEX_INSTANCE((i,i,i,i,i,i,i,i,i))
+INDEX_INSTANCE((i,i,i,i,i,i,i,i,i,i))
+INDEX_INSTANCE((i,i,i,i,i,i,i,i,i,i,i))
+INDEX_INSTANCE((i,i,i,i,i,i,i,i,i,i,i,i))
+INDEX_INSTANCE((i,i,i,i,i,i,i,i,i,i,i,i,i))
+INDEX_INSTANCE((i,i,i,i,i,i,i,i,i,i,i,i,i,i))
+INDEX_INSTANCE((i,i,i,i,i,i,i,i,i,i,i,i,i,i,i))
 
-instance (Index i, Enum i, Bounded i) => Index (i, i, i, i)
-  where
-    rank             = const 4
-    size             = size . toBounds
-    sizes            = sizes . toBounds
-    range            = fmap fromIndex . range . toBounds
-    inRange     bs i = toBounds bs `inRange` toIndex i
-    next        bs i = fromIndex $ toBounds bs `next` toIndex i
-    prev        bs i = fromIndex $ toBounds bs `prev` toIndex i
-    inBounds    bs i | isEmpty bs = ER | isUnderflow bs i = UR | isOverflow bs i = OR | True = IN
-    isEmpty          = isEmpty . toBounds
-    isOverflow  bs i = toBounds bs `isOverflow`  toIndex i
-    isUnderflow bs i = toBounds bs `isUnderflow` toIndex i
-    safeElem    bs i = fromIndex $ toBounds bs `safeElem` (toIndex i)
-    ordBounds   bs   = let (f, s) = ordBounds $ toBounds bs in (fromIndex f, fromIndex s)
-    offset      bs i = toBounds bs `offset` toIndex i
-    index       bs c = fromIndex $ toBounds bs `index` c
-    unsafeIndex      = fromIndex . unsafeIndex
-
-instance (Index i, Enum i, Bounded i) => Index (i, i, i, i, i)
-  where
-    rank             = const 5
-    size             = size . toBounds
-    sizes            = sizes . toBounds
-    range            = fmap fromIndex . range . toBounds
-    inRange     bs i = toBounds bs `inRange` toIndex i
-    next        bs i = fromIndex $ toBounds bs `next` toIndex i
-    prev        bs i = fromIndex $ toBounds bs `prev` toIndex i
-    inBounds    bs i | isEmpty bs = ER | isUnderflow bs i = UR | isOverflow bs i = OR | True = IN
-    isEmpty          = isEmpty . toBounds
-    isOverflow  bs i = toBounds bs `isOverflow`  toIndex i
-    isUnderflow bs i = toBounds bs `isUnderflow` toIndex i
-    safeElem    bs i = fromIndex $ toBounds bs `safeElem` (toIndex i)
-    ordBounds   bs   = let (f, s) = ordBounds $ toBounds bs in (fromIndex f, fromIndex s)
-    offset      bs i = toBounds bs `offset` toIndex i
-    index       bs c = fromIndex $ toBounds bs `index` c
-    unsafeIndex      = fromIndex . unsafeIndex
-
-instance (Index i, Enum i, Bounded i) => Index (i, i, i, i, i, i)
-  where
-    rank             = const 6
-    size             = size . toBounds
-    sizes            = sizes . toBounds
-    range            = fmap fromIndex . range . toBounds
-    inRange     bs i = toBounds bs `inRange` toIndex i
-    next        bs i = fromIndex $ toBounds bs `next` toIndex i
-    prev        bs i = fromIndex $ toBounds bs `prev` toIndex i
-    inBounds    bs i | isEmpty bs = ER | isUnderflow bs i = UR | isOverflow bs i = OR | True = IN
-    isEmpty          = isEmpty . toBounds
-    isOverflow  bs i = toBounds bs `isOverflow`  toIndex i
-    isUnderflow bs i = toBounds bs `isUnderflow` toIndex i
-    safeElem    bs i = fromIndex $ toBounds bs `safeElem` (toIndex i)
-    ordBounds   bs   = let (f, s) = ordBounds $ toBounds bs in (fromIndex f, fromIndex s)
-    offset      bs i = toBounds bs `offset` toIndex i
-    index       bs c = fromIndex $ toBounds bs `index` c
-    unsafeIndex      = fromIndex . unsafeIndex
-
-instance (Index i, Enum i, Bounded i) => Index (i, i, i, i, i, i, i)
-  where
-    rank             = const 7
-    size             = size . toBounds
-    sizes            = sizes . toBounds
-    range            = fmap fromIndex . range . toBounds
-    inRange     bs i = toBounds bs `inRange` toIndex i
-    next        bs i = fromIndex $ toBounds bs `next` toIndex i
-    prev        bs i = fromIndex $ toBounds bs `prev` toIndex i
-    inBounds    bs i | isEmpty bs = ER | isUnderflow bs i = UR | isOverflow bs i = OR | True = IN
-    isEmpty          = isEmpty . toBounds
-    isOverflow  bs i = toBounds bs `isOverflow`  toIndex i
-    isUnderflow bs i = toBounds bs `isUnderflow` toIndex i
-    safeElem    bs i = fromIndex $ toBounds bs `safeElem` (toIndex i)
-    ordBounds   bs   = let (f, s) = ordBounds $ toBounds bs in (fromIndex f, fromIndex s)
-    offset      bs i = toBounds bs `offset` toIndex i
-    index       bs c = fromIndex $ toBounds bs `index` c
-    unsafeIndex      = fromIndex . unsafeIndex
-
-instance (Index i, Enum i, Bounded i) => Index (i, i, i, i, i, i, i, i)
-  where
-    rank             = const 8
-    size             = size . toBounds
-    sizes            = sizes . toBounds
-    range            = fmap fromIndex . range . toBounds
-    inRange     bs i = toBounds bs `inRange` toIndex i
-    next        bs i = fromIndex $ toBounds bs `next` toIndex i
-    prev        bs i = fromIndex $ toBounds bs `prev` toIndex i
-    inBounds    bs i | isEmpty bs = ER | isUnderflow bs i = UR | isOverflow bs i = OR | True = IN
-    isEmpty          = isEmpty . toBounds
-    isOverflow  bs i = toBounds bs `isOverflow`  toIndex i
-    isUnderflow bs i = toBounds bs `isUnderflow` toIndex i
-    safeElem    bs i = fromIndex $ toBounds bs `safeElem` (toIndex i)
-    ordBounds   bs   = let (f, s) = ordBounds $ toBounds bs in (fromIndex f, fromIndex s)
-    offset      bs i = toBounds bs `offset` toIndex i
-    index       bs c = fromIndex $ toBounds bs `index` c
-    unsafeIndex      = fromIndex . unsafeIndex
-
-instance (Index i, Enum i, Bounded i) => Index (i, i, i, i, i, i, i, i, i)
-  where
-    rank             = const 9
-    size             = size . toBounds
-    sizes            = sizes . toBounds
-    range            = fmap fromIndex . range . toBounds
-    inRange     bs i = toBounds bs `inRange` toIndex i
-    next        bs i = fromIndex $ toBounds bs `next` toIndex i
-    prev        bs i = fromIndex $ toBounds bs `prev` toIndex i
-    inBounds    bs i | isEmpty bs = ER | isUnderflow bs i = UR | isOverflow bs i = OR | True = IN
-    isEmpty          = isEmpty . toBounds
-    isOverflow  bs i = toBounds bs `isOverflow`  toIndex i
-    isUnderflow bs i = toBounds bs `isUnderflow` toIndex i
-    safeElem    bs i = fromIndex $ toBounds bs `safeElem` (toIndex i)
-    ordBounds   bs   = let (f, s) = ordBounds $ toBounds bs in (fromIndex f, fromIndex s)
-    offset      bs i = toBounds bs `offset` toIndex i
-    index       bs c = fromIndex $ toBounds bs `index` c
-    unsafeIndex      = fromIndex . unsafeIndex
-
-instance (Index i, Enum i, Bounded i) => Index (i, i, i, i, i, i, i, i, i, i)
-  where
-    rank             = const 10
-    size             = size . toBounds
-    sizes            = sizes . toBounds
-    range            = fmap fromIndex . range . toBounds
-    inRange     bs i = toBounds bs `inRange` toIndex i
-    next        bs i = fromIndex $ toBounds bs `next` toIndex i
-    prev        bs i = fromIndex $ toBounds bs `prev` toIndex i
-    inBounds    bs i | isEmpty bs = ER | isUnderflow bs i = UR | isOverflow bs i = OR | True = IN
-    isEmpty          = isEmpty . toBounds
-    isOverflow  bs i = toBounds bs `isOverflow`  toIndex i
-    isUnderflow bs i = toBounds bs `isUnderflow` toIndex i
-    safeElem    bs i = fromIndex $ toBounds bs `safeElem` (toIndex i)
-    ordBounds   bs   = let (f, s) = ordBounds $ toBounds bs in (fromIndex f, fromIndex s)
-    offset      bs i = toBounds bs `offset` toIndex i
-    index       bs c = fromIndex $ toBounds bs `index` c
-    unsafeIndex      = fromIndex . unsafeIndex
-
-instance (Index i, Enum i, Bounded i) => Index (i, i, i, i, i, i, i, i, i, i, i)
-  where
-    rank             = const 11
-    size             = size . toBounds
-    sizes            = sizes . toBounds
-    range            = fmap fromIndex . range . toBounds
-    inRange     bs i = toBounds bs `inRange` toIndex i
-    next        bs i = fromIndex $ toBounds bs `next` toIndex i
-    prev        bs i = fromIndex $ toBounds bs `prev` toIndex i
-    inBounds    bs i | isEmpty bs = ER | isUnderflow bs i = UR | isOverflow bs i = OR | True = IN
-    isEmpty          = isEmpty . toBounds
-    isOverflow  bs i = toBounds bs `isOverflow`  toIndex i
-    isUnderflow bs i = toBounds bs `isUnderflow` toIndex i
-    safeElem    bs i = fromIndex $ toBounds bs `safeElem` (toIndex i)
-    ordBounds   bs   = let (f, s) = ordBounds $ toBounds bs in (fromIndex f, fromIndex s)
-    offset      bs i = toBounds bs `offset` toIndex i
-    index       bs c = fromIndex $ toBounds bs `index` c
-    unsafeIndex      = fromIndex . unsafeIndex
-
-instance (Index i, Enum i, Bounded i) => Index (i, i, i, i, i, i, i, i, i, i, i, i)
-  where
-    rank             = const 12
-    size             = size . toBounds
-    sizes            = sizes . toBounds
-    range            = fmap fromIndex . range . toBounds
-    inRange     bs i = toBounds bs `inRange` toIndex i
-    next        bs i = fromIndex $ toBounds bs `next` toIndex i
-    prev        bs i = fromIndex $ toBounds bs `prev` toIndex i
-    inBounds    bs i | isEmpty bs = ER | isUnderflow bs i = UR | isOverflow bs i = OR | True = IN
-    isEmpty          = isEmpty . toBounds
-    isOverflow  bs i = toBounds bs `isOverflow`  toIndex i
-    isUnderflow bs i = toBounds bs `isUnderflow` toIndex i
-    safeElem    bs i = fromIndex $ toBounds bs `safeElem` (toIndex i)
-    ordBounds   bs   = let (f, s) = ordBounds $ toBounds bs in (fromIndex f, fromIndex s)
-    offset      bs i = toBounds bs `offset` toIndex i
-    index       bs c = fromIndex $ toBounds bs `index` c
-    unsafeIndex      = fromIndex . unsafeIndex
-
-instance (Index i, Enum i, Bounded i) => Index (i, i, i, i, i, i, i, i, i, i, i, i, i)
-  where
-    rank             = const $ 12 + 1
-    size             = size . toBounds
-    sizes            = sizes . toBounds
-    range            = fmap fromIndex . range . toBounds
-    inRange     bs i = toBounds bs `inRange` toIndex i
-    next        bs i = fromIndex $ toBounds bs `next` toIndex i
-    prev        bs i = fromIndex $ toBounds bs `prev` toIndex i
-    inBounds    bs i | isEmpty bs = ER | isUnderflow bs i = UR | isOverflow bs i = OR | True = IN
-    isEmpty          = isEmpty . toBounds
-    isOverflow  bs i = toBounds bs `isOverflow`  toIndex i
-    isUnderflow bs i = toBounds bs `isUnderflow` toIndex i
-    safeElem    bs i = fromIndex $ toBounds bs `safeElem` (toIndex i)
-    ordBounds   bs   = let (f, s) = ordBounds $ toBounds bs in (fromIndex f, fromIndex s)
-    offset      bs i = toBounds bs `offset` toIndex i
-    index       bs c = fromIndex $ toBounds bs `index` c
-    unsafeIndex      = fromIndex . unsafeIndex
-
-instance (Index i, Enum i, Bounded i) => Index (i, i, i, i, i, i, i, i, i, i, i, i, i, i)
-  where
-    rank             = const 14
-    size             = size . toBounds
-    sizes            = sizes . toBounds
-    range            = fmap fromIndex . range . toBounds
-    inRange     bs i = toBounds bs `inRange` toIndex i
-    next        bs i = fromIndex $ toBounds bs `next` toIndex i
-    prev        bs i = fromIndex $ toBounds bs `prev` toIndex i
-    inBounds    bs i | isEmpty bs = ER | isUnderflow bs i = UR | isOverflow bs i = OR | True = IN
-    isEmpty          = isEmpty . toBounds
-    isOverflow  bs i = toBounds bs `isOverflow`  toIndex i
-    isUnderflow bs i = toBounds bs `isUnderflow` toIndex i
-    safeElem    bs i = fromIndex $ toBounds bs `safeElem` (toIndex i)
-    ordBounds   bs   = let (f, s) = ordBounds $ toBounds bs in (fromIndex f, fromIndex s)
-    offset      bs i = toBounds bs `offset` toIndex i
-    index       bs c = fromIndex $ toBounds bs `index` c
-    unsafeIndex      = fromIndex . unsafeIndex
-
-instance (Index i, Enum i, Bounded i) => Index (i, i, i, i, i, i, i, i, i, i, i, i, i, i, i)
-  where
-    rank             = const 15
-    size             = size . toBounds
-    sizes            = sizes . toBounds
-    range            = fmap fromIndex . range . toBounds
-    inRange     bs i = toBounds bs `inRange` toIndex i
-    next        bs i = fromIndex $ toBounds bs `next` toIndex i
-    prev        bs i = fromIndex $ toBounds bs `prev` toIndex i
-    inBounds    bs i | isEmpty bs = ER | isUnderflow bs i = UR | isOverflow bs i = OR | True = IN
-    isEmpty          = isEmpty . toBounds
-    isOverflow  bs i = toBounds bs `isOverflow`  toIndex i
-    isUnderflow bs i = toBounds bs `isUnderflow` toIndex i
-    safeElem    bs i = fromIndex $ toBounds bs `safeElem` (toIndex i)
-    ordBounds   bs   = let (f, s) = ordBounds $ toBounds bs in (fromIndex f, fromIndex s)
-    offset      bs i = toBounds bs `offset` toIndex i
-    index       bs c = fromIndex $ toBounds bs `index` c
-    unsafeIndex      = fromIndex . unsafeIndex
+#undef INDEX_INSTANCE
 
 --------------------------------------------------------------------------------
 
@@ -870,6 +656,5 @@ toBounds (l, u) = (toIndex l, toIndex u)
 -}
 unsafeBounds :: (Index i) => Int -> (i, i)
 unsafeBounds = defaultBounds
-
 
 
