@@ -113,8 +113,8 @@ class (Ord e) => Tree t e | t -> e
     tree </| n = n < 1 ? tree $ shiftCTL tree </| (n - 1)
     
     -- | Right n-position cyclic shift of branches and elements.
-    (|\>) :: t -> Int -> t
-    tree |\> n = n < 1 ? tree $ shiftCTR tree |\> (n - 1)
+    (|\>) :: Int -> t -> t
+    n |\> tree = n < 1 ? tree $ (n - 1) |\> shiftCTR tree
     
     -- | Left 1-position cyclic shift of branches and elements.
     shiftCTL :: t -> t
@@ -122,7 +122,7 @@ class (Ord e) => Tree t e | t -> e
     
     -- | Right 1-position cyclic shift of branches and elements.
     shiftCTR :: t -> t
-    shiftCTR =  (|\> 1)
+    shiftCTR =  (1 |\>)
 
 --------------------------------------------------------------------------------
 
@@ -142,8 +142,8 @@ class (Tree t e) => ShiftTree t e | t -> e
     tree /<| n = n < 1 ? tree $ shiftTL tree /<| (n - 1)
     
     -- | Right n-position non cyclic shift of branches ans elements.
-    (|>\) :: t -> Int -> t
-    tree |>\ n = n < 1 ? tree $ shiftTR tree |>\ (n - 1)
+    (|>\) :: Int -> t -> t
+    n |>\ tree = n < 1 ? tree $ (n - 1) |>\ shiftTR tree
     
     -- | Left 1-position non cyclic shift of branches and elements.
     shiftTL :: t -> t
@@ -151,7 +151,7 @@ class (Tree t e) => ShiftTree t e | t -> e
     
     -- | Right 1-position non cyclic shift of branches and elements.
     shiftTR :: t -> t
-    shiftTR =  (|>\ 1)
+    shiftTR =  (1 |>\)
 
 {- |
   AppendTree is a class of trees to which you can add elements and branches
