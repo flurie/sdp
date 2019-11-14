@@ -107,6 +107,11 @@ instance (Index i, Unboxed e) => LinearM (ST s) (STBytes s i e) e
 
 instance (Index i, Unboxed e) => IndexedM (ST s) (STBytes s i e) i e
   where
+    fromAssocs bs@(l, u) ascs = STBytes l u <$> mbytes#
+      where
+        mbytes# = defaultBounds (size bs) `fromAssocs` ies
+        ies     = [ (offset bs i, e) | (i, e) <- ascs, inRange bs i ]
+    
     {-# INLINE fromAssocs' #-}
     fromAssocs' bs@(l, u) defvalue ascs = STBytes l u <$> mbytes#
       where
