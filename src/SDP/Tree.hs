@@ -1,6 +1,15 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, UndecidableInstances #-}
 {-# LANGUAGE DefaultSignatures #-}
 
+{- |
+    Module      :  SDP.Tree
+    Copyright   :  (c) Andrey Mulik 2019
+    License     :  BSD-style
+    Maintainer  :  work.a.mulik@gmail.com
+    Portability :  non-portable (GHC extensions)
+    
+    @SDP.Tree@ provides classes for tree operations.
+-}
 module SDP.Tree
 (
   -- * Common tree operations
@@ -184,6 +193,7 @@ class (Tree t e) => AppendTree t e | t -> e
 class (ShiftTree t e, AppendTree t e) => MultiTree t e | t -> e
 
 instance (ShiftTree t e, AppendTree t e) => MultiTree t e
+
 
 
 
