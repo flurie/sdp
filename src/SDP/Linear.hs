@@ -448,12 +448,12 @@ instance Linear [e] e
     toHead      = (:)
     toLast xs x = foldr' (:) [x] xs
     
-    uncons   [ ]     = throw $ PatternMatchFail "in SDP.Linear.(:>)"
-    uncons (e : es)  = (e, es)
+    uncons   [ ]    = throw $ PatternMatchFail "in SDP.Linear.(:>)"
+    uncons (e : es) = (e, es)
     
-    unsnoc    [ ]    = throw $ PatternMatchFail "in SDP.Linear.(:<)"
-    unsnoc    [e]    = ([], e)
-    unsnoc  (e : es) = let (es', e') = unsnoc es in (e : es', e')
+    unsnoc   [ ]    = throw $ PatternMatchFail "in SDP.Linear.(:<)"
+    unsnoc   [e]    = ([], e)
+    unsnoc (e : es) = let (es', e') = unsnoc es in (e : es', e')
     
     reverse      = L.reverse
     replicate    = L.replicate
