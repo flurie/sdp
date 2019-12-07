@@ -15,6 +15,7 @@ version 0.2:
   ADDED:
     * SDP.SortM.Tim (replaces SDP.SortM.Stuff)
     * SDP.SortM.Insertion (reexport of insertionSort from SDP.SortM.Tim)
+    * SDP.Tree (preliminary realisation of Tree classes)
     * SDP.Map (preliminary realisation of dictionary)
     
     * Generic instances for all structures.

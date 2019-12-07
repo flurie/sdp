@@ -1,4 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, UndecidableInstances #-}
+{-# LANGUAGE PatternSynonyms, ViewPatterns #-}
 {-# LANGUAGE DefaultSignatures #-}
 
 {- |
@@ -16,7 +17,13 @@ module SDP.Tree
   Tree (..),
   
   -- * Advanced tree operations
-  ShiftTree (..), AppendTree (..), MultiTree
+  ShiftTree (..), AppendTree (..), MultiTree,
+  
+  -- * Patterns
+  pattern (:/*\:),
+  pattern (:/+),
+  pattern (:+\),
+  pattern Leaf,
 )
 where
 
@@ -52,28 +59,42 @@ class (Ord e) => Tree t e | t -> e
     -}
     toTree :: [e] -> [t] -> t
     
-    -- | Tree normalization function, may fail.
-    fixTree :: t -> t
-    
     -- | List of node elements.
     nodeElems :: t -> [e]
     nodeElems node = nodeElem node <$> [0 .. elemCount node - 1]
-    
-    -- | Returns n-th element of node (from 0), may fail.
-    nodeElem :: t -> Int -> e
-    nodeElem node = (nodeElems node !)
-    
-    -- | Returns count of node elements, nonnegative.
-    elemCount :: t -> Int
-    elemCount =  length . nodeElems
     
     -- | List of node branches.
     branches :: t -> [t]
     branches node = branch node <$> [0 .. elemCount node - 1]
     
+    -- | Tree normalization function, may fail.
+    fixTree :: t -> t
+    
+    -- | Returns n-th element of node (from 0), may fail.
+    nodeElem :: t -> Int -> e
+    nodeElem node = (nodeElems node !)
+    
+    -- | Applies function to n-th element.
+    onElem :: (e -> e) -> Int -> t -> t
+    onElem f n tree@(~(es :/*\: bs)) = indexIn es n ? go n es :/*\: bs $ tree
+      where
+        go _ [] = []
+        go i (x : xs) = i == 0 ? f x : xs $ x : go (i - 1) xs
+    
+    -- | Returns count of node elements, nonnegative.
+    elemCount :: t -> Int
+    elemCount =  length . nodeElems
+    
     -- | Returns n-th branch of node (from 0), may fail.
     branch :: t -> Int -> t
     branch node = (branches node !)
+    
+    -- | Applies function to n-th branch.
+    onBranch :: (t -> t) -> Int -> t -> t
+    onBranch f n tree@(~(es :/*\: bs)) = indexIn bs n ? es :/*\: go n bs $ tree
+      where
+        go _    []    = []
+        go i (x : xs) = i == 0 ? f x : xs $ x : go (i - 1) xs
     
     -- | Returns count of branches, nonnegative.
     branchCount :: t -> Int
@@ -85,8 +106,15 @@ class (Ord e) => Tree t e | t -> e
     isLeaf node = branchCount node == 0
     
     -- | Number of element in current node from 0.
-    nodePos :: e -> t -> Maybe Int
-    nodePos e node = (== e) .$ nodeElems node
+    elemPos :: e -> t -> Maybe Int
+    elemPos e node = (== e) .$ nodeElems node
+    
+    -- | Returns number of branch or element that (may) contain given value.
+    branchPos :: e -> t -> Int
+    branchPos e' = go 0 e' . nodeElems
+      where
+        go n _    []    = n
+        go n e (x : xs) = e <= x ? n $ go (n + 1) e xs
     
     {- |
       Inserts element to tree. If the tree already contains such an element and
@@ -135,6 +163,33 @@ class (Ord e) => Tree t e | t -> e
 
 --------------------------------------------------------------------------------
 
+-- | Unidirectional pattern synonym for isLeaf.
+pattern Leaf :: (Tree t e) => t
+pattern Leaf <- (isLeaf -> True)
+
+-- | (:/*\:) is generic pattern synonym for 'toTree' and 'viewTree'.
+pattern (:/*\:) :: (Tree t e) => [e] -> [t] -> t
+pattern es :/*\: bs <- (viewTree -> (es, bs)) where es :/*\: bs = toTree es bs
+
+viewTree :: (Tree t e) => t -> ([e], [t])
+viewTree node = (nodeElems node, branches node)
+
+-- | (:/+) is generic pattern synonym for ('/+') and left-side view.
+pattern (:/+) :: (ShiftTree t e, AppendTree t e) => (t, e) -> t -> t
+pattern ebr :/+ node <- (viewBranchL -> (ebr, node)) where ebr :/+ node = ebr /+ node
+
+viewBranchL :: (ShiftTree t e, AppendTree t e) => t -> ((t, e), t)
+viewBranchL node = ((branch node 0, nodeElem node 0), shiftTL node)
+
+-- | (:+\) is generic pattern synonym for ('/+') and right-side view.
+pattern (:+\) :: (ShiftTree t e, AppendTree t e) => t -> (e, t) -> t
+pattern node :+\ bre <- (viewBranchR -> (node, bre)) where node :+\ bre = node +\ bre
+
+viewBranchR :: (ShiftTree t e, AppendTree t e) => t -> (t, (e, t))
+viewBranchR node = (shiftTL node, (nodeElem node (elemCount node - 1), branch node (branchCount node - 1)))
+
+--------------------------------------------------------------------------------
+
 {- |
   ShiftTree is class of trees, that can be shifted (may contain nodes with a
   different number of elements).
@@ -171,8 +226,8 @@ class (Tree t e) => ShiftTree t e | t -> e
 class (Tree t e) => AppendTree t e | t -> e
   where
     -- | @(/+)@ appends pair of branch and element to left side of the tree.
-    (/+) :: (e, t) -> t -> t
-    (e, br) /+ node = toTree (e :> nodeElems node) (br :> branches node)
+    (/+) :: (t, e) -> t -> t
+    (br, e) /+ node = toTree (e :> nodeElems node) (br :> branches node)
     
     -- | @(+\)@ appends pair of branch and element to right side of the tree.
     (+\) :: t -> (e, t) -> t
@@ -190,11 +245,6 @@ class (Tree t e) => AppendTree t e | t -> e
   MultiTree is a service class that represents trees of complex structure
   (B-tree, T-tree, R-tree, rose tree and their variations).
 -}
-class (ShiftTree t e, AppendTree t e) => MultiTree t e | t -> e
-
+class    (ShiftTree t e, AppendTree t e) => MultiTree t e | t -> e
 instance (ShiftTree t e, AppendTree t e) => MultiTree t e
-
-
-
-
 
