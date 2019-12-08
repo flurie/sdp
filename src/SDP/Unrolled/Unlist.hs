@@ -35,9 +35,8 @@ import Test.QuickCheck
 
 import GHC.Generics ( Generic (..) )
 
-import GHC.Show ( appPrec  )
+import GHC.ST   ( ST  (..), runST )
 import GHC.Base ( Int (..) )
-import GHC.ST   ( ST (..), runST )
 
 import Data.String ( IsString (..) )
 
@@ -45,6 +44,7 @@ import SDP.Unrolled.STUnlist
 import SDP.SortM.Tim
 
 import SDP.Internal.SArray
+import SDP.Internal.Show
 import SDP.Simple
 
 default ()
@@ -110,8 +110,7 @@ instance Ord1 Unlist
 
 instance (Show e) => Show (Unlist e)
   where
-    showsPrec p unl = showParen (p > appPrec) $ showString "unlist "
-                                              . shows (assocs unl)
+    showsPrec = assocsPrec "unlist "
 
 --------------------------------------------------------------------------------
 
@@ -450,6 +449,7 @@ unreachEx msg = throw . UnreachableException $ "in SDP.Unrolled.Unlist." ++ msg
 
 lim :: Int
 lim =  1024
+
 
 
 

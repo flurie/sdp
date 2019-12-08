@@ -38,9 +38,8 @@ import Test.QuickCheck
 
 import GHC.Generics ( Generic (..) )
 
-import GHC.Base ( Int  (..) )
-import GHC.Show (  appPrec  )
-import GHC.ST   ( ST )
+import GHC.Base ( Int (..) )
+import GHC.ST   ( ST  (..) )
 
 import qualified GHC.Exts as E
 import Data.String ( IsString (..) )
@@ -49,6 +48,7 @@ import SDP.ByteList.Ublist
 import SDP.ByteList.ST
 
 import SDP.Internal.Read hiding ( pfail )
+import SDP.Internal.Show
 import SDP.Simple
 
 default ()
@@ -80,10 +80,7 @@ instance (Ord e, Unboxed e, Index i) => Ord (ByteList i e)
 
 instance (Index i, Show i, Unboxed e, Show e) => Show (ByteList i e)
   where
-    showsPrec p es@(ByteList l u _) = showParen (p > appPrec) $ showString "bytelist "
-                                                              . shows (l, u)
-                                                              . showChar ' '
-                                                              . shows (assocs es)
+    showsPrec = assocsPrec "bytelist "
 
 instance (Index i, Read i, Unboxed e, Read e) => Read (ByteList i e)
   where
@@ -337,4 +334,7 @@ instance (Index i, Unboxed e) => Freeze (ST s) (STByteList s i e) (ByteList i e)
 
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.ByteList." ++ msg
+
+
+
 

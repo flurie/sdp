@@ -35,10 +35,8 @@ import Test.QuickCheck
 
 import GHC.Generics ( Generic (..) )
 
-import GHC.Base ( Int  (..) )
-import GHC.Show (  appPrec  )
-
-import GHC.ST   ( runST, ST (..) )
+import GHC.Base ( Int (..) )
+import GHC.ST   ( ST  (..), runST )
 
 import Data.String ( IsString (..) )
 
@@ -46,6 +44,7 @@ import SDP.ByteList.STUblist
 import SDP.SortM.Tim
 
 import SDP.Internal.SBytes
+import SDP.Internal.Show
 import SDP.Simple
 
 default ()
@@ -96,8 +95,7 @@ instance (Ord e, Unboxed e) => Ord (Ublist e)
 
 instance (Show e, Unboxed e) => Show (Ublist e)
   where
-    showsPrec p ubl = showParen (p > appPrec) $ showString "ublist "
-                                              . shows (assocs ubl)
+    showsPrec = assocsPrec "ublist "
 
 --------------------------------------------------------------------------------
 
@@ -412,4 +410,6 @@ unreachEx msg = throw . UnreachableException $ "in SDP.ByteList.Ublist." ++ msg
 
 lim :: Int
 lim =  1024
+
+
 

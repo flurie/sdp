@@ -38,9 +38,8 @@ import Test.QuickCheck
 
 import GHC.Generics ( Generic (..) )
 
-import GHC.Base ( Int  (..) )
-import GHC.Show (  appPrec  )
-import GHC.ST   ( ST )
+import GHC.Base ( Int (..) )
+import GHC.ST   ( ST  (..) )
 
 import qualified GHC.Exts as E
 import Data.String ( IsString (..) )
@@ -50,6 +49,7 @@ import SDP.Unrolled.Unlist
 import SDP.Unrolled.ST
 
 import SDP.Internal.Read hiding ( pfail )
+import SDP.Internal.Show
 import SDP.Simple
 
 default ()
@@ -89,10 +89,7 @@ instance (Index i) => Ord1 (Unrolled i)
 
 instance (Index i, Show i, Show e) => Show (Unrolled i e)
   where
-    showsPrec p unr@(Unrolled l u _) = showParen (p > appPrec) $ showString "unrolled "
-                                                               . shows (l, u)
-                                                               . showChar ' '
-                                                               . shows (assocs unr)
+    showsPrec = assocsPrec "unrolled "
 
 instance (Index i, Read i, Read e) => Read (Unrolled i e)
   where
@@ -391,5 +388,8 @@ instance (Index i) => Freeze (ST s) (STUnrolled s i e) (Unrolled i e)
 
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.Unrolled." ++ msg
+
+
+
 
 

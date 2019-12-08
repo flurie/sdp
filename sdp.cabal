@@ -115,6 +115,7 @@ Library
     SDP.Internal.SArray
     SDP.Internal.SBytes
     SDP.Internal.Read
+    SDP.Internal.Show
     SDP.Simple
 
 ---            _____  _____  _____  _____  _____  _   _  _____               ---

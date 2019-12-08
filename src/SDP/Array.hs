@@ -34,10 +34,9 @@ import SDP.Set
 import Test.QuickCheck
 
 import GHC.Generics ( Generic (..) )
-import GHC.Base     ( Int     (..) )
 
-import GHC.Show ( appPrec )
-import GHC.ST   ( ST (..), runST )
+import GHC.ST       ( ST  (..), runST )
+import GHC.Base     ( Int (..) )
 
 import qualified GHC.Exts as E
 import Data.String ( IsString (..) )
@@ -46,6 +45,7 @@ import SDP.Array.ST
 
 import SDP.Internal.SArray
 import SDP.Internal.Read
+import SDP.Internal.Show
 import SDP.Simple
 
 default ()
@@ -124,10 +124,7 @@ instance (Index i) => IsString (Array i Char) where fromString = fromList
 
 instance (Index i, Show i, Show e) => Show (Array i e)
   where
-    showsPrec p arr@(Array l u _) = showParen (p > appPrec) $ showString "array "
-                                                            . shows (l, u)
-                                                            . showChar ' '
-                                                            . shows (assocs arr)
+    showsPrec = assocsPrec "array "
 
 instance (Index i, Read i, Read e) => Read (Array i e)
   where
@@ -381,5 +378,8 @@ done (STArray l u marr#) = Array l u <$> unsafeFreeze marr#
 
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Array." ++ msg
+
+
+
 
 

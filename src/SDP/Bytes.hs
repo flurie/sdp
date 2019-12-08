@@ -35,10 +35,8 @@ import SDP.Unboxed
 import SDP.Sort
 import SDP.Set
 
-import GHC.Base ( Int  (..) )
-import GHC.Show (  appPrec  )
-
-import GHC.ST   ( runST, ST (..) )
+import GHC.ST   ( ST  (..), runST )
+import GHC.Base ( Int (..) )
 
 import qualified GHC.Exts as E
 import Data.String ( IsString (..) )
@@ -47,6 +45,7 @@ import SDP.Bytes.ST
 
 import SDP.Internal.SBytes
 import SDP.Internal.Read
+import SDP.Internal.Show
 import SDP.Simple
 
 default ()
@@ -119,10 +118,7 @@ instance (Index i) => IsString (Bytes i Char) where fromString = fromList
 
 instance (Index i, Unboxed e, Show i, Show e) => Show (Bytes i e)
   where
-    showsPrec p bytes@(Bytes l u _) = showParen (p > appPrec) $ showString "bytes "
-                                                            . shows (l, u)
-                                                            . showChar ' '
-                                                            . shows (assocs bytes)
+    showsPrec = assocsPrec "bytes "
 
 instance (Index i, Unboxed e, Read i, Read e) => Read (Bytes i e)
   where
@@ -316,5 +312,4 @@ done (STBytes l u mbytes#) = Bytes l u <$> unsafeFreeze mbytes#
 
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Bytes." ++ msg
-
 
