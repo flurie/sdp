@@ -26,20 +26,25 @@ SDP provides a lot of common data conversion functions, a powerful abstraction
 for generalized programming and the most used operations, including (but not
 limited to) filtering, splitting and sorting.
 
+With SDP list functions don't overlap analogues for other structures.
+
 SDP provides 12 common data structures (not including lists):
-- standard list []. With SDP, list functions don't overlap analogues for other
-structures.
-- immutable arrays (lazy boxed Array and strict unboxed Bytes). Similar to
-arrays from package array, but have more functions. SDP borrows some
-features of vectors and strict bytestrings, which makes some operations in O(1)
-instead of O(n).
-- immutable unrolled lists (lazy boxed Unlist and Unrolled, strict unboxed
-Ublist and ByteList). Ublist is a lazy bytestring analogue, that can store
-values of any Unboxed type, not only Word8 and Char. Unlist - boxed version of
-Ublist. ByteList and Unrolled - versions of Ublist and Unlist with explicit
-bounds.
-- mutable arrays and unrolled lists (STArray, STBytes, STUnrolled, STUnlist,
-STByteList, STUblist).
+- immutable arrays:
+[Array](https://github.com/andreymulik/sdp/blob/dev/src/SDP/Array.hs) and
+[Bytes](https://github.com/andreymulik/sdp/blob/dev/src/SDP/Bytes.hs)
+- immutable unrolled lists:
+[Unlist](https://github.com/andreymulik/sdp/blob/dev/src/SDP/Unrolled/Unlist.hs),
+[Ublist](https://github.com/andreymulik/sdp/blob/dev/src/SDP/ByteList/Ublist.hs),
+[Unrolled](https://github.com/andreymulik/sdp/blob/dev/src/SDP/Unrolled.hs) and
+[ByteList](https://github.com/andreymulik/sdp/blob/dev/src/SDP/ByteList.hs)
+- mutable arrays:
+[STArray](https://github.com/andreymulik/sdp/blob/dev/src/SDP/Array/ST.hs) and
+[STBytes](https://github.com/andreymulik/sdp/blob/dev/src/SDP/Bytes.ST.hs)
+- mutable unrolled lists:
+[STUnlist](https://github.com/andreymulik/sdp/blob/dev/src/SDP/Unrolled/ST.hs),
+[STUblist](https://github.com/andreymulik/sdp/blob/dev/src/SDP/ByteList/ST.hs),
+[STUnrolled](https://github.com/andreymulik/sdp/blob/dev/src/SDP/Unrolled.ST.hs)
+and [STByteList](https://github.com/andreymulik/sdp/blob/dev/src/SDP/ByteList/ST.hs)
 
 Also SDP has pseudo-primitive types (SArray#, SBytes#, STArray# and STBytes#)
 that simplifies the implementation of more complex structures. They are
@@ -47,25 +52,13 @@ protected from tampering and provide some important guarantees.
 
 SDP provides the following classes:
 
-- Bordered/BorderedM - for operations with bounds.
-- Linear, LinearM - for structure construction and deconstruction using standard
-lists or their Foldable analogues. Linear also provides useful generic patterns
-and common list-like operations (filter, concat, reverse, nub, etc.).
-- Indexed, IndexedM - for create structure from list of associations or other
-Indexed/IndexedM, for rewriting or updating it, for elementwise reading and
-writing.
-- IFold, IFoldM - for folds with index, also extends Foldable on Indexed
-structures (for example, Bytes and ByteList can't be Foldable, but can be IFold).
-- Sort, SortM - for sort data structures. Also SDP contain timSort algorithm
-implementation for all IndexedM.
-- Set, Map - for standard set and map operations.
-- Zip, Scan - for overloaded zips and scans (only suitable for structures
-generalized by element's type).
-- Estimate - for lazy comparing by length.
-- Unboxed - overloaded interface for create, fill, read and write ByteArray#-
-based structures.
-- Index - replacement for Ix class, extendable realisation of overloaded index
-type.
+- Bordered, Linear and Indexed - for common immutable operations.
+- BorderedM, LinearM and IndexedM - for most common mutable operations.
+- IFold and IFoldM - folds with index. For some structures may be used instead
+Foldable.
+- Sort and SortM - sorts for immutable and mutable structures.
+- Set and Map - for set and map operations.
+- Index, Unboxed, Estimate, Zip and Scan - service classes.
 
 ## Versioning
 
@@ -133,8 +126,5 @@ terms of the BSD3 license.
 SDP is distributed in the hope that it will be useful, but without any
 warranty, without even the implied warranty of merchantability or fitness for
 a particular purpose. See the BSD3 license for more details.
-
-
-
 
 
