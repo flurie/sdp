@@ -538,7 +538,3 @@ benchmark bench-sort
   
   ghc-options: -O2
 
-
-
-
-
