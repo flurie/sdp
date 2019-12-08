@@ -35,9 +35,6 @@ import SDP.Unboxed
 import SDP.Sort
 import SDP.Set
 
-import Text.Read
-import Text.Read.Lex ( expect )
-
 import GHC.Base ( Int  (..) )
 import GHC.Show (  appPrec  )
 
@@ -49,6 +46,7 @@ import Data.String ( IsString (..) )
 import SDP.Bytes.ST
 
 import SDP.Internal.SBytes
+import SDP.Internal.Read
 import SDP.Simple
 
 default ()
@@ -129,9 +127,7 @@ instance (Index i, Unboxed e, Show i, Show e) => Show (Bytes i e)
 instance (Index i, Unboxed e, Read i, Read e) => Read (Bytes i e)
   where
     readList = readListDefault
-    readPrec = parens $ do
-      prec appPrec (lift . expect $ Ident "bytes")
-      liftA2 assoc (step readPrec) (step readPrec)
+    readPrec = readSDPPrec "bytes"
 
 --------------------------------------------------------------------------------
 
@@ -320,6 +316,5 @@ done (STBytes l u mbytes#) = Bytes l u <$> unsafeFreeze mbytes#
 
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Bytes." ++ msg
-
 
 

@@ -114,6 +114,7 @@ Library
   other-modules:
     SDP.Internal.SArray
     SDP.Internal.SBytes
+    SDP.Internal.Read
     SDP.Simple
 
 ---            _____  _____  _____  _____  _____  _   _  _____               ---
@@ -190,6 +191,7 @@ test-suite test-array
     Test.SDP.Eq
     
     SDP.Internal.SArray
+    SDP.Internal.Read
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -244,6 +246,7 @@ test-suite test-bytes
     Test.SDP.Eq
     
     SDP.Internal.SBytes
+    SDP.Internal.Read
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -299,6 +302,7 @@ test-suite test-unrolled
     Test.SDP.Eq
     
     SDP.Internal.SArray
+    SDP.Internal.Read
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -355,6 +359,7 @@ test-suite test-bytelist
     Test.SDP.Eq
     
     SDP.Internal.SBytes
+    SDP.Internal.Read
   
   build-depends:
     base                       >= 4.12  && < 5,

@@ -42,9 +42,6 @@ import GHC.Base ( Int  (..) )
 import GHC.Show (  appPrec  )
 import GHC.ST   ( ST )
 
-import Text.Read hiding ( pfail )
-import Text.Read.Lex    ( expect )
-
 import qualified GHC.Exts as E
 import Data.String ( IsString (..) )
 
@@ -52,6 +49,7 @@ import SDP.Unrolled.STUnlist
 import SDP.Unrolled.Unlist
 import SDP.Unrolled.ST
 
+import SDP.Internal.Read hiding ( pfail )
 import SDP.Simple
 
 default ()
@@ -99,9 +97,7 @@ instance (Index i, Show i, Show e) => Show (Unrolled i e)
 instance (Index i, Read i, Read e) => Read (Unrolled i e)
   where
     readList = readListDefault
-    readPrec = parens $ do
-      prec appPrec (lift . expect $ Ident "unrolled")
-      liftA2 assoc (step readPrec) (step readPrec)
+    readPrec = readSDPPrec "unrolled"
 
 --------------------------------------------------------------------------------
 
@@ -395,6 +391,5 @@ instance (Index i) => Freeze (ST s) (STUnrolled s i e) (Unrolled i e)
 
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.Unrolled." ++ msg
-
 
 

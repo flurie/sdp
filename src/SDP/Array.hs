@@ -1,6 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Unsafe, MagicHash, TypeFamilies, RoleAnnotations #-}
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE Unsafe, MagicHash, TypeFamilies, RoleAnnotations, DeriveGeneric #-}
 
 {- |
     Module      :  SDP.Array
@@ -40,15 +39,13 @@ import GHC.Base     ( Int     (..) )
 import GHC.Show ( appPrec )
 import GHC.ST   ( ST (..), runST )
 
-import Text.Read
-import Text.Read.Lex ( expect )
-
 import qualified GHC.Exts as E
 import Data.String ( IsString (..) )
 
 import SDP.Array.ST
 
 import SDP.Internal.SArray
+import SDP.Internal.Read
 import SDP.Simple
 
 default ()
@@ -135,9 +132,7 @@ instance (Index i, Show i, Show e) => Show (Array i e)
 instance (Index i, Read i, Read e) => Read (Array i e)
   where
     readList = readListDefault
-    readPrec = parens $ do
-      prec appPrec (lift . expect $ Ident "array")
-      liftA2 assoc (step readPrec) (step readPrec)
+    readPrec = readSDPPrec "array"
 
 --------------------------------------------------------------------------------
 

@@ -42,15 +42,13 @@ import GHC.Base ( Int  (..) )
 import GHC.Show (  appPrec  )
 import GHC.ST   ( ST )
 
-import Text.Read hiding ( pfail )
-import Text.Read.Lex    ( expect )
-
 import qualified GHC.Exts as E
 import Data.String ( IsString (..) )
 
 import SDP.ByteList.Ublist
 import SDP.ByteList.ST
 
+import SDP.Internal.Read hiding ( pfail )
 import SDP.Simple
 
 default ()
@@ -90,9 +88,7 @@ instance (Index i, Show i, Unboxed e, Show e) => Show (ByteList i e)
 instance (Index i, Read i, Unboxed e, Read e) => Read (ByteList i e)
   where
     readList = readListDefault
-    readPrec = parens $ do
-      prec appPrec (lift . expect $ Ident "bytelist")
-      liftA2 assoc (step readPrec) (step readPrec)
+    readPrec = readSDPPrec "bytelist"
 
 --------------------------------------------------------------------------------
 
@@ -341,5 +337,4 @@ instance (Index i, Unboxed e) => Freeze (ST s) (STByteList s i e) (ByteList i e)
 
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.ByteList." ++ msg
-
 
