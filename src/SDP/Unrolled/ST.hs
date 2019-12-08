@@ -34,7 +34,6 @@ import GHC.ST   ( ST  (..) )
 
 import SDP.Unrolled.STUnlist
 import SDP.SortM.Tim
-import SDP.Simple
 
 default ()
 
@@ -84,24 +83,21 @@ instance (Index i) => LinearM (ST s) (STUnrolled s i e) e
 
 instance (Index i) => IndexedM (ST s) (STUnrolled s i e) i e
   where
-    {-# INLINE fromAssocs' #-}
     fromAssocs' (l, u) defvalue ascs = STUnrolled l u <$> fromAssocs' bnds defvalue ies
       where
         ies  = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
         bnds = (0, size (l, u) - 1)
     
+    {-# INLINE (!#>) #-}
     (STUnrolled _ _ es) !#> i = es !#> i
     
-    (STUnrolled l u es) >! i = es >! offset (l, u) i
-    (STUnrolled l u es) !> i = case inBounds (l, u) i of
-        ER -> throw $ EmptyRange     msg
-        UR -> throw $ IndexUnderflow msg
-        IN -> es >! offset (l, u) i
-        OR -> throw $ IndexOverflow  msg
-      where
-        msg = "in SDP.Unrolled.ST.(!>)"
+    {-# INLINE (>!) #-}
+    (STUnrolled l u es) >! i = es !#> offset (l, u) i
     
+    {-# INLINE writeM_ #-}
     writeM_ (STUnrolled _ _ es) = writeM es
+    
+    {-# INLINE writeM #-}
     writeM  (STUnrolled l u es) = writeM es . offset (l, u)
     
     overwrite es [] = return es
@@ -133,7 +129,6 @@ instance (Index i) => IFoldM (ST s) (STUnrolled s i e) i e
 instance (Index i) => SortM (ST s) (STUnrolled s i e) e
   where
     sortMBy = timSortBy
-
 
 
 

@@ -63,7 +63,6 @@ instance (Unboxed e) => BorderedM (ST s) (STUblist s e) Int e
 
 instance (Unboxed e) => LinearM (ST s) (STUblist s e) e
   where
-    {-# INLINE newLinear #-}
     newLinear es = liftA2 (foldr STUblist) rest' chs'
       where
         rest' = (`STUblist` STUBEmpty) <$> newLinearN (length rest) rest
@@ -92,7 +91,6 @@ instance (Unboxed e) => LinearM (ST s) (STUblist s e) e
 
 instance (Unboxed e) => IndexedM (ST s) (STUblist s e) Int e
   where
-    {-# INLINE fromAssocs #-}
     fromAssocs bnds@(l, _) ascs = do
         ubl <- filled' $ size bnds
         overwrite ubl [ (i - l, e) | (i, e) <- ascs ]
@@ -103,7 +101,6 @@ instance (Unboxed e) => IndexedM (ST s) (STUblist s e) Int e
             chunk = filled_ (min n lim)
             rest  = filled' (n - lim)
     
-    {-# INLINE fromAssocs' #-}
     fromAssocs' bnds@(l, _) defvalue ascs = do
       arr <- size bnds `filled` defvalue
       overwrite arr [ (i - l, e) | (i, e) <- ascs, inRange bnds i ]
@@ -117,21 +114,15 @@ instance (Unboxed e) => IndexedM (ST s) (STUblist s e) Int e
       where
         err = throw $ IndexUnderflow "in SDP.ByteList.STUblist.(>!)"
     
-    es !> i = getBounds es >>= \ bnds -> case inBounds bnds i of
-        ER -> throw $ EmptyRange     msg
-        UR -> throw $ IndexUnderflow msg
-        IN -> es >! i
-        OR -> throw $ IndexOverflow  msg
-      where
-        msg = "in SDP.ByteList.STUblist.(!>): " ++ show i
-    
+    {-# INLINE writeM_ #-}
     writeM_ STUBEmpty _ _ = return ()
-    writeM_ (STUblist mbytes# mbytes) i e = getSizeOf mbytes# >>=
-      \ n -> i < n ? writeM_ mbytes# i e $ writeM_ mbytes (i - n) e
+    writeM_ (STUblist mbytes# mbytes) i e = do
+      n <- getSizeOf mbytes#
+      i < n ? writeM_ mbytes# i e $ writeM_ mbytes (i - n) e
     
+    {-# INLINE writeM #-}
     writeM es i e = i < 0 ? return () $ writeM_ es i e
     
-    {-# INLINE overwrite #-}
     overwrite STUBEmpty ascs = isNull ascs ? return STUBEmpty $ fromAssocs (l, u) ascs
       where
         l = fst $ minimumBy cmpfst ascs
@@ -153,25 +144,25 @@ instance (Unboxed e) => IndexedM (ST s) (STUblist s e) Int e
 
 instance (Unboxed e) => IFoldM (ST s) (STUblist s e) Int e
   where
-    {-# INLINE ifoldrM #-}
-    ifoldrM f base (STUblist mbytes# mbytes) = ifoldrM f base mbytes >>=
-      \ base' -> ifoldrM f base' mbytes#
-    ifoldrM _ base _ = return base
+    ifoldrM _ base STUBEmpty = return base
+    ifoldrM f base (STUblist mbytes# mbytes) = do
+      base' <- ifoldrM f base mbytes
+      ifoldrM f base' mbytes#
     
-    {-# INLINE ifoldlM #-}
-    ifoldlM f base (STUblist mbytes# mbytes) = ifoldlM f base mbytes# >>=
-      \ base' -> ifoldlM f base' mbytes
-    ifoldlM _ base _ = return base
+    ifoldlM _ base STUBEmpty = return base
+    ifoldlM f base (STUblist mbytes# mbytes) = do
+      base' <- ifoldlM f base mbytes#
+      ifoldlM f base' mbytes
     
-    {-# INLINE i_foldrM #-}
-    i_foldrM f base (STUblist mbytes# mbytes) = i_foldrM f base mbytes >>=
-      \ base' -> i_foldrM f base' mbytes#
-    i_foldrM _ base _ = return base
+    i_foldrM _ base STUBEmpty = return base
+    i_foldrM f base (STUblist mbytes# mbytes) = do
+      base' <- i_foldrM f base mbytes
+      i_foldrM f base' mbytes#
     
-    {-# INLINE i_foldlM #-}
-    i_foldlM f base (STUblist mbytes# mbytes) = i_foldlM f base mbytes# >>=
-      \ base' -> i_foldlM f base' mbytes
-    i_foldlM _ base _ = return base
+    i_foldlM _ base STUBEmpty = return base
+    i_foldlM f base (STUblist mbytes# mbytes) = do
+      base' <- i_foldlM f base mbytes#
+      i_foldlM f base' mbytes
 
 instance (Unboxed e) => SortM (ST s) (STUblist s e) e where sortMBy = timSortBy
 
@@ -179,7 +170,6 @@ instance (Unboxed e) => SortM (ST s) (STUblist s e) e where sortMBy = timSortBy
 
 lim :: Int
 lim =  1024
-
 
 
 

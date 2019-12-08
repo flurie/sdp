@@ -69,7 +69,8 @@ type role ByteList nominal representational
 
 instance (Eq e, Unboxed e, Index i) => Eq (ByteList i e)
   where
-    (ByteList l1 u1 xs) == (ByteList l2 u2 ys) = size (l1, u1) == size (l2, u2) && xs == ys
+    (ByteList l1 u1 xs) == (ByteList l2 u2 ys) =
+      size (l1, u1) == size (l2, u2) && xs == ys
 
 instance (Ord e, Unboxed e, Index i) => Ord (ByteList i e)
   where
@@ -99,8 +100,7 @@ instance (Index i, Read i, Unboxed e, Read e) => Read (ByteList i e)
 {- Semigroup, Monoid, Default, Arbitrary and Estimate instances. -}
 
 instance (Index i, Unboxed e) => Semigroup (ByteList i e) where (<>) = (++)
-
-instance (Index i, Unboxed e) => Monoid (ByteList i e) where mempty = def
+instance (Index i, Unboxed e) => Monoid    (ByteList i e) where mempty = def
 
 instance (Index i) => Default (ByteList i e)
   where
@@ -213,25 +213,12 @@ instance (Index i, Unboxed e) => Split (ByteList i e) e
 
 instance (Index i, Unboxed e) => Bordered (ByteList i e) i e
   where
-    {-# INLINE indexIn #-}
-    indexIn   (ByteList l u _) = inRange (l, u)
-    
-    {-# INLINE indexOf #-}
-    indexOf   (ByteList l u _) = index (l, u)
-    
-    {-# INLINE offsetOf #-}
+    indexIn  (ByteList l u _) = inRange (l, u)
     offsetOf (ByteList l u _) = offset (l, u)
-    
-    {-# INLINE sizeOf #-}
+    indexOf  (ByteList l u _) = index (l, u)
     sizeOf   (ByteList l u _) = size (l, u)
-    
-    {-# INLINE bounds #-}
     bounds   (ByteList l u _) = (l, u)
-    
-    {-# INLINE lower #-}
     lower    (ByteList l _ _) = l
-    
-    {-# INLINE upper #-}
     upper    (ByteList _ u _) = u
 
 --------------------------------------------------------------------------------
@@ -240,19 +227,16 @@ instance (Index i, Unboxed e) => Bordered (ByteList i e) i e
 
 instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
   where
-    {-# INLINE assoc #-}
     assoc (l, u) ascs = ByteList l u $ assoc bnds ies
       where
         ies  = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
         bnds = (0, size (l, u) - 1)
     
-    {-# INLINE assoc' #-}
     assoc' (l, u) defvalue ascs = ByteList l u $ assoc' bnds defvalue ies
       where
         ies  = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
         bnds = (0, size (l, u) - 1)
     
-    {-# INLINE (//) #-}
     Z  // ascs = isNull ascs ? Z $ assoc (l, u) ascs
       where
         l = fst $ minimumBy cmpfst ascs
@@ -264,7 +248,11 @@ instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
     
     fromIndexed es = let (l, u) = defaultBounds $ sizeOf es in ByteList l u $ fromIndexed es
     
-    (ByteList _ _ es) !^ i = es ! i
+    {-# INLINE (!^) #-}
+    (ByteList _ _ es) !^ i = es !^ i
+    
+    {-# INLINE (.!) #-}
+    (.!) (ByteList l u es) i = es .! offset (l, u) i
     
     {-# INLINE (!) #-}
     (!) (ByteList l u es) i = es ! offset (l, u) i
@@ -357,4 +345,6 @@ instance (Index i, Unboxed e) => Freeze (ST s) (STByteList s i e) (ByteList i e)
 
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.ByteList." ++ msg
+
+
 

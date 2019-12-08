@@ -35,7 +35,6 @@ import GHC.ST   ( ST  (..) )
 
 import SDP.ByteList.STUblist
 import SDP.SortM.Tim
-import SDP.Simple
 
 default ()
 
@@ -90,24 +89,21 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STByteList s i e) i e
         ies  = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
         bnds = (0, size  (l, u) - 1)
     
-    {-# INLINE fromAssocs' #-}
     fromAssocs' (l, u) defvalue ascs = STByteList l u <$> fromAssocs' bnds defvalue ies
       where
         ies  = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
         bnds = (0, size (l, u) - 1)
     
+    {-# INLINE (!#>) #-}
     (STByteList _ _ ubl#) !#> i = ubl# !#> i
     
-    (STByteList l u ubl#) >! i = ubl# >! offset  (l, u) i
-    (STByteList l u ubl#) !> i = case inBounds (l, u) i of
-        ER -> throw $ EmptyRange     msg
-        UR -> throw $ IndexUnderflow msg
-        IN -> ubl# >! offset (l, u) i
-        OR -> throw $ IndexOverflow  msg
-      where
-        msg = "in SDP.ByteList.ST.(!>)"
+    {-# INLINE (>!) #-}
+    (STByteList l u ubl#) >! i = ubl# !#> offset (l, u) i
     
+    {-# INLINE writeM_ #-}
     writeM_ (STByteList _ _ ubl#) = writeM ubl#
+    
+    {-# INLINE writeM #-}
     writeM  (STByteList l u ubl#) = writeM ubl# . offset (l, u)
     
     overwrite es [] = return es
@@ -130,16 +126,10 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STByteList s i e) i e
 
 instance (Index i, Unboxed e) => IFoldM (ST s) (STByteList s i e) i e
   where
-    {-# INLINE ifoldrM #-}
     ifoldrM f e (STByteList l u ubl#) = ifoldrM (f . index (l, u)) e ubl#
-    
-    {-# INLINE ifoldlM #-}
     ifoldlM f e (STByteList l u ubl#) = ifoldlM (f . index (l, u)) e ubl#
     
-    {-# INLINE i_foldrM #-}
     i_foldrM f e (STByteList _ _ ubl#) = i_foldrM f e ubl#
-    
-    {-# INLINE i_foldlM #-}
     i_foldlM f e (STByteList _ _ ubl#) = i_foldlM f e ubl#
 
 instance (Index i, Unboxed e) => SortM (ST s) (STByteList s i e) e

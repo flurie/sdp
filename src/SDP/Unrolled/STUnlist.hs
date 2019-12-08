@@ -62,7 +62,6 @@ instance BorderedM (ST s) (STUnlist s e) Int e
 
 instance LinearM (ST s) (STUnlist s e) e
   where
-    {-# INLINE newLinear #-}
     newLinear es = liftA2 (foldr STUnlist) rest' chs'
       where
         rest' = (`STUnlist` STUNEmpty) <$> newLinear rest
@@ -93,13 +92,13 @@ instance LinearM (ST s) (STUnlist s e) e
 
 instance IndexedM (ST s) (STUnlist s e) Int e
   where
-    {-# INLINE fromAssocs' #-}
     fromAssocs' bnds@(l, _) defvalue ascs = do
       arr <- size bnds `filled` defvalue
       overwrite arr [ (i - l, e) | (i, e) <- ascs, inRange bnds i ]
     
-    (!#>) (STUnlist marr# marr) i = getSizeOf marr# >>=
-      \ n -> i < n ? marr# !#> i $ marr !#> (i - n)
+    (!#>) (STUnlist marr# marr) i = do
+      n <- getSizeOf marr#
+      i < n ? marr# !#> i $ marr !#> (i - n)
     (!#>) _ _ = throw $ IndexOverflow "in SDP.Unrolled.STUnlist.(>!)"
     
     {-# INLINE (>!) #-}
@@ -107,21 +106,14 @@ instance IndexedM (ST s) (STUnlist s e) Int e
       where
         err = throw $ IndexUnderflow "in SDP.Unrolled.STUnlist.(>!)"
     
-    es !> i = getBounds es >>= \ bnds -> case inBounds bnds i of
-        ER -> throw $ EmptyRange     msg
-        UR -> throw $ IndexUnderflow msg
-        IN -> es >! i
-        OR -> throw $ IndexOverflow  msg
-      where
-        msg = "in SDP.Unrolled.STUnlist.(!>): " ++ show i
-    
-    writeM_ (STUnlist marr# marr) i e = getSizeOf marr# >>=
-      \ n -> i < n ? writeM_ marr# i e $ writeM_ marr (i - n) e
+    writeM_ (STUnlist marr# marr) i e = do
+      n <- getSizeOf marr#
+      i < n ? writeM_ marr# i e $ writeM_ marr (i - n) e
     writeM_ _ _ _ = return ()
     
+    {-# INLINE writeM #-}
     writeM es i e = i < 0 ? return () $ writeM_ es i e
     
-    {-# INLINE overwrite #-}
     overwrite STUNEmpty ascs = isNull ascs ? return STUNEmpty $ fromAssocs (l, u) ascs
       where
         l = fst $ minimumBy cmpfst ascs
@@ -139,25 +131,25 @@ instance IndexedM (ST s) (STUnlist s e) Int e
 
 instance IFoldM (ST s) (STUnlist s e) Int e
   where
-    {-# INLINE ifoldrM #-}
-    ifoldrM f base (STUnlist marr# marr) = ifoldrM f base marr >>=
-      \ base' -> ifoldrM f base' marr#
-    ifoldrM _ base _ = return base
+    ifoldrM _ base STUNEmpty = return base
+    ifoldrM f base (STUnlist marr# marr) = do
+      base' <- ifoldrM f base marr
+      ifoldrM f base' marr#
     
-    {-# INLINE ifoldlM #-}
-    ifoldlM f base (STUnlist marr# marr) = ifoldlM f base marr# >>=
-      \ base' -> ifoldlM f base' marr
-    ifoldlM _ base _ = return base
+    ifoldlM _ base STUNEmpty = return base
+    ifoldlM f base (STUnlist marr# marr) = do
+      base' <- ifoldlM f base marr#
+      ifoldlM f base' marr
     
-    {-# INLINE i_foldrM #-}
-    i_foldrM f base (STUnlist marr# marr) = i_foldrM f base marr >>=
-      \ base' -> i_foldrM f base' marr#
-    i_foldrM _ base _ = return base
+    i_foldrM _ base STUNEmpty = return base
+    i_foldrM f base (STUnlist marr# marr) = do
+      base' <- i_foldrM f base marr
+      i_foldrM f base' marr#
     
-    {-# INLINE i_foldlM #-}
-    i_foldlM f base (STUnlist marr# marr) = i_foldlM f base marr# >>=
-      \ base' -> i_foldlM f base' marr
-    i_foldlM _ base _ = return base
+    i_foldlM _ base STUNEmpty = return base
+    i_foldlM f base (STUnlist marr# marr) = do
+      base' <- i_foldlM f base marr#
+      i_foldlM f base' marr
 
 instance SortM (ST s) (STUnlist s e) e where sortMBy = timSortBy
 
@@ -165,6 +157,4 @@ instance SortM (ST s) (STUnlist s e) e where sortMBy = timSortBy
 
 lim :: Int
 lim =  1024
-
-
 

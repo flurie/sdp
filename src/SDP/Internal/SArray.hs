@@ -170,43 +170,33 @@ instance Applicative SArray#
 
 instance Foldable SArray#
   where
-    {-# INLINE foldr #-}
     foldr  f base = \ arr ->
       let go i = arr .== i ? base $ f (arr !^ i) (go $ i + 1)
       in  go 0
     
-    {-# INLINE foldl #-}
     foldl  f base = \ arr ->
       let go i = -1 == i ? base $ f (go $ i - 1) (arr !^ i)
       in  go (sizeOf arr - 1)
     
-    {-# INLINE foldr' #-}
     foldr' f base = \ arr ->
       let go i !a = -1 == i ? a $ go (i - 1) (f (arr !^ i) a)
       in  go (sizeOf arr - 1) base
     
-    {-# INLINE foldl' #-}
     foldl' f base = \ arr ->
       let go i !a = arr .== i ? a $ go (i + 1) (f a $ arr !^ i)
       in  go 0 base
     
-    {-# INLINE foldr1 #-}
     foldr1 f = \ arr ->
       let go i = arr .== (i + 1) ? e $ f e (go $ i + 1) where e = arr !^ i
       in  null arr ? pfailEx "foldr1" $ go 0
     
-    {-# INLINE foldl1 #-}
     foldl1 f = \ arr ->
       let go i = 0 == i ? e $ f (go $ i - 1) e where e = arr !^ i
       in  null arr ? pfailEx "foldl1" $ go (sizeOf arr - 1)
     
-    {-# INLINE toList #-}
     toList = foldr (:) []
     
-    {-# INLINE null #-}
     null   (SArray# c _ _) = c == 0
-    
-    {-# INLINE length #-}
     length (SArray# c _ _) = c
 
 instance Scan SArray#
@@ -280,43 +270,32 @@ instance Linear (SArray# e) e
     
     fromList = fromFoldable
     
-    {-# INLINE fromListN #-}
-    fromListN n es = runST $ newLinearN n es >>= done
-    
-    {-# INLINE fromFoldable #-}
+    fromListN  n es = runST $ newLinearN  n es >>= done
     fromFoldable es = runST $ fromFoldableM es >>= done
     
-    {-# INLINE single #-}
     single e = runST $ filled 1 e >>= done
     
     -- | O (m + n) '++', O(n + m) memory.
     xs ++ ys = fromListN (sizeOf xs + sizeOf ys) $ foldr (:) (listL ys) xs
     
-    {-# INLINE replicate #-}
     -- | O(n) 'replicate', O(n) memory.
     replicate n e = runST $ filled n e >>= done
     
     listL = toList
-    
-    {-# INLINE listR #-}
     listR = flip (:) `foldl` []
     
-    {-# INLINE concatMap #-}
     concatMap f = fromList . foldr (\ a l -> foldr (:) l $ f a) []
     
-    {-# INLINE concat #-}
     concat = fromList . foldr (\ a l -> foldr (:) l a) []
 
 instance Split (SArray# e) e
   where
-    {-# INLINE take #-}
     -- | O(1) 'take', O(1) memory.
     take n es@(SArray# c o arr#)
       | n <= 0 = Z
       | n >= c = es
       |  True  = SArray# n o arr#
     
-    {-# INLINE drop #-}
     -- | O(1) 'drop', O(1) memory.
     drop n es@(SArray# c o arr#)
       | n <= 0 = es
@@ -351,7 +330,6 @@ instance Bordered (SArray# e) Int e
 
 instance Indexed (SArray# e) Int e
   where
-    {-# INLINE assoc' #-}
     assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
     
     fromIndexed es = runST $ do
@@ -360,27 +338,24 @@ instance Indexed (SArray# e) Int e
         forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
         done copy
     
-    {-# INLINE (//) #-}
     Z // ascs = null ascs ? Z $ assoc (l, u) ascs
       where
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
     arr // ascs = runST $ fromFoldableM arr >>= (`overwrite` ascs) >>= done
     
-    (!^) = (!)
+    (!^) (SArray# _ (I# o#) arr#) = \ (I# i#) -> case indexArray# arr# (i# +# o#) of (# e #) -> e
     
-    (!) (SArray# _ (I# o#) arr#) = \ (I# i#) -> case indexArray# arr# (i# +# o#) of (# e #) -> e
+    (!) = (!^)
     
     (*$) p = ifoldr (\ i e is -> p e ? (i : is) $ is) []
 
 instance IFold (SArray# e) Int e
   where
-    {-# INLINE ifoldr #-}
     ifoldr f base = \ arr@(SArray# c _ _) ->
       let go i = c == i ? base $ f i (arr !^ i) (go $ i + 1)
       in  go 0
     
-    {-# INLINE ifoldl #-}
     ifoldl f base = \ arr@(SArray# c _ _) ->
       let go i = -1 == i ? base $ f i (go $ i - 1) (arr !^ i)
       in  go (c - 1)
@@ -455,7 +430,6 @@ instance Set (SArray# e) e
           where
             x = xs !^ i; y = ys !^ j
     
-    {-# INLINE isContainedIn #-}
     isContainedIn = binaryContain
     
     lookupLTWith _ _ Z  = Nothing
@@ -578,29 +552,18 @@ instance Eq (STArray# s e)
 
 instance BorderedM (ST s) (STArray# s e) Int e
   where
-    {-# INLINE getLower #-}
-    getLower _ = return 0
-    
-    {-# INLINE getUpper #-}
-    getUpper   (STArray# c _ _) = return (c - 1)
-    
-    {-# INLINE getBounds #-}
+    getIndexOf (STArray# c _ _) = return . inRange (0, c - 1)
+    getIndices (STArray# c _ _) = return [ 0 .. c - 1 ]
     getBounds  (STArray# c _ _) = return (0, c - 1)
-    
-    {-# INLINE getSizeOf #-}
+    getUpper   (STArray# c _ _) = return (c - 1)
     getSizeOf  (STArray# c _ _) = return c
     
-    {-# INLINE getIndices #-}
-    getIndices (STArray# c _ _) = return [ 0 .. c - 1 ]
-    
-    {-# INLINE getIndexOf #-}
-    getIndexOf (STArray# c _ _) = return . inRange (0, c - 1)
+    getLower _ = return 0
 
 instance LinearM (ST s) (STArray# s e) e
   where
     newLinear = fromFoldableM
     
-    {-# INLINE newLinearN #-}
     newLinearN c es = ST $ \ s1# -> case newArray# n# err s1# of
       (# s2#, marr# #) ->
         let go y r = \ i# s3# -> case writeArray# marr# i# y s3# of
@@ -610,7 +573,6 @@ instance LinearM (ST s) (STArray# s e) e
         err = undEx "newLinearN"
         !n@(I# n#) = max 0 c
     
-    {-# INLINE fromFoldableM #-}
     fromFoldableM es = ST $ \ s1# -> case newArray# n# err s1# of
       (# s2#, marr# #) ->
         let go y r = \ i# s3# -> case writeArray# marr# i# y s3# of
@@ -623,24 +585,20 @@ instance LinearM (ST s) (STArray# s e) e
     getLeft  es@(STArray# n _ _) = (es !#>) `mapM` [0 .. n - 1]
     getRight es@(STArray# n _ _) = (es !#>) `mapM` [n - 1, n - 2 .. 0]
     
-    {-# INLINE copied #-}
     copied es@(STArray# n _ _) = do
       copy <- filled n $ unreachEx "copied"
       forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM_ copy i
       return copy
     
-    {-# INLINE copied' #-}
     copied' es l n = do
       copy <- n `filled` unreachEx "copied'"
       forM_ [0 .. n - 1] $ \ i -> es !#> (l + i) >>= writeM_ copy i
       return copy
     
-    {-# INLINE reversed #-}
     reversed es@(STArray# n _ _) =
       let go i j = when (i < j) $ go (i + 1) (j - 1) >> swapM es i j
       in  go 0 (n - 1) >> return es
     
-    {-# INLINE filled #-}
     filled n e = let !n'@(I# n#) = max 0 n in ST $
       \ s1# -> case newArray# n# e s1# of
         (# s2#, marr# #) -> (# s2#, STArray# n' 0 marr# #)
@@ -657,7 +615,7 @@ instance IndexedM (ST s) (STArray# s e) Int e
     (!#>) (STArray# _ (I# o#) marr#) = \ (I# i#) -> ST $ readArray# marr# (o# +# i#)
     
     (>!) = (!#>)
-    (!>) = (!#>)
+    (!>) = (!#>) -- | (!>) is unsafe.
     
     writeM_ = writeM
     
@@ -665,19 +623,16 @@ instance IndexedM (ST s) (STArray# s e) Int e
     writeM (STArray# _ (I# o#) marr#) = \ (I# i#) e -> ST $
       \ s1# -> case writeArray# marr# (o# +# i#) e s1# of s2# -> (# s2#, () #)
     
-    {-# INLINE overwrite #-}
     overwrite es@(STArray# c _ _) ascs =
       let ies = filter (inRange (0, c - 1) . fst) ascs
       in  mapM_ (uncurry $ writeM_ es) ies >> return es
     
-    {-# INLINE fromIndexed' #-}
     fromIndexed' es = do
         let n = sizeOf es
         copy <- filled n (unreachEx "fromIndexed'")
         forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
         return copy
     
-    {-# INLINE fromIndexedM #-}
     fromIndexedM es = do
       n    <- getSizeOf es
       copy <- filled n (unreachEx "fromIndexedM")
@@ -686,25 +641,21 @@ instance IndexedM (ST s) (STArray# s e) Int e
 
 instance IFoldM (ST s) (STArray# s e) Int e
   where
-    {-# INLINE ifoldrM #-}
-    ifoldrM  f base arr@(STArray# n _ _) = go 0
-      where
-        go i =  n == i ? return base $ bindM2 (arr !#> i) (go $ i + 1) (f i)
+    ifoldrM  f base = \ arr@(STArray# n _ _) ->
+      let go i =  n == i ? return base $ bindM2 (arr !#> i) (go $ i + 1) (f i)
+      in  go 0
     
-    {-# INLINE ifoldlM #-}
-    ifoldlM  f base arr@(STArray# n _ _) = go (n - 1)
-      where
-        go i = -1 == i ? return base $ bindM2 (go $ i - 1) (arr !#> i) (f i)
+    ifoldlM  f base = \ arr@(STArray# n _ _) ->
+      let go i = -1 == i ? return base $ bindM2 (go $ i - 1) (arr !#> i) (f i)
+      in  go (n - 1)
     
-    {-# INLINE i_foldrM #-}
-    i_foldrM f base arr@(STArray# n _ _) = go 0
-      where
-        go i = n == i ? return base $ bindM2 (arr !#> i) (go $ i + 1) f
+    i_foldrM f base = \ arr@(STArray# n _ _) ->
+      let go i = n == i ? return base $ bindM2 (arr !#> i) (go $ i + 1) f
+      in  go 0
     
-    {-# INLINE i_foldlM #-}
-    i_foldlM f base arr@(STArray# n _ _) = go (n - 1)
-      where
-        go i = -1 == i ? return base $ bindM2 (go $ i - 1) (arr !#> i) f
+    i_foldlM f base = \ arr@(STArray# n _ _) ->
+      let go i = -1 == i ? return base $ bindM2 (go $ i - 1) (arr !#> i) f
+      in  go (n - 1)
 
 instance SortM (ST s) (STArray# s e) e where sortMBy = timSortBy
 
@@ -746,5 +697,4 @@ pfailEx msg = throw . PatternMatchFail $ "in SDP.SArray." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.SArray." ++ msg
-
 

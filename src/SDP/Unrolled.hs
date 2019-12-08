@@ -161,22 +161,12 @@ instance (Index i) => Applicative (Unrolled i)
 
 instance (Index i) => Foldable (Unrolled i)
   where
-    {-# INLINE foldr #-}
     foldr  f base = \ (Unrolled _ _ es) -> foldr  f base es
-    
-    {-# INLINE foldl #-}
     foldl  f base = \ (Unrolled _ _ es) -> foldl  f base es
-    
-    {-# INLINE foldr' #-}
     foldr' f base = \ (Unrolled _ _ es) -> foldr' f base es
-    
-    {-# INLINE foldl' #-}
     foldl' f base = \ (Unrolled _ _ es) -> foldl' f base es
     
-    {-# INLINE foldr1 #-}
     foldr1 f = \ (Unrolled _ _ es) -> foldr1 f es
-    
-    {-# INLINE foldl1 #-}
     foldl1 f = \ (Unrolled _ _ es) -> foldl1 f es
     
     elem e = \ (Unrolled _ _ es) -> elem e es
@@ -259,7 +249,6 @@ instance (Index i) => Linear (Unrolled i e) e
 
 instance (Index i) => Split (Unrolled i e) e
   where
-    {-# INLINE take #-}
     take n unr@(Unrolled l u es)
         | n <= 0 = Z
         | n >= c = unr
@@ -268,7 +257,6 @@ instance (Index i) => Split (Unrolled i e) e
         u' = index (l, u) (n - 1)
         c  = size  (l, u)
     
-    {-# INLINE drop #-}
     drop n unr@(Unrolled l u es)
         | n <= 0 = unr
         | n >= c = Z
@@ -286,26 +274,14 @@ instance (Index i) => Split (Unrolled i e) e
 
 instance (Index i) => Bordered (Unrolled i e) i e
   where
-    {-# INLINE indexIn #-}
     indexIn (Unrolled l u _) = inRange (l, u)
-    
-    {-# INLINE indexOf #-}
     indexOf (Unrolled l u _) = index (l, u)
-    
-    {-# INLINE offsetOf #-}
-    offsetOf (Unrolled l u _) = offset (l, u)
-    
-    {-# INLINE sizeOf #-}
     sizeOf  (Unrolled l u _) = size (l, u)
-    
-    {-# INLINE bounds #-}
     bounds  (Unrolled l u _) = (l, u)
-    
-    {-# INLINE lower #-}
     lower   (Unrolled l _ _) = l
-    
-    {-# INLINE upper #-}
     upper   (Unrolled _ u _) = u
+    
+    offsetOf (Unrolled l u _) = offset (l, u)
 
 --------------------------------------------------------------------------------
 
@@ -313,13 +289,11 @@ instance (Index i) => Bordered (Unrolled i e) i e
 
 instance (Index i) => Indexed (Unrolled i e) i e
   where
-    {-# INLINE assoc' #-}
     assoc' (l, u) defvalue ascs = Unrolled l u $ assoc' bnds defvalue ies
       where
         ies  = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
         bnds = (0, size (l, u) - 1)
     
-    {-# INLINE (//) #-}
     Z // ascs = null ascs ? Z $ assoc (l, u) ascs
       where
         l = fst $ minimumBy cmpfst ascs
@@ -333,6 +307,9 @@ instance (Index i) => Indexed (Unrolled i e) i e
     
     {-# INLINE (!^) #-}
     (Unrolled _ _ es) !^ i = es !^ i
+    
+    {-# INLINE (.!) #-}
+    (.!) (Unrolled l u es) i = es .! offset (l, u) i
     
     {-# INLINE (!) #-}
     (!) (Unrolled l u es) i = es ! offset (l, u) i
@@ -423,8 +400,6 @@ instance (Index i) => Freeze (ST s) (STUnrolled s i e) (Unrolled i e)
 
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.Unrolled." ++ msg
-
-
 
 
 

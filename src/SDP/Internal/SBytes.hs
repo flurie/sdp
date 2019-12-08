@@ -67,7 +67,7 @@ instance (Unboxed e, Show e) => Show (SBytes# e) where showsPrec p = showsPrec p
 
 --------------------------------------------------------------------------------
 
-{- Eq and Eq1 instances. -}
+{- Eq instance. -}
 
 instance (Unboxed e) => Eq (SBytes# e)
   where
@@ -539,7 +539,7 @@ instance (Unboxed e) => IndexedM (ST s) (STBytes# s e) Int e
     (!#>) (STBytes# _ (I# o#) marr#) = \ (I# i#) -> ST $ marr# !># (o# +# i#)
     
     (>!) = (!#>)
-    (!>) = (!#>)
+    (!>) = (!#>) -- | (!>) is unsafe.
     
     writeM_ = writeM
     

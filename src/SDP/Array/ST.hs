@@ -33,7 +33,6 @@ import SDP.SortM
 import SDP.SortM.Tim
 
 import SDP.Internal.SArray
-import SDP.Simple
 
 default ()
 
@@ -57,47 +56,28 @@ instance (Index i) => Eq (STArray s i e)
 
 instance (Index i) => BorderedM (ST s) (STArray s i e) i e
   where
-    {-# INLINE getLower #-}
     getLower   (STArray l _ _) = return l
-    
-    {-# INLINE getUpper #-}
     getUpper   (STArray _ u _) = return u
-    
-    {-# INLINE getBounds #-}
     getBounds  (STArray l u _) = return (l, u)
-    
-    {-# INLINE getSizeOf #-}
-    getSizeOf  (STArray _ _ marr#) = getSizeOf marr#
-    
-    {-# INLINE getIndices #-}
     getIndices (STArray l u _) = return $ range (l, u)
-    
-    {-# INLINE getIndexOf #-}
     getIndexOf (STArray l u _) = return . inRange (l, u)
+    
+    getSizeOf  (STArray _ _ marr#) = getSizeOf marr#
 
 instance (Index i) => LinearM (ST s) (STArray s i e) e
   where
     newLinear = fromFoldableM
     
-    {-# INLINE newLinearN #-}
-    newLinearN n es = newLinearN n es >>= withBounds
-    
-    {-# INLINE fromFoldableM #-}
+    newLinearN  n es = newLinearN  n es >>= withBounds
     fromFoldableM es = fromFoldableM es >>= withBounds
     
     getLeft  (STArray _ _ marr#) = getLeft  marr#
     getRight (STArray _ _ marr#) = getRight marr#
-    
-    {-# INLINE copied #-}
-    copied (STArray l u marr#) = STArray l u <$> copied marr#
-    
-    {-# INLINE copied' #-}
-    copied' (STArray _ _ marr#) o c = copied' marr# o c >>= withBounds
-    
-    {-# INLINE reversed #-}
     reversed (STArray l u marr#) = STArray l u <$> reversed marr#
     
-    {-# INLINE filled #-}
+    copied  (STArray l u marr#) = STArray l u <$> copied marr#
+    copied' (STArray _ _ marr#) = \ o c -> copied' marr# o c >>= withBounds
+    
     filled n e = filled n e >>= withBounds
 
 --------------------------------------------------------------------------------
@@ -106,7 +86,6 @@ instance (Index i) => LinearM (ST s) (STArray s i e) e
 
 instance (Index i) => IndexedM (ST s) (STArray s i e) i e
   where
-    {-# INLINE fromAssocs' #-}
     fromAssocs' bs@(l, u) defvalue ascs = STArray l u <$> marr#
       where
         marr# = defaultBounds (size bs) `fromAssocs'` defvalue $ ies
@@ -118,43 +97,25 @@ instance (Index i) => IndexedM (ST s) (STArray s i e) i e
     {-# INLINE (>!) #-}
     (>!) (STArray l u marr#) = (marr# !#>) . offset (l, u)
     
-    {-# INLINE (!>) #-}
-    (!>) (STArray l u marr#) = \ i -> case inBounds (l, u) i of
-        ER -> throw $ EmptyRange     msg
-        UR -> throw $ IndexUnderflow msg
-        IN -> marr# !#> offset (l, u) i
-        OR -> throw $ IndexOverflow  msg
-      where
-        msg = "in SDP.Array.ST.(!>)"
-    
+    {-# LANGUAGE writeM_ #-}
     writeM_ (STArray _ _ marr#) = writeM_ marr#
     
     {-# INLINE writeM #-}
-    writeM (STArray l u marr#) = \ i -> writeM marr# $ offset (l, u) i
+    writeM  (STArray l u marr#) = writeM_ marr# . offset (l, u)
     
-    {-# INLINE overwrite #-}
     overwrite es@(STArray l u _) ascs = mapM_ (uncurry $ writeM_ es) ies >> return es
       where
         ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
     
-    {-# INLINE fromIndexed' #-}
     fromIndexed' es = fromIndexed' es >>= withBounds
-    
-    {-# INLINE fromIndexedM #-}
     fromIndexedM es = fromIndexedM es >>= withBounds
 
 instance (Index i) => IFoldM (ST s) (STArray s i e) i e
   where
-    {-# INLINE ifoldrM #-}
-    ifoldrM  f base (STArray l u marr#) = ifoldrM (f . index (l, u)) base marr#
+    ifoldrM f base (STArray l u marr#) = ifoldrM (f . index (l, u)) base marr#
+    ifoldlM f base (STArray l u marr#) = ifoldlM (f . index (l, u)) base marr#
     
-    {-# INLINE ifoldlM #-}
-    ifoldlM  f base (STArray l u marr#) = ifoldlM (f . index (l, u)) base marr#
-    
-    {-# INLINE i_foldrM #-}
     i_foldrM f base (STArray _ _ marr#) = i_foldrM f base marr#
-    
-    {-# INLINE i_foldlM #-}
     i_foldlM f base (STArray _ _ marr#) = i_foldlM f base marr#
 
 instance (Index i) => SortM (ST s) (STArray s i e) e where sortMBy = timSortBy
@@ -163,8 +124,7 @@ instance (Index i) => SortM (ST s) (STArray s i e) e where sortMBy = timSortBy
 
 {-# INLINE withBounds #-}
 withBounds :: (Index i) => STArray# s e -> ST s (STArray s i e)
-withBounds marr# = (\ n -> let (l, u) = defaultBounds n in STArray l u marr#) <$> getSizeOf marr#
-
-
-
+withBounds marr# = do
+  (l, u) <- defaultBounds <$> getSizeOf marr#
+  return (STArray l u marr#)
 

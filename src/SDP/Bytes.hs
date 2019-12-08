@@ -1,6 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Unsafe, MagicHash, TypeFamilies, RoleAnnotations #-}
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE Unsafe, MagicHash, TypeFamilies, RoleAnnotations, DeriveGeneric #-}
 
 {- |
     Module      :  SDP.Bytes
@@ -57,13 +56,19 @@ default ()
 --------------------------------------------------------------------------------
 
 -- | Bytes - unboxed array.
-data Bytes i e = Bytes !i !i !(SBytes# e) deriving ( Eq, Generic )
+data Bytes i e = Bytes !i !i !(SBytes# e) deriving ( Generic )
 
 type role Bytes nominal representational
 
 --------------------------------------------------------------------------------
 
-{- Ord instance. -}
+{- Eq and Ord instances. -}
+
+instance (Index i, Unboxed e) => Eq (Bytes i e)
+  where
+    Z == Z = True
+    (Bytes l1 u1 arr1#) == (Bytes l2 u2 arr2#) =
+      l1 == l2 && u1 == u2 && arr1# == arr2#
 
 instance (Index i, Unboxed e, Ord e) => Ord (Bytes i e)
   where
@@ -157,40 +162,31 @@ instance (Index i, Unboxed e) => Linear (Bytes i e) e
     
     fromList = fromFoldable
     
-    {-# INLINE fromListN #-}
-    fromListN n = withBounds . fromListN n
-    
-    {-# INLINE fromFoldable #-}
+    fromListN  n = withBounds . fromListN  n
     fromFoldable = withBounds . fromFoldable
     
-    {-# INLINE single #-}
     single = withBounds . single
     
     -- | O(n + m) '++', O(n + m) memory.
     (Bytes _ _ xs) ++ (Bytes _ _ ys) = withBounds $ xs ++ ys
     
-    {-# INLINE replicate #-}
     -- | O(n) 'replicate', O(n) memory.
     replicate n = withBounds . replicate n
     
     listL (Bytes _ _ bytes#) = listL bytes#
     listR (Bytes _ _ bytes#) = listR bytes#
     
-    {-# INLINE concatMap #-}
     concatMap f = fromList . foldr (\ a l -> i_foldr (:) l $ f a) []
     
-    {-# INLINE concat #-}
     concat = fromList . foldr (\ a l -> i_foldr (:) l a) []
     
     partitions f es = fromList <$> partitions f (listL es)
 
 instance (Index i, Unboxed e) => Split (Bytes i e) e
   where
-    {-# INLINE take #-}
     -- | O(1) 'take', O(1) memory.
     take n (Bytes _ _ bytes#) = withBounds $ take n bytes#
     
-    {-# INLINE drop #-}
     -- | O(1) 'drop', O(1) memory.
     drop n (Bytes _ _ bytes#) = withBounds $ drop n bytes#
     
@@ -209,34 +205,20 @@ instance (Index i, Unboxed e) => Split (Bytes i e) e
     isSuffixOf (Bytes l1 u1 bytes1#) (Bytes l2 u2 bytes2#) =
       size (l1, u1) <= size (l2, u2) && bytes1# `isSuffixOf` bytes2#
     
-    {-# INLINE prefix #-}
     prefix p = i_foldr (\ e c -> p e ? c + 1 $ 0) 0
-    
-    {-# INLINE suffix #-}
     suffix p = i_foldl (\ c e -> p e ? c + 1 $ 0) 0
 
 instance (Index i, Unboxed e) => Bordered (Bytes i e) i e
   where
-    {-# INLINE indexIn #-}
-    indexIn  (Bytes l u _) = inRange (l, u)
-    
-    {-# INLINE offsetOf #-}
     offsetOf (Bytes l u _) = offset (l, u)
     
-    {-# INLINE indexOf #-}
+    indexIn  (Bytes l u _) = inRange (l, u)
     indexOf  (Bytes l u _) = index (l, u)
+    bounds   (Bytes l u _) = (l, u)
+    lower    (Bytes l _ _) = l
+    upper    (Bytes _ u _) = u
     
-    {-# INLINE sizeOf #-}
     sizeOf (Bytes _ _ bytes#) = sizeOf bytes#
-    
-    {-# INLINE bounds #-}
-    bounds (Bytes l u _) = (l, u)
-    
-    {-# INLINE lower #-}
-    lower  (Bytes l _ _) = l
-    
-    {-# INLINE upper #-}
-    upper  (Bytes _ u _) = u
 
 --------------------------------------------------------------------------------
 
@@ -244,13 +226,11 @@ instance (Index i, Unboxed e) => Bordered (Bytes i e) i e
 
 instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
   where
-    {-# INLINE assoc #-}
     assoc bnds@(l, u) ascs = Bytes l u $ assoc bnds' ies
       where
         ies   = [ (offset bnds i, e) | (i, e) <- ascs, inRange bnds i ]
         bnds' = defaultBounds $ size bnds
     
-    {-# INLINE assoc' #-}
     assoc' bnds@(l, u) defvalue ascs = Bytes l u $ assoc' bnds' defvalue ies
       where
         ies   = [ (offset bnds i, e) | (i, e) <- ascs, inRange bnds i ]
@@ -258,7 +238,6 @@ instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
     
     fromIndexed = withBounds . fromIndexed
     
-    {-# INLINE (//) #-}
     Z // ascs = null ascs ? Z $ assoc (l, u) ascs
       where
         l = fst $ minimumBy cmpfst ascs
@@ -275,17 +254,11 @@ instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
 
 instance (Index i, Unboxed e) => IFold (Bytes i e) i e
   where
-    {-# INLINE ifoldr #-}
-    ifoldr f = \ base (Bytes l u bytes#) -> ifoldr (\ i -> f $ index (l, u) i) base bytes#
+    ifoldr f base = \ (Bytes l u bytes#) -> ifoldr (f . index (l, u)) base bytes#
+    ifoldl f base = \ (Bytes l u bytes#) -> ifoldl (f . index (l, u)) base bytes#
     
-    {-# INLINE ifoldl #-}
-    ifoldl f = \ base (Bytes l u bytes#) -> ifoldl (\ i -> f $ index (l, u) i) base bytes#
-    
-    {-# INLINE i_foldr #-}
-    i_foldr f = \ base (Bytes _ _ bytes#) -> i_foldr f base bytes#
-    
-    {-# INLINE i_foldl #-}
-    i_foldl f = \ base (Bytes _ _ bytes#) -> i_foldl f base bytes#
+    i_foldr f base = \ (Bytes _ _ bytes#) -> i_foldr f base bytes#
+    i_foldl f base = \ (Bytes _ _ bytes#) -> i_foldl f base bytes#
 
 instance (Index i, Unboxed e) => Set (Bytes i e) e
   where
@@ -348,8 +321,5 @@ done (STBytes l u mbytes#) = Bytes l u <$> unsafeFreeze mbytes#
 
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Bytes." ++ msg
-
-
-
 
 

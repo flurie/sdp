@@ -35,8 +35,7 @@ import SDP.Set
 import Test.QuickCheck
 
 import GHC.Generics ( Generic (..) )
-
-import GHC.Base ( Int (..) )
+import GHC.Base     ( Int     (..) )
 
 import GHC.Show ( appPrec )
 import GHC.ST   ( ST (..), runST )
@@ -69,8 +68,9 @@ instance (Index i, Eq e) => Eq (Array i e) where (==) = eq1
 
 instance (Index i) => Eq1 (Array i)
   where
-    liftEq eq (Array l1 u1 arr1#) (Array l2 u2 arr2#) =
-      l1 == l2 && u1 == u2 && liftEq eq arr1# arr2#
+    liftEq _ Z Z = True
+    liftEq f (Array l1 u1 arr1#) (Array l2 u2 arr2#) =
+      l1 == l2 && u1 == u2 && liftEq f arr1# arr2#
 
 --------------------------------------------------------------------------------
 
@@ -185,10 +185,10 @@ instance (Index i) => Applicative (Array i)
 
 instance (Index i) => Foldable (Array i)
   where
-    foldr  f = \ base (Array _ _ arr#) -> foldr  f base arr#
-    foldl  f = \ base (Array _ _ arr#) -> foldl  f base arr#
-    foldr' f = \ base (Array _ _ arr#) -> foldr' f base arr#
-    foldl' f = \ base (Array _ _ arr#) -> foldl' f base arr#
+    foldr  f base = \ (Array _ _ arr#) -> foldr  f base arr#
+    foldl  f base = \ (Array _ _ arr#) -> foldl  f base arr#
+    foldr' f base = \ (Array _ _ arr#) -> foldr' f base arr#
+    foldl' f base = \ (Array _ _ arr#) -> foldl' f base arr#
     
     foldr1 f = \ (Array _ _ arr#) -> foldr1 f arr#
     foldl1 f = \ (Array _ _ arr#) -> foldl1 f arr#
@@ -229,7 +229,7 @@ instance (Index i) => Linear (Array i e) e
     tail Z = pfailEx "(:>)"
     tail (Array _ _ arr#) = withBounds $ tail arr#
     
-    toLast (Array _ _ arr#) e = withBounds $ arr# :< e
+    toLast (Array _ _ arr#) e = withBounds (arr# :< e)
     
     last es = isNull es ? pfailEx "(:<)" $ es !^ (sizeOf es - 1)
     
@@ -239,41 +239,30 @@ instance (Index i) => Linear (Array i e) e
     
     fromList = fromFoldable
     
-    {-# INLINE fromListN #-}
-    fromListN n = withBounds . fromListN n
-    
-    {-# INLINE fromFoldable #-}
+    fromListN  n = withBounds . fromListN  n
     fromFoldable = withBounds . fromFoldable
     
-    {-# INLINE single #-}
     single = withBounds . single
     
     -- | O(n + m) '++', O(n + m) memory.
     (Array _ _ xs) ++ (Array _ _ ys) = withBounds $ xs ++ ys
     
-    {-# INLINE replicate #-}
     -- | O(n) 'replicate', O(n) memory.
     replicate n = withBounds . replicate n
     
     listL = toList
-    
     listR = \ (Array _ _ arr#) -> listR arr#
     
-    {-# INLINE concatMap #-}
     concatMap f = fromList . foldr (\ a l -> foldr (:) l $ f a) []
-    
-    {-# INLINE concat #-}
-    concat = fromList . foldr (\ a l -> foldr (:) l a) []
+    concat      = fromList . foldr (\ a l -> foldr (:) l a) []
     
     partitions f es = fromList <$> partitions f (listL es)
 
 instance (Index i) => Split (Array i e) e
   where
-    {-# INLINE take #-}
     -- | O(1) 'take', O(1) memory.
     take n (Array _ _ arr#) = withBounds $ take n arr#
     
-    {-# INLINE drop #-}
     -- | O(1) 'drop', O(1) memory.
     drop n (Array _ _ arr#) = withBounds $ drop n arr#
     
@@ -294,26 +283,14 @@ instance (Index i) => Split (Array i e) e
 
 instance (Index i) => Bordered (Array i e) i e
   where
-    {-# INLINE indexIn #-}
-    indexIn (Array l u _) = inRange (l, u)
+    offsetOf (Array l u _) = offset  (l, u)
+    indexIn  (Array l u _) = inRange (l, u)
+    indexOf  (Array l u _) = index (l, u)
+    bounds   (Array l u _) = (l, u)
+    lower    (Array l _ _) = l
+    upper    (Array _ u _) = u
     
-    {-# INLINE indexOf #-}
-    indexOf (Array l u _) = index (l, u)
-    
-    {-# INLINE offsetOf #-}
-    offsetOf (Array l u _) = offset (l, u)
-    
-    {-# INLINE sizeOf #-}
     sizeOf  (Array _ _ arr#) = sizeOf arr#
-    
-    {-# INLINE bounds #-}
-    bounds  (Array l u _) = (l, u)
-    
-    {-# INLINE lower #-}
-    lower   (Array l _ _) = l
-    
-    {-# INLINE upper #-}
-    upper   (Array _ u _) = u
 
 --------------------------------------------------------------------------------
 
@@ -321,7 +298,6 @@ instance (Index i) => Bordered (Array i e) i e
 
 instance (Index i) => Indexed (Array i e) i e
   where
-    {-# INLINE assoc' #-}
     assoc' bnds@(l, u) defvalue ascs = Array l u $ assoc' bnds' defvalue ies
       where
         ies   = [ (offset bnds i, e) | (i, e) <- ascs, inRange bnds i ]
@@ -329,7 +305,6 @@ instance (Index i) => Indexed (Array i e) i e
     
     fromIndexed = withBounds . fromIndexed
     
-    {-# INLINE (//) #-}
     Z // ascs = null ascs ? Z $ assoc (l, u) ascs
       where
         l = fst $ minimumBy cmpfst ascs
@@ -340,17 +315,14 @@ instance (Index i) => Indexed (Array i e) i e
     (!^) (Array _ _ arr#) = (arr# !^)
     
     {-# INLINE (!) #-}
-    (!) (Array l u arr#) = (arr# !^) . offset (l, u)
+    (!)  (Array l u arr#) = (arr# !^) . offset (l, u)
     
     (*$) p = ifoldr (\ i e is -> p e ? (i : is) $ is) []
 
 instance (Index i) => IFold (Array i e) i e
   where
-    {-# INLINE ifoldr #-}
-    ifoldr f = \ base (Array l u arr#) -> ifoldr (\ i -> f $ index (l, u) i) base arr#
-    
-    {-# INLINE ifoldl #-}
-    ifoldl f = \ base (Array l u arr#) -> ifoldl (\ i -> f $ index (l, u) i) base arr#
+    ifoldr f base = \ (Array l u arr#) -> ifoldr (f . index (l, u)) base arr#
+    ifoldl f base = \ (Array l u arr#) -> ifoldl (f . index (l, u)) base arr#
     
     i_foldr = foldr
     i_foldl = foldl
@@ -414,7 +386,5 @@ done (STArray l u marr#) = Array l u <$> unsafeFreeze marr#
 
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Array." ++ msg
-
-
 
 

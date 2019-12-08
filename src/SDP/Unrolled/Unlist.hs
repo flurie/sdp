@@ -65,15 +65,14 @@ type role Unlist representational
 
 instance (Eq e) => Eq (Unlist e)
   where
-    (==) = go
+    Z == Z = True
+    xs@(Unlist arr1# arr1) == ys@(Unlist arr2# arr2) = if n1 > n2
+        then take n2 arr1# == arr2# && drop n2 xs == arr2
+        else take n1 arr2# == arr1# && drop n1 ys == arr1
       where
-        go xs@(Unlist arr1# arr1) ys@(Unlist arr2# arr2) = if n1 > n2
-            then take n2 arr1# == arr2# && go (drop n2 xs) arr2
-            else take n1 arr2# == arr1# && go (drop n1 ys) arr1
-          where
-            n1 = sizeOf arr1#; n2 = sizeOf arr2#
-        go Z Z = True
-        go _ _ = False
+        n1 = sizeOf arr1#
+        n2 = sizeOf arr2#
+    _ == _ = False
 
 instance Eq1 Unlist
   where
@@ -160,17 +159,11 @@ instance Applicative Unlist
 
 instance Foldable Unlist
   where
-    {-# INLINE foldr #-}
-    foldr  f = \ base es -> case es of {Z -> base; Unlist arr# arr -> foldr  f (foldr  f base arr) arr#}
+    foldr  f base = \ es -> case es of {Z -> base; Unlist arr# arr -> foldr  f (foldr  f base arr) arr#}
+    foldr' f base = \ es -> case es of {Z -> base; Unlist arr# arr -> foldr' f (foldr' f base arr) arr#}
     
-    {-# INLINE foldr' #-}
-    foldr' f = \ base es -> case es of {Z -> base; Unlist arr# arr -> foldr' f (foldr' f base arr) arr#}
-    
-    {-# INLINE foldl #-}
-    foldl  f = \ base es -> case es of {Z -> base; Unlist arr# arr -> foldl  f (foldl  f base arr#) arr}
-    
-    {-# INLINE foldl' #-}
-    foldl' f = \ base es -> case es of {Z -> base; Unlist arr# arr -> foldl' f (foldl' f base arr#) arr}
+    foldl  f base = \ es -> case es of {Z -> base; Unlist arr# arr -> foldl  f (foldl  f base arr#) arr}
+    foldl' f base = \ es -> case es of {Z -> base; Unlist arr# arr -> foldl' f (foldl' f base arr#) arr}
     
     length es = case es of {Unlist arr# arr -> sizeOf arr# + sizeOf arr; _ -> 0}
     null es = case es of {UNEmpty -> True; Unlist Z UNEmpty -> True; _ -> False}
@@ -207,12 +200,10 @@ instance Linear (Unlist e) e
     init Z = pfailEx "(:>)"
     init (Unlist arr# arr) = isNull arr ? Unlist (init arr#) Z $ Unlist arr# (init arr)
     
-    {-# INLINE single #-}
     single = replicate 1
     
     listL = foldr (:) []
     
-    {-# INLINE fromList #-}
     fromList = foldr (\ list -> Unlist $ fromList list) Z . chunks lim
     
     Z ++ ys = ys
@@ -220,8 +211,6 @@ instance Linear (Unlist e) e
     (Unlist arr# arr) ++ ys = Unlist arr# (arr ++ ys)
     
     -- | Deduplicated Unlist: O(1), O(1) memory (limited by a constant on top).
-    {-# INLINE replicate #-}
-    
     replicate n e = copy count
       where
         (count, rst) = n `divMod` lim
@@ -233,7 +222,6 @@ instance Linear (Unlist e) e
         chunk = replicate lim e
         rest  = replicate rst e
     
-    {-# INLINE reverse #-}
     reverse = fromList . foldl (flip (:)) []
     
     partition p es = (fromList x, fromList y)
@@ -244,7 +232,6 @@ instance Linear (Unlist e) e
 
 instance Split (Unlist e) e
   where
-    {-# INLINE take #-}
     take n es | n < 1 = Z | es .<= n = es | True = take' n es
       where
         take' _  Z = Z
@@ -253,7 +240,6 @@ instance Split (Unlist e) e
           EQ -> arr
           GT -> Unlist arr# (take (n' - sizeOf arr#) arr)
     
-    {-# INLINE drop #-}
     drop n es | n < 1 = es | es .<= n = Z | True = drop' n es
       where
         drop' _ Z = Z
@@ -288,10 +274,8 @@ instance Bordered (Unlist e) Int e
 
 instance Indexed (Unlist e) Int e
   where
-    {-# INLINE assoc' #-}
     assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
     
-    {-# INLINE (//) #-}
     Z // ascs = isNull ascs ? Z $ assoc (l, u) ascs
       where
         l = fst $ minimumBy cmpfst ascs
@@ -305,6 +289,7 @@ instance Indexed (Unlist e) Int e
       where
         n = sizeOf es
     
+    {-# INLINE (!^) #-}
     Z !^ _ = error "in SDP.Unrolled.Unlist.(!^)"
     (Unlist arr# arr) !^ i = i < c ? arr# !^ i $ arr !^ (i - c)
       where
@@ -322,7 +307,6 @@ instance Indexed (Unlist e) Int e
       where
         c = sizeOf arr#
     
-    {-# INLINE (.$) #-}
     p .$ es = go es 0
       where
         go Z _ = Nothing
@@ -330,7 +314,6 @@ instance Indexed (Unlist e) Int e
           Just  i -> Just (i + o)
           Nothing -> go arr $! o + sizeOf arr#
     
-    {-# INLINE (*$) #-}
     (*$) p es = go es 0
       where
         go Z _ = []
@@ -338,11 +321,8 @@ instance Indexed (Unlist e) Int e
 
 instance IFold (Unlist e) Int e
   where
-    {-# INLINE ifoldr #-}
-    ifoldr f = \ base es -> case es of {Z -> base; (Unlist arr# arr) -> ifoldr f (ifoldr f base arr) arr#}
-    
-    {-# INLINE ifoldl #-}
-    ifoldl f = \ base es -> case es of {Z -> base; (Unlist arr# arr) -> ifoldl f (ifoldl f base arr#) arr}
+    ifoldr f base = \ es -> case es of {Z -> base; (Unlist arr# arr) -> ifoldr f (ifoldr f base arr) arr#}
+    ifoldl f base = \ es -> case es of {Z -> base; (Unlist arr# arr) -> ifoldl f (ifoldl f base arr#) arr}
     
     i_foldr = foldr
     i_foldl = foldl
@@ -430,7 +410,6 @@ instance Set (Unlist e) e
           where
             j = center l u; e = es !^ j
     
-    {-# INLINE isContainedIn #-}
     isContainedIn = binaryContain
 
 instance Sort (Unlist e) e
@@ -482,4 +461,5 @@ unreachEx msg = throw . UnreachableException $ "in SDP.Unrolled.Unlist." ++ msg
 
 lim :: Int
 lim =  1024
+
 

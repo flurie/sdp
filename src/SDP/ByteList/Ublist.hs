@@ -66,15 +66,14 @@ type role Ublist representational
 
 instance (Unboxed e) => Eq (Ublist e)
   where
-    (==) = go
+    Z == Z = True
+    xs@(Ublist bytes1# bytes1) == ys@(Ublist bytes2# bytes2) = if n1 > n2
+        then take n2 bytes1# == bytes2# && drop n2 xs == bytes2
+        else take n1 bytes2# == bytes1# && drop n1 ys == bytes1
       where
-        go xs@(Ublist bytes1# bytes1) ys@(Ublist bytes2# bytes2) = if n1 > n2
-            then take n2 bytes1# == bytes2# && go (drop n2 xs) bytes2
-            else take n1 bytes2# == bytes1# && go (drop n1 ys) bytes1
-          where
-            n1 = sizeOf bytes1#; n2 = sizeOf bytes2#
-        go Z Z = True
-        go _ _ = False
+        n1 = sizeOf bytes1#
+        n2 = sizeOf bytes2#
+    _ == _ = False
 
 --------------------------------------------------------------------------------
 
@@ -89,7 +88,8 @@ instance (Ord e, Unboxed e) => Ord (Ublist e)
         then (take n2 bytes1# <=> bytes2#) <> compare (drop n2 xs) bytes2
         else (bytes1# <=> take n2 bytes2#) <> compare bytes1 (drop n2 ys)
       where
-        n1 = sizeOf bytes1#; n2 = sizeOf bytes2#
+        n1 = sizeOf bytes1#
+        n2 = sizeOf bytes2#
 
 --------------------------------------------------------------------------------
 
@@ -155,12 +155,10 @@ instance (Unboxed e) => Linear (Ublist e) e
     init Z = pfailEx "(:>)"
     init (Ublist bytes# bytes) = isNull bytes ? Ublist (init bytes#) Z $ Ublist bytes# (init bytes)
     
-    {-# INLINE single #-}
     single = replicate 1
     
     listL = i_foldr (:) []
     
-    {-# INLINE fromList #-}
     fromList = i_foldr (\ list -> Ublist $ fromList list) Z . chunks lim
     
     Z ++ ys = ys
@@ -168,8 +166,6 @@ instance (Unboxed e) => Linear (Ublist e) e
     (Ublist bytes# bytes) ++ ys = Ublist bytes# (bytes ++ ys)
     
     -- | Deduplicated Unlist: O(1), O(1) memory (limited by a constant on top).
-    {-# INLINE replicate #-}
-    
     replicate n e = copy count
       where
         (count, rst) = n `divMod` lim
@@ -181,7 +177,6 @@ instance (Unboxed e) => Linear (Ublist e) e
         chunk = replicate lim e
         rest  = replicate rst e
     
-    {-# INLINE reverse #-}
     reverse = fromList . i_foldl (flip (:)) []
     
     partition p es = (fromList x, fromList y)
@@ -192,7 +187,6 @@ instance (Unboxed e) => Linear (Ublist e) e
 
 instance (Unboxed e) => Split (Ublist e) e
   where
-    {-# INLINE take #-}
     take n es | n < 1 = Z | es .<= n = es | True = take' n es
       where
         take' _  Z = Z
@@ -201,7 +195,6 @@ instance (Unboxed e) => Split (Ublist e) e
           EQ -> bytes
           GT -> Ublist bytes# (take (n' - sizeOf bytes#) bytes)
     
-    {-# INLINE drop #-}
     drop n es | n < 1 = es | es .<= n = Z | True = drop' n es
       where
         drop' _ Z = Z
@@ -239,13 +232,10 @@ instance (Unboxed e) => Bordered (Ublist e) Int e
 
 instance (Unboxed e) => Indexed (Ublist e) Int e
   where
-    {-# INLINE assoc #-}
     assoc bnds ascs = runST $ fromAssocs bnds ascs >>= done
     
-    {-# INLINE assoc' #-}
     assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
     
-    {-# INLINE (//) #-}
     Z // ascs = isNull ascs ? Z $ assoc (l, u) ascs
       where
         l = fst $ minimumBy cmpfst ascs
@@ -259,12 +249,12 @@ instance (Unboxed e) => Indexed (Ublist e) Int e
       where
         n = sizeOf es
     
+    {-# INLINE (!^) #-}
     Z !^ _ = error "in SDP.ByteList.Ublist.(!^)"
     (Ublist bytes# bytes) !^ i = i < c ? bytes# !^ i $ bytes !^ (i - c)
       where
         c = sizeOf bytes#
     
-    {-# INLINE (.!) #-}
     (.!) = (!^)
     
     (!) Z _ = throw $ EmptyRange "in SDP.ByteList.Ublist.(!)"
@@ -276,7 +266,6 @@ instance (Unboxed e) => Indexed (Ublist e) Int e
       where
         c = sizeOf bytes#
     
-    {-# INLINE (.$) #-}
     p .$ es = go es 0
       where
         go Z _ = Nothing
@@ -284,7 +273,6 @@ instance (Unboxed e) => Indexed (Ublist e) Int e
           Just  i -> Just (i + o)
           Nothing -> go bytes $! o + sizeOf bytes#
     
-    {-# INLINE (*$) #-}
     (*$) p es = go es 0
       where
         go Z _ = []
@@ -292,17 +280,11 @@ instance (Unboxed e) => Indexed (Ublist e) Int e
 
 instance (Unboxed e) => IFold (Ublist e) Int e
   where
-    {-# INLINE ifoldr #-}
-    ifoldr  f = \ base es -> case es of {Z -> base; (Ublist bytes# bytes) -> ifoldr  f (ifoldr  f base bytes) bytes#}
+    ifoldr  f base = \ es -> case es of {Z -> base; (Ublist bytes# bytes) -> ifoldr  f (ifoldr  f base bytes) bytes#}
+    ifoldl  f base = \ es -> case es of {Z -> base; (Ublist bytes# bytes) -> ifoldl  f (ifoldl  f base bytes#) bytes}
     
-    {-# INLINE ifoldl #-}
-    ifoldl  f = \ base es -> case es of {Z -> base; (Ublist bytes# bytes) -> ifoldl  f (ifoldl  f base bytes#) bytes}
-    
-    {-# INLINE i_foldr #-}
-    i_foldr f = \ base es -> case es of {Z -> base; (Ublist bytes# bytes) -> i_foldr f (i_foldr f base bytes) bytes#}
-    
-    {-# INLINE i_foldl #-}
-    i_foldl f = \ base es -> case es of {Z -> base; (Ublist bytes# bytes) -> i_foldl f (i_foldl f base bytes#) bytes}
+    i_foldr f base = \ es -> case es of {Z -> base; (Ublist bytes# bytes) -> i_foldr f (i_foldr f base bytes) bytes#}
+    i_foldl f base = \ es -> case es of {Z -> base; (Ublist bytes# bytes) -> i_foldl f (i_foldl f base bytes#) bytes}
 
 instance (Unboxed e) => Set (Ublist e) e
   where
@@ -387,7 +369,6 @@ instance (Unboxed e) => Set (Ublist e) e
           where
             j = center l u; e = es !^ j
     
-    {-# INLINE isContainedIn #-}
     isContainedIn = binaryContain
     
     isSubsetWith f xs ys = i_foldr (\ e b -> b && isContainedIn f e ys) True xs
@@ -441,5 +422,4 @@ unreachEx msg = throw . UnreachableException $ "in SDP.ByteList.Ublist." ++ msg
 
 lim :: Int
 lim =  1024
-
 

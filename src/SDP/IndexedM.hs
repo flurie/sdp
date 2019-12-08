@@ -39,14 +39,14 @@ import SDP.Simple
 
 default ()
 
-infixl 5 !#>
+infixl 5 !#>, >!, !>, !?>
 
 --------------------------------------------------------------------------------
 
 -- | Class for work with mutable indexed structures.
 class (Monad m, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
   where
-    {-# MINIMAL fromAssocs', fromIndexed', fromIndexedM, overwrite, ((!>)|(!?>)) #-}
+    {-# MINIMAL fromAssocs', fromIndexed', fromIndexedM, overwrite, ((>!)|(!?>)) #-}
     
     {-# INLINE fromAssocs #-}
     -- | fromAssocs returns new mutable structure created from assocs.
@@ -65,17 +65,24 @@ class (Monad m, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
     -- | (>!) is unsafe monadic reader.
     {-# INLINE (>!) #-}
     (>!) :: v -> i -> m e
-    (>!) = (!>)
+    es >! i = fromMaybe (undEx "(!)") <$> es !?> i
     
     -- | (!>) is well-safe monadic reader.
     {-# INLINE (!>) #-}
     (!>) :: v -> i -> m e
-    (!>) dat i = fromMaybe (undEx "(!)") <$> dat !?> i
+    default (!>) :: (BorderedM m v i e) => v -> i -> m e
+    (!>) es i = getBounds es >>= \ bnds -> case inBounds bnds i of
+        IN -> es >! i
+        ER -> throw $ EmptyRange     msg
+        OR -> throw $ IndexOverflow  msg
+        UR -> throw $ IndexUnderflow msg
+      where
+        msg = "in SDP.Indexed.(!>) [default]"
     
     -- | (!?>) is completely safe monadic reader.
     default (!?>) :: (BorderedM m v i e) => v -> i -> m (Maybe e)
     (!?>) :: v -> i -> m (Maybe e)
-    (!?>) es = getIndexOf es ?> (es !>)
+    (!?>) es = getIndexOf es ?> (es >!)
     
     default writeM_ :: (BorderedM m v i e) => v -> Int -> e -> m ()
     writeM_ :: v -> Int -> e -> m ()
@@ -197,4 +204,7 @@ swapM es i j = do ei <- es !#> i; writeM_ es i =<< es !#> j; writeM_ es j ei
 
 undEx :: String -> a
 undEx msg = throw . UndefinedValue $ "in SDP.IndexedM" ++ msg
+
+
+
 
