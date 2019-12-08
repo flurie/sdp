@@ -77,7 +77,7 @@ class (Monad m, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
         OR -> throw $ IndexOverflow  msg
         UR -> throw $ IndexUnderflow msg
       where
-        msg = "in SDP.Indexed.(!>) [default]"
+        msg = "in SDP.IndexedM.(!>) [default]"
     
     -- | (!?>) is completely safe monadic reader.
     default (!?>) :: (BorderedM m v i e) => v -> i -> m (Maybe e)

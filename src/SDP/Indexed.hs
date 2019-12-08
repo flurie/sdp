@@ -45,13 +45,13 @@ infixl 9 !^, .!, !, !?
 -- | Class of indexed data structures.
 class (Index i) => Indexed v i e | v -> i, v -> e
   where
-    {-# MINIMAL assoc', fromIndexed, (//), ((!)|(!?)), (*$) #-}
+    {-# MINIMAL assoc', fromIndexed, (//), ((.!)|(!?)), (*$) #-}
     
     {- Global operations. -}
     
     {- |
       assoc creates new structure from list of associations [(index, element)],
-      where default element is IndexException (UndefinedValue).
+      where default element is 'IndexException' (UndefinedValue).
     -}
     assoc :: (i, i) -> [(i, e)] -> v
     assoc bnds = assoc' bnds (undEx "assoc (default)")
@@ -98,17 +98,23 @@ class (Index i) => Indexed v i e | v -> i, v -> e
     -}
     {-# INLINE (.!) #-}
     (.!) :: v -> i -> e
-    (.!) = (!)
+    (.!) es = fromMaybe (undEx "(.!)") . (es !?)
     
-    -- | (!) is pretty safe reader. Must throw IndexException.
-    {-# INLINE (!) #-}
-    (!)  :: v -> i -> e
-    (!) dat = fromMaybe (undEx "(!)") . (dat !?)
+    -- | (!) is well-safe reader. Must throw 'IndexException'.
+    default (!) :: (Bordered v i e) => v -> i -> e
+    (!) :: v -> i -> e
+    (!) es i = case inBounds (bounds es) i of
+        IN -> es .! i
+        ER -> throw $ EmptyRange     msg
+        OR -> throw $ IndexOverflow  msg
+        UR -> throw $ IndexUnderflow msg
+      where
+        msg = "in SDP.Indexed.(!) [default]"
     
     -- | (!?) is completely safe, but very boring function.
     default (!?) :: (Bordered v i e) => v -> i -> Maybe e
     (!?) :: v -> i -> Maybe e
-    (!?) dat = (not . indexIn dat) ?: (dat .!)
+    (!?) es = (not . indexIn es) ?: (es .!)
     
     -- |  Write one element to structure.
     default write_ :: (Bordered v i e) => v -> Int -> e -> v
@@ -249,7 +255,6 @@ binaryContain f e es = and
 
 undEx :: String -> a
 undEx msg = throw . UndefinedValue $ "in SDP.Indexed." ++ msg
-
 
 
 

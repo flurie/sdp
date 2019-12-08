@@ -1,6 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Unsafe, MagicHash, TypeFamilies, RoleAnnotations #-}
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE Unsafe, MagicHash, TypeFamilies, RoleAnnotations, DeriveGeneric #-}
 
 {- |
     Module      :  SDP.ByteList
@@ -254,9 +253,6 @@ instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
     {-# INLINE (.!) #-}
     (.!) (ByteList l u es) i = es .! offset (l, u) i
     
-    {-# INLINE (!) #-}
-    (!) (ByteList l u es) i = es ! offset (l, u) i
-    
     p .$ (ByteList l u es) = index (l, u) <$> p .$ es
     p *$ (ByteList l u es) = index (l, u) <$> p *$ es
 
@@ -345,6 +341,5 @@ instance (Index i, Unboxed e) => Freeze (ST s) (STByteList s i e) (ByteList i e)
 
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.ByteList." ++ msg
-
 
 

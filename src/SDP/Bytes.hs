@@ -141,7 +141,6 @@ instance (Index i, Unboxed e) => Linear (Bytes i e) e
   where
     isNull (Bytes _ _ bytes#) = isNull bytes#
     
-    {-# INLINE lzero #-}
     lzero = withBounds Z
     
     toHead e (Bytes _ _ bytes#) = withBounds $ e :> bytes#
@@ -247,8 +246,8 @@ instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
     {-# INLINE (!^) #-}
     (!^) (Bytes _ _ bytes#) = (bytes# !^)
     
-    {-# INLINE (!) #-}
-    (!) (Bytes l u bytes#) = (bytes# !^) . offset (l, u)
+    {-# INLINE (.!) #-}
+    (.!) (Bytes l u bytes#) = (bytes# !^) . offset (l, u)
     
     (*$) p = ifoldr (\ i e is -> p e ? (i : is) $ is) []
 
@@ -321,5 +320,6 @@ done (STBytes l u mbytes#) = Bytes l u <$> unsafeFreeze mbytes#
 
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Bytes." ++ msg
+
 
 

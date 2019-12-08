@@ -1,6 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Unsafe, MagicHash, RoleAnnotations #-}
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE Unsafe, MagicHash, RoleAnnotations, DeriveGeneric #-}
 
 {- |
     Module      :  SDP.ByteList.Ublist
@@ -256,15 +255,6 @@ instance (Unboxed e) => Indexed (Ublist e) Int e
         c = sizeOf bytes#
     
     (.!) = (!^)
-    
-    (!) Z _ = throw $ EmptyRange "in SDP.ByteList.Ublist.(!)"
-    (!) (Ublist bytes# bytes) i
-        | isNull bytes# = throw $ IndexOverflow  "in SDP.ByteList.Ublist.(!)"
-        |    i < 0    = throw $ IndexUnderflow "in SDP.ByteList.Ublist.(!)"
-        |    i < c    = bytes# !^ i
-        |    True     = bytes  !^ (i - c)
-      where
-        c = sizeOf bytes#
     
     p .$ es = go es 0
       where

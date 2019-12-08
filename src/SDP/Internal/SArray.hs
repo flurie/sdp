@@ -249,7 +249,6 @@ instance Linear (SArray# e) e
   where
     isNull (SArray# c _ _) = c == 0
     
-    {-# INLINE lzero #-}
     lzero = runST $ filled 0 (unreachEx "lzero") >>= done
     
     -- | O(n) 'toHead', O(n) memory.
@@ -346,7 +345,8 @@ instance Indexed (SArray# e) Int e
     
     (!^) (SArray# _ (I# o#) arr#) = \ (I# i#) -> case indexArray# arr# (i# +# o#) of (# e #) -> e
     
-    (!) = (!^)
+    (.!) = (!^)
+    (!)  = (!^)
     
     (*$) p = ifoldr (\ i e is -> p e ? (i : is) $ is) []
 

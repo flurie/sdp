@@ -314,8 +314,8 @@ instance (Index i) => Indexed (Array i e) i e
     {-# INLINE (!^) #-}
     (!^) (Array _ _ arr#) = (arr# !^)
     
-    {-# INLINE (!) #-}
-    (!)  (Array l u arr#) = (arr# !^) . offset (l, u)
+    {-# INLINE (.!) #-}
+    (.!) (Array l u arr#) = (arr# !^) . offset (l, u)
     
     (*$) p = ifoldr (\ i e is -> p e ? (i : is) $ is) []
 

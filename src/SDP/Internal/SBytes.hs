@@ -240,10 +240,10 @@ instance (Unboxed e) => Indexed (SBytes# e) Int e
         u = fst $ maximumBy cmpfst ascs
     arr // ascs = runST $ thaw arr >>= (`overwrite` ascs) >>= done
     
-    (!^) = (!)
-    (.!) = (!)
+    (!^) (SBytes# _ (I# o#) arr#) = \ (I# i#) -> arr# !# (i# +# o#)
     
-    (!) (SBytes# _ (I# o#) arr#) = \ (I# i#) -> arr# !# (i# +# o#)
+    (.!) = (!^)
+    (!)  = (!^)
     
     (*$) p = ifoldr (\ i e is -> p e ? (i : is) $ is) []
 
@@ -456,29 +456,18 @@ instance Eq (STBytes# s e)
 
 instance (Unboxed e) => BorderedM (ST s) (STBytes# s e) Int e
   where
-    {-# INLINE getLower #-}
     getLower _ = return 0
     
-    {-# INLINE getUpper #-}
-    getUpper   (STBytes# c _ _) = return (c - 1)
-    
-    {-# INLINE getBounds #-}
-    getBounds  (STBytes# c _ _) = return (0, c - 1)
-    
-    {-# INLINE getSizeOf #-}
-    getSizeOf  (STBytes# c _ _) = return c
-    
-    {-# INLINE getIndices #-}
-    getIndices (STBytes# c _ _) = return [ 0 .. c - 1 ]
-    
-    {-# INLINE getIndexOf #-}
     getIndexOf (STBytes# c _ _) = return . inRange (0, c - 1)
+    getIndices (STBytes# c _ _) = return [0 .. c - 1]
+    getBounds  (STBytes# c _ _) = return (0, c - 1)
+    getUpper   (STBytes# c _ _) = return (c - 1)
+    getSizeOf  (STBytes# c _ _) = return c
 
 instance (Unboxed e) => LinearM (ST s) (STBytes# s e) e
   where
     newLinear = fromFoldableM
     
-    {-# INLINE newLinearN #-}
     newLinearN c es = newLinearN' (undEx "newLinearN")
       where
         newLinearN' :: (Unboxed e) => e -> ST s (STBytes# s e)
@@ -489,7 +478,6 @@ instance (Unboxed e) => LinearM (ST s) (STBytes# s e) e
             in done' n marr# ( if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2# )
         !n@(I# n#) = max 0 c
     
-    {-# INLINE fromFoldableM #-}
     fromFoldableM es = fromFoldable' (unreachEx "fromFoldableM")
       where
         fromFoldable' :: (Unboxed e) => e -> ST s (STBytes# s e)
@@ -503,24 +491,20 @@ instance (Unboxed e) => LinearM (ST s) (STBytes# s e) e
     getLeft  es@(STBytes# n _ _) = (es !#>) `mapM` [0 .. n - 1]
     getRight es@(STBytes# n _ _) = (es !#>) `mapM` [n - 1, n - 2 .. 0]
     
-    {-# INLINE copied #-}
     copied es@(STBytes# n _ _) = do
       copy <- filled_ n
       forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM_ copy i
       return copy
     
-    {-# INLINE copied' #-}
     copied' es l n = do
       copy <- filled_ n
       forM_ [0 .. n - 1] $ \ i -> es !#> (l + i) >>= writeM_ copy i
       return copy
     
-    {-# INLINE reversed #-}
     reversed es@(STBytes# n _ _) =
       let go i j = when (i < j) $ go (i + 1) (j - 1) >> swapM es i j
       in  go 0 (n - 1) >> return es
     
-    {-# INLINE filled #-}
     filled n e = ST $ \ s1# -> case newUnboxed' e n# s1# of
         (# s2#, marr# #) -> (# s2#, STBytes# n' 0 marr# #)
       where
@@ -553,14 +537,12 @@ instance (Unboxed e) => IndexedM (ST s) (STBytes# s e) Int e
       let ies = filter (inRange (0, c - 1) . fst) ascs
       in  mapM_ (uncurry $ writeM_ es) ies >> return es
     
-    {-# INLINE fromIndexed' #-}
     fromIndexed' es = do
         let n = sizeOf es
         copy <- filled_ n
         forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
         return copy
     
-    {-# INLINE fromIndexedM #-}
     fromIndexedM es = do
       n    <- getSizeOf es
       copy <- filled_ n
@@ -569,25 +551,21 @@ instance (Unboxed e) => IndexedM (ST s) (STBytes# s e) Int e
 
 instance (Unboxed e) => IFoldM (ST s) (STBytes# s e) Int e
   where
-    {-# INLINE ifoldrM #-}
-    ifoldrM  f base arr@(STBytes# n _ _) = go 0
-      where
-        go i =  n == i ? return base $ bindM2 (arr !#> i) (go $ i + 1) (f i)
+    ifoldrM  f base = \ arr@(STBytes# n _ _) ->
+      let go i =  n == i ? return base $ bindM2 (arr !#> i) (go $ i + 1) (f i)
+      in  go 0
     
-    {-# INLINE ifoldlM #-}
-    ifoldlM  f base arr@(STBytes# n _ _) = go (n - 1)
-      where
-        go i = -1 == i ? return base $ bindM2 (go $ i - 1) (arr !#> i) (f i)
+    ifoldlM  f base = \ arr@(STBytes# n _ _) ->
+      let go i = -1 == i ? return base $ bindM2 (go $ i - 1) (arr !#> i) (f i)
+      in  go (n - 1)
     
-    {-# INLINE i_foldrM #-}
-    i_foldrM f base arr@(STBytes# n _ _) = go 0
-      where
-        go i = n == i ? return base $ bindM2 (arr !#> i) (go $ i + 1) f
+    i_foldrM f base = \ arr@(STBytes# n _ _) ->
+      let go i = n == i ? return base $ bindM2 (arr !#> i) (go $ i + 1) f
+      in  go 0
     
-    {-# INLINE i_foldlM #-}
-    i_foldlM f base arr@(STBytes# n _ _) = go (n - 1)
-      where
-        go i = -1 == i ? return base $ bindM2 (go $ i - 1) (arr !#> i) f
+    i_foldlM f base = \ arr@(STBytes# n _ _) ->
+      let go i = -1 == i ? return base $ bindM2 (go $ i - 1) (arr !#> i) f
+      in  go (n - 1)
 
 instance (Unboxed e) => SortM (ST s) (STBytes# s e) e where sortMBy = timSortBy
 
@@ -661,5 +639,7 @@ undEx msg = throw . UndefinedValue $ "in SDP.SBytes." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.SBytes." ++ msg
+
+
 
 

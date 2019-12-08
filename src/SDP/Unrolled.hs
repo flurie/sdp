@@ -1,6 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Unsafe, MagicHash, TypeFamilies, RoleAnnotations #-}
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE Unsafe, MagicHash, TypeFamilies, RoleAnnotations, DeriveGeneric #-}
 
 {- |
     Module      :  SDP.Unrolled
@@ -109,8 +108,7 @@ instance (Index i, Read i, Read e) => Read (Unrolled i e)
 {- Semigroup, Monoid, Default, Arbitrary and Estimate instances. -}
 
 instance (Index i) => Semigroup (Unrolled i e) where (<>) = (++)
-
-instance (Index i) => Monoid (Unrolled i e) where mempty = def
+instance (Index i) => Monoid    (Unrolled i e) where mempty = def
 
 instance (Index i) => Default (Unrolled i e)
   where
@@ -310,9 +308,6 @@ instance (Index i) => Indexed (Unrolled i e) i e
     
     {-# INLINE (.!) #-}
     (.!) (Unrolled l u es) i = es .! offset (l, u) i
-    
-    {-# INLINE (!) #-}
-    (!) (Unrolled l u es) i = es ! offset (l, u) i
     
     p .$ (Unrolled l u es) = index (l, u) <$> p .$ es
     p *$ (Unrolled l u es) = index (l, u) <$> p *$ es

@@ -1,6 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Unsafe, MagicHash, RoleAnnotations #-}
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE Unsafe, MagicHash, RoleAnnotations, DeriveGeneric #-}
 
 {- |
     Module      :  SDP.Unrolled.Unlist
@@ -295,17 +294,7 @@ instance Indexed (Unlist e) Int e
       where
         c = sizeOf arr#
     
-    {-# INLINE (.!) #-}
     (.!) = (!^)
-    
-    (!) Z _ = throw $ EmptyRange "in SDP.Unrolled.(!)"
-    (!) (Unlist arr# arr) i
-        | isNull arr# = throw $ IndexOverflow  "in SDP.Unrolled.(!)"
-        |    i < 0    = throw $ IndexUnderflow "in SDP.Unrolled.(!)"
-        |    i < c    = arr# !^ i
-        |    True     = arr  !^ (i - c)
-      where
-        c = sizeOf arr#
     
     p .$ es = go es 0
       where
@@ -461,5 +450,6 @@ unreachEx msg = throw . UnreachableException $ "in SDP.Unrolled.Unlist." ++ msg
 
 lim :: Int
 lim =  1024
+
 
 
