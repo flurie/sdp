@@ -615,7 +615,9 @@ instance IndexedM (ST s) (STArray# s e) Int e
     (!#>) (STArray# _ (I# o#) marr#) = \ (I# i#) -> ST $ readArray# marr# (o# +# i#)
     
     (>!) = (!#>)
-    (!>) = (!#>) -- | (!>) is unsafe.
+    
+    -- | (!>) is unsafe.
+    (!>) = (!#>)
     
     writeM_ = writeM
     
@@ -697,4 +699,7 @@ pfailEx msg = throw . PatternMatchFail $ "in SDP.SArray." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.SArray." ++ msg
+
+
+
 

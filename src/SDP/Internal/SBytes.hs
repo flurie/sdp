@@ -523,7 +523,9 @@ instance (Unboxed e) => IndexedM (ST s) (STBytes# s e) Int e
     (!#>) (STBytes# _ (I# o#) marr#) = \ (I# i#) -> ST $ marr# !># (o# +# i#)
     
     (>!) = (!#>)
-    (!>) = (!#>) -- | (!>) is unsafe.
+    
+    -- | (!>) is unsafe.
+    (!>) = (!#>)
     
     writeM_ = writeM
     
@@ -639,7 +641,5 @@ undEx msg = throw . UndefinedValue $ "in SDP.SBytes." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.SBytes." ++ msg
-
-
 
 
