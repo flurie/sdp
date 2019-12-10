@@ -3,7 +3,7 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  portable (imports non-portable modules)
+    Portability :  non-portable (imports non-portable modules)
   
   @Test.SDP@ reexports all tests in SDP, except "Test.SDP.Index".
 -}

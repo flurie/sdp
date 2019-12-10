@@ -5,9 +5,9 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  portable
+    Portability :  non-portable (requires non-portable modules)
   
-  @Test.SDP.Gen@ provides newtypes for Arbitrary.
+  @Test.SDP.Gen@ provides newtypes for QuickCheck.
 -}
 module Test.SDP.Gen
 (
@@ -33,10 +33,10 @@ default ()
 {- |
   Short is newtype of short data structures [0, 100) in QuickCheck properties.
   
-  Short is the equivalent of the standard definition for Arbitrary:
-  @arbitrary = fromList <$> arbitrary@.
+  Short is the equivalent of the standard Arbitrary definition:
+  @arbitrary = fromList \<$\> arbitrary@.
 -}
-newtype Short a = Short a deriving (Eq, Ord, Read, Show)
+newtype Short a = Short a deriving ( Eq, Ord, Read, Show )
 
 {- |
   Medium is newtype of medium data structures in QuickCheck properties. The
@@ -44,10 +44,10 @@ newtype Short a = Short a deriving (Eq, Ord, Read, Show)
   [100, 1024).
   
   Medium is useful in testing as a compromise between speed and reliability:
-  structures are too short for stress tests, but still human readable, enough
-  fast, and diverse for auto-testing.
+  structures are too short for stress tests, but still human readable and enough
+  fast for auto-testing.
 -}
-newtype Medium a = Medium a deriving (Eq, Ord, Read, Show)
+newtype Medium a = Medium a deriving ( Eq, Ord, Read, Show )
 
 {- |
   Long is newtype of large data structures (>= 1024) in QuickCheck properties.
@@ -60,7 +60,7 @@ newtype Medium a = Medium a deriving (Eq, Ord, Read, Show)
   Unrolled and ByteList, since only the shortest of the allowed structures may
   fit in one standard chunk (1024 elements).
 -}
-newtype Long a = Long a deriving (Eq, Ord, Read, Show)
+newtype Long a = Long a deriving ( Eq, Ord, Read, Show )
 
 --------------------------------------------------------------------------------
 

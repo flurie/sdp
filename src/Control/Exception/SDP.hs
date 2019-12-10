@@ -33,11 +33,12 @@ default ()
   neutral names in relation to other structures.
   
   If the founded error may depend on the check order, then it should be
-  indicated in the documentation. A check is recommended in the constructors
-  order: empty bounds, overflow, underflow.
+  indicated in the documentation. For example: first it checks overflow, and
+  then underflow. But if an overflow is detected, the underflow may not be\
+  noticed.
   
-  Example: first it checks overflow, and then underflow, then if an overflow is
-  detected, the underflow may not be noticed.
+  A check is recommended in the constructors order: empty bounds, overflow and
+  underflow.
 -}
 
 data IndexException = UndefinedValue String
@@ -58,9 +59,14 @@ instance Exception IndexException
 --------------------------------------------------------------------------------
 
 {-|
-    'UnreachableException' type is used in expressions that should never be
-    evaluated (for example, default value for newUnboxed or newArray primitive).
-    Is soft verson of 'ErrorCall'.
+    'UnreachableException' is a service exception type that should never be
+    thrown.
+    
+    Unlike 'ErrorCall', it doesn't mean "this is an erroneous action", but "as
+    intended".
+    
+    Unlike 'AssertionFailed', it doesn't imply any additional checks - this is a
+    fact.
 -}
 data UnreachableException = UnreachableException String
   deriving (Eq, Typeable)
@@ -70,6 +76,5 @@ instance Show UnreachableException
     show (UnreachableException s) = "unreachable exception " ++ s
 
 instance Exception UnreachableException
-
 
 

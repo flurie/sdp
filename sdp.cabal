@@ -193,6 +193,7 @@ test-suite test-array
     Test.SDP.Eq
     
     SDP.Internal.SArray
+    SDP.Internal.Show
     SDP.Internal.Read
   
   build-depends:
@@ -249,6 +250,7 @@ test-suite test-bytes
     
     SDP.Internal.SBytes
     SDP.Internal.Read
+    SDP.Internal.Show
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -305,6 +307,7 @@ test-suite test-unrolled
     
     SDP.Internal.SArray
     SDP.Internal.Read
+    SDP.Internal.Show
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -362,6 +365,7 @@ test-suite test-bytelist
     
     SDP.Internal.SBytes
     SDP.Internal.Read
+    SDP.Internal.Show
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -416,6 +420,7 @@ test-suite test-ublist
     Test.SDP.Eq
     
     SDP.Internal.SBytes
+    SDP.Internal.Show
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -469,6 +474,7 @@ test-suite test-unlist
     Test.SDP.Eq
     
     SDP.Internal.SArray
+    SDP.Internal.Show
   
   build-depends:
     base                       >= 4.12  && < 5,

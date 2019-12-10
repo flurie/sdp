@@ -3,7 +3,7 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (imports SDP.Linear)
+    Portability :  non-portable (requires non-portable modules)
   
   @Test.SDP.Estimate@ provides basic test suite for 'Estimate' instances.
 -}
@@ -41,15 +41,15 @@ estimateTest n xs ys = and
     (xs <.=> n) == (sx <=> n),
     
     case xs <.=> n of
-      LT -> xs .< n && n >=. xs
+      LT -> xs .< n && n >. xs
       EQ -> xs .== n && not (xs ./= n)
-      GT -> xs .> n && n <=. xs
+      GT -> xs .> n && n <. xs
     ,
     
     case cmp' of
-      LT -> lt1 && ys .>=. xs
+      LT -> lt1 && ys .>. xs
       EQ -> eq1 && not ne1
-      GT -> gt1 && ys .<=. xs
+      GT -> gt1 && ys .<. xs
     ,
     
     not (xs .>. xs), (xs .>=. xs),

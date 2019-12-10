@@ -1,5 +1,3 @@
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
-
 {- |
     Module      :  Control.Monad.Rope
     Copyright   :  (c) Andrey Mulik 2019
@@ -7,10 +5,12 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
     
-    @Control.Monad.Rope@ provides 'RopeM' - lazy monadic stream.
+    @Control.Monad.Rope@ provides 'RopeM' - lazy stream of dependent monadic
+    calculations.
 -}
 module Control.Monad.Rope
 (
+  -- * Rope
   RopeM (..),
   
   evalInit, nextR, runRope
@@ -29,7 +29,7 @@ data RopeM m a = RopeEnd | RopeM (m (a, RopeM m a))
 
 --------------------------------------------------------------------------------
 
--- | runRope run monad sequence and return list of results.
+-- | runRope fully evaluates the stream and returns a list of results.
 runRope :: (Monad m) => RopeM m a -> m [a]
 runRope RopeEnd = return []
 runRope (RopeM rope) = do
@@ -37,7 +37,10 @@ runRope (RopeM rope) = do
   as <- runRope rope'
   return (a : as)
 
--- | evalInit evaluates given count of of elements.
+{- |
+  @evalInit rope n@ evaluates @n@ steps of the @rope@, returns a list of results
+  and the tail of the @rope@.
+-}
 evalInit :: (Monad m) => RopeM m a -> Int -> m ([a], RopeM m a)
 evalInit = \ rope n -> n < 1 ? return ([], rope) $ eval n rope
   where
@@ -48,8 +51,10 @@ evalInit = \ rope n -> n < 1 ? return ([], rope) $ eval n rope
       (as, rest) <- eval (n - 1) rope'
       return (a : as, rest)
 
--- | nextR return result of sequence head and sequence rest.
+-- | @nextR rope@ is just @evalInit rope 1@.
 nextR :: (Monad m) => RopeM m a -> m ([a], RopeM m a)
 nextR rope = evalInit rope 1
+
+
 
 
