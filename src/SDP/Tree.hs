@@ -1,6 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, UndecidableInstances #-}
-{-# LANGUAGE PatternSynonyms, ViewPatterns #-}
-{-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE PatternSynonyms, ViewPatterns, DefaultSignatures #-}
 
 {- |
     Module      :  SDP.Tree
@@ -39,8 +38,7 @@ default ()
 {- |
   Tree - class of tree structures.
   
-  Note that all functions except fixTree and cyclic shifts must be safe.
-  Function toTree can only be unsafe if it uses 'fixTree'.
+  Note that all functions except 'fixTree' and cyclic shifts must be safe.
 -}
 class (Ord e) => Tree t e | t -> e
   where
@@ -246,5 +244,7 @@ class (Tree t e) => AppendTree t e | t -> e
   (B-tree, T-tree, R-tree, rose tree and their variations).
 -}
 class    (ShiftTree t e, AppendTree t e) => MultiTree t e | t -> e
+
 instance (ShiftTree t e, AppendTree t e) => MultiTree t e
+
 

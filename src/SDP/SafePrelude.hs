@@ -49,7 +49,7 @@ default ()
 {- |
   Ternary operator.
   
-  > odd 1 ? "is True" $ "is False" == "is True"
+  > (odd 1 ? "is True" $ "is False") == "is True"
 -}
 {-# INLINE (?) #-}
 (?) :: Bool -> a -> a -> a

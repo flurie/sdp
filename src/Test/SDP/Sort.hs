@@ -3,7 +3,7 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (imports SDP.Linear).
+    Portability :  non-portable (requires non-portable modules).
     
     @Test.SDP.Sort@ provides simple test for 'Sort' class.
 -}

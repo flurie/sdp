@@ -43,29 +43,19 @@ default ()
 --------------------------------------------------------------------------------
 
 {- |
-    Set is a class of data structures, that can represent sets.
-  
-  Some implementations may be inefficient and implemented only for internal use.
+  Set is a class of data structures, that can represent sets.
   
   SDP doesn't making the difference between sets and any arbitrary data, but the
-  function in Set (except 'setWith' and 'set') works correctly only on correct
-  sets. Some implementations may weaken the correctness condition and give more
-  guarantees, but SDP does not. However, SDP ensures that any function in Set
-  returns the correct set.
-  
-  Unlike other classes in this library, Set provides highly general functions
-  because I don't want to be remembered with bad words every time while creating
-  another newtype. For everyday use, the synonyms below are quite enough.
+  function in Set (except 'setWith') works correctly only on correct sets. SDP
+  only ensures that any function in Set returns the correct set.
   
   Note that function of type @Compare e@ must follow 'Ord' rules. If you use the
   wrong comparator, the result will depend on the implementation of the
-  function. You must carefully handle equivalence classes.
+  function.
   
   Example: by default, 'lookupLEWith' and 'lookupGEWith' functions use
   'isContainedIn' to search for an equal element in the set - if such an element
-  is found, then the result is the given element (since they are equal, then it
-  doesn’t matter which one to return). This behavior is perfectly normal, but
-  implementations for all basic structures always return an element of the set.
+  is found, then the result is the given element (since they are equal).
 -}
 class (Linear s o) => Set s o | s -> o
   where
@@ -73,23 +63,12 @@ class (Linear s o) => Set s o | s -> o
     
     {- Creation functions. -}
     
-    {- |
-      Creates ordered set from linear structure.
-      
-      Note that there is no way to determine which of the equal elements will be
-      added to the set. Which can be critical for complex values and comparators.
-    -}
+    -- | Creates ordered set from linear structure.
     setWith :: Compare o -> s -> s
     
     {- |
-      Creates ordered set from linear structure using additional function for
-      choice between or merge equal elements.
-      
-      Note that merging function must be symmetric. If function isn't symmetric,
-      then this limitation can be easily overcome using complex comparator:
-      @(cmp1 <> cmp2)@, where @cmp1@ determines the sort order of the groups
-      (and the resulting set), and @cmp2@ determines the sort order within the
-      groups.
+      Creates set from linear structure using additional function for
+      choice/merge equal elements.
     -}
     default groupSetWith :: (Linear s o) => Compare o -> (o -> o -> o) -> s -> s
     groupSetWith :: Compare o -> (o -> o -> o) -> s -> s
@@ -216,7 +195,7 @@ delete =  deleteWith compare
 (\^/) :: (Set s o, Ord o) => s -> s -> s
 (\^/) =  symdiffWith compare
 
--- | isDisjoint synonym. Mnemonic: is the intersection of sets (/\) empty?
+-- | Synonym for 'isDisjointWith'.
 {-# INLINE (/?\) #-}
 (/?\) :: (Set s o, Ord o) => s -> s -> Bool
 (/?\) =  isDisjointWith compare
@@ -283,7 +262,6 @@ instance Set [e] e
       It selects ordered sequences of elements and merges them.  For an ordered
       list, it has complexity O(n) and O (n ^ 2) for an reversed.
     -}
-    
     setWith _ [] = []
     setWith f xs = dumbMergeList ordered (setWith f rest)
       where
@@ -391,5 +369,7 @@ instance Set [e] e
           EQ -> group (e1 `mrg` e2 : es)
           _  -> e1 : group (e2 : es)
         group es = es
+
+
 
 

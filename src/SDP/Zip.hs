@@ -5,10 +5,8 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
   
-  Zip is a very useful class that allows parallel application of functions
-  to several lines of elements.
+  Zip is a very useful class for parallel application of functions data streams.
 -}
-
 module SDP.Zip ( Zip (..) ) where
 
 import Prelude ()
@@ -16,10 +14,7 @@ import SDP.SafePrelude
 
 --------------------------------------------------------------------------------
 
-{- |
-  Zip is generalization of ZipList applicative semantics (but not requires pure).
--}
-
+-- | Zip is generalization of ZipList applicative semantics (but without pure).
 class (Functor z) => Zip z
   where
     {-# MINIMAL zipWith, zipWith3, zipWith4, zipWith5, zipWith6 #-}

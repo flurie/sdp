@@ -6,7 +6,7 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC Extensions)
+    Portability :  non-portable (GHC extensions)
     
     @SDP.ByteList.ST@ provides 'STByteList' - mutable unboxed strict unrolled
     linked list.
@@ -19,7 +19,7 @@ module SDP.ByteList.ST
   module SDP.SortM,
   
   -- * STByteList
-  STByteList (..), STBytes#, fromPseudoMutableBytes#
+  STByteList (..)
 )
 where
 

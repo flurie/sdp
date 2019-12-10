@@ -6,7 +6,7 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC Extensions)
+    Portability :  non-portable (GHC extensions)
   
   @SDP.Indexed@ provides 'Indexed' - class of indexed data structures.
 -}
@@ -51,7 +51,7 @@ class (Index i) => Indexed v i e | v -> i, v -> e
     
     {- |
       assoc creates new structure from list of associations [(index, element)],
-      where default element is 'IndexException' (UndefinedValue).
+      where default element is 'IndexException' ('UndefinedValue').
     -}
     assoc :: (i, i) -> [(i, e)] -> v
     assoc bnds = assoc' bnds (undEx "assoc (default)")
@@ -80,7 +80,7 @@ class (Index i) => Indexed v i e | v -> i, v -> e
     -- | Writes elements to immutable structure (by copying).
     (//) :: v -> [(i, e)] -> v
     
-    -- | Update function. Uses (!) and may throw IndexException.
+    -- | Update function. Uses ('!') and may throw 'IndexException'.
     (/>) :: v -> [i] -> (i -> e -> e) -> v
     (/>) es is f = es // [ (i, f i (es ! i)) | i <- is ]
     
@@ -91,11 +91,7 @@ class (Index i) => Indexed v i e | v -> i, v -> e
     (!^) :: v -> Int -> e
     es !^ i = es .! index (bounds es) i
     
-    {- |
-      (.!) is unsafe reader, but on bit faster version of (!). Use (.!) only if
-      you are really sure that you will not go beyond the bounds. E.g. after
-      testing with (!).
-    -}
+    -- | (.!) is unsafe reader, but on bit faster of ('!').
     {-# INLINE (.!) #-}
     (.!) :: v -> i -> e
     (.!) es = fromMaybe (undEx "(.!)") . (es !?)
@@ -208,13 +204,9 @@ instance Indexed [e] Int e
     
     fromIndexed es = (es !) <$> indices es
     
-    {-# INLINE (//) #-}
     xs // es = snds $ unionWith cmpfst (assocs xs) (setWith cmpfst es)
     
-    {-# INLINE (.$) #-}
     (.$) = findIndex
-    
-    {-# INLINE (*$) #-}
     (*$) = findIndices
 
 instance IFold [e] Int e
@@ -255,6 +247,4 @@ binaryContain f e es = and
 
 undEx :: String -> a
 undEx msg = throw . UndefinedValue $ "in SDP.Indexed." ++ msg
-
-
 

@@ -6,7 +6,6 @@
     Portability :  non-portable (import SDP.IndexedM).
     
     SDP.SortM.Stuff provides some sorting algorithms.
-    Deprecated in favour of "SDP.SortM.Tim" and "SDP.SortM.Insertion".
 -}
 module SDP.SortM.Stuff
 {-# DEPRECATED "use SDP.SortM.Tim or SDP.SortM.Insertion instead" #-}
@@ -22,4 +21,5 @@ import Prelude ()
 import SDP.LinearM ( sorted, ascending, sortedM )
 
 import SDP.SortM.Tim
+
 

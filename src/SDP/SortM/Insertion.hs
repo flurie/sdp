@@ -3,7 +3,7 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (require SDP.IndexedM).
+    Portability :  non-portable (requires non-portable modules)
     
     SDP.SortM.Insertion provides insertion sort - simple sorting algorithm.
 -}

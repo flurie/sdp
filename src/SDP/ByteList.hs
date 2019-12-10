@@ -6,7 +6,7 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC Extensions)
+    Portability :  non-portable (GHC extensions)
     
     @SDP.ByteList@ provides 'ByteList' - strict unboxed unrolled linked list.
 -}
@@ -21,7 +21,7 @@ module SDP.ByteList
   ByteList (..),
   
   -- * Ublist
-  Ublist, SBytes#, fromPseudoBytes#
+  Ublist
 )
 where
 

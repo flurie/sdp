@@ -6,7 +6,7 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC Extensions)
+    Portability :  non-portable (GHC extensions)
     
     @SDP.ByteList.Ublist@ provides 'Ublist' - strict boxed unrolled linked list.
 -}
@@ -19,7 +19,7 @@ module SDP.ByteList.Ublist
   module SDP.Set,
   
   -- * Ublist
-  Ublist (..), SBytes#, fromPseudoBytes#
+  Ublist (..)
 )
 where
 
@@ -51,7 +51,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | Ublist is internal data representation for ByteList.
+-- | Ublist is unrolled linked list of unboxed values.
 data Ublist e = UBEmpty | Ublist !(SBytes# e) (Ublist e) deriving ( Generic )
 
 type role Ublist representational

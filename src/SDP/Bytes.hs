@@ -6,7 +6,7 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC Extensions)
+    Portability :  non-portable (GHC extensions)
     
     SDP.Bytes provides 'Bytes' - immutable strict unboxed array type.
 -}
@@ -19,7 +19,7 @@ module SDP.Bytes
   module SDP.Set,
   
   -- * Bytes
-  Bytes (..), SBytes#, fromPseudoBytes#
+  Bytes (..)
 )
 where
 

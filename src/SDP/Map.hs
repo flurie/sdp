@@ -18,7 +18,7 @@ module SDP.Map
   Map (..),
   
   -- * Related functions
-  union',  difference',  intersection', unions'
+  union',  intersection', unions'
 )
 where
 
@@ -36,10 +36,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
-{- |
-  Map is class of dictionaries. It's unstable class that will expand.
-  I intend to stabilize it in sdp-0.3.
--}
+-- | Map is class of dictionaries. It's unstable, provisional implementation.
 class (Ord k) => Map m k e | m -> k, m -> e
   where
     {-# MINIMAL mapAssocs, listMap, unionWith', intersectionWith', differenceWith', unionsWith' #-}
@@ -176,11 +173,6 @@ class (Ord k) => Map m k e | m -> k, m -> e
 union' :: (Map m k e) => m -> m -> m
 union' =  unionWith' const
 
-{-# INLINE difference' #-}
--- | difference' is just @difference' const@.
-difference' :: (Map m k e) => m -> m -> m
-difference' =  undefined
-
 {-# INLINE intersection' #-}
 -- | intersection' is just @intersectionWith' const@.
 intersection' :: (Map m k e) => m -> m -> m
@@ -260,6 +252,4 @@ instance (Ord k) => Map [(k, e)] k e
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Map." ++ msg ++ " (List)"
-
-
 

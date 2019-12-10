@@ -5,7 +5,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
     
-    @SDP.Estimate@ provides 'Estimate' class, typedefs and some common
+    @SDP.Estimate@ provides 'Estimate' class, type synonyms and some common
     comparators. This module is exported by "SDP.SafePrelude".
 -}
 module SDP.Estimate
@@ -52,8 +52,8 @@ default ()
   Estimate class allows the lazy comparsion structures by length.
   
   For some types (for example, lists), this allows you to speed up the
-  comparison or make it final (in most cases). For others (e.g., arrays), it may
-  be convenient abbreviation.
+  comparison or make it finite. For others (e.g., arrays), it may be convenient
+  abbreviation.
 -}
 class Estimate e
   where

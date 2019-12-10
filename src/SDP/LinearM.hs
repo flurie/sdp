@@ -5,17 +5,22 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC-extensions)
+    Portability :  non-portable (requires non-portable modules)
   
   @SDP.LinearM@ is a module that provides 'BorderedM' and 'LinearM' classes.
 -}
 module SDP.LinearM
   (
+    -- * Exports
     module SDP.Linear,
     
+    -- * BorderedM class
     BorderedM (..),
+    
+    -- * LinearM class
     LinearM   (..),
     
+    -- * Related section
     sortedM
   )
 where

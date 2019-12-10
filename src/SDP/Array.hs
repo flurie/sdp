@@ -19,7 +19,7 @@ module SDP.Array
   module SDP.Set,
   
   -- * Array
-  Array (..), SArray#, fromPseudoArray#
+  Array (..)
 )
 where
 
@@ -52,7 +52,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | Array - standard type of array.
+-- | Array - boxed array.
 data Array i e = Array !i !i !(SArray# e) deriving ( Generic )
 
 type role Array nominal representational

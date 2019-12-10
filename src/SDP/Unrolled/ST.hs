@@ -6,7 +6,7 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC Extensions)
+    Portability :  non-portable (GHC extensions)
     
     @SDP.Unrolled.ST@ provides 'STUnrolled' - mutable boxed lazy unrolled linked
     list.
@@ -19,7 +19,7 @@ module SDP.Unrolled.ST
   module SDP.SortM,
   
   -- * STUnrolled
-  STUnrolled (..), STArray#, fromPseudoMutableArray#
+  STUnrolled (..)
 )
 where
 

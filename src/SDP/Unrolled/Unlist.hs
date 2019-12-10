@@ -6,7 +6,7 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC Extensions)
+    Portability :  non-portable (GHC extensions)
     
     @SDP.Unrolled.Unlist@ provides 'Unlist' - lazy boxed unrolled linked list.
 -}
@@ -19,7 +19,7 @@ module SDP.Unrolled.Unlist
   module SDP.Set,
   
   -- * Unlist
-  Unlist (..), SArray#, fromPseudoArray#
+  Unlist (..)
 )
 where
 
@@ -51,7 +51,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | Unlist is internal data representation for Unrolled.
+-- | Ublist is unrolled linked list of boxed values.
 data Unlist e = UNEmpty | Unlist !(SArray# e) (Unlist e) deriving ( Generic )
 
 type role Unlist representational

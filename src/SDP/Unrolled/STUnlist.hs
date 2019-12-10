@@ -6,7 +6,7 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC Extensions)
+    Portability :  non-portable (GHC extensions)
     
     @SDP.Unrolled.STUnlist@ provides 'STUnlist' - mutable boxed lazy unrolled
     linked list.
@@ -18,7 +18,7 @@ module SDP.Unrolled.STUnlist
   module SDP.SortM,
   
   -- * STUnlist
-  STUnlist (..), STArray#, fromPseudoMutableArray#
+  STUnlist (..)
 )
 where
 

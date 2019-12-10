@@ -8,7 +8,7 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC Extensions)
+    Portability :  non-portable (GHC extensions)
   
   Linear is a module that provides several convenient interfaces for working
   with various linear data structures.
@@ -19,7 +19,6 @@ module SDP.Linear
   module SDP.Zip,
   
   -- * Bordered class
-  -- $borderedDoc
   Bordered (..),
   -- * Linear class
   -- $linearDoc
@@ -33,12 +32,10 @@ module SDP.Linear
   pattern (:>), pattern (:<), pattern Z,
   
   -- * Other functions
-  -- $linearStuff
   stripPrefix, stripSuffix,
   
   intercalate, tails, inits, sorted, ascending
 )
-
 where
 
 import Prelude ()
@@ -59,18 +56,6 @@ infixr 5 :>, ++
 infixl 5 :<
 
 --------------------------------------------------------------------------------
-
-{- $borderedDoc
-  Bordered is a service class for immutable structures.
-  
-  Please note that in this class only 'assocs' can throw exceptions
-  ('IndexException' is recommended). Other functions must be defined everywhere,
-  including, if possible, incorrect data.
-  
-  Also note that sizeOf shouldn't return negative values (if size field is
-  incorrect and recovery is not possible, the structure should be considered
-  empty to avoid even more serious errors).
--}
 
 -- | Class of bordered data structures.
 class (Index i) => Bordered (b) i e | b -> i, b -> e
@@ -134,7 +119,7 @@ class (Index i) => Bordered (b) i e | b -> i, b -> e
   
   * simple separation: 'head', 'tail', 'init', 'last', 'uncons', 'unsnoc'
     
-  * concatenation: 'toHead', 'toLast', ('++'), 'concat', 'concatMap'
+  * append and concatenation: 'toHead', 'toLast', ('++'), 'concat', 'concatMap'
     
   * creation: empty ('lzero'), singleton ('single'), finite ('fromListN',
     'replicate') and, if the structure allows, potentially infinite ('fromList',
@@ -149,10 +134,7 @@ class (Index i) => Bordered (b) i e | b -> i, b -> e
   Linear doesn't require 'Foldable' because it's a bit stricter than needed.
 -}
 
-{- |
-  Class for data structures that can be created from list and retain its basic
-  properties.
--}
+-- | Class of list-like data structures.
 class Linear l e | l -> e
   where
     {-# MINIMAL isNull, (listL|listR), (fromList|fromListN), (head,tail|uncons), (init,last|unsnoc) #-}
@@ -226,10 +208,7 @@ class Linear l e | l -> e
     
     {- Generalized folds. -}
     
-    {- |
-      Very powerful generalisation of 'fromList', but not comfortable to use -
-      oftentimes needed type signatures.
-    -}
+    -- | Generalisation of 'fromList'.
     fromFoldable :: (Foldable f) => f e -> l
     fromFoldable =  fromList . toList
     
@@ -492,10 +471,6 @@ instance Split [e] e
 
 --------------------------------------------------------------------------------
 
-{- $linearStuff
-  And also SDP.Linear provides some common functions, not included to classes.
--}
-
 -- | stripPrefix sub line... strips prefix sub of line
 stripPrefix :: (Split s e, Bordered s i e, Eq e) => s -> s -> s
 stripPrefix sub line = sub `isPrefixOf` line ? drop (sizeOf sub) line $ line
@@ -523,13 +498,8 @@ sorted :: (Linear l e, Ord e) => l -> Bool
 sorted Z  = True
 sorted es = and $ zipWith (<=) es' (tail es') where es' = listL es
 
-{- |
-  ascending is a function that checks if sequences of elements given in pairs
-  (start, length) are sorted in ascending order.
--}
+-- | @ascending line seqs@ checks if the @(start, count) <- seqs@ are sorted.
 ascending :: (Split s e, Ord e) => s -> [(Int, Int)] -> Bool
 ascending es ss = sorted `all` splits (snds ss) es
-
-
 
 

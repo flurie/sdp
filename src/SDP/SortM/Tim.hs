@@ -5,7 +5,7 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (imports SDP.IndexedM)
+    Portability :  non-portable (requires non-portable modules)
     
     @SDP.SortM.Tim@ provides @InsertionSort@ and @TimSort@ algorithms.
 -}

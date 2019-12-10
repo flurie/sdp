@@ -7,7 +7,12 @@
     
     @SDP.Internal.Show@ provides common 'ShowS' stuff.
 -}
-module SDP.Internal.Show ( assocsPrec ) where
+module SDP.Internal.Show
+(
+  -- * Common show templates
+  assocsPrec, showsRaw, showsRawLinear
+)
+where
 
 import Prelude ()
 import SDP.SafePrelude
@@ -27,4 +32,19 @@ assocsPrec name = \ p es -> showParen (p > appPrec) $ showString name
                                                     . showChar ' '
                                                     . shows (assocs es)
 
+{- |
+  'showsRaw' is a primitive list-to-string conversion pattern.
+  Note that attempting to parse the resulting string with standard @ReadS@-based
+  functions will cause an error (ambiguous parse). To properly parse a string,
+  use the @readRawSequence@ function from the @SDP.Internal.Read@ module.
+-}
+showsRaw :: (Show e) => Int -> [e] -> ShowS
+showsRaw _    []    = id
+showsRaw p (x : xs) = showParen (p > appPrec) stream
+  where
+    stream = shows x . foldr (\ e rest -> showChar ' ' . shows e . rest) id xs
+
+-- | Just 'showsRaw' version for 'Linear'.
+showsRawLinear :: (Linear l e, Show e) => Int -> l -> ShowS
+showsRawLinear p = showsRaw p . listL
 

@@ -1,6 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE DefaultSignatures, TypeOperators, FlexibleContexts #-}
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE DefaultSignatures, TypeOperators, FlexibleContexts, CPP #-}
 {-# OPTIONS_HADDOCK ignore-exports #-}
 
 {- |
@@ -8,22 +7,17 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC Extensions)
+    Portability :  non-portable (GHC extensions)
   
   @SDP.Index@ provides 'Index' - service class of types that may represent
   indices, based on "Data.Ix" and @Data.Array.Repa.Shape@ (repa), but has more
   useful functions and may be eaily extended.
   
-  I refused to create a class based on it, because in this case I still had to
-  write a new class. In addition, I don't like the Ix implementation: different
-  instances use different types of exceptions, some checks restrict my
-  implementations, @rangeSize@ is too long to write...
-  
-  Note that SDP.Index contains over 40 instances, so it takes a very mush time
-  to compile (at least, with GHC). The tests also compiled a very long time,
-  since the verification of all structures (12 own and default list) needed to
-  compile almost all of the modules in the library (including this). So it can
-  be considered one of the most noticeable bottlenecks during SDP compilation.
+  In addition, I don't like the Ix implementation: different instances use
+  different types of exceptions, some checks restrict my implementations,
+  @rangeSize@ is too long to write...
+  I refused to create a class based on Ix, because in this case I still need one
+  new class.
 -}
 module SDP.Index
 (
@@ -634,11 +628,11 @@ checkBounds bnds i res msg = case inBounds bnds i of
 intOffset :: (Index i, Num i, Enum i) => (i, i) -> i -> Int
 intOffset (l, u) i = checkBounds (l, u) i (fromEnum i - fromEnum l) "offset (default)"
 
--- | Default unsigned bounds.
+-- | Default bounds for unsigned numeric types.
 defUB :: (Index i, Bounded i) => Int -> (i, i)
 defUB n = n < 1 ? (unsafeIndex 1, unsafeIndex 0) $ (unsafeIndex 0, unsafeIndex $ n - 1)
 
--- | toBounds (l, u) = (toIndex l, toIndex u)
+-- | > toBounds (l, u) = (toIndex l, toIndex u)
 toBounds :: (IndexEQ i j) => (i, i) -> (j, j)
 toBounds (l, u) = (toIndex l, toIndex u)
 
@@ -656,5 +650,6 @@ toBounds (l, u) = (toIndex l, toIndex u)
 -}
 unsafeBounds :: (Index i) => Int -> (i, i)
 unsafeBounds = defaultBounds
+
 
 

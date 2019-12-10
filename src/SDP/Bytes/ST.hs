@@ -6,7 +6,7 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC Extensions)
+    Portability :  non-portable (GHC extensions)
     
     @SDP.Bytes.ST@ provides 'STBytes' - mutable lazy boxed array type.
 -}
@@ -17,7 +17,7 @@ module SDP.Bytes.ST
   module SDP.SortM,
   
   -- * STBytes
-  STBytes (..), STBytes#, fromPseudoMutableBytes#
+  STBytes (..)
 )
 where
 

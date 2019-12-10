@@ -6,7 +6,7 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC Extensions)
+    Portability :  non-portable (GHC extensions)
     
     @SDP.Unrolled@ provides 'Unrolled' - lazy boxed unrolled linked list.
 -}
@@ -22,7 +22,7 @@ module SDP.Unrolled
   Unrolled (..),
   
   -- * Unlist
-  Unlist, SArray#, fromPseudoArray#
+  Unlist
 )
 where
 
@@ -48,7 +48,7 @@ import SDP.Unrolled.STUnlist
 import SDP.Unrolled.Unlist
 import SDP.Unrolled.ST
 
-import SDP.Internal.Read hiding ( pfail )
+import SDP.Internal.Read
 import SDP.Internal.Show
 import SDP.Simple
 
@@ -184,16 +184,16 @@ instance (Index i) => Linear (Unrolled i e) e
         (l', u') = defaultBounds $ n + 1
         n = size (l, u)
     
-    uncons Z = pfail "(:>)"
+    uncons Z = patEx "(:>)"
     uncons (Unrolled l u es) = (x, sizeOf es < 2 ? Z $ Unrolled l1 u xs)
       where
         (x, xs) = uncons es
         l1 = next (l, u) l
     
-    head Z = pfail "(:>)"
+    head Z = patEx "(:>)"
     head (Unrolled _ _ es) = head es
     
-    tail Z = pfail "(:>)"
+    tail Z = patEx "(:>)"
     tail (Unrolled l u es) = Unrolled l' u $ tail es where l' = next (l, u) l
     
     toLast (Unrolled l u es) e = Unrolled l' u' (take n es :< e)
@@ -201,16 +201,16 @@ instance (Index i) => Linear (Unrolled i e) e
         (l', u') = defaultBounds $ n + 1
         n = size (l, u)
     
-    unsnoc Z = pfail "(:<)"
+    unsnoc Z = patEx "(:<)"
     unsnoc (Unrolled l u es) = (sizeOf es < 2 ? Z $ Unrolled l u1 xs, x)
       where
         (xs, x) = unsnoc es
         u1 = prev (l, u) u
     
-    last Z = pfail "(:<)"
+    last Z = patEx "(:<)"
     last (Unrolled _ _ es) = last es
     
-    init Z = pfail "(:<)"
+    init Z = patEx "(:<)"
     init (Unrolled l u es) = Unrolled l u' $ init es where u' = prev (l, u) u
     
     fromList   es = let (l, u) = defaultBounds $ sizeOf es in Unrolled l u $ fromList es
@@ -233,8 +233,8 @@ instance (Index i) => Linear (Unrolled i e) e
         (l, u) = defaultBounds $ case n <=> 0 of {GT -> 2 * n - 1; _ -> 0}
         n = length es
     
-    listL  (Unrolled _ _ bytes) = listL bytes
-    listR  (Unrolled _ _ bytes) = listR bytes
+    listL (Unrolled _ _ bytes) = listL bytes
+    listR (Unrolled _ _ bytes) = listR bytes
     
     partitions ps es = fromList <$> partitions ps (toList es)
 
@@ -386,8 +386,8 @@ instance (Index i) => Freeze (ST s) (STUnrolled s i e) (Unrolled i e)
 
 --------------------------------------------------------------------------------
 
-pfail :: String -> a
-pfail msg = throw . PatternMatchFail $ "in SDP.Unrolled." ++ msg
+patEx :: String -> a
+patEx msg = throw . PatternMatchFail $ "in SDP.Unrolled." ++ msg
 
 
 

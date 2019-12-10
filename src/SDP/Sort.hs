@@ -1,5 +1,4 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE BangPatterns #-}
 
 {- |
     Module      :  SDP.Index
@@ -10,7 +9,6 @@
     
     @SDP.Sort@ provides 'Sort' - class of sortable immutable structures.
 -}
-
 module SDP.Sort
   (
     -- * Sort
@@ -26,7 +24,7 @@ import SDP.SafePrelude
 
 import qualified Data.List as L
 
-import SDP.Simple
+import Data.Function ( on )
 
 default ()
 
