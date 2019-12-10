@@ -1,13 +1,28 @@
+{- |
+    Module      :  SDP.Internal.Read
+    Copyright   :  (c) Andrey Mulik 2019
+    License     :  BSD-style
+    Maintainer  :  work.a.mulik@gmail.com
+    Portability :  non-portable (requires non-portable modules)
+    
+    @SDP.Internal.Read@ provides common 'ReadPrec' parsers and related stuff.
+-}
 module SDP.Internal.Read
 (
   -- * Exports
   module Text.Read,
   
   -- * Common parsers
-  readIndexedPrec, readLinearPrec, readSDPPrec,
+  readIndexedPrec, readLinearPrec, readSDPPrec, readRawSequencePrec,
+  
+  -- * Common parser combinators
+  readRawSequence, readNamedPrec,
+  
+  -- * Generalized readers
+  readBy, readMaybeBy, readEitherBy,
   
   -- * Enum parsers
-  readAsEnum, fromPrec, fromToPrec, fromThenPrec, fromThenToPrec
+  readAsEnum, enumFromPrec, enumFromToPrec, enumFromThenPrec, enumFromThenToPrec
 )
 where
 
@@ -20,6 +35,8 @@ import Text.Read
 import Text.Read.Lex ( expect  )
 
 import GHC.Show      ( appPrec )
+
+import Text.ParserCombinators.ReadP ( many1, skipSpaces )
 
 default ()
 
@@ -66,20 +83,66 @@ readAsEnum :: (Linear l e, Read e, Enum e) => ReadPrec l
 readAsEnum =  fromList <$> parens' (fromPrec_ +++ fromThenPrec_ +++ fromToPrec_ +++ fromThenToPrec_)
 
 -- | 'enumFrom' parser.
-fromPrec :: (Linear l e, Read e, Enum e) => ReadPrec l
-fromPrec =  fromList <$> parens' fromPrec_
+enumFromPrec :: (Linear l e, Read e, Enum e) => ReadPrec l
+enumFromPrec =  fromList <$> parens' fromPrec_
 
 -- | 'enumFromTo' parser.
-fromToPrec :: (Linear l e, Read e, Enum e) => ReadPrec l
-fromToPrec =  fromList <$> parens' fromToPrec_
+enumFromToPrec :: (Linear l e, Read e, Enum e) => ReadPrec l
+enumFromToPrec =  fromList <$> parens' fromToPrec_
 
 -- | 'enumFromThen' parser.
-fromThenPrec :: (Linear l e, Read e, Enum e) => ReadPrec l
-fromThenPrec =  fromList <$> parens' fromThenPrec_
+enumFromThenPrec :: (Linear l e, Read e, Enum e) => ReadPrec l
+enumFromThenPrec =  fromList <$> parens' fromThenPrec_
 
 -- | 'enumFromThenTo' parser.
-fromThenToPrec :: (Linear l e, Read e, Enum e) => ReadPrec l
-fromThenToPrec =  fromList <$> parens' fromThenToPrec_
+enumFromThenToPrec :: (Linear l e, Read e, Enum e) => ReadPrec l
+enumFromThenToPrec =  fromList <$> parens' fromThenToPrec_
+
+--------------------------------------------------------------------------------
+
+{- Common parser combinators. -}
+
+-- | readRawSequencePrec is 'many1'-based combinator.
+readRawSequencePrec :: (Read e) => ReadPrec [e]
+readRawSequencePrec = lift . many1 $ readPrec_to_P readPrec appPrec
+
+-- | @readNamedPrec name readprec@ parses @[name] readprec@.
+readNamedPrec :: String -> ReadPrec e -> ReadPrec e
+readNamedPrec name parser = named +++ parser
+  where
+    named = prec appPrec (expectPrec $ Ident name) >> parser
+
+--------------------------------------------------------------------------------
+
+-- | readBy is generalized 'read'.
+readBy :: (Read e) => ReadPrec e -> String -> e
+readBy parser string = case readEitherBy parser string of
+  Left msg -> error msg
+  Right  x -> x
+
+-- | readMaybeBy is generalized 'readMaybe'.
+readMaybeBy :: (Read e) => ReadPrec e -> String -> Maybe e
+readMaybeBy parser string = case readPrec_to_S read' minPrec string of
+    [(x, "")] -> Just x
+    _         -> Nothing
+  where
+    read' = do x <- parser; lift skipSpaces; return x
+
+-- | readEitherBy is generalized 'readEither'.
+readEitherBy :: (Read e) => ReadPrec e -> String -> Either String e
+readEitherBy parser string = case readPrec_to_S read' minPrec string of
+    [(x, "")] -> Right x
+    []        -> Left "SDP.Internal.Read.readBy: no parse"
+    _         -> Left "SDP.Internal.Read.readBy: ambiguous parse"
+  where
+    read' = do x <- parser; lift skipSpaces; return x
+
+-- | readRawSequence reads the most complete sequence.
+readRawSequence :: (Read e) => String -> [e]
+readRawSequence string = fst (last cases)
+  where
+    read' = do x <- readRawSequencePrec; lift skipSpaces; return x
+    cases = readPrec_to_S read' minPrec string
 
 --------------------------------------------------------------------------------
 
@@ -114,12 +177,9 @@ parens' parser = do
   expectPrec (Punc "]")
   return value
 
-readNamedPrec :: String -> ReadPrec e -> ReadPrec e
-readNamedPrec name parser = named +++ parser
-  where
-    named = prec appPrec (expectPrec $ Ident name) >> parser
-
 expectPrec :: Lexeme -> ReadPrec ()
 expectPrec = lift . expect
+
+
 
 

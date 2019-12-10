@@ -110,12 +110,13 @@ Library
     Test.SDP.Set
     Test.SDP.Ord
     Test.SDP.Eq
+    
+    SDP.Internal.Read
+    SDP.Internal.Show
   
   other-modules:
     SDP.Internal.SArray
     SDP.Internal.SBytes
-    SDP.Internal.Read
-    SDP.Internal.Show
     SDP.Simple
 
 ---            _____  _____  _____  _____  _____  _   _  _____               ---

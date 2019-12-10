@@ -1,3 +1,12 @@
+{- |
+    Module      :  SDP.Internal.Show
+    Copyright   :  (c) Andrey Mulik 2019
+    License     :  BSD-style
+    Maintainer  :  work.a.mulik@gmail.com
+    Portability :  non-portable (requires non-portable modules)
+    
+    @SDP.Internal.Show@ provides common 'ShowS' stuff.
+-}
 module SDP.Internal.Show ( assocsPrec ) where
 
 import Prelude ()
@@ -17,4 +26,5 @@ assocsPrec name = \ p es -> showParen (p > appPrec) $ showString name
                                                     . shows (bounds es)
                                                     . showChar ' '
                                                     . shows (assocs es)
+
 
