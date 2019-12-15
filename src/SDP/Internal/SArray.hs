@@ -12,11 +12,11 @@
     array pseudo-primitive types 'SArray\#' and 'STArray\#'.
 -}
 module SDP.Internal.SArray
-  (
-    SArray#, STArray#,
-    
-    fromPseudoArray#, fromPseudoMutableArray#
-  )
+(
+  SArray#, STArray#,
+  
+  fromPseudoArray#, fromPseudoMutableArray#
+)
 where
 
 import Prelude ()
@@ -663,12 +663,10 @@ instance SortM (ST s) (STArray# s e) e where sortMBy = timSortBy
 
 --------------------------------------------------------------------------------
 
-{-# INLINE fromPseudoArray# #-}
 -- | fromPseudoArray\# returns new Array\# (uses cloneArray\#).
 fromPseudoArray# :: SArray# e -> Array# e
 fromPseudoArray# (SArray# (I# c#) (I# o#) arr#) = cloneArray# arr# o# c#
 
-{-# INLINE fromPseudoMutableArray# #-}
 -- | fromPseudoMutableArray\# return new MutableArray\#.
 fromPseudoMutableArray# :: STArray# s e -> State# s -> (# State# s, MutableArray# s e #)
 fromPseudoMutableArray# (STArray# (I# c#) (I# o#) marr#) = cloneMutableArray# marr# o# c#
@@ -692,14 +690,11 @@ nubSorted f es = fromList $ foldr fun [last es] ((es !^) <$> [0 .. sizeOf es - 2
     fun = \ e ls -> e `f` head ls == EQ ? ls $ e : ls
 
 undEx :: String -> a
-undEx msg = throw . UndefinedValue $ "in SDP.SArray." ++ msg
+undEx msg = throw . UndefinedValue $ "in SDP.Internal.SArray." ++ msg
 
 pfailEx :: String -> a
-pfailEx msg = throw . PatternMatchFail $ "in SDP.SArray." ++ msg
+pfailEx msg = throw . PatternMatchFail $ "in SDP.Internal.SArray." ++ msg
 
 unreachEx :: String -> a
-unreachEx msg = throw . UnreachableException $ "in SDP.SArray." ++ msg
-
-
-
+unreachEx msg = throw . UnreachableException $ "in SDP.Internal.SArray." ++ msg
 

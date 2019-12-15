@@ -11,6 +11,7 @@ module SDP.Internal.Read
 (
   -- * Exports
   module Text.Read,
+  module Text.Read.Lex,
   
   -- * Common parsers
   readIndexedPrec, readLinearPrec, readSDPPrec, readRawSequencePrec,
@@ -18,7 +19,7 @@ module SDP.Internal.Read
   readZeroPrec, readAsList, readAsListN, readAssocsPrec,
   
   -- * Common parser combinators
-  readRawSequence, readNamedPrec,
+  readRawSequence, readNamedPrec, expectPrec,
   
   -- * Generalized readers
   readBy, readMaybeBy, readEitherBy,
@@ -217,6 +218,7 @@ parens' parser = do
 
 expectPrec :: Lexeme -> ReadPrec ()
 expectPrec = lift . expect
+
 
 
 

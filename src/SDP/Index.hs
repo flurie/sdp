@@ -379,7 +379,7 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
     inRange     (ls :& l, us :& u) (is :& i) = inRange     (l, u) i && inRange     (ls, us) is
     isOverflow  (ls :& l, us :& u) (is :& i) = isOverflow  (l, u) i || isOverflow  (ls, us) is
     isUnderflow (ls :& l, us :& u) (is :& i) = isUnderflow (l, u) i || isUnderflow (ls, us) is
-    -- [internal]: safeElem - service function, may be removed after rewriting prev and next.
+    
     safeElem    (ls :& l, us :& u) (is :& i) = safeElem    (ls, us) is :& safeElem (l, u) i
     isEmpty     (ls :& l, us :& u) = isEmpty (l, u) || isEmpty (ls, us)
     ordBounds   (ls :& l, us :& u) = (ls' :& l', us' :& u')

@@ -12,11 +12,11 @@
     array pseudo-primitive types 'SBytes\#' and 'STBytes\#'.
 -}
 module SDP.Internal.SBytes
-  (
-    SBytes#, STBytes#,
-    
-    fromPseudoBytes#, fromPseudoMutableBytes#, filled_
-  )
+(
+  SBytes#, STBytes#,
+  
+  fromPseudoBytes#, fromPseudoMutableBytes#, filled_
+)
 where
 
 import Prelude ()
@@ -126,7 +126,6 @@ instance (Unboxed e) => Linear (SBytes# e) e
   where
     isNull (SBytes# c _ _) = c == 0
     
-    {-# INLINE lzero #-}
     lzero = runST $ filled 0 (unreachEx "lzero") >>= done
     
     -- | O(n) 'toHead', O(n) memory.
@@ -147,43 +146,33 @@ instance (Unboxed e) => Linear (SBytes# e) e
     
     fromList = fromFoldable
     
-    {-# INLINE fromListN #-}
-    fromListN n es = runST $ newLinearN n es >>= done
-    
-    {-# INLINE fromFoldable #-}
+    fromListN  n es = runST $ newLinearN  n es >>= done
     fromFoldable es = runST $ fromFoldableM es >>= done
     
-    {-# INLINE single #-}
     single e = runST $ filled 1 e >>= done
     
     -- | O (m + n) '++', O(n + m) memory.
     xs ++ ys = fromListN (sizeOf xs + sizeOf ys) $ i_foldr (:) (listL ys) xs
     
-    {-# INLINE replicate #-}
     -- | O(n) 'replicate', O(n) memory.
     replicate n e = runST $ filled n e >>= done
     
     listL = i_foldr (:) []
     
-    {-# INLINE listR #-}
     listR = flip (:) `i_foldl` []
     
-    {-# INLINE concatMap #-}
     concatMap f = fromList . foldr (\ a l -> i_foldr (:) l $ f a) []
     
-    {-# INLINE concat #-}
     concat = fromList . foldr (\ a l -> i_foldr (:) l a) []
 
 instance (Unboxed e) => Split (SBytes# e) e
   where
-    {-# INLINE take #-}
     -- | O(1) 'take', O(1) memory.
     take n es@(SBytes# c o arr#)
       | n <= 0 = Z
       | n >= c = es
       | True = SBytes# n o arr#
     
-    {-# INLINE drop #-}
     -- | O(1) 'drop', O(1) memory.
     drop n es@(SBytes# c o arr#)
       | n <= 0 = es
@@ -221,10 +210,8 @@ instance (Unboxed e) => Bordered (SBytes# e) Int e
 
 instance (Unboxed e) => Indexed (SBytes# e) Int e
   where
-    {-# INLINE assoc #-}
     assoc bnds ascs = runST $ fromAssocs bnds ascs >>= done
     
-    {-# INLINE assoc' #-}
     assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
     
     fromIndexed es = runST $ do
@@ -233,13 +220,13 @@ instance (Unboxed e) => Indexed (SBytes# e) Int e
         forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
         done copy
     
-    {-# INLINE (//) #-}
     Z // ascs = null ascs ? Z $ assoc (l, u) ascs
       where
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
     arr // ascs = runST $ thaw arr >>= (`overwrite` ascs) >>= done
     
+    {-# INLINE (!^) #-}
     (!^) (SBytes# _ (I# o#) arr#) = \ (I# i#) -> arr# !# (i# +# o#)
     
     (.!) = (!^)
@@ -249,22 +236,18 @@ instance (Unboxed e) => Indexed (SBytes# e) Int e
 
 instance (Unboxed e) => IFold (SBytes# e) Int e
   where
-    {-# INLINE ifoldr #-}
     ifoldr f base = \ arr@(SBytes# c _ _) ->
       let go i = c == i ? base $ f i (arr !^ i) (go $ i + 1)
       in  go 0
     
-    {-# INLINE ifoldl #-}
     ifoldl f base = \ arr@(SBytes# c _ _) ->
       let go i = -1 == i ? base $ f i (go $ i - 1) (arr !^ i)
       in  go (c - 1)
     
-    {-# INLINE i_foldr #-}
     i_foldr f base = \ arr@(SBytes# c _ _) ->
       let go i = c == i ? base $ f (arr !^ i) (go $ i + 1)
       in  go 0
     
-    {-# INLINE i_foldl #-}
     i_foldl f base = \ arr@(SBytes# c _ _) ->
       let go i = -1 == i ? base $ f (go $ i - 1) (arr !^ i)
       in  go (c - 1)
@@ -336,7 +319,6 @@ instance (Unboxed e) => Set (SBytes# e) e
           where
             x = xs !^ i; y = ys !^ j
     
-    {-# INLINE isContainedIn #-}
     isContainedIn = binaryContain
     
     lookupLTWith _ _ Z  = Nothing
@@ -573,7 +555,6 @@ instance (Unboxed e) => SortM (ST s) (STBytes# s e) e where sortMBy = timSortBy
 
 --------------------------------------------------------------------------------
 
-{-# INLINE fromPseudoBytes# #-}
 -- | fromPseudoBytes\# returns new ByteArray\#.
 fromPseudoBytes# :: (Unboxed e) => SBytes# e -> ByteArray#
 fromPseudoBytes# es = case clone err es of (SBytes# _ _ arr#) -> arr#
@@ -586,7 +567,6 @@ fromPseudoBytes# es = case clone err es of (SBytes# _ _ arr#) -> arr#
             (# s4#, arr'# #) -> (# s4#, SBytes# c o arr'# #)
     err = unreachEx "fromPseudoBytes#"
 
-{-# INLINE fromPseudoMutableBytes# #-}
 -- | fromPseudoMutableBytes\# return new MutableByteArray\#
 fromPseudoMutableBytes# :: (Unboxed e) => STBytes# s e -> State# s -> (# State# s, MutableByteArray# s #)
 fromPseudoMutableBytes# es = \ s1# -> case clone es s1# of
@@ -606,9 +586,7 @@ done (STBytes# n o marr#) = ST $ \ s1# -> case unsafeFreezeByteArray# marr# s1# 
 done' :: Int -> MutableByteArray# s -> STRep s (STBytes# s e)
 done' n marr# = \ s1# -> (# s1#, STBytes# n 0 marr# #)
 
-{- |
-  filled_ creates filled by default value pseudo-primitive.
--}
+-- | filled_ creates filled by default value pseudo-primitive.
 filled_ :: (Unboxed e) => Int -> ST s (STBytes# s e)
 filled_ c@(I# c#) = fill' (unreachEx "filled_")
   where
@@ -634,12 +612,9 @@ nubSorted f es = fromList $ foldr fun [last es] ((es !^) <$> [0 .. sizeOf es - 2
     fun = \ e ls -> e `f` head ls == EQ ? ls $ e : ls
 
 undEx :: String -> a
-undEx msg = throw . UndefinedValue $ "in SDP.SBytes." ++ msg
+undEx msg = throw . UndefinedValue $ "in SDP.Internal.SBytes." ++ msg
 
 unreachEx :: String -> a
-unreachEx msg = throw . UnreachableException $ "in SDP.SBytes." ++ msg
-
-
-
+unreachEx msg = throw . UnreachableException $ "in SDP.Internal.SBytes." ++ msg
 
 

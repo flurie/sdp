@@ -210,7 +210,6 @@ instance (Index i) => Linear (Array i e) e
   where
     isNull = null
     
-    {-# INLINE lzero #-}
     lzero = withBounds Z
     
     toHead e (Array _ _ arr#) = withBounds $ e :> arr#
@@ -378,8 +377,4 @@ done (STArray l u marr#) = Array l u <$> unsafeFreeze marr#
 
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Array." ++ msg
-
-
-
-
 
