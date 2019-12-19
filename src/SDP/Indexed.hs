@@ -80,9 +80,14 @@ class (Index i) => Indexed v i e | v -> i, v -> e
     -- | Writes elements to immutable structure (by copying).
     (//) :: v -> [(i, e)] -> v
     
-    -- | Update function. Uses ('!') and may throw 'IndexException'.
-    (/>) :: v -> [i] -> (i -> e -> e) -> v
-    (/>) es is f = es // [ (i, f i (es ! i)) | i <- is ]
+    -- | Update function, by default uses ('!') and may throw 'IndexException'.
+    update :: v -> [i] -> (i -> e -> e) -> v
+    update es is f = es // [ (i, f i (es ! i)) | i <- is ]
+    
+    -- | Create new structure from old by indexed mapping.
+    default (/>) :: (Bordered v i e) => v -> (i -> e -> e) -> v
+    (/>) :: v -> (i -> e -> e) -> v
+    (/>) es f = es // [ (i, f i (es ! i)) | i <- indices es ]
     
     {- Elementwise operations. -}
     
@@ -225,13 +230,7 @@ instance IFold [e] Int e
 
 -- | binaryContain checks that sorted structure has equal element.
 binaryContain :: (Bordered v i e, Indexed v i e) => Compare e -> e -> v -> Bool
-binaryContain f e es = and
-    [
-      s /= 0,
-      f e (es !^  0) /= LT,
-      f e (es !^ u') /= GT,
-      contain 0 u'
-    ]
+binaryContain f e es = s /= 0 && f e (es !^  0) /= LT && f e (es !^ u') /= GT && contain 0 u'
   where
     contain l u = l > u ? False $ case f e (es !^ j) of
         LT -> contain l (j - 1)
@@ -241,9 +240,10 @@ binaryContain f e es = and
         j = l + (u - l `div` 2)
     s = sizeOf es; u' = s - 1
 
--- | Update one element in structure.
+-- | Update some elements in structure (without indices).
+{-# DEPRECATED (>/>) "use (/>) or update instead" #-}
 (>/>) :: (Indexed v i e) => v -> [i] -> (e -> e) -> v
-(>/>) es is = (es /> is) . const
+(>/>) es is = update es is . const
 
 undEx :: String -> a
 undEx msg = throw . UndefinedValue $ "in SDP.Indexed." ++ msg

@@ -29,7 +29,7 @@ version 0.2:
     * Test.SDP module for short import of basic test suite.
     * Test.SDP.Gen module with Short, Medium and Long newtypes for Arbitrary.
     
-    * binaryContain, assocMap and assocMap' functions (Indexed)
+    * binaryContain, new (/>), assocMap and assocMap' functions (Indexed)
     * offsetOf and new indexOf functions (Bordered)
     * defaultBounds function (Index)
     * groupSetWith function (Set)
@@ -41,6 +41,7 @@ version 0.2:
   
   MOVED:
     Old indexOf (to indexIn)
+    Old (/>) (to update)
   
   IMPROVED:
     * Estimate class rewrited
