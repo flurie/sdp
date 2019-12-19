@@ -276,42 +276,7 @@ instance (Index i) => Bordered (Unrolled i e) i e
 
 --------------------------------------------------------------------------------
 
-{- Indexed, IFold, Set and Sort instances. -}
-
-instance (Index i) => Indexed (Unrolled i e) i e
-  where
-    assoc' (l, u) defvalue ascs = Unrolled l u $ assoc' bnds defvalue ies
-      where
-        ies  = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
-        bnds = (0, size (l, u) - 1)
-    
-    Z // ascs = null ascs ? Z $ assoc (l, u) ascs
-      where
-        l = fst $ minimumBy cmpfst ascs
-        u = fst $ maximumBy cmpfst ascs
-    (Unrolled l u es) // ascs = Unrolled l' u' es'
-      where
-        es' = es // [ (offset (l, u) i, e) | (i, e) <- ascs ]
-        (l', u') = defaultBounds $ length es'
-    
-    fromIndexed es = let (l, u) = defaultBounds $ sizeOf es in Unrolled l u $ fromIndexed es
-    
-    {-# INLINE (!^) #-}
-    (Unrolled _ _ es) !^ i = es !^ i
-    
-    {-# INLINE (.!) #-}
-    (.!) (Unrolled l u es) i = es .! offset (l, u) i
-    
-    p .$ (Unrolled l u es) = index (l, u) <$> p .$ es
-    p *$ (Unrolled l u es) = index (l, u) <$> p *$ es
-
-instance (Index i) => IFold (Unrolled i e) i e
-  where
-    ifoldr f base = \ (Unrolled l u es) -> ifoldr (f . index (l, u)) base es
-    ifoldl f base = \ (Unrolled l u es) -> ifoldl (f . index (l, u)) base es
-    
-    i_foldr = foldr
-    i_foldl = foldl
+{- Set, Scan and Sort instances. -}
 
 instance (Index i) => Set (Unrolled i e) e
   where
@@ -356,9 +321,50 @@ instance (Index i) => Set (Unrolled i e) e
     lookupLEWith  f e (Unrolled _ _ es) = lookupLEWith  f e es
     lookupGEWith  f e (Unrolled _ _ es) = lookupGEWith  f e es
 
+instance (Index i) => Scan (Unrolled i e) e
+
 instance (Index i) => Sort (Unrolled i e) e
   where
     sortBy cmp (Unrolled l u es) = Unrolled l u $ sortBy cmp es
+
+--------------------------------------------------------------------------------
+
+{- Indexed and IFold instances. -}
+
+instance (Index i) => Indexed (Unrolled i e) i e
+  where
+    assoc' (l, u) defvalue ascs = Unrolled l u $ assoc' bnds defvalue ies
+      where
+        ies  = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
+        bnds = (0, size (l, u) - 1)
+    
+    Z // ascs = null ascs ? Z $ assoc (l, u) ascs
+      where
+        l = fst $ minimumBy cmpfst ascs
+        u = fst $ maximumBy cmpfst ascs
+    (Unrolled l u es) // ascs = Unrolled l' u' es'
+      where
+        es' = es // [ (offset (l, u) i, e) | (i, e) <- ascs ]
+        (l', u') = defaultBounds $ length es'
+    
+    fromIndexed es = let (l, u) = defaultBounds $ sizeOf es in Unrolled l u $ fromIndexed es
+    
+    {-# INLINE (!^) #-}
+    (Unrolled _ _ es) !^ i = es !^ i
+    
+    {-# INLINE (.!) #-}
+    (.!) (Unrolled l u es) i = es .! offset (l, u) i
+    
+    p .$ (Unrolled l u es) = index (l, u) <$> p .$ es
+    p *$ (Unrolled l u es) = index (l, u) <$> p *$ es
+
+instance (Index i) => IFold (Unrolled i e) i e
+  where
+    ifoldr f base = \ (Unrolled l u es) -> ifoldr (f . index (l, u)) base es
+    ifoldl f base = \ (Unrolled l u es) -> ifoldl (f . index (l, u)) base es
+    
+    i_foldr = foldr
+    i_foldl = foldl
 
 --------------------------------------------------------------------------------
 
@@ -388,7 +394,6 @@ instance (Index i) => Freeze (ST s) (STUnrolled s i e) (Unrolled i e)
 
 patEx :: String -> a
 patEx msg = throw . PatternMatchFail $ "in SDP.Unrolled." ++ msg
-
 
 
 

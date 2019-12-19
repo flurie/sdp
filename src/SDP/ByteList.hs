@@ -15,6 +15,7 @@ module SDP.ByteList
   -- * Exports
   module SDP.Indexed,
   module SDP.Sort,
+  module SDP.Scan,
   module SDP.Set,
   
   -- * ByteList
@@ -32,6 +33,7 @@ import SDP.IndexedM
 import SDP.Indexed
 import SDP.Unboxed
 import SDP.Sort
+import SDP.Scan
 import SDP.Set
 
 import Test.QuickCheck
@@ -215,47 +217,7 @@ instance (Index i, Unboxed e) => Bordered (ByteList i e) i e
 
 --------------------------------------------------------------------------------
 
-{- Indexed, IFold, Set and Sort instances. -}
-
-instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
-  where
-    assoc (l, u) ascs = ByteList l u $ assoc bnds ies
-      where
-        ies  = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
-        bnds = (0, size (l, u) - 1)
-    
-    assoc' (l, u) defvalue ascs = ByteList l u $ assoc' bnds defvalue ies
-      where
-        ies  = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
-        bnds = (0, size (l, u) - 1)
-    
-    Z  // ascs = isNull ascs ? Z $ assoc (l, u) ascs
-      where
-        l = fst $ minimumBy cmpfst ascs
-        u = fst $ maximumBy cmpfst ascs
-    (ByteList l u es) // ascs = ByteList l' u' es'
-      where
-        es' = es // [ (offset (l, u) i, e) | (i, e) <- ascs ]
-        (l', u') = defaultBounds $ sizeOf es'
-    
-    fromIndexed es = let (l, u) = defaultBounds $ sizeOf es in ByteList l u $ fromIndexed es
-    
-    {-# INLINE (!^) #-}
-    (ByteList _ _ es) !^ i = es !^ i
-    
-    {-# INLINE (.!) #-}
-    (.!) (ByteList l u es) i = es .! offset (l, u) i
-    
-    p .$ (ByteList l u es) = index (l, u) <$> p .$ es
-    p *$ (ByteList l u es) = index (l, u) <$> p *$ es
-
-instance (Index i, Unboxed e) => IFold (ByteList i e) i e
-  where
-    ifoldr  f base (ByteList l u es) = ifoldr (f . index (l, u)) base es
-    ifoldl  f base (ByteList l u es) = ifoldl (f . index (l, u)) base es
-    
-    i_foldr f base (ByteList _ _ es) = i_foldr f base es
-    i_foldl f base (ByteList _ _ es) = i_foldl f base es
+{- Set, Scan and Sort instances. -}
 
 instance (Index i, Unboxed e) => Set (ByteList i e) e
   where
@@ -302,9 +264,55 @@ instance (Index i, Unboxed e) => Set (ByteList i e) e
     lookupLEWith  f e (ByteList _ _ es) = lookupLEWith  f e es
     lookupGEWith  f e (ByteList _ _ es) = lookupGEWith  f e es
 
+instance (Index i, Unboxed e) => Scan (ByteList i e) e
+
 instance (Index i, Unboxed e) => Sort (ByteList i e) e
   where
     sortBy cmp (ByteList l u es) = ByteList l u $ sortBy cmp es
+
+--------------------------------------------------------------------------------
+
+{- Indexed and IFold instances. -}
+
+instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
+  where
+    assoc (l, u) ascs = ByteList l u $ assoc bnds ies
+      where
+        ies  = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
+        bnds = (0, size (l, u) - 1)
+    
+    assoc' (l, u) defvalue ascs = ByteList l u $ assoc' bnds defvalue ies
+      where
+        ies  = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
+        bnds = (0, size (l, u) - 1)
+    
+    Z  // ascs = isNull ascs ? Z $ assoc (l, u) ascs
+      where
+        l = fst $ minimumBy cmpfst ascs
+        u = fst $ maximumBy cmpfst ascs
+    (ByteList l u es) // ascs = ByteList l' u' es'
+      where
+        es' = es // [ (offset (l, u) i, e) | (i, e) <- ascs ]
+        (l', u') = defaultBounds $ sizeOf es'
+    
+    fromIndexed es = let (l, u) = defaultBounds $ sizeOf es in ByteList l u $ fromIndexed es
+    
+    {-# INLINE (!^) #-}
+    (ByteList _ _ es) !^ i = es !^ i
+    
+    {-# INLINE (.!) #-}
+    (.!) (ByteList l u es) i = es .! offset (l, u) i
+    
+    p .$ (ByteList l u es) = index (l, u) <$> p .$ es
+    p *$ (ByteList l u es) = index (l, u) <$> p *$ es
+
+instance (Index i, Unboxed e) => IFold (ByteList i e) i e
+  where
+    ifoldr  f base (ByteList l u es) = ifoldr (f . index (l, u)) base es
+    ifoldl  f base (ByteList l u es) = ifoldl (f . index (l, u)) base es
+    
+    i_foldr f base (ByteList _ _ es) = i_foldr f base es
+    i_foldl f base (ByteList _ _ es) = i_foldl f base es
 
 --------------------------------------------------------------------------------
 
@@ -334,7 +342,4 @@ instance (Index i, Unboxed e) => Freeze (ST s) (STByteList s i e) (ByteList i e)
 
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.ByteList." ++ msg
-
-
-
 

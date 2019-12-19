@@ -268,52 +268,7 @@ instance Bordered (Unlist e) Int e
 
 --------------------------------------------------------------------------------
 
-{- Indexed, IFold, Set and Sort instances. -}
-
-instance Indexed (Unlist e) Int e
-  where
-    assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
-    
-    Z // ascs = isNull ascs ? Z $ assoc (l, u) ascs
-      where
-        l = fst $ minimumBy cmpfst ascs
-        u = fst $ maximumBy cmpfst ascs
-    es // ascs = isNull ascs ? es $ runST $ fromFoldableM es >>= flip overwrite ascs >>= done
-    
-    fromIndexed es = runST $ do
-        copy <- filled n (unreachEx "fromIndexed")
-        forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
-        done copy
-      where
-        n = sizeOf es
-    
-    {-# INLINE (!^) #-}
-    Z !^ _ = error "in SDP.Unrolled.Unlist.(!^)"
-    (Unlist arr# arr) !^ i = i < c ? arr# !^ i $ arr !^ (i - c)
-      where
-        c = sizeOf arr#
-    
-    (.!) = (!^)
-    
-    p .$ es = go es 0
-      where
-        go Z _ = Nothing
-        go (Unlist arr# arr) o = case p .$ arr# of
-          Just  i -> Just (i + o)
-          Nothing -> go arr $! o + sizeOf arr#
-    
-    (*$) p es = go es 0
-      where
-        go Z _ = []
-        go (Unlist arr# arr) o = (p *$ arr#) ++ (go arr $! o + sizeOf arr#)
-
-instance IFold (Unlist e) Int e
-  where
-    ifoldr f base = \ es -> case es of {Z -> base; (Unlist arr# arr) -> ifoldr f (ifoldr f base arr) arr#}
-    ifoldl f base = \ es -> case es of {Z -> base; (Unlist arr# arr) -> ifoldl f (ifoldl f base arr#) arr}
-    
-    i_foldr = foldr
-    i_foldl = foldl
+{- Set, Scan and Sort instances. -}
 
 instance Set (Unlist e) e
   where
@@ -400,9 +355,60 @@ instance Set (Unlist e) e
     
     isContainedIn = binaryContain
 
+instance Scan (Unlist e) e
+
 instance Sort (Unlist e) e
   where
     sortBy cmp es = runST $ do es' <- thaw es; timSortBy cmp es'; done es'
+
+--------------------------------------------------------------------------------
+
+{- Indexed and IFold instances. -}
+
+instance Indexed (Unlist e) Int e
+  where
+    assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
+    
+    Z // ascs = isNull ascs ? Z $ assoc (l, u) ascs
+      where
+        l = fst $ minimumBy cmpfst ascs
+        u = fst $ maximumBy cmpfst ascs
+    es // ascs = isNull ascs ? es $ runST $ fromFoldableM es >>= flip overwrite ascs >>= done
+    
+    fromIndexed es = runST $ do
+        copy <- filled n (unreachEx "fromIndexed")
+        forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
+        done copy
+      where
+        n = sizeOf es
+    
+    {-# INLINE (!^) #-}
+    Z !^ _ = error "in SDP.Unrolled.Unlist.(!^)"
+    (Unlist arr# arr) !^ i = i < c ? arr# !^ i $ arr !^ (i - c)
+      where
+        c = sizeOf arr#
+    
+    (.!) = (!^)
+    
+    p .$ es = go es 0
+      where
+        go Z _ = Nothing
+        go (Unlist arr# arr) o = case p .$ arr# of
+          Just  i -> Just (i + o)
+          Nothing -> go arr $! o + sizeOf arr#
+    
+    (*$) p es = go es 0
+      where
+        go Z _ = []
+        go (Unlist arr# arr) o = (p *$ arr#) ++ (go arr $! o + sizeOf arr#)
+
+instance IFold (Unlist e) Int e
+  where
+    ifoldr f base = \ es -> case es of {Z -> base; (Unlist arr# arr) -> ifoldr f (ifoldr f base arr) arr#}
+    ifoldl f base = \ es -> case es of {Z -> base; (Unlist arr# arr) -> ifoldl f (ifoldl f base arr#) arr}
+    
+    i_foldr = foldr
+    i_foldl = foldl
 
 --------------------------------------------------------------------------------
 
@@ -449,7 +455,6 @@ unreachEx msg = throw . UnreachableException $ "in SDP.Unrolled.Unlist." ++ msg
 
 lim :: Int
 lim =  1024
-
 
 
 

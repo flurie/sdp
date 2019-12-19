@@ -166,7 +166,7 @@ instance Applicative SArray#
 
 --------------------------------------------------------------------------------
 
-{- Foldable, Scan and Traversable instances. -}
+{- Foldable and Traversable instances. -}
 
 instance Foldable SArray#
   where
@@ -198,44 +198,6 @@ instance Foldable SArray#
     
     null   (SArray# c _ _) = c == 0
     length (SArray# c _ _) = c
-
-instance Scan SArray#
-  where
-    scanl _ w Z  = single w
-    scanl f w es@(SArray# c _ _) = fromListN (c + 1) $ w : go w 0
-      where
-        go !curr !n = nxt : go nxt (n + 1)
-          where
-            nxt = f curr (es !^ n)
-    
-    scanr _ w Z  = single w
-    scanr f w es@(SArray# c _ _) = fromListN (c + 1) $ go w (c - 1) [w]
-      where
-        go !curr !n ws = n < 0 ? ws $ go prv (n - 1) (prv : ws)
-          where
-            prv = f (es !^ n) curr
-    
-    scanl' _ w Z  = single w
-    scanl' f w es@(SArray# c _ _) = fromListN (c + 1) $ w : go w 0
-      where
-        go !curr !n = nxt : go nxt (n + 1)
-          where
-            nxt = f curr (es !^ n)
-    
-    scanl1 _ Z  = pfailEx "scanl1"
-    scanl1 f es@(SArray# c _ _) = fromListN c $ go (head es) 0
-      where
-        go !curr !n = nxt : go nxt (n + 1)
-          where
-            nxt = f curr (es !^ n)
-    
-    scanr1 _ Z  = pfailEx "scanr1"
-    scanr1 f es@(SArray# c _ _) = fromList $ go w (c - 2) [w]
-      where
-        w = last es
-        go !curr !n ws = n < 0 ? ws $ go prv (n - 1) (prv : ws)
-          where
-            prv = f (es !^ n) curr
 
 instance Traversable SArray#
   where
@@ -325,43 +287,7 @@ instance Bordered (SArray# e) Int e
 
 --------------------------------------------------------------------------------
 
-{- Indexed, IFold, Set and Sort instances. -}
-
-instance Indexed (SArray# e) Int e
-  where
-    assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
-    
-    fromIndexed es = runST $ do
-        let n = sizeOf es
-        copy <- filled n (unreachEx "fromIndexed")
-        forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
-        done copy
-    
-    Z // ascs = null ascs ? Z $ assoc (l, u) ascs
-      where
-        l = fst $ minimumBy cmpfst ascs
-        u = fst $ maximumBy cmpfst ascs
-    arr // ascs = runST $ fromFoldableM arr >>= (`overwrite` ascs) >>= done
-    
-    (!^) (SArray# _ (I# o#) arr#) = \ (I# i#) -> case indexArray# arr# (i# +# o#) of (# e #) -> e
-    
-    (.!) = (!^)
-    (!)  = (!^)
-    
-    (*$) p = ifoldr (\ i e is -> p e ? (i : is) $ is) []
-
-instance IFold (SArray# e) Int e
-  where
-    ifoldr f base = \ arr@(SArray# c _ _) ->
-      let go i = c == i ? base $ f i (arr !^ i) (go $ i + 1)
-      in  go 0
-    
-    ifoldl f base = \ arr@(SArray# c _ _) ->
-      let go i = -1 == i ? base $ f i (go $ i - 1) (arr !^ i)
-      in  go (c - 1)
-    
-    i_foldr = foldr
-    i_foldl = foldl
+{- Set, Scan and Sort instances. -}
 
 instance Set (SArray# e) e
   where
@@ -503,9 +429,51 @@ instance Set (SArray# e) e
             j = l + (u - l) `div` 2
             e = es !^ j
 
+instance Scan (SArray# e) e
+
 instance Sort (SArray# e) e
   where
     sortBy cmp es = runST $ do es' <- thaw es; timSortBy cmp es'; done es'
+
+--------------------------------------------------------------------------------
+
+{- Indexed and IFold instances. -}
+
+instance Indexed (SArray# e) Int e
+  where
+    assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
+    
+    fromIndexed es = runST $ do
+        let n = sizeOf es
+        copy <- filled n (unreachEx "fromIndexed")
+        forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
+        done copy
+    
+    Z // ascs = null ascs ? Z $ assoc (l, u) ascs
+      where
+        l = fst $ minimumBy cmpfst ascs
+        u = fst $ maximumBy cmpfst ascs
+    arr // ascs = runST $ fromFoldableM arr >>= (`overwrite` ascs) >>= done
+    
+    (!^) (SArray# _ (I# o#) arr#) = \ (I# i#) -> case indexArray# arr# (i# +# o#) of (# e #) -> e
+    
+    (.!) = (!^)
+    (!)  = (!^)
+    
+    (*$) p = ifoldr (\ i e is -> p e ? (i : is) $ is) []
+
+instance IFold (SArray# e) Int e
+  where
+    ifoldr f base = \ arr@(SArray# c _ _) ->
+      let go i = c == i ? base $ f i (arr !^ i) (go $ i + 1)
+      in  go 0
+    
+    ifoldl f base = \ arr@(SArray# c _ _) ->
+      let go i = -1 == i ? base $ f i (go $ i - 1) (arr !^ i)
+      in  go (c - 1)
+    
+    i_foldr = foldr
+    i_foldl = foldl
 
 --------------------------------------------------------------------------------
 
@@ -697,4 +665,6 @@ pfailEx msg = throw . PatternMatchFail $ "in SDP.Internal.SArray." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Internal.SArray." ++ msg
+
+
 

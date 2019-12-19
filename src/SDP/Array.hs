@@ -173,7 +173,7 @@ instance (Index i) => Applicative (Array i)
 
 --------------------------------------------------------------------------------
 
-{- Foldable, Scan and Traversable instances. -}
+{- Foldable and Traversable instances. -}
 
 instance (Index i) => Foldable (Array i)
   where
@@ -188,15 +188,6 @@ instance (Index i) => Foldable (Array i)
     length = \ (Array _ _ arr#) -> length arr#
     toList = \ (Array _ _ arr#) -> toList arr#
     null   = \ (Array _ _ arr#) -> null   arr#
-
-instance (Index i) => Scan (Array i)
-  where
-    scanl  f = \ w (Array _ _ arr#) -> withBounds $ scanl  f w arr#
-    scanr  f = \ w (Array _ _ arr#) -> withBounds $ scanr  f w arr#
-    scanl' f = \ w (Array _ _ arr#) -> withBounds $ scanl' f w arr#
-    
-    scanl1 f = \ (Array _ _ arr#) -> withBounds $ scanl1 f arr#
-    scanr1 f = \ (Array _ _ arr#) -> withBounds $ scanr1 f arr#
 
 instance (Index i) => Traversable (Array i)
   where
@@ -285,7 +276,46 @@ instance (Index i) => Bordered (Array i e) i e
 
 --------------------------------------------------------------------------------
 
-{- Indexed, IFold, Set and Sort instances. -}
+{- Set, Scan and Sort instances. -}
+
+instance (Index i) => Set (Array i e) e
+  where
+    setWith f (Array _ _ arr#) = withBounds $ setWith f arr#
+    
+    insertWith f e (Array _ _ arr#) = withBounds $ insertWith f e arr#
+    deleteWith f e (Array _ _ arr#) = withBounds $ deleteWith f e arr#
+    
+    {-# INLINE intersectionWith #-}
+    intersectionWith f (Array _ _ arr1#) (Array _ _ arr2#) =
+      withBounds $ intersectionWith f arr1# arr2#
+    
+    {-# INLINE unionWith #-}
+    unionWith f (Array _ _ arr1#) (Array _ _ arr2#) =
+      withBounds $ unionWith f arr1# arr2#
+    
+    {-# INLINE differenceWith #-}
+    differenceWith f (Array _ _ arr1#) (Array _ _ arr2#) =
+      withBounds $ differenceWith f arr1# arr2#
+    
+    {-# INLINE symdiffWith #-}
+    symdiffWith f (Array _ _ arr1#) (Array _ _ arr2#) =
+      withBounds $ differenceWith f arr1# arr2#
+    
+    isContainedIn f e (Array _ _   es) = isContainedIn f e   es
+    lookupLTWith  f o (Array _ _ arr#) = lookupLTWith  f o arr#
+    lookupGTWith  f o (Array _ _ arr#) = lookupGTWith  f o arr#
+    lookupLEWith  f o (Array _ _ arr#) = lookupLEWith  f o arr#
+    lookupGEWith  f o (Array _ _ arr#) = lookupGEWith  f o arr#
+
+instance (Index i) => Scan (Array i e) e
+
+instance (Index i) => Sort (Array i e) e
+  where
+    sortBy cmp (Array l u arr#) = Array l u (sortBy cmp arr#)
+
+--------------------------------------------------------------------------------
+
+{- Indexed and IFold instances. -}
 
 instance (Index i) => Indexed (Array i e) i e
   where
@@ -318,39 +348,6 @@ instance (Index i) => IFold (Array i e) i e
     i_foldr = foldr
     i_foldl = foldl
 
-instance (Index i) => Set (Array i e) e
-  where
-    setWith f (Array _ _ arr#) = withBounds $ setWith f arr#
-    
-    insertWith f e (Array _ _ arr#) = withBounds $ insertWith f e arr#
-    deleteWith f e (Array _ _ arr#) = withBounds $ deleteWith f e arr#
-    
-    {-# INLINE intersectionWith #-}
-    intersectionWith f (Array _ _ arr1#) (Array _ _ arr2#) =
-      withBounds $ intersectionWith f arr1# arr2#
-    
-    {-# INLINE unionWith #-}
-    unionWith f (Array _ _ arr1#) (Array _ _ arr2#) =
-      withBounds $ unionWith f arr1# arr2#
-    
-    {-# INLINE differenceWith #-}
-    differenceWith f (Array _ _ arr1#) (Array _ _ arr2#) =
-      withBounds $ differenceWith f arr1# arr2#
-    
-    {-# INLINE symdiffWith #-}
-    symdiffWith f (Array _ _ arr1#) (Array _ _ arr2#) =
-      withBounds $ differenceWith f arr1# arr2#
-    
-    isContainedIn f e (Array _ _   es) = isContainedIn f e   es
-    lookupLTWith  f o (Array _ _ arr#) = lookupLTWith  f o arr#
-    lookupGTWith  f o (Array _ _ arr#) = lookupGTWith  f o arr#
-    lookupLEWith  f o (Array _ _ arr#) = lookupLEWith  f o arr#
-    lookupGEWith  f o (Array _ _ arr#) = lookupGEWith  f o arr#
-
-instance (Index i) => Sort (Array i e) e
-  where
-    sortBy cmp (Array l u arr#) = Array l u (sortBy cmp arr#)
-
 --------------------------------------------------------------------------------
 
 {- Thaw and Freeze instances. -}
@@ -377,4 +374,7 @@ done (STArray l u marr#) = Array l u <$> unsafeFreeze marr#
 
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Array." ++ msg
+
+
+
 

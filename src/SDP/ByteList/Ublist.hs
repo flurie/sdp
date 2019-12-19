@@ -16,6 +16,7 @@ module SDP.ByteList.Ublist
   module SDP.Indexed,
   module SDP.Unboxed,
   module SDP.Sort,
+  module SDP.Scan,
   module SDP.Set,
   
   -- * Ublist
@@ -29,6 +30,7 @@ import SDP.SafePrelude
 import SDP.Indexed
 import SDP.Unboxed
 import SDP.Sort
+import SDP.Scan
 import SDP.Set
 
 import Test.QuickCheck
@@ -225,54 +227,7 @@ instance (Unboxed e) => Bordered (Ublist e) Int e
 
 --------------------------------------------------------------------------------
 
-{- Indexed, IFold, Set and Sort instances. -}
-
-instance (Unboxed e) => Indexed (Ublist e) Int e
-  where
-    assoc bnds ascs = runST $ fromAssocs bnds ascs >>= done
-    
-    assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
-    
-    Z // ascs = isNull ascs ? Z $ assoc (l, u) ascs
-      where
-        l = fst $ minimumBy cmpfst ascs
-        u = fst $ maximumBy cmpfst ascs
-    es // ascs = isNull ascs ? es $ runST $ thaw es >>= (`overwrite` ascs) >>= done
-    
-    fromIndexed es = runST $ do
-        copy <- filled n (unreachEx "fromIndexed")
-        forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
-        done copy
-      where
-        n = sizeOf es
-    
-    {-# INLINE (!^) #-}
-    Z !^ _ = error "in SDP.ByteList.Ublist.(!^)"
-    (Ublist bytes# bytes) !^ i = i < c ? bytes# !^ i $ bytes !^ (i - c)
-      where
-        c = sizeOf bytes#
-    
-    (.!) = (!^)
-    
-    p .$ es = go es 0
-      where
-        go Z _ = Nothing
-        go (Ublist bytes# bytes) o = case p .$ bytes# of
-          Just  i -> Just (i + o)
-          Nothing -> go bytes $! o + sizeOf bytes#
-    
-    (*$) p es = go es 0
-      where
-        go Z _ = []
-        go (Ublist bytes# bytes) o = (p *$ bytes#) ++ (go bytes $! o + sizeOf bytes#)
-
-instance (Unboxed e) => IFold (Ublist e) Int e
-  where
-    ifoldr  f base = \ es -> case es of {Z -> base; (Ublist bytes# bytes) -> ifoldr  f (ifoldr  f base bytes) bytes#}
-    ifoldl  f base = \ es -> case es of {Z -> base; (Ublist bytes# bytes) -> ifoldl  f (ifoldl  f base bytes#) bytes}
-    
-    i_foldr f base = \ es -> case es of {Z -> base; (Ublist bytes# bytes) -> i_foldr f (i_foldr f base bytes) bytes#}
-    i_foldl f base = \ es -> case es of {Z -> base; (Ublist bytes# bytes) -> i_foldl f (i_foldl f base bytes#) bytes}
+{- Set, Scan and Sort instances. -}
 
 instance (Unboxed e) => Set (Ublist e) e
   where
@@ -361,9 +316,62 @@ instance (Unboxed e) => Set (Ublist e) e
     
     isSubsetWith f xs ys = i_foldr (\ e b -> b && isContainedIn f e ys) True xs
 
+instance (Unboxed e) => Scan (Ublist e) e
+
 instance (Unboxed e) => Sort (Ublist e) e
   where
     sortBy cmp es = runST $ do es' <- thaw es; timSortBy cmp es'; done es'
+
+--------------------------------------------------------------------------------
+
+{- Indexed and IFold instances. -}
+
+instance (Unboxed e) => Indexed (Ublist e) Int e
+  where
+    assoc bnds ascs = runST $ fromAssocs bnds ascs >>= done
+    
+    assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
+    
+    Z // ascs = isNull ascs ? Z $ assoc (l, u) ascs
+      where
+        l = fst $ minimumBy cmpfst ascs
+        u = fst $ maximumBy cmpfst ascs
+    es // ascs = isNull ascs ? es $ runST $ thaw es >>= (`overwrite` ascs) >>= done
+    
+    fromIndexed es = runST $ do
+        copy <- filled n (unreachEx "fromIndexed")
+        forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
+        done copy
+      where
+        n = sizeOf es
+    
+    {-# INLINE (!^) #-}
+    Z !^ _ = error "in SDP.ByteList.Ublist.(!^)"
+    (Ublist bytes# bytes) !^ i = i < c ? bytes# !^ i $ bytes !^ (i - c)
+      where
+        c = sizeOf bytes#
+    
+    (.!) = (!^)
+    
+    p .$ es = go es 0
+      where
+        go Z _ = Nothing
+        go (Ublist bytes# bytes) o = case p .$ bytes# of
+          Just  i -> Just (i + o)
+          Nothing -> go bytes $! o + sizeOf bytes#
+    
+    (*$) p es = go es 0
+      where
+        go Z _ = []
+        go (Ublist bytes# bytes) o = (p *$ bytes#) ++ (go bytes $! o + sizeOf bytes#)
+
+instance (Unboxed e) => IFold (Ublist e) Int e
+  where
+    ifoldr  f base = \ es -> case es of {Z -> base; (Ublist bytes# bytes) -> ifoldr  f (ifoldr  f base bytes) bytes#}
+    ifoldl  f base = \ es -> case es of {Z -> base; (Ublist bytes# bytes) -> ifoldl  f (ifoldl  f base bytes#) bytes}
+    
+    i_foldr f base = \ es -> case es of {Z -> base; (Ublist bytes# bytes) -> i_foldr f (i_foldr f base bytes) bytes#}
+    i_foldl f base = \ es -> case es of {Z -> base; (Ublist bytes# bytes) -> i_foldl f (i_foldl f base bytes#) bytes}
 
 --------------------------------------------------------------------------------
 
@@ -410,6 +418,8 @@ unreachEx msg = throw . UnreachableException $ "in SDP.ByteList.Ublist." ++ msg
 
 lim :: Int
 lim =  1024
+
+
 
 
 

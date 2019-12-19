@@ -1,9 +1,11 @@
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
+
 {- |
     Module      :  SDP.Scan
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  portable
+    Portability :  non-portable (requires non-portable modules)
   
   @SDP.Scan@ provides 'Scan' - class for overloaded scans. Scan needed for
   generalization and not so useful is practice.
@@ -13,6 +15,8 @@ module SDP.Scan ( Scan (..) ) where
 import Prelude ()
 import SDP.SafePrelude
 
+import SDP.Linear
+
 import qualified Data.List as L ( scanl, scanr, scanl', scanl1, scanr1 )
 
 default ()
@@ -20,26 +24,38 @@ default ()
 --------------------------------------------------------------------------------
 
 -- | Scan is class of scans.
-class (Foldable s) => Scan s
+class (Linear s a) => Scan s a | s -> a
   where
-    {-# MINIMAL scanl', scanr, scanl1, scanr1 #-}
+    scanl   :: (b -> a -> b) -> b -> s -> [b]
+    scanr   :: (a -> b -> b) -> b -> s -> [b]
     
-    scanl   :: (w -> e -> w) -> w -> s e -> s w
-    scanr   :: (e -> w -> w) -> w -> s e -> s w
-    scanl'  :: (w -> e -> w) -> w -> s e -> s w
+    scanl'  :: (b -> a -> b) -> b -> s -> [b]
+    scanr'  :: (a -> b -> b) -> b -> s -> [b]
     
-    scanl1  :: (e -> e -> e) -> s e -> s e
-    scanr1  :: (e -> e -> e) -> s e -> s e
+    scanl1  :: (a -> a -> a) -> s -> [a]
+    scanr1  :: (a -> a -> a) -> s -> [a]
     
-    scanl   = scanl'
+    scanl  f base = scanl  f base . listL
+    scanr  f base = scanr  f base . listL
+    
+    scanl' f base = scanl' f base . listL
+    scanr' f base = scanr' f base . listL
+    
+    scanl1 f = scanl1 f . listL
+    scanr1 f = scanr1 f . listL
 
 --------------------------------------------------------------------------------
 
-instance Scan []
+instance Scan [a] a
   where
     scanl   = L.scanl
     scanr   = L.scanr
+    
     scanl'  = L.scanl'
+    scanr'  = L.scanr
+    
     scanl1  = L.scanl1
     scanr1  = L.scanr1
+
+
 

@@ -16,6 +16,7 @@ module SDP.Bytes
   module SDP.Unboxed,
   module SDP.Indexed,
   module SDP.Sort,
+  module SDP.Scan,
   module SDP.Set,
   
   -- * Bytes
@@ -33,6 +34,7 @@ import GHC.Generics ( Generic (..) )
 import SDP.Indexed
 import SDP.Unboxed
 import SDP.Sort
+import SDP.Scan
 import SDP.Set
 
 import GHC.ST   ( ST  (..), runST )
@@ -213,7 +215,48 @@ instance (Index i, Unboxed e) => Bordered (Bytes i e) i e
 
 --------------------------------------------------------------------------------
 
-{- Indexed, IFold, Set and Sort instances. -}
+{- Set, Scan and Sort instances. -}
+
+instance (Index i, Unboxed e) => Set (Bytes i e) e
+  where
+    setWith f (Bytes _ _ bytes#) = withBounds $ setWith f bytes#
+    
+    insertWith f e (Bytes _ _ bytes#) = withBounds $ insertWith f e bytes#
+    deleteWith f e (Bytes _ _ bytes#) = withBounds $ deleteWith f e bytes#
+    
+    {-# INLINE intersectionWith #-}
+    intersectionWith f (Bytes _ _ bytes1#) (Bytes _ _ bytes2#) =
+      withBounds $ intersectionWith f bytes1# bytes2#
+    
+    {-# INLINE unionWith #-}
+    unionWith f (Bytes _ _ bytes1#) (Bytes _ _ bytes2#) =
+      withBounds $ unionWith f bytes1# bytes2#
+    
+    {-# INLINE differenceWith #-}
+    differenceWith f (Bytes _ _ bytes1#) (Bytes _ _ bytes2#) =
+      withBounds $ differenceWith f bytes1# bytes2#
+    
+    {-# INLINE symdiffWith #-}
+    symdiffWith f (Bytes _ _ bytes1#) (Bytes _ _ bytes2#) =
+      withBounds $ differenceWith f bytes1# bytes2#
+    
+    isContainedIn f e (Bytes _ _     es) = isContainedIn f e     es
+    lookupLTWith  f o (Bytes _ _ bytes#) = lookupLTWith  f o bytes#
+    lookupGTWith  f o (Bytes _ _ bytes#) = lookupGTWith  f o bytes#
+    lookupLEWith  f o (Bytes _ _ bytes#) = lookupLEWith  f o bytes#
+    lookupGEWith  f o (Bytes _ _ bytes#) = lookupGEWith  f o bytes#
+    
+    isSubsetWith f (Bytes _ _ xs) (Bytes _ _ ys) = isSubsetWith f xs ys
+
+instance (Index i, Unboxed e) => Scan (Bytes i e) e
+
+instance (Index i, Unboxed e) => Sort (Bytes i e) e
+  where
+    sortBy cmp (Bytes l u bytes#) = Bytes l u (sortBy cmp bytes#)
+
+--------------------------------------------------------------------------------
+
+{- Indexed and IFold instances. -}
 
 instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
   where
@@ -251,41 +294,6 @@ instance (Index i, Unboxed e) => IFold (Bytes i e) i e
     i_foldr f base = \ (Bytes _ _ bytes#) -> i_foldr f base bytes#
     i_foldl f base = \ (Bytes _ _ bytes#) -> i_foldl f base bytes#
 
-instance (Index i, Unboxed e) => Set (Bytes i e) e
-  where
-    setWith f (Bytes _ _ bytes#) = withBounds $ setWith f bytes#
-    
-    insertWith f e (Bytes _ _ bytes#) = withBounds $ insertWith f e bytes#
-    deleteWith f e (Bytes _ _ bytes#) = withBounds $ deleteWith f e bytes#
-    
-    {-# INLINE intersectionWith #-}
-    intersectionWith f (Bytes _ _ bytes1#) (Bytes _ _ bytes2#) =
-      withBounds $ intersectionWith f bytes1# bytes2#
-    
-    {-# INLINE unionWith #-}
-    unionWith f (Bytes _ _ bytes1#) (Bytes _ _ bytes2#) =
-      withBounds $ unionWith f bytes1# bytes2#
-    
-    {-# INLINE differenceWith #-}
-    differenceWith f (Bytes _ _ bytes1#) (Bytes _ _ bytes2#) =
-      withBounds $ differenceWith f bytes1# bytes2#
-    
-    {-# INLINE symdiffWith #-}
-    symdiffWith f (Bytes _ _ bytes1#) (Bytes _ _ bytes2#) =
-      withBounds $ differenceWith f bytes1# bytes2#
-    
-    isContainedIn f e (Bytes _ _     es) = isContainedIn f e     es
-    lookupLTWith  f o (Bytes _ _ bytes#) = lookupLTWith  f o bytes#
-    lookupGTWith  f o (Bytes _ _ bytes#) = lookupGTWith  f o bytes#
-    lookupLEWith  f o (Bytes _ _ bytes#) = lookupLEWith  f o bytes#
-    lookupGEWith  f o (Bytes _ _ bytes#) = lookupGEWith  f o bytes#
-    
-    isSubsetWith f (Bytes _ _ xs) (Bytes _ _ ys) = isSubsetWith f xs ys
-
-instance (Index i, Unboxed e) => Sort (Bytes i e) e
-  where
-    sortBy cmp (Bytes l u bytes#) = Bytes l u (sortBy cmp bytes#)
-
 --------------------------------------------------------------------------------
 
 {- Thaw and Freeze instances. -}
@@ -312,4 +320,6 @@ done (STBytes l u mbytes#) = Bytes l u <$> unsafeFreeze mbytes#
 
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Bytes." ++ msg
+
+
 

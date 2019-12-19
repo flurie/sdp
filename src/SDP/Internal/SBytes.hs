@@ -28,6 +28,7 @@ import SDP.IndexedM
 import SDP.Unboxed
 import SDP.SortM
 import SDP.Sort
+import SDP.Scan
 import SDP.Set
 
 import GHC.Exts
@@ -206,51 +207,7 @@ instance (Unboxed e) => Bordered (SBytes# e) Int e
 
 --------------------------------------------------------------------------------
 
-{- Indexed, IFold, Set and Sort instances. -}
-
-instance (Unboxed e) => Indexed (SBytes# e) Int e
-  where
-    assoc bnds ascs = runST $ fromAssocs bnds ascs >>= done
-    
-    assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
-    
-    fromIndexed es = runST $ do
-        let n = sizeOf es
-        copy <- filled_ n
-        forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
-        done copy
-    
-    Z // ascs = null ascs ? Z $ assoc (l, u) ascs
-      where
-        l = fst $ minimumBy cmpfst ascs
-        u = fst $ maximumBy cmpfst ascs
-    arr // ascs = runST $ thaw arr >>= (`overwrite` ascs) >>= done
-    
-    {-# INLINE (!^) #-}
-    (!^) (SBytes# _ (I# o#) arr#) = \ (I# i#) -> arr# !# (i# +# o#)
-    
-    (.!) = (!^)
-    (!)  = (!^)
-    
-    (*$) p = ifoldr (\ i e is -> p e ? (i : is) $ is) []
-
-instance (Unboxed e) => IFold (SBytes# e) Int e
-  where
-    ifoldr f base = \ arr@(SBytes# c _ _) ->
-      let go i = c == i ? base $ f i (arr !^ i) (go $ i + 1)
-      in  go 0
-    
-    ifoldl f base = \ arr@(SBytes# c _ _) ->
-      let go i = -1 == i ? base $ f i (go $ i - 1) (arr !^ i)
-      in  go (c - 1)
-    
-    i_foldr f base = \ arr@(SBytes# c _ _) ->
-      let go i = c == i ? base $ f (arr !^ i) (go $ i + 1)
-      in  go 0
-    
-    i_foldl f base = \ arr@(SBytes# c _ _) ->
-      let go i = -1 == i ? base $ f (go $ i - 1) (arr !^ i)
-      in  go (c - 1)
+{- Set and Sort instances. -}
 
 instance (Unboxed e) => Set (SBytes# e) e
   where
@@ -390,9 +347,59 @@ instance (Unboxed e) => Set (SBytes# e) e
     
     isSubsetWith f xs ys = i_foldr (\ x b -> b && isContainedIn f x ys) True xs
 
+instance (Unboxed e) => Scan (SBytes# e) e
+
 instance (Unboxed e) => Sort (SBytes# e) e
   where
     sortBy cmp es = runST $ do es' <- thaw es; timSortBy cmp es'; done es'
+
+--------------------------------------------------------------------------------
+
+{- Indexed and IFold instances. -}
+
+instance (Unboxed e) => Indexed (SBytes# e) Int e
+  where
+    assoc bnds ascs = runST $ fromAssocs bnds ascs >>= done
+    
+    assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
+    
+    fromIndexed es = runST $ do
+        let n = sizeOf es
+        copy <- filled_ n
+        forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
+        done copy
+    
+    Z // ascs = null ascs ? Z $ assoc (l, u) ascs
+      where
+        l = fst $ minimumBy cmpfst ascs
+        u = fst $ maximumBy cmpfst ascs
+    arr // ascs = runST $ thaw arr >>= (`overwrite` ascs) >>= done
+    
+    {-# INLINE (!^) #-}
+    (!^) (SBytes# _ (I# o#) arr#) = \ (I# i#) -> arr# !# (i# +# o#)
+    
+    (.!) = (!^)
+    (!)  = (!^)
+    
+    (*$) p = ifoldr (\ i e is -> p e ? (i : is) $ is) []
+
+instance (Unboxed e) => IFold (SBytes# e) Int e
+  where
+    ifoldr f base = \ arr@(SBytes# c _ _) ->
+      let go i = c == i ? base $ f i (arr !^ i) (go $ i + 1)
+      in  go 0
+    
+    ifoldl f base = \ arr@(SBytes# c _ _) ->
+      let go i = -1 == i ? base $ f i (go $ i - 1) (arr !^ i)
+      in  go (c - 1)
+    
+    i_foldr f base = \ arr@(SBytes# c _ _) ->
+      let go i = c == i ? base $ f (arr !^ i) (go $ i + 1)
+      in  go 0
+    
+    i_foldl f base = \ arr@(SBytes# c _ _) ->
+      let go i = -1 == i ? base $ f (go $ i - 1) (arr !^ i)
+      in  go (c - 1)
 
 --------------------------------------------------------------------------------
 
@@ -616,5 +623,8 @@ undEx msg = throw . UndefinedValue $ "in SDP.Internal.SBytes." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Internal.SBytes." ++ msg
+
+
+
 
 
