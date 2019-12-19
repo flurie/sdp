@@ -8,9 +8,20 @@ SDP.
 
 ## tl;dr
 
-SDP is a compilation of best (in my humble opinion) features of array, vector,
-containers and bytestring. It's completely interchangeable with the first two,
-almost with the third and partly with the fourth.
+SDP is a compilation of best features of common Haskell Platform strtucture
+libraries. It's interchangeable with array and vector (except Bundles),
+almost with containers (except Graphs and Trees) and partly with the ByteString
+(Bytes and Unrolled is higher level analogues of strict and lazy bytestrings).
+
+SDP combines the best features of common Haskell Platform structure libraries.
+
+sdp is a functional analog to array, but structures are more efficient
+representation. What sdp doesn't have is implemented in the sdp-ioarrays and
+sdp-ctypes.
+
+sdp is almost interchangeable with vector and containers. In some cases, sdp can
+be used instead bytestring (Bytes and ByteList are analogues of strict and lazy
+bytestrings).
 
 ## Reasons
 
