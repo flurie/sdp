@@ -14,12 +14,14 @@ module SDP.Internal.Read
   module Text.Read.Lex,
   
   -- * Common parsers
-  readIndexedPrec, readLinearPrec, readSDPPrec, readRawSequencePrec,
+  readIndexedPrec, readLinearPrec, readSDPPrec, rawSequencePrec,
+  
+  rawSequencePrecWith,
   
   readZeroPrec, readAsList, readAsListN, readAssocsPrec,
   
   -- * Common parser combinators
-  readRawSequence, readNamedPrec, expectPrec,
+  readRawSequence, readRawSequenceWith, readNamedPrec, expectPrec,
   
   -- * Generalized readers
   readBy, readMaybeBy, readEitherBy,
@@ -134,16 +136,19 @@ enumFromThenToPrec =  fromList <$> parens' fromThenToPrec_
 {- Common parser combinators. -}
 
 {- |
-  readRawSequencePrec is 'many1'-based combinator (ambiguous):
+  rawSequencePrec is 'many1'-based combinator (ambiguous):
   
-  > readBy readRawSequencePrec "1 2 3 4 5 6 7" :: [Int] == *** Exception ...
+  > readBy rawSequencePrec "1 2 3 4 5 6 7" :: [Int] == *** Exception ...
   
   but
   
   > readRawSequence "1 2 3 4 5 6 7" == [1 .. 7]
 -}
-readRawSequencePrec :: (Read e) => ReadPrec [e]
-readRawSequencePrec = lift . many1 $ readPrec_to_P readPrec appPrec
+rawSequencePrec :: (Read e) => ReadPrec [e]
+rawSequencePrec = lift . many1 $ readPrec_to_P readPrec appPrec
+
+rawSequencePrecWith :: ReadPrec e -> ReadPrec [e]
+rawSequencePrecWith parser = lift . many1 $ readPrec_to_P parser appPrec
 
 -- | @readNamedPrec name readprec@ parses @[name] readprec@.
 readNamedPrec :: String -> ReadPrec e -> ReadPrec e
@@ -180,7 +185,14 @@ readEitherBy parser string = case readPrec_to_S read' minPrec string of
 readRawSequence :: (Read e) => String -> [e]
 readRawSequence string = fst (last cases)
   where
-    read' = do x <- readRawSequencePrec; lift skipSpaces; return x
+    read' = do x <- rawSequencePrec; lift skipSpaces; return x
+    cases = readPrec_to_S read' minPrec string
+
+-- | readRawSequenceWith reads the most complete sequence.
+readRawSequenceWith :: ReadPrec e -> String -> [e]
+readRawSequenceWith parser string = fst (last cases)
+  where
+    read' = do x <- rawSequencePrecWith parser; lift skipSpaces; return x
     cases = readPrec_to_S read' minPrec string
 
 --------------------------------------------------------------------------------
