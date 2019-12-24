@@ -32,7 +32,7 @@ module SDP.Internal.Read
 where
 
 import Prelude ()
-import SDP.SafePrelude
+import SDP.SafePrelude hiding ( many )
 
 import SDP.Indexed
 
@@ -41,7 +41,7 @@ import Text.Read.Lex ( expect  )
 
 import GHC.Show      ( appPrec )
 
-import Text.ParserCombinators.ReadP ( many1, skipSpaces )
+import Text.ParserCombinators.ReadP ( many, skipSpaces )
 
 default ()
 
@@ -136,7 +136,7 @@ enumFromThenToPrec =  fromList <$> parens' fromThenToPrec_
 {- Common parser combinators. -}
 
 {- |
-  rawSequencePrec is 'many1'-based combinator (ambiguous):
+  rawSequencePrec is 'many'-based combinator (ambiguous):
   
   > readBy rawSequencePrec "1 2 3 4 5 6 7" :: [Int] == *** Exception ...
   
@@ -145,10 +145,10 @@ enumFromThenToPrec =  fromList <$> parens' fromThenToPrec_
   > readRawSequence "1 2 3 4 5 6 7" == [1 .. 7]
 -}
 rawSequencePrec :: (Read e) => ReadPrec [e]
-rawSequencePrec = lift . many1 $ readPrec_to_P readPrec appPrec
+rawSequencePrec = lift . many $ readPrec_to_P readPrec appPrec
 
 rawSequencePrecWith :: ReadPrec e -> ReadPrec [e]
-rawSequencePrecWith parser = lift . many1 $ readPrec_to_P parser appPrec
+rawSequencePrecWith parser = lift . many $ readPrec_to_P parser appPrec
 
 -- | @readNamedPrec name readprec@ parses @[name] readprec@.
 readNamedPrec :: String -> ReadPrec e -> ReadPrec e
@@ -230,8 +230,6 @@ parens' parser = do
 
 expectPrec :: Lexeme -> ReadPrec ()
 expectPrec = lift . expect
-
-
 
 
 
