@@ -87,7 +87,7 @@ class (Index i) => Indexed v i e | v -> i, v -> e
     -- | Create new structure from old by indexed mapping.
     default (/>) :: (Bordered v i e) => v -> (i -> e -> e) -> v
     (/>) :: v -> (i -> e -> e) -> v
-    (/>) es f = es // [ (i, f i (es ! i)) | i <- indices es ]
+    (/>) es f = assoc (bounds es) [ (i, f i (es ! i)) | i <- indices es ]
     
     {- Elementwise operations. -}
     
