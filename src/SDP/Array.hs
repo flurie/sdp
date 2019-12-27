@@ -129,7 +129,7 @@ instance (Index i, Show i, Show e) => Show (Array i e)
 instance (Index i, Read i, Read e) => Read (Array i e)
   where
     readList = readListDefault
-    readPrec = readSDPPrec "array"
+    readPrec = linearIndexedPrec "array"
 
 --------------------------------------------------------------------------------
 

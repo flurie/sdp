@@ -18,7 +18,9 @@ version 0.2:
     * SDP.Tree (preliminary realisation of Tree classes)
     * SDP.Map (preliminary realisation of dictionary)
     
-    * Generic instances for all structures.
+    * Typeable, Data and Generic instances for all structures.
+    
+    * OverloadedIndices (see SDP.Index docs)
     
     * [internal] SArray#, SBytes#, STArray# and STBytes# primitives.
     

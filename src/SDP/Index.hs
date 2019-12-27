@@ -1,5 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE DefaultSignatures, TypeOperators, FlexibleContexts, CPP #-}
+{-# LANGUAGE UndecidableInstances, TypeFamilies, TypeOperators #-}
+{-# LANGUAGE DefaultSignatures, CPP #-}
+
 {-# OPTIONS_HADDOCK ignore-exports #-}
 
 {- |
@@ -18,6 +20,17 @@
   @rangeSize@ is too long to write...
   I refused to create a class based on Ix, because in this case I still need one
   new class.
+  
+  SDP.Index provides a generic n-dimensional index (type ':&').
+  
+  Also (since sdp-0.2) are available @OverloadedIndices@ - syntactic sugar based
+  on the language extension @OverloadedLists@. For example, instead of the
+  inconvenient @es!(ind4 0 1 2 3)@ and just the awful @es!(E:&0:&1:&2:&3)@ you
+  can write shorter and more understandable indices: @es![0, 1, 2, 3]@.
+  
+  OverloadedIndices works only for (':&') and requires a strictly defined number
+  of subindexes. But (I hope) no one will use list comprehensions (e.g.
+  @es![2..4]@ instead @es![2, 3, 4]@) to specify indexes...
 -}
 module SDP.Index
 (
@@ -28,12 +41,13 @@ module SDP.Index
   -- * Index class
   InBounds (..), Bounds, Index (..),
   
-  -- * Type of polymorphic n-dimensional index
+  -- * N-dimensional index
   E (..), (:&) (..),
   
-  -- * Type synonyms and short constuctors for n-dimensional indices
+  -- ** Type synonyms and short constuctors for n-dimensional indices
   I2, I3, I4, I5, I6, I7, I8, I9, I10 , I11, I12, I13, I14, I15,
   
+  -- ** Comfortable index constructors
   ind2,  ind3,  ind4,  ind5,  ind6,  ind7,  ind8,  ind9,
   ind10, ind11, ind12, ind13, ind14, ind15,
   
@@ -44,6 +58,11 @@ where
 
 import Prelude ( (++) )
 import SDP.SafePrelude
+
+import GHC.Exts ( IsList )
+import qualified GHC.Exts as E
+
+import GHC.Types
 
 import Test.QuickCheck
 
@@ -290,7 +309,7 @@ instance Index Word64  where offset = intOffset; defaultBounds = defUB
 
 --------------------------------------------------------------------------------
 
-{- N-dimensional index section. -}
+{- N-dimensional index type. -}
 
 {- |
   N-dimensional index type. The type (head :& tail) allows working with any
@@ -321,6 +340,10 @@ instance (Enum i) => Enum (E :& i)
     enumFromThenTo (E :& first) (E :& nxt) (E :& lst) = (E :&) <$> [first, nxt .. lst]
 
 instance (Default d, Default d') => Default (d :& d') where def = def :& def
+
+--------------------------------------------------------------------------------
+
+{- N-dimensional index instances. -}
 
 instance (Index i, Enum i) => Index (E :& i)
   where
@@ -399,6 +422,27 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
         (ls :& l, us :& u) = bnds
     
     unsafeIndex c = let (cs, i) = c `divMod` maxBound in unsafeIndex cs :& unsafeIndex i
+
+--------------------------------------------------------------------------------
+
+{- Overloaded indices. -}
+
+instance (Index i) => IsList (E :& i)
+  where
+    type Item (E :& i) = i
+    
+    fromList [i] = E :& i
+    fromList  _  = error "unexpected rank in SDP.Index.{IsList (i' :& i)}fromList"
+    
+    toList (E :& i) = [i]
+
+instance (Index (i' :& i :& i), Index (i' :& i), E.Item (i' :& i) ~~ i, IsList (i' :& i)) => IsList (i' :& i :& i)
+  where
+    type Item (i' :& i :& i) = i
+    
+    toList (i' :& i) = E.toList i' ++ [i]
+    
+    fromList is = let (init', last') = unsnoc is in E.fromList init' :& last'
 
 --------------------------------------------------------------------------------
 
@@ -614,6 +658,11 @@ INDEX_INSTANCE((i,i,i,i,i,i,i,i,i,i,i,i,i,i,i))
 
 --------------------------------------------------------------------------------
 
+unsnoc :: [i] -> ([i], i)
+unsnoc   [ ]    = error "unexpected rank in SDP.Index.{IsList (i' :& i)}fromList"
+unsnoc   [i]    = ([], i)
+unsnoc (i : is) = let (init', last') = unsnoc is in (i : init', last')
+
 (-.) :: (Enum i) => i -> i -> Int
 (-.) =  on (-) fromEnum
 
@@ -650,6 +699,7 @@ toBounds (l, u) = (toIndex l, toIndex u)
 -}
 unsafeBounds :: (Index i) => Int -> (i, i)
 unsafeBounds = defaultBounds
+
 
 
 

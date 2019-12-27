@@ -87,7 +87,7 @@ instance (Index i, Show i, Unboxed e, Show e) => Show (ByteList i e)
 instance (Index i, Read i, Unboxed e, Read e) => Read (ByteList i e)
   where
     readList = readListDefault
-    readPrec = readSDPPrec "bytelist"
+    readPrec = linearIndexedPrec "bytelist"
 
 --------------------------------------------------------------------------------
 

@@ -94,7 +94,7 @@ instance (Index i, Show i, Show e) => Show (Unrolled i e)
 instance (Index i, Read i, Read e) => Read (Unrolled i e)
   where
     readList = readListDefault
-    readPrec = readSDPPrec "unrolled"
+    readPrec = linearIndexedPrec "unrolled"
 
 --------------------------------------------------------------------------------
 

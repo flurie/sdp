@@ -14,17 +14,17 @@ module SDP.Internal.Read
   module Text.Read.Lex,
   
   -- * Common parsers
-  readIndexedPrec, readLinearPrec, readSDPPrec, rawSequencePrec,
-  
-  rawSequencePrecWith,
+  linearPrec, indexedPrec, linearIndexedPrec,
   
   readZeroPrec, readAsList, readAsListN, readAssocsPrec,
   
   -- * Common parser combinators
-  readRawSequence, readRawSequenceWith, readNamedPrec, expectPrec,
+  manyPrec, manyPrecWith, expectPrec,
   
   -- * Generalized readers
   readBy, readMaybeBy, readEitherBy,
+  
+  readFinal, readFinalWith, namedPrec,
   
   -- * Enum parsers
   readAsEnum, enumFromPrec, enumFromToPrec, enumFromThenPrec, enumFromThenToPrec
@@ -37,9 +37,9 @@ import SDP.SafePrelude hiding ( many )
 import SDP.Indexed
 
 import Text.Read
-import Text.Read.Lex ( expect  )
+import Text.Read.Lex ( expect )
 
-import GHC.Show      ( appPrec )
+import GHC.Show ( appPrec )
 
 import Text.ParserCombinators.ReadP ( many, skipSpaces )
 
@@ -48,42 +48,42 @@ default ()
 --------------------------------------------------------------------------------
 
 {- |
-  @readIndexedPrec ident@ is common parser of 'Indexed' structure with name
+  @indexedPrec ident@ is common parser of 'Indexed' structure with name
   @ident@:
   
   > read "ident (0,1) [(0,0),(1,1)]" == read "(0,1) [(0,0),(1,1)]" == assoc (0,1) [(0,0),(1,1)]
 -}
-readIndexedPrec :: (Indexed v i e, Read i, Read e) => String -> ReadPrec v
-readIndexedPrec name = readNamedPrec name readAssocsPrec
+indexedPrec :: (Indexed v i e, Read i, Read e) => String -> ReadPrec v
+indexedPrec name = namedPrec name readAssocsPrec
 
 {- |
-  @readLinearPrec ident@ is common parser of 'Linear' structure with name
+  @linearPrec ident@ is common parser of 'Linear' structure with name
   @ident@:
   
   > read "Z" == read "[]" == []
   > read "['l','g','p','l']" == fromList "lgpl"
   > read "4 [1,5,-1,45,12,6,0,0,12]" == fromListN 4 [1,5,-1,45,12,6,0,0,12]
 -}
-readLinearPrec :: (Linear l e, Read e) => String -> ReadPrec l
-readLinearPrec name = readNamedPrec name (readZeroPrec +++ readAsList +++ readAsListN)
+linearPrec :: (Linear l e, Read e) => String -> ReadPrec l
+linearPrec name = namedPrec name (readZeroPrec +++ readAsList +++ readAsListN)
 
 -- | Common 'Linear' and 'Indexed' parser.
-readSDPPrec :: (Indexed v i e, Linear v e, Read i, Read e) => String -> ReadPrec v
-readSDPPrec name = readNamedPrec name (readZeroPrec +++ readAsList +++ readAsListN +++ readAssocsPrec)
+linearIndexedPrec :: (Indexed v i e, Linear v e, Read i, Read e) => String -> ReadPrec v
+linearIndexedPrec name = namedPrec name (readZeroPrec +++ readAsList +++ readAsListN +++ readAssocsPrec)
 
 --------------------------------------------------------------------------------
 
 {- Common parsers. -}
 
--- | 'readZeroPrec' is just 'Z' parser, see 'readLinearPrec'.
+-- | 'readZeroPrec' is just 'Z' parser, see 'linearPrec'.
 readZeroPrec :: (Linear l e) => ReadPrec l
 readZeroPrec = parens $ prec appPrec (expectPrec $ Ident "Z") >> return Z
 
--- | 'readAsList' is 'fromList'-based parser, see 'readLinearPrec'.
+-- | 'readAsList' is 'fromList'-based parser, see 'linearPrec'.
 readAsList :: (Linear l e, Read e) => ReadPrec l
 readAsList = fromList <$> readListPrec
 
--- | 'readAsListN' is 'fromListN'-based parser, see 'readLinearPrec'.
+-- | 'readAsListN' is 'fromListN'-based parser, see 'linearPrec'.
 readAsListN :: (Linear l e, Read e) => ReadPrec l
 readAsListN = liftA2 fromListN (step readPrec) (step readPrec)
 
@@ -136,23 +136,24 @@ enumFromThenToPrec =  fromList <$> parens' fromThenToPrec_
 {- Common parser combinators. -}
 
 {- |
-  rawSequencePrec is 'many'-based combinator (ambiguous):
+  manyPrec is 'many'-based combinator (ambiguous):
   
-  > readBy rawSequencePrec "1 2 3 4 5 6 7" :: [Int] == *** Exception ...
+  > readBy manyPrec "1 2 3 4 5 6 7" :: [Int] == *** Exception ...
   
   but
   
-  > readRawSequence "1 2 3 4 5 6 7" == [1 .. 7]
+  > manyPrec "1 2 3 4 5 6 7" == [1 .. 7]
 -}
-rawSequencePrec :: (Read e) => ReadPrec [e]
-rawSequencePrec = lift . many $ readPrec_to_P readPrec appPrec
+manyPrec :: (Read e) => ReadPrec [e]
+manyPrec = lift . many $ readPrec_to_P readPrec appPrec
 
-rawSequencePrecWith :: ReadPrec e -> ReadPrec [e]
-rawSequencePrecWith parser = lift . many $ readPrec_to_P parser appPrec
+-- | Just lifted 'many'.
+manyPrecWith :: ReadPrec e -> ReadPrec [e]
+manyPrecWith parser = lift . many $ readPrec_to_P parser appPrec
 
--- | @readNamedPrec name readprec@ parses @[name] readprec@.
-readNamedPrec :: String -> ReadPrec e -> ReadPrec e
-readNamedPrec name parser = named +++ parser
+-- | @namedPrec name readprec@ parses @[name] readprec@.
+namedPrec :: String -> ReadPrec e -> ReadPrec e
+namedPrec name parser = named +++ parser
   where
     named = prec appPrec (expectPrec $ Ident name) >> parser
 
@@ -181,18 +182,18 @@ readEitherBy parser string = case readPrec_to_S read' minPrec string of
   where
     read' = do x <- parser; lift skipSpaces; return x
 
--- | readRawSequence reads the most complete sequence.
-readRawSequence :: (Read e) => String -> [e]
-readRawSequence string = fst (last cases)
+-- | readFinal reads the most complete sequence.
+readFinal :: (Read e) => String -> [e]
+readFinal string = fst (last cases)
   where
-    read' = do x <- rawSequencePrec; lift skipSpaces; return x
+    read' = do x <- manyPrec; lift skipSpaces; return x
     cases = readPrec_to_S read' minPrec string
 
--- | readRawSequenceWith reads the most complete sequence.
-readRawSequenceWith :: ReadPrec e -> String -> [e]
-readRawSequenceWith parser string = fst (last cases)
+-- | readFinalWith reads the most complete sequence.
+readFinalWith :: ReadPrec e -> String -> [e]
+readFinalWith parser string = fst (last cases)
   where
-    read' = do x <- rawSequencePrecWith parser; lift skipSpaces; return x
+    read' = do x <- manyPrecWith parser; lift skipSpaces; return x
     cases = readPrec_to_S read' minPrec string
 
 --------------------------------------------------------------------------------
@@ -228,8 +229,7 @@ parens' parser = do
   expectPrec (Punc "]")
   return value
 
+-- | Just lifted 'expect'.
 expectPrec :: Lexeme -> ReadPrec ()
 expectPrec = lift . expect
-
-
 
