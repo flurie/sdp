@@ -69,6 +69,8 @@ import Test.QuickCheck
 import Data.Word ( Word, Word8, Word16, Word32, Word64 )
 import Data.Int  ( Int,  Int8,  Int16,  Int32,  Int64  )
 
+import Data.Tuple
+
 import SDP.Simple
 
 default ()
@@ -97,71 +99,100 @@ data InBounds = ER {- ^ Empty Range     -}
 -}
 class (Ord i) => Index i
   where
-    {- |
-      Returns the number of dimensions that this type of index represents,
-      usually - a constant, e.g. rank () == 1.
-    -}
+    {- Commons -}
+    
+    -- | Returns the number of dimensions that this type of index represents.
+    default rank :: (Enum i) => i -> Int
     rank :: i -> Int
     rank = const 1
     
     {- |
-      Returns the size (length) of range, e.g.
-      size (ind3 1 2 3, ind3 4 5 6) == 64
+      Returns the size (length) of range.
       
-      If range in bounds empty, size return 0, e.g. size (0, 3) == 4, but
-      size (3, 0) == 0
+      > size (ind3 1 2 3, ind3 4 5 6) == 64
+      > size ([1, 2, 3], [4, 5, 6]) == 64 -- with OverloadedLists (since sdp-0.2)
+      > size (0, 3) == 4
+      > size (3, 0) == 0
     -}
     {-# INLINE size #-}
     default size :: (Enum i) => (i, i) -> Int
     size :: (i, i) -> Int
-    size    (l, u) = u >= l ? u -. l + 1 $ 0
+    size (l, u) = u >= l ? u -. l + 1 $ 0
     
-    {- |
-      Returns the sizes (lengths) of range dimensionwise, has constant number of
-      elements. sizes (5, 7) == [3],
-      sizes (ind4 7 (-1) 12 4, ind4 0 12 9 4) == [0, 14, 0, 1].
-    -}
-    sizes :: (i, i) -> [Int]
-    sizes bnds = [size bnds]
+    -- | Returns default range by size.
+    {-# INLINE defaultBounds #-}
+    defaultBounds :: Int -> (i, i)
+    defaultBounds n = (unsafeIndex 0, unsafeIndex $ max 0 n - 1)
     
-    {- |
-      Returns the list of indices in this range, e.g. range (2, 7) == [2 .. 7],
-      but range (7, 2) == [].
-    -}
-    {-# INLINE range #-}
-    default range :: (Enum i) => (i, i) -> [i]
-    range :: (i, i) ->  [i]
-    range    (l, u) = [l .. u]
+    -- | Returns index by this offset in default range.
+    {-# INLINE unsafeIndex #-}
+    default unsafeIndex :: (Enum i) => Int -> i
+    unsafeIndex :: Int -> i
+    unsafeIndex =  toEnum
+    
+    {- Enum operations -}
     
     -- | Returns previous index in range.
     default prev  :: (Enum i) => (i, i) -> i -> i
     prev :: (i, i) -> i -> i
-    prev    (l, u) i
-      | isEmpty (l, u) = throw $ EmptyRange "in SDP.Index.prev (default)"
-      |     i <= l     = l
-      |     i >  u     = u
-      |      True      = pred i
+    prev (l, u) i | isEmpty (l, u) = er | i <= l = l | i > u = u | True = pred i
+      where
+        er = throw $ EmptyRange "in SDP.Index.prev (default)"
     
     -- | Returns next index in range.
     default next  :: (Enum i) => (i, i) -> i -> i
     next :: (i, i) -> i -> i
-    next    (l, u) i
-      | isEmpty (l, u) = throw $ EmptyRange "in SDP.Index.next (default)"
-      |     i >= u     = u
-      |     i <  l     = l
-      |      True      = succ i
+    next (l, u) i | isEmpty (l, u) = er | i >= u = u | i < l = l | True = succ i
+      where
+        er = throw $ EmptyRange "in SDP.Index.next (default)"
     
-    -- | Returns the index and bounds status.
-    inBounds :: (i, i) -> i -> InBounds
-    inBounds    (l, u) i | l > u = ER | i > u = OR | i < l = UR | True = IN
+    -- | Returns offset (indent) of index in this bounds.
+    {-# INLINE offset #-}
+    default offset :: (Enum i) => (i, i) -> i -> Int
+    offset :: (i, i) -> i -> Int
+    offset bnds i = checkBounds bnds i (i -. fst bnds) "offset (default)"
+    
+    -- | Returns index by this offset in range.
+    {-# INLINE index #-}
+    default index :: (Enum i) => (i, i) -> Int -> i
+    index :: (i, i) -> Int -> i
+    index bnds n = checkBounds (0, size bnds - 1) n res "index (default)"
+      where
+        res = toEnum $ n + fromEnum (fst bnds)
     
     {- |
-      Checks if the index is in range, e.g. inRange (-5, 4) 3 == True,
-      but inRange (4, -5) 3 == False
+      Returns the list of indices in this range.
+      
+      > range (2, 7) == [2 .. 7]
+      > range (7, 2) == []
+    -}
+    {-# INLINE range #-}
+    default range :: (Enum i) => (i, i) -> [i]
+    range :: (i, i) -> [i]
+    range =  uncurry enumFromTo
+    
+    {- Checkers -}
+    
+    -- | Checks if the bounds is empty.
+    {-# INLINE isEmpty #-}
+    isEmpty :: (i, i) -> Bool
+    isEmpty =  uncurry (>)
+    
+    {- |
+      Checks if the index is in range.
+      
+      > inRange (-5, 4) 3 == True
+      > inRange (4, -5) 3 == False
     -}
     {-# INLINE inRange #-}
+    default inRange :: (Enum i) => (i, i) -> i -> Bool
     inRange :: (i, i) -> i -> Bool
-    inRange    (l, u) i = l <= i && i <= u
+    inRange (l, u) i = l <= i && i <= u
+    
+    -- | Returns the index and bounds status.
+    default inBounds :: (Enum i) => (i, i) -> i -> InBounds
+    inBounds :: (i, i) -> i -> InBounds
+    inBounds (l, u) i | l > u = ER | i > u = OR | i < l = UR | True = IN
     
     {- |
       Checks if the index is overflow.
@@ -169,11 +200,13 @@ class (Ord i) => Index i
       The default definition for @isOverflow@ and @isUnderflow@ returns True in
       the case of an empty range:
       
-      > isOverflow  (5, -1) x == True and isUnderflow (5, -1) x == True
+      > isOverflow  (5, -1) x == True
+      > isUnderflow (5, -1) x == True
+      
       for all x because
       
       > not . elem x $ range (5, -1) == True
-      > offset (26, 0) 0 == *** Exception: empty range in SDP.Index.offset (default)
+      > offset (26, 0) 0 == *** Exception: empty range in ...
       > range (26, 0) == []
       > isOverflow  (26, 0) 0 == True
       > isUnderflow (26, 0) 0 == True
@@ -190,52 +223,41 @@ class (Ord i) => Index i
       > isUnderflow ((-3, 4), (2, 5)) (-4, 6) == True
       
       Also, their disjunction is interchangeable with inversion of inRange (in
-      default definitions)
+      default definitions).
     -}
     {-# INLINE isOverflow  #-}
+    default isOverflow :: (Enum i) => (i, i) -> i -> Bool
     isOverflow :: (i, i) -> i -> Bool
-    isOverflow    (l, u) i = i > u || l > u
+    isOverflow (l, u) i = i > u || l > u
     
     -- | Checks if the index is underflow.
     {-# INLINE isUnderflow #-}
+    default isUnderflow :: (Enum i) => (i, i) -> i -> Bool
     isUnderflow :: (i, i) -> i -> Bool
-    isUnderflow    (l, u) i = i < l || l > u
+    isUnderflow (l, u) i = i < l || l > u
     
-    -- | Checks if the bounds is empty.
-    {-# INLINE isEmpty #-}
-    isEmpty :: (i, i) -> Bool
-    isEmpty    (l, u) = l > u
+    {- Extra -}
+    
+    {- |
+      Returns the sizes (lengths) of range dimensionwise, has constant number of
+      elements.
+      
+      > sizes (5, 7) == [3]
+      > sizes (ind4 7 (-1) 12 4, ind4 0 12 9 (4 :: Int)) == [0, 14, 0, 1]
+      > sizes ([7, -1, 12, 4], [0, 12, 9, 4] :: I4 Int) == [0, 14, 0, 1]
+    -}
+    default sizes :: (Enum i) => (i, i) -> [Int]
+    sizes :: (i, i) -> [Int]
+    sizes bnds = [size bnds]
     
     -- | Returns the index belonging to the given range. Service function.
     safeElem :: (i, i) -> i -> i
-    safeElem    (l, u) i = min u (max l i)
-    
-    defaultBounds :: Int -> (i, i)
-    defaultBounds n = (unsafeIndex 0, unsafeIndex $ max 0 n - 1)
+    safeElem (l, u) = min u . max l
     
     -- | Returns bounds of nonempty range.
     {-# INLINE ordBounds #-}
     ordBounds :: (i, i) -> (i, i)
-    ordBounds    (f, s) = f <= s ? (f, s) $ (s, f)
-    
-    -- | Returns offset (indent) of index in this bounds.
-    {-# INLINE offset #-}
-    default offset :: (Enum i) => (i, i) -> i -> Int
-    offset :: (i, i) -> i -> Int
-    offset    (l, u) i =  checkBounds (l, u) i (i -. l) "offset (default)"
-    
-    -- | Returns index by this offset in range.
-    {-# INLINE index #-}
-    default index :: (Enum i) => (i, i) -> Int -> i
-    index :: (i, i) -> Int -> i
-    index    (l, u) n = checkBounds (0, size (l, u) - 1) n res "index (default)"
-      where res = toEnum $ n + fromEnum l
-    
-    -- | Returns index by this offset in default range.
-    {-# INLINE unsafeIndex #-}
-    default unsafeIndex :: (Enum i) => Int -> i
-    unsafeIndex :: Int -> i
-    unsafeIndex = toEnum
+    ordBounds bs = isEmpty bs ? swap bs $ bs
 
 --------------------------------------------------------------------------------
 
@@ -246,7 +268,7 @@ data E = E deriving ( Eq, Ord, Show, Read )
 
 instance Arbitrary E where arbitrary = return E
 
-instance Default   E where def = E
+instance Default E where def = E
 
 instance Index E
   where
@@ -699,7 +721,5 @@ toBounds (l, u) = (toIndex l, toIndex u)
 -}
 unsafeBounds :: (Index i) => Int -> (i, i)
 unsafeBounds = defaultBounds
-
-
 
 

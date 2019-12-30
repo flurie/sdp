@@ -59,11 +59,11 @@ minMax x y = if y > x then (x, y) else (y, x)
 
 -- Gives all first elements.
 fsts :: (Functor f) => f (a, b) -> f a
-fsts = fmap fst
+fsts =  fmap fst
 
 -- Gives all second elements.
 snds :: (Functor f) => f (a, b) -> f b
-snds = fmap snd
+snds =  fmap snd
 
 --------------------------------------------------------------------------------
 

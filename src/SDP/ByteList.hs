@@ -44,6 +44,7 @@ import GHC.Base ( Int (..) )
 import GHC.ST   ( ST  (..) )
 
 import qualified GHC.Exts as E
+
 import Data.String ( IsString (..) )
 
 import SDP.ByteList.Ublist
@@ -68,13 +69,11 @@ type role ByteList nominal representational
 
 instance (Eq e, Unboxed e, Index i) => Eq (ByteList i e)
   where
-    (ByteList l1 u1 xs) == (ByteList l2 u2 ys) =
-      size (l1, u1) == size (l2, u2) && xs == ys
+    xs == ys = on (==) sizeOf xs ys && on (==) unpack xs ys
 
 instance (Ord e, Unboxed e, Index i) => Ord (ByteList i e)
   where
-    compare (ByteList l1 u1 xs) (ByteList l2 u2 ys) =
-      (xs <=> ys) <> (size (l1, u1) <=> size (l2, u2))
+    compare = comparing unpack
 
 --------------------------------------------------------------------------------
 
@@ -96,9 +95,7 @@ instance (Index i, Read i, Unboxed e, Read e) => Read (ByteList i e)
 instance (Index i, Unboxed e) => Semigroup (ByteList i e) where (<>) = (++)
 instance (Index i, Unboxed e) => Monoid    (ByteList i e) where mempty = def
 
-instance (Index i) => Default (ByteList i e)
-  where
-    def = let (l, u) = defaultBounds 0 in ByteList l u def
+instance (Index i) => Default (ByteList i e) where def = withSize 0 def
 
 instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (ByteList i e)
   where
@@ -124,16 +121,14 @@ instance (Index i) => Estimate (ByteList i e)
 
 instance (Index i, Unboxed e) => Linear (ByteList i e) e
   where
-    isNull (ByteList l u bytes) = isEmpty (l, u) || isNull bytes
+    isNull (ByteList l u es) = isEmpty (l, u) || isNull es
     
     lzero = def
     
-    toHead e (ByteList l u es) = ByteList l' u' (e :> es)
-      where
-        (l', u') = defaultBounds $ size (l, u) + 1
+    toHead e es = withSize (sizeOf es + 1) (e :> unpack es)
     
     uncons Z = pfail "(:>)"
-    uncons (ByteList l u es) = (x, sizeOf es < 2 ? Z $ ByteList l' u xs)
+    uncons (ByteList l u es) = (x, es .<= 1 ? Z $ ByteList l' u xs)
       where
         (x, xs) = uncons es
         l' = next (l, u) l
@@ -142,14 +137,14 @@ instance (Index i, Unboxed e) => Linear (ByteList i e) e
     head (ByteList _ _ es) = head es
     
     tail Z = pfail "(:>)"
-    tail (ByteList l u es) = ByteList l' u $ tail es where l' = next (l, u) l
-    
-    toLast (ByteList l u es) e = ByteList l' u' (es :< e)
+    tail (ByteList l u es) = ByteList l' u (tail es)
       where
-        (l', u') = defaultBounds $ size (l, u) + 1
+        l' = next (l, u) l
+    
+    toLast es e = withSize (sizeOf es + 1) (unpack es :< e)
     
     unsnoc Z = pfail "(:<)"
-    unsnoc (ByteList l u es) = (sizeOf es < 2 ? Z $ ByteList l u' xs, x)
+    unsnoc (ByteList l u es) = (es .<= 1 ? Z $ ByteList l u' xs, x)
       where
         (xs, x) = unsnoc es
         u' = prev (l, u) u
@@ -158,52 +153,55 @@ instance (Index i, Unboxed e) => Linear (ByteList i e) e
     last (ByteList _ _ es) = last es
     
     init Z = pfail "(:<)"
-    init (ByteList l u es) = ByteList l u' $ init es where u' = prev (l, u) u
-    
-    fromList es = let (l, u) = defaultBounds $ sizeOf es in ByteList l u $ fromList es
-    
-    replicate n e = let (l, u) = defaultBounds $ max 0 n in ByteList l u $ replicate n e
-    
-    concat = \ xss -> case defaultBounds $ foldr' g 0 xss of
-        (l', u') -> ByteList l' u' (foldr f Z xss)
+    init (ByteList l u es) = ByteList l u' (init es)
       where
-        f = \ (ByteList _ _ xs) ublist -> xs ++ ublist
-        g = \ (ByteList l u  _) count  -> size (l, u) + count
+        u' = prev (l, u) u
     
-    intersperse e (ByteList _ _ es) = ByteList l u $ intersperse e es
+    fromList = withBounds . fromList
+    
+    replicate n e = max 0 n `withSize` replicate n e
+    
+    concat ess = withSize n es
       where
-        (l, u) = defaultBounds $ case n <=> 0 of {GT -> 2 * n - 1; _ -> 0}
-        n = sizeOf es
+        es = foldr ((++) . unpack) Z ess
+        n  = foldr' ((+) . sizeOf) 0 ess
+    
+    intersperse _  Z = Z
+    intersperse e es = withSize (2 * sizeOf es - 1) $ intersperse e (unpack es)
     
     Z  ++ ys = ys
     xs ++  Z = xs
-    (ByteList l1 u1 xs) ++ (ByteList l2 u2 ys) = ByteList l u $ xs ++ ys
+    xs ++ ys = n `withSize` on (++) unpack xs ys
       where
-        (l, u) = defaultBounds $ size (l1, u1) + size (l2, u2)
+        n = on (+) sizeOf xs ys
     
-    listL (ByteList _ _ bytes) = listL bytes
-    listR (ByteList _ _ bytes) = listR bytes
+    listL = listL . unpack
+    listR = listR . unpack
     
-    partitions ps es = fromList <$> partitions ps (listL es)
+    partitions ps = fmap fromList . partitions ps . listL
 
 instance (Index i, Unboxed e) => Split (ByteList i e) e
   where
     take n xs@(ByteList l _ es)
       |   n < 1  = Z
       | n >=. xs = xs
-      |   True   = let u' = indexOf xs (n - 1) in ByteList l u' (take n es)
+      |   True   = ByteList l u' (take n es)
+        where
+          u' = indexOf xs (n - 1)
     
     drop n xs@(ByteList _ u es)
       |   n < 1  = xs
       | n >=. xs = Z
-      |   True   = let l' = indexOf xs n in ByteList l' u (drop n es)
+      |   True   = ByteList l' u (drop n es)
+        where
+          l' = indexOf xs n
     
-    isPrefixOf xs ys = listL xs `isPrefixOf` listL ys
-    isInfixOf  xs ys = listL xs `isInfixOf`  listL ys
-    isSuffixOf xs ys = listL xs `isSuffixOf` listL ys
+    isPrefixOf = on isPrefixOf unpack
+    isSuffixOf = on isSuffixOf unpack
+    isInfixOf  = on isInfixOf  unpack
     
-    prefix p (ByteList _ _ es) = prefix p es
-    suffix p (ByteList _ _ es) = suffix p es
+    prefix p = prefix p . unpack
+    suffix p = suffix p . unpack
 
 instance (Index i, Unboxed e) => Bordered (ByteList i e) i e
   where
@@ -221,54 +219,30 @@ instance (Index i, Unboxed e) => Bordered (ByteList i e) i e
 
 instance (Index i, Unboxed e) => Set (ByteList i e) e
   where
-    setWith f (ByteList _ _ es) = ByteList l u es'
-      where
-        es'    = setWith f es
-        (l, u) = defaultBounds $ sizeOf es'
+    setWith f = withBounds . setWith f . unpack
     
-    intersectionWith f (ByteList _ _ xs) (ByteList _ _ ys) = ByteList l u es
-      where
-        es     = intersectionWith f xs ys
-        (l, u) = defaultBounds $ sizeOf es
+    intersectionWith f xs ys = withBounds $ on (intersectionWith f) unpack xs ys
+    unionWith        f xs ys = withBounds $ on (unionWith        f) unpack xs ys
     
-    unionWith f (ByteList _ _ xs) (ByteList _ _ ys) = ByteList l u es
-      where
-        es     = unionWith f xs ys
-        (l, u) = defaultBounds $ sizeOf es
+    differenceWith f xs ys = withBounds $ on (differenceWith f) unpack xs ys
+    symdiffWith    f xs ys = withBounds $ on (symdiffWith    f) unpack xs ys
     
-    differenceWith f (ByteList _ _ xs) (ByteList _ _ ys) = ByteList l u es
-      where
-        es     = differenceWith f xs ys
-        (l, u) = defaultBounds $ sizeOf es
+    insertWith f e = withBounds . insertWith f e . unpack
+    deleteWith f e = withBounds . deleteWith f e . unpack
     
-    symdiffWith f (ByteList _ _ xs) (ByteList _ _ ys) = ByteList l u es
-      where
-        es     = symdiffWith f xs ys
-        (l, u) = defaultBounds $ sizeOf es
+    isSubsetWith f = isSubsetWith f `on` unpack
     
-    insertWith f e (ByteList _ _ es) = ByteList l u es'
-      where
-        es'    = insertWith f e es
-        (l, u) = defaultBounds $ sizeOf es'
-    
-    deleteWith f e (ByteList _ _ es) = ByteList l u es'
-      where
-        es'    = deleteWith f e es
-        (l, u) = defaultBounds $ sizeOf es'
-    
-    isSubsetWith f (ByteList _ _ xs) (ByteList _ _ ys) = isSubsetWith f xs ys
-    
-    isContainedIn f e (ByteList _ _ es) = isContainedIn f e es
-    lookupLTWith  f e (ByteList _ _ es) = lookupLTWith  f e es
-    lookupGTWith  f e (ByteList _ _ es) = lookupGTWith  f e es
-    lookupLEWith  f e (ByteList _ _ es) = lookupLEWith  f e es
-    lookupGEWith  f e (ByteList _ _ es) = lookupGEWith  f e es
+    isContainedIn f e = isContainedIn f e . unpack
+    lookupLTWith  f e = lookupLTWith  f e . unpack
+    lookupGTWith  f e = lookupGTWith  f e . unpack
+    lookupLEWith  f e = lookupLEWith  f e . unpack
+    lookupGEWith  f e = lookupGEWith  f e . unpack
 
 instance (Index i, Unboxed e) => Scan (ByteList i e) e
 
 instance (Index i, Unboxed e) => Sort (ByteList i e) e
   where
-    sortBy cmp (ByteList l u es) = ByteList l u $ sortBy cmp es
+    sortBy cmp = withBounds . sortBy cmp . unpack
 
 --------------------------------------------------------------------------------
 
@@ -276,7 +250,7 @@ instance (Index i, Unboxed e) => Sort (ByteList i e) e
 
 instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
   where
-    assoc (l, u) ascs = ByteList l u $ assoc bnds ies
+    assoc (l, u) ascs = ByteList l u (assoc bnds ies)
       where
         ies  = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
         bnds = (0, size (l, u) - 1)
@@ -290,29 +264,26 @@ instance (Index i, Unboxed e) => Indexed (ByteList i e) i e
       where
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
-    (ByteList l u es) // ascs = ByteList l' u' es'
-      where
-        es' = es // [ (offset (l, u) i, e) | (i, e) <- ascs ]
-        (l', u') = defaultBounds $ sizeOf es'
+    es // ascs = withBounds $ unpack es // [ (offsetOf es i, e) | (i, e) <- ascs ]
     
-    fromIndexed es = let (l, u) = defaultBounds $ sizeOf es in ByteList l u $ fromIndexed es
+    fromIndexed = withBounds . fromIndexed
     
     {-# INLINE (!^) #-}
-    (ByteList _ _ es) !^ i = es !^ i
+    (!^) es = (unpack es !^)
     
     {-# INLINE (.!) #-}
-    (.!) (ByteList l u es) i = es .! offset (l, u) i
+    (.!) xs = (unpack xs !^) . offsetOf xs
     
-    p .$ (ByteList l u es) = index (l, u) <$> p .$ es
-    p *$ (ByteList l u es) = index (l, u) <$> p *$ es
+    p .$ es = indexOf es <$> p .$ unpack es
+    p *$ es = indexOf es <$> p *$ unpack es
 
 instance (Index i, Unboxed e) => IFold (ByteList i e) i e
   where
-    ifoldr  f base (ByteList l u es) = ifoldr (f . index (l, u)) base es
-    ifoldl  f base (ByteList l u es) = ifoldl (f . index (l, u)) base es
+    ifoldr  f base es = ifoldr (f . indexOf es) base (unpack es)
+    ifoldl  f base es = ifoldl (f . indexOf es) base (unpack es)
     
-    i_foldr f base (ByteList _ _ es) = i_foldr f base es
-    i_foldl f base (ByteList _ _ es) = i_foldl f base es
+    i_foldr f base = i_foldr f base . unpack
+    i_foldl f base = i_foldl f base . unpack
 
 --------------------------------------------------------------------------------
 
@@ -340,6 +311,20 @@ instance (Index i, Unboxed e) => Freeze (ST s) (STByteList s i e) (ByteList i e)
 
 --------------------------------------------------------------------------------
 
+{-# INLINE unpack #-}
+unpack :: ByteList i e -> Ublist e
+unpack =  \ (ByteList _ _ es) -> es
+
+{-# INLINE withSize #-}
+withSize :: (Index i) => Int -> Ublist e -> ByteList i e
+withSize =  \ n es -> let (l, u) = defaultBounds n in ByteList l u es
+
+{-# INLINE withBounds #-}
+withBounds :: (Index i, Unboxed e) => Ublist e -> ByteList i e
+withBounds =  \ es -> let (l, u) = defaultBounds (sizeOf es) in ByteList l u es
+
 pfail :: String -> a
 pfail msg = throw . PatternMatchFail $ "in SDP.ByteList." ++ msg
+
+
 

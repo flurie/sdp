@@ -60,7 +60,7 @@ class (Index i) => Indexed v i e | v -> i, v -> e
     assoc' :: (i, i) -> e -> [(i, e)] -> v
     
     assocMap :: (Map map i e) => (i, i) -> map -> v
-    assocMap bnds = assocMap' bnds (undEx "assocMap (default)")
+    assocMap =  (`assocMap'` undEx "assocMap (default)")
     
     assocMap' :: (Map map i e) => (i, i) -> e -> map -> v
     assocMap' bnds defvalue = assoc' bnds defvalue . listMap
@@ -94,7 +94,7 @@ class (Index i) => Indexed v i e | v -> i, v -> e
     -- | (!^) is completely unsafe reader. Must work as fast, as possible.
     default (!^) :: (Bordered v i e) => v -> Int -> e
     (!^) :: v -> Int -> e
-    es !^ i = es .! index (bounds es) i
+    (!^) es = (es .!) . indexOf es
     
     -- | (.!) is unsafe reader, but on bit faster of ('!').
     {-# INLINE (.!) #-}
@@ -120,7 +120,7 @@ class (Index i) => Indexed v i e | v -> i, v -> e
     -- |  Write one element to structure.
     default write_ :: (Bordered v i e) => v -> Int -> e -> v
     write_ :: v -> Int -> e -> v
-    write_ es i e = es // [(index (bounds es) i, e)]
+    write_ es i e = es // [ (indexOf es i, e) ]
     
     -- |  Write one element to structure.
     write :: v -> i -> e -> v
@@ -170,8 +170,8 @@ class (Indexed v i e) => IFold v i e
     -- | i_foldl' is just foldl' with IFold context
     i_foldl' :: (r -> e -> r) -> r -> v -> r
     
-    ifoldr'  f = ifoldr  (\ i e r -> id $! f i e r)
-    ifoldl'  f = ifoldl  (\ i r e -> id $! f i r e)
+    ifoldr'  f = ifoldr (\ i e r -> id $! f i e r)
+    ifoldl'  f = ifoldl (\ i r e -> id $! f i r e)
     
     i_foldr  f = ifoldr  (const f)
     i_foldl  f = ifoldl  (const f)
@@ -204,8 +204,8 @@ instance Indexed [e] Int e
         []       !# _  = throw $ IndexOverflow "in SDP.Indexed.(!)"
         (x : xs) !# n' = n' == 0 ? x $ xs !# (n' - 1)
     
-    []       !? _ = Nothing
     (x : xs) !? n = case n <=> 0 of {LT -> Nothing; EQ -> Just x; GT -> xs !? (n - 1)}
+    []       !? _ = Nothing
     
     fromIndexed es = (es !) <$> indices es
     
@@ -230,7 +230,7 @@ instance IFold [e] Int e
 
 -- | binaryContain checks that sorted structure has equal element.
 binaryContain :: (Bordered v i e, Indexed v i e) => Compare e -> e -> v -> Bool
-binaryContain f e es = s /= 0 && f e (es !^  0) /= LT && f e (es !^ u') /= GT && contain 0 u'
+binaryContain f e es = s /= 0 && f e (es !^ 0) /= LT && f e (es !^ u') /= GT && contain 0 u'
   where
     contain l u = l > u ? False $ case f e (es !^ j) of
         LT -> contain l (j - 1)

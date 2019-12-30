@@ -120,8 +120,7 @@ instance (Unboxed e) => Estimate (Ublist e)
         go o xs  Z = xs <.=> (-o)
         go o Z  ys = o <=.> ys
         go o (Ublist bytes1# bytes1) (Ublist bytes2# bytes2) =
-          let n1 = sizeOf bytes1#; n2 = sizeOf bytes2#
-          in  go (o + n1 - n2) bytes1 bytes2
+          go (o + sizeOf bytes1# - sizeOf bytes2#) bytes1 bytes2
     
     Z <.=> n = 0 <=> n
     (Ublist bytes# bytes) <.=> m = bytes# .> m ? GT $ bytes <.=> (m - sizeOf bytes#)
@@ -158,7 +157,7 @@ instance (Unboxed e) => Linear (Ublist e) e
     
     listL = i_foldr (:) []
     
-    fromList = i_foldr (\ list -> Ublist $ fromList list) Z . chunks lim
+    fromList = i_foldr (Ublist . fromList) Z . chunks lim
     
     Z ++ ys = ys
     xs ++ Z = xs
@@ -178,9 +177,7 @@ instance (Unboxed e) => Linear (Ublist e) e
     
     reverse = fromList . i_foldl (flip (:)) []
     
-    partition p es = (fromList x, fromList y)
-      where
-        (x, y) = partition p $ listL es
+    partition p = uncurry ((,) `on` fromList) . partition p . listL
     
     partitions ps = fmap fromList . partitions ps . listL
 
@@ -202,9 +199,10 @@ instance (Unboxed e) => Split (Ublist e) e
           EQ -> bytes
           GT -> drop' (n' - sizeOf bytes#) bytes
     
-    isPrefixOf xs ys = listL xs `isPrefixOf` listL ys
-    isInfixOf  xs ys = listL xs `isInfixOf`  listL ys
-    isSuffixOf xs ys = listL xs `isSuffixOf` listL ys
+    isPrefixOf xs ys = xs .<=. ys && take (sizeOf xs) ys == xs
+    isSuffixOf xs ys = xs .<=. ys && drop (sizeOf ys - sizeOf xs) ys == xs
+    
+    isInfixOf  xs ys = listL xs `isInfixOf` listL ys
     
     prefix p = i_foldr (\ e c -> p e ? c + 1 $ 0) 0
     suffix p = i_foldl (\ c e -> p e ? c + 1 $ 0) 0
@@ -418,8 +416,5 @@ unreachEx msg = throw . UnreachableException $ "in SDP.ByteList.Ublist." ++ msg
 
 lim :: Int
 lim =  1024
-
-
-
 
 

@@ -36,14 +36,14 @@ class Sort s e | s -> e
     {-# MINIMAL sortBy #-}
     
     -- | sortBy function is common sorting algorithm.
-    sortBy :: (e -> e -> Ordering) -> s -> s
+    sortBy :: Compare e -> s -> s
     
     {- |
       mathsortBy is sortBy modiffication, that which is optimized for sorting
       data with a lot of repetitions.
     -}
-    mathsortBy :: (e -> e -> Ordering) -> s -> s
-    mathsortBy = sortBy
+    mathsortBy :: Compare e -> s -> s
+    mathsortBy =  sortBy
 
 -- | sort is just synonym for @sortBy compare@
 sort :: (Sort s e, Ord e) => s -> s
@@ -67,17 +67,9 @@ instance Sort [a] a
   where
     sortBy = L.sortBy
     
-    {- |
-      This version of mathsort doesn't create duplicates, just split list on
-      subsequences of equals.
-    -}
-    mathsortBy f es = L.concat sorted
+    mathsortBy f = L.concat . sortBy (on f L.head) . split
       where
-        sorted = sortBy (\ x y -> L.head x `f` L.head y) $ split' es
-        
-        split' [] = []
-        split' xs@(x : _) = y : split' ys
+        split xs = null xs ? [] $ (\ (y, ys) -> y : split ys) res
           where
-            (y, ys) = L.partition (\ e -> x `f` e == EQ) xs
-
+            res = L.partition ((== EQ) . (L.head xs `f`)) xs
 

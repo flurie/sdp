@@ -27,9 +27,7 @@ default ()
 -- | RopeM is primitive monadic sequence representation.
 data RopeM m a = RopeEnd | RopeM (m (a, RopeM m a))
 
---------------------------------------------------------------------------------
-
--- | runRope fully evaluates the stream and returns a list of results.
+-- | runRope return full rope evaluation.
 runRope :: (Monad m) => RopeM m a -> m [a]
 runRope RopeEnd = return []
 runRope (RopeM rope) = do
@@ -54,7 +52,4 @@ evalInit = \ rope n -> n < 1 ? return ([], rope) $ eval n rope
 -- | @nextR rope@ is just @evalInit rope 1@.
 nextR :: (Monad m) => RopeM m a -> m ([a], RopeM m a)
 nextR rope = evalInit rope 1
-
-
-
 

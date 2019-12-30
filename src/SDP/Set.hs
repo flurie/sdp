@@ -80,7 +80,7 @@ class (Linear s o) => Set s o | s -> o
     
     -- | Deleting element from set.
     deleteWith :: Compare o -> o -> s -> s
-    deleteWith f e es = differenceWith f es $ single e
+    deleteWith f = flip (differenceWith f) . single
     
     {- Basic operations on sets. -}
     
@@ -101,7 +101,7 @@ class (Linear s o) => Set s o | s -> o
     
     -- | Fold by intersectionWith.
     intersectionsWith :: (Foldable f) => Compare o -> f s -> s
-    intersectionsWith f = intersectionWith f `foldl` Z
+    intersectionsWith =  (`foldl` Z) . intersectionWith
     
     -- | Fold by differenceWith.
     differencesWith :: (Foldable f) => Compare o -> f s -> s
@@ -109,11 +109,11 @@ class (Linear s o) => Set s o | s -> o
     
     -- | Fold by unionWith.
     unionsWith :: (Foldable f) => Compare o -> f s -> s
-    unionsWith f = unionWith f `foldl` Z
+    unionsWith =  (`foldl` Z) . unionWith
     
     -- | Fold by symdiffWith.
     symdiffsWith :: (Foldable f) => Compare o -> f s -> s
-    symdiffsWith f = symdiffWith f `foldl` Z
+    symdiffsWith =  (`foldl` Z) . symdiffWith
     
     {- Сomparsion operations. -}
     
@@ -123,7 +123,7 @@ class (Linear s o) => Set s o | s -> o
     
     -- | Compares sets on disjoint.
     isDisjointWith :: Compare o -> s -> s -> Bool
-    isDisjointWith f xs ys = isNull $ intersectionWith f xs ys
+    isDisjointWith f xs ys = isNull (intersectionWith f xs ys)
     
     -- | Same as 'elem', but can work faster. By default, uses 'find'.
     default isContainedIn :: (t o ~~ s, Foldable t) => Compare o -> o -> s -> Bool
@@ -133,7 +133,7 @@ class (Linear s o) => Set s o | s -> o
     -- | Сhecks whether a first set is a subset of second.
     default isSubsetWith :: (t o ~~ s, Foldable t) => Compare o -> s -> s -> Bool
     isSubsetWith :: Compare o -> s -> s -> Bool
-    isSubsetWith f xs ys = all (\ e -> isContainedIn f e ys) xs
+    isSubsetWith f xs ys = all (\ x -> isContainedIn f x ys) xs
     
     -- | Generates a list of different subsets (including empty and equivalent).
     default subsets :: (Ord s, Ord o) => s -> [s]
@@ -185,7 +185,7 @@ delete =  deleteWith compare
 (\/) :: (Set s o, Ord o) => s -> s -> s
 (\/) =  unionWith compare
 
--- | Difference (relative complement, aka A / B) of two sets.
+-- | Difference (relative complement, aka A/B) of two sets.
 {-# INLINE (\\) #-}
 (\\) :: (Set s o, Ord o) => s -> s -> s
 (\\) =  differenceWith compare

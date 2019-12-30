@@ -6,20 +6,10 @@ openness.
 
 ## tl;dr
 
-SDP is a compilation of best features of common Haskell Platform strtucture
+SDP is a compilation of best features of common Haskell Platform structure
 libraries. It's interchangeable with array and vector (except Bundles),
 almost with containers (except Graphs and Trees) and partly with the ByteString
 (Bytes and Unrolled is higher level analogues of strict and lazy bytestrings).
-
-SDP combines the best features of common Haskell Platform structure libraries.
-
-sdp is a functional analog to array, but structures are more efficient
-representation. What sdp doesn't have is implemented in the sdp-ioarrays and
-sdp-ctypes.
-
-sdp is almost interchangeable with vector and containers. In some cases, sdp can
-be used instead bytestring (Bytes and ByteList are analogues of strict and lazy
-bytestrings).
 
 ## Reasons
 
@@ -39,21 +29,21 @@ With SDP list functions don't overlap analogues for other structures.
 
 SDP provides 12 common data structures (not including lists):
 - immutable arrays:
-[Array](https://github.com/andreymulik/sdp/blob/dev/src/SDP/Array.hs) and
-[Bytes](https://github.com/andreymulik/sdp/blob/dev/src/SDP/Bytes.hs)
+[Array](https://github.com/andreymulik/sdp/blob/master/src/SDP/Array.hs) and
+[Bytes](https://github.com/andreymulik/sdp/blob/master/src/SDP/Bytes.hs)
 - immutable unrolled lists:
-[Unlist](https://github.com/andreymulik/sdp/blob/dev/src/SDP/Unrolled/Unlist.hs),
-[Ublist](https://github.com/andreymulik/sdp/blob/dev/src/SDP/ByteList/Ublist.hs),
-[Unrolled](https://github.com/andreymulik/sdp/blob/dev/src/SDP/Unrolled.hs) and
-[ByteList](https://github.com/andreymulik/sdp/blob/dev/src/SDP/ByteList.hs)
+[Unlist](https://github.com/andreymulik/sdp/blob/master/src/SDP/Unrolled/Unlist.hs),
+[Ublist](https://github.com/andreymulik/sdp/blob/master/src/SDP/ByteList/Ublist.hs),
+[Unrolled](https://github.com/andreymulik/sdp/blob/master/src/SDP/Unrolled.hs) and
+[ByteList](https://github.com/andreymulik/sdp/blob/master/src/SDP/ByteList.hs)
 - mutable arrays:
-[STArray](https://github.com/andreymulik/sdp/blob/dev/src/SDP/Array/ST.hs) and
-[STBytes](https://github.com/andreymulik/sdp/blob/dev/src/SDP/Bytes.ST.hs)
+[STArray](https://github.com/andreymulik/sdp/blob/master/src/SDP/Array/ST.hs) and
+[STBytes](https://github.com/andreymulik/sdp/blob/master/src/SDP/Bytes.ST.hs)
 - mutable unrolled lists:
-[STUnlist](https://github.com/andreymulik/sdp/blob/dev/src/SDP/Unrolled/ST.hs),
-[STUblist](https://github.com/andreymulik/sdp/blob/dev/src/SDP/ByteList/ST.hs),
-[STUnrolled](https://github.com/andreymulik/sdp/blob/dev/src/SDP/Unrolled.ST.hs)
-and [STByteList](https://github.com/andreymulik/sdp/blob/dev/src/SDP/ByteList/ST.hs)
+[STUnlist](https://github.com/andreymulik/sdp/blob/master/src/SDP/Unrolled/ST.hs),
+[STUblist](https://github.com/andreymulik/sdp/blob/master/src/SDP/ByteList/ST.hs),
+[STUnrolled](https://github.com/andreymulik/sdp/blob/master/src/SDP/Unrolled.ST.hs)
+and [STByteList](https://github.com/andreymulik/sdp/blob/master/src/SDP/ByteList/ST.hs)
 
 Also SDP has pseudo-primitive types (SArray#, SBytes#, STArray# and STBytes#)
 that simplifies the implementation of more complex structures. They are
@@ -93,12 +83,12 @@ which relies on a poorly designed Ix class or containers, in which a lot of the
 code duplication).
 * Good extensibility. SDP is based on type classes that provide the simplest
 interfaces for working with different data structures and reduce code
-duplication. SDP will not requires qualified imports when working with different
+duplication. SDP will not requires qualified imports when work with different
 structures in the same namespace.
-* Orientation to other libraries. SDP, array and vector are essentially
-interchangeable. In some cases, SDP can also replace containers and, in very few
-cases, bytestring. However, this isn't its main purpose. SDP must help other
-libraries interact better with each other.
+* Orientation to other libraries. This library is interchangeable with array and
+vector, however this isn't the main purpose. First of all, SDP is a way of
+interacting libraries at the level of data abstraction. SDP doesn't give its own
+implementations an advantage over external.
 
 ## SDP category using
 
@@ -106,21 +96,16 @@ SDP category must be used for:
 * type classes declared in SDP and extensions
 * types whose names are occupied in the Data category. For example, Array can't
 be placed in the Data.Array module due to a conflict with the array package.
-But there are exceptions. For example, Array and Bytes are similar, so placing
-one in SDP and the other in Data would be counterintuitive
 * types based on SDP pseudo-primitives (STUnlist, STUblist, as well as based on
 them Unrolled and ByteList)
 * wrapper modules, to avoid a 3-5 level hierarchy. For example, the wrapper for
 Data.ByteString is SDP.ByteString, not Data.ByteString.SDP and the wrapper for
 Data.ByteString.Lazy is SDP.ByteString.Lazy, not Data.ByteString.Lazy.SDP or
-Data.ByteString.SDP.Lazy)
+Data.ByteString.SDP.Lazy
 
-SDP category mustn't be used for:
-* types from Foreign and other important categories (for example, instances for
-Foreign.C types should be in Foreign.C.SDP, and not in SDP.C or SDP.Foreign.C)
-* exception types (like Control.Exception.SDP)
-* non-library modules (must be in SDP.Internal)
-* test modules, they must be in Test.SDP
+SDP category mustn't be used for types from System, Control, Foreign, Test and
+other important categories (for example, instances for Foreign.C types should be
+in Foreign.C.SDP, not in SDP.C or SDP.Foreign.C).
 
 ## Contributing
 

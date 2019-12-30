@@ -39,7 +39,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | STUnlist is mutable version Unlist.
+-- | STUnrolled is mutable version Unrolled.
 data STUnrolled s i e = STUnrolled !i !i (STUnlist s e)
 
 type role STUnrolled nominal nominal representational

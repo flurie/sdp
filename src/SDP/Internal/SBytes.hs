@@ -523,7 +523,6 @@ instance (Unboxed e) => IndexedM (ST s) (STBytes# s e) Int e
       \ s1# -> case writeByteArray# marr# (o# +# i#) e s1# of
         s2# -> (# s2#, () #)
     
-    {-# INLINE overwrite #-}
     overwrite es@(STBytes# c _ _) ascs =
       let ies = filter (inRange (0, c - 1) . fst) ascs
       in  mapM_ (uncurry $ writeM_ es) ies >> return es
@@ -623,8 +622,4 @@ undEx msg = throw . UndefinedValue $ "in SDP.Internal.SBytes." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Internal.SBytes." ++ msg
-
-
-
-
 

@@ -26,14 +26,14 @@ default ()
 -- | Scan is class of scans.
 class (Linear s a) => Scan s a | s -> a
   where
-    scanl   :: (b -> a -> b) -> b -> s -> [b]
-    scanr   :: (a -> b -> b) -> b -> s -> [b]
+    scanl  :: (b -> a -> b) -> b -> s -> [b]
+    scanr  :: (a -> b -> b) -> b -> s -> [b]
     
-    scanl'  :: (b -> a -> b) -> b -> s -> [b]
-    scanr'  :: (a -> b -> b) -> b -> s -> [b]
+    scanl' :: (b -> a -> b) -> b -> s -> [b]
+    scanr' :: (a -> b -> b) -> b -> s -> [b]
     
-    scanl1  :: (a -> a -> a) -> s -> [a]
-    scanr1  :: (a -> a -> a) -> s -> [a]
+    scanl1 :: (a -> a -> a) -> s -> [a]
+    scanr1 :: (a -> a -> a) -> s -> [a]
     
     scanl  f base = scanl  f base . listL
     scanr  f base = scanr  f base . listL
@@ -48,14 +48,13 @@ class (Linear s a) => Scan s a | s -> a
 
 instance Scan [a] a
   where
-    scanl   = L.scanl
-    scanr   = L.scanr
+    scanl  = L.scanl
+    scanr  = L.scanr
     
-    scanl'  = L.scanl'
-    scanr'  = L.scanr
+    scanl' = L.scanl'
+    scanr' = L.scanr
     
-    scanl1  = L.scanl1
-    scanr1  = L.scanr1
-
+    scanl1 = L.scanl1
+    scanr1 = L.scanr1
 
 

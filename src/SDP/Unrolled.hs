@@ -69,8 +69,7 @@ instance (Eq e, Index i) => Eq (Unrolled i e) where (==) = eq1
 
 instance (Index i) => Eq1 (Unrolled i)
   where
-    liftEq eq (Unrolled l1 u1 xs) (Unrolled l2 u2 ys) =
-      size (l1, u1) == size (l2, u2) && liftEq eq xs ys
+    liftEq eq xs ys = liftEq eq (unpack xs) (unpack ys)
 
 --------------------------------------------------------------------------------
 
@@ -80,8 +79,7 @@ instance (Ord e, Index i) => Ord (Unrolled i e) where compare = compare1
 
 instance (Index i) => Ord1 (Unrolled i)
   where
-    liftCompare cmp (Unrolled l1 u1 xs) (Unrolled l2 u2 ys) =
-      liftCompare cmp xs ys <> (size (l1, u1) <=> size (l2, u2))
+    liftCompare cmp xs ys = liftCompare cmp (unpack xs) (unpack ys)
 
 --------------------------------------------------------------------------------
 
@@ -102,10 +100,7 @@ instance (Index i, Read i, Read e) => Read (Unrolled i e)
 
 instance (Index i) => Semigroup (Unrolled i e) where (<>) = (++)
 instance (Index i) => Monoid    (Unrolled i e) where mempty = def
-
-instance (Index i) => Default (Unrolled i e)
-  where
-    def = let (l, u) = defaultBounds 0 in Unrolled l u def
+instance (Index i) => Default   (Unrolled i e) where def = withSize 0 def
 
 instance (Index i, Arbitrary e) => Arbitrary (Unrolled i e)
   where
@@ -113,17 +108,17 @@ instance (Index i, Arbitrary e) => Arbitrary (Unrolled i e)
 
 instance (Index i) => Estimate (Unrolled i e)
   where
-    (Unrolled l1 u1 _) <==> (Unrolled l2 u2 _) = size (l1, u1) <=> size (l2, u2)
-    (Unrolled l1 u1 _) .>.  (Unrolled l2 u2 _) = size (l1, u1)  >  size (l2, u2)
-    (Unrolled l1 u1 _) .<.  (Unrolled l2 u2 _) = size (l1, u1)  <  size (l2, u2)
-    (Unrolled l1 u1 _) .<=. (Unrolled l2 u2 _) = size (l1, u1) <=  size (l2, u2)
-    (Unrolled l1 u1 _) .>=. (Unrolled l2 u2 _) = size (l1, u1) >=  size (l2, u2)
+    xs <==> ys = sizeOf xs <=> sizeOf ys
+    xs .>.  ys = sizeOf xs  >  sizeOf ys
+    xs .<.  ys = sizeOf xs  <  sizeOf ys
+    xs .<=. ys = sizeOf xs <=  sizeOf ys
+    xs .>=. ys = sizeOf xs >=  sizeOf ys
     
-    (Unrolled l1 u1 _) <.=> n2 = size (l1, u1) <=> n2
-    (Unrolled l1 u1 _)  .>  n2 = size (l1, u1)  >  n2
-    (Unrolled l1 u1 _)  .<  n2 = size (l1, u1)  <  n2
-    (Unrolled l1 u1 _) .>=  n2 = size (l1, u1) >=  n2
-    (Unrolled l1 u1 _) .<=  n2 = size (l1, u1) <=  n2
+    xs <.=> n2 = sizeOf xs <=> n2
+    xs  .>  n2 = sizeOf xs  >  n2
+    xs  .<  n2 = sizeOf xs  <  n2
+    xs .>=  n2 = sizeOf xs >=  n2
+    xs .<=  n2 = sizeOf xs <=  n2
 
 --------------------------------------------------------------------------------
 
@@ -152,18 +147,18 @@ instance (Index i) => Applicative (Unrolled i)
 
 instance (Index i) => Foldable (Unrolled i)
   where
-    foldr  f base = \ (Unrolled _ _ es) -> foldr  f base es
-    foldl  f base = \ (Unrolled _ _ es) -> foldl  f base es
-    foldr' f base = \ (Unrolled _ _ es) -> foldr' f base es
-    foldl' f base = \ (Unrolled _ _ es) -> foldl' f base es
+    foldr  f base = foldr  f base . unpack
+    foldl  f base = foldl  f base . unpack
+    foldr' f base = foldr' f base . unpack
+    foldl' f base = foldl' f base . unpack
     
-    foldr1 f = \ (Unrolled _ _ es) -> foldr1 f es
-    foldl1 f = \ (Unrolled _ _ es) -> foldl1 f es
+    foldr1 f = foldr1 f . unpack
+    foldl1 f = foldl1 f . unpack
     
-    elem e = \ (Unrolled _ _ es) -> elem e es
-    toList = \ (Unrolled _ _ es) -> toList es
-    null   = \ (Unrolled l u es) -> isEmpty (l, u) || null es
-    length = \ (Unrolled l u  _) -> size (l, u)
+    elem e = elem e . unpack
+    toList = toList . unpack
+    null   = isEmpty . bounds
+    length = sizeOf
 
 instance (Index i) => Traversable (Unrolled i)
   where
@@ -179,89 +174,76 @@ instance (Index i) => Linear (Unrolled i e) e
     
     isNull (Unrolled l u es) = isEmpty (l, u) || isNull es
     
-    toHead e (Unrolled l u es) = Unrolled l' u' (e :> take n es)
-      where
-        (l', u') = defaultBounds $ n + 1
-        n = size (l, u)
+    toHead e es = withSize (sizeOf es + 1) (e :> unpack es)
     
-    uncons Z = patEx "(:>)"
+    uncons Z = pfailEx "(:>)"
     uncons (Unrolled l u es) = (x, sizeOf es < 2 ? Z $ Unrolled l1 u xs)
       where
         (x, xs) = uncons es
         l1 = next (l, u) l
     
-    head Z = patEx "(:>)"
-    head (Unrolled _ _ es) = head es
+    head Z  = pfailEx "(:>)"
+    head es = head (unpack es)
     
-    tail Z = patEx "(:>)"
+    tail Z = pfailEx "(:>)"
     tail (Unrolled l u es) = Unrolled l' u $ tail es where l' = next (l, u) l
     
-    toLast (Unrolled l u es) e = Unrolled l' u' (take n es :< e)
-      where
-        (l', u') = defaultBounds $ n + 1
-        n = size (l, u)
+    toLast es e = withSize (sizeOf es + 1) (unpack es :< e)
     
-    unsnoc Z = patEx "(:<)"
+    unsnoc Z = pfailEx "(:<)"
     unsnoc (Unrolled l u es) = (sizeOf es < 2 ? Z $ Unrolled l u1 xs, x)
       where
         (xs, x) = unsnoc es
         u1 = prev (l, u) u
     
-    last Z = patEx "(:<)"
-    last (Unrolled _ _ es) = last es
+    last Z  = pfailEx "(:<)"
+    last es = last (unpack es)
     
-    init Z = patEx "(:<)"
+    init Z = pfailEx "(:<)"
     init (Unrolled l u es) = Unrolled l u' $ init es where u' = prev (l, u) u
     
-    fromList   es = let (l, u) = defaultBounds $ sizeOf es in Unrolled l u $ fromList es
-    replicate n e = let (l, u) = defaultBounds $ max 0 n in Unrolled l u $ replicate n e
+    fromList = withBounds . fromList
+    
+    replicate n = withSize n . replicate n
     
     Z  ++ ys = ys
     xs ++  Z = xs
-    (Unrolled l1 u1 xs) ++ (Unrolled l2 u2 ys) = Unrolled l u $ xs ++ ys
+    xs ++ ys = withSize (on (+) sizeOf xs ys) $ on (++) unpack xs ys
+    
+    concat es = withSize n $ foldr ((++) . unpack) Z es
       where
-        (l, u) = defaultBounds $ size (l1, u1) + size (l2, u2)
+        n = foldr' ((+) . sizeOf) 0 es
     
-    concat xss = case defaultBounds $ foldr' g 0 xss of
-        (l', u') -> Unrolled l' u' (foldr f Z xss)
-      where
-        f = \ (Unrolled l u xs) ublist -> size (l, u) `take` xs ++ ublist
-        g = \ (Unrolled l u  _) count  -> size (l, u) + count
+    intersperse _  Z = Z
+    intersperse e es = withSize (2 * sizeOf es - 1) $ intersperse e (unpack es)
     
-    intersperse e (Unrolled _ _ es) = Unrolled l u $ intersperse e es
-      where
-        (l, u) = defaultBounds $ case n <=> 0 of {GT -> 2 * n - 1; _ -> 0}
-        n = length es
+    listL = listL . unpack
+    listR = listR . unpack
     
-    listL (Unrolled _ _ bytes) = listL bytes
-    listR (Unrolled _ _ bytes) = listR bytes
-    
-    partitions ps es = fromList <$> partitions ps (toList es)
+    partitions ps = fmap fromList . partitions ps . toList
 
 instance (Index i) => Split (Unrolled i e) e
   where
-    take n unr@(Unrolled l u es)
-        | n <= 0 = Z
-        | n >= c = unr
-        |  True  = Unrolled l u' $ take n es
-      where
-        u' = index (l, u) (n - 1)
-        c  = size  (l, u)
+    take n xs@(Unrolled l _ es)
+      |   n < 1  = Z
+      | n >=. xs = xs
+      |   True   = Unrolled l u' (take n es)
+        where
+          u' = indexOf xs (n - 1)
     
-    drop n unr@(Unrolled l u es)
-        | n <= 0 = unr
-        | n >= c = Z
-        |  True  = Unrolled l' u $ drop n es
-      where
-        l' = index (l, u) n
-        c  = size  (l, u)
+    drop n xs@(Unrolled _ u es)
+      |   n < 1  = xs
+      | n >=. xs = Z
+      |   True   = Unrolled l' u (drop n es)
+        where
+          l' = indexOf xs n
     
-    isPrefixOf xs ys = toList xs `isPrefixOf` toList ys
-    isInfixOf  xs ys = toList xs `isInfixOf`  toList ys
-    isSuffixOf xs ys = toList xs `isSuffixOf` toList ys
+    isPrefixOf = on isPrefixOf unpack
+    isSuffixOf = on isSuffixOf unpack
+    isInfixOf  = on isInfixOf  unpack
     
-    prefix p (Unrolled _ _ es) = prefix p es
-    suffix p (Unrolled _ _ es) = suffix p es
+    prefix p = prefix p . unpack
+    suffix p = suffix p . unpack
 
 instance (Index i) => Bordered (Unrolled i e) i e
   where
@@ -280,52 +262,28 @@ instance (Index i) => Bordered (Unrolled i e) i e
 
 instance (Index i) => Set (Unrolled i e) e
   where
-    setWith f (Unrolled _ _ es) = Unrolled l u es'
-      where
-        es'    = setWith f es
-        (l, u) = defaultBounds $ sizeOf es'
+    setWith f = withBounds . setWith f . unpack
     
-    intersectionWith f (Unrolled _ _ xs) (Unrolled _ _ ys) = Unrolled l u es
-      where
-        es     = intersectionWith f xs ys
-        (l, u) = defaultBounds $ sizeOf es
+    intersectionWith f xs ys = withBounds $ on (intersectionWith f) unpack xs ys
+    unionWith        f xs ys = withBounds $ on (unionWith        f) unpack xs ys
     
-    unionWith f (Unrolled _ _ xs) (Unrolled _ _ ys) = Unrolled l u es
-      where
-        es     = unionWith f xs ys
-        (l, u) = defaultBounds $ sizeOf es
+    differenceWith f xs ys = withBounds $ on (differenceWith f) unpack xs ys
+    symdiffWith    f xs ys = withBounds $ on (symdiffWith    f) unpack xs ys
     
-    differenceWith f (Unrolled _ _ xs) (Unrolled _ _ ys) = Unrolled l u es
-      where
-        es     = differenceWith f xs ys
-        (l, u) = defaultBounds $ sizeOf es
+    insertWith f e = withBounds . insertWith f e . unpack
+    deleteWith f e = withBounds . deleteWith f e . unpack
     
-    symdiffWith f (Unrolled _ _ xs) (Unrolled _ _ ys) = Unrolled l u es
-      where
-        es     = symdiffWith f xs ys
-        (l, u) = defaultBounds $ sizeOf es
-    
-    insertWith f e (Unrolled _ _ es) = Unrolled l u es'
-      where
-        es'    = insertWith f e es
-        (l, u) = defaultBounds $ sizeOf es'
-    
-    deleteWith f e (Unrolled _ _ es) = Unrolled l u es'
-      where
-        es'    = deleteWith f e es
-        (l, u) = defaultBounds $ sizeOf es'
-    
-    isContainedIn f e (Unrolled _ _ es) = isContainedIn f e es
-    lookupLTWith  f e (Unrolled _ _ es) = lookupLTWith  f e es
-    lookupGTWith  f e (Unrolled _ _ es) = lookupGTWith  f e es
-    lookupLEWith  f e (Unrolled _ _ es) = lookupLEWith  f e es
-    lookupGEWith  f e (Unrolled _ _ es) = lookupGEWith  f e es
+    isContainedIn f e = isContainedIn f e . unpack
+    lookupLTWith  f e = lookupLTWith  f e . unpack
+    lookupGTWith  f e = lookupGTWith  f e . unpack
+    lookupLEWith  f e = lookupLEWith  f e . unpack
+    lookupGEWith  f e = lookupGEWith  f e . unpack
 
 instance (Index i) => Scan (Unrolled i e) e
 
 instance (Index i) => Sort (Unrolled i e) e
   where
-    sortBy cmp (Unrolled l u es) = Unrolled l u $ sortBy cmp es
+    sortBy cmp (Unrolled l u es) = Unrolled l u (sortBy cmp es)
 
 --------------------------------------------------------------------------------
 
@@ -333,7 +291,7 @@ instance (Index i) => Sort (Unrolled i e) e
 
 instance (Index i) => Indexed (Unrolled i e) i e
   where
-    assoc' (l, u) defvalue ascs = Unrolled l u $ assoc' bnds defvalue ies
+    assoc' (l, u) defvalue ascs = Unrolled l u (assoc' bnds defvalue ies)
       where
         ies  = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
         bnds = (0, size (l, u) - 1)
@@ -342,26 +300,25 @@ instance (Index i) => Indexed (Unrolled i e) i e
       where
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
-    (Unrolled l u es) // ascs = Unrolled l' u' es'
+    (Unrolled l u es) // ascs = withBounds (es // ies)
       where
-        es' = es // [ (offset (l, u) i, e) | (i, e) <- ascs ]
-        (l', u') = defaultBounds $ length es'
+        ies = [ (offset (l, u) i, e) | (i, e) <- ascs ]
     
     fromIndexed es = let (l, u) = defaultBounds $ sizeOf es in Unrolled l u $ fromIndexed es
     
     {-# INLINE (!^) #-}
-    (Unrolled _ _ es) !^ i = es !^ i
+    (!^) = (!^) . unpack
     
     {-# INLINE (.!) #-}
-    (.!) (Unrolled l u es) i = es .! offset (l, u) i
+    (.!) es = (unpack es !^) . offsetOf es
     
-    p .$ (Unrolled l u es) = index (l, u) <$> p .$ es
-    p *$ (Unrolled l u es) = index (l, u) <$> p *$ es
+    p .$ es = indexOf es <$> p .$ unpack es
+    p *$ es = indexOf es <$> p *$ unpack es
 
 instance (Index i) => IFold (Unrolled i e) i e
   where
-    ifoldr f base = \ (Unrolled l u es) -> ifoldr (f . index (l, u)) base es
-    ifoldl f base = \ (Unrolled l u es) -> ifoldl (f . index (l, u)) base es
+    ifoldr f base = \ es -> ifoldr (f . indexOf es) base (unpack es)
+    ifoldl f base = \ es -> ifoldl (f . indexOf es) base (unpack es)
     
     i_foldr = foldr
     i_foldl = foldl
@@ -392,8 +349,21 @@ instance (Index i) => Freeze (ST s) (STUnrolled s i e) (Unrolled i e)
 
 --------------------------------------------------------------------------------
 
-patEx :: String -> a
-patEx msg = throw . PatternMatchFail $ "in SDP.Unrolled." ++ msg
+{-# INLINE unpack #-}
+unpack :: Unrolled i e -> Unlist e
+unpack =  \ (Unrolled _ _ es) -> es
+
+{-# INLINE withBounds #-}
+withBounds :: (Index i) => Unlist e -> Unrolled i e
+withBounds es = let (l, u) = defaultBounds (sizeOf es) in Unrolled l u es
+
+{-# INLINE withSize #-}
+withSize :: (Index i) => Int -> Unlist e -> Unrolled i e
+withSize =  uncurry Unrolled . defaultBounds
+
+pfailEx :: String -> a
+pfailEx msg = throw . PatternMatchFail $ "in SDP.Unrolled." ++ msg
+
 
 
 

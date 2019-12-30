@@ -65,14 +65,12 @@ type role Bytes nominal representational
 
 instance (Index i, Unboxed e) => Eq (Bytes i e)
   where
-    Z == Z = True
-    (Bytes l1 u1 arr1#) == (Bytes l2 u2 arr2#) =
-      l1 == l2 && u1 == u2 && arr1# == arr2#
+    Z  ==  Z = True
+    xs == ys = on (==) unpack xs ys
 
 instance (Index i, Unboxed e, Ord e) => Ord (Bytes i e)
   where
-    compare (Bytes l1 u1 bytes1#) (Bytes l2 u2 bytes2#) =
-      (bytes1# <=> bytes2#) <> (size (l1, u1) <=> size (l2, u2))
+    compare = comparing unpack
 
 --------------------------------------------------------------------------------
 
@@ -90,17 +88,17 @@ instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (Bytes i e)
 
 instance Estimate (Bytes i e)
   where
-    (Bytes _ _ bytes1#) <==> (Bytes _ _ bytes2#) = bytes1# <==> bytes2#
-    (Bytes _ _ bytes1#) .>.  (Bytes _ _ bytes2#) = bytes1# .>.  bytes2#
-    (Bytes _ _ bytes1#) .<.  (Bytes _ _ bytes2#) = bytes1# .<.  bytes2#
-    (Bytes _ _ bytes1#) .<=. (Bytes _ _ bytes2#) = bytes1# .<=. bytes2#
-    (Bytes _ _ bytes1#) .>=. (Bytes _ _ bytes2#) = bytes1# .>=. bytes2#
+    (<==>) = on (<==>) unpack
+    (.<=.) = on (.<=.) unpack
+    (.>=.) = on (.>=.) unpack
+    (.>.)  = on (.>.)  unpack
+    (.<.)  = on (.<.)  unpack
     
-    (Bytes _ _ bytes1#) <.=> n2 = bytes1# <.=> n2
-    (Bytes _ _ bytes1#)  .>  n2 = bytes1#  .>  n2
-    (Bytes _ _ bytes1#)  .<  n2 = bytes1#  .<  n2
-    (Bytes _ _ bytes1#) .>=  n2 = bytes1# .>=  n2
-    (Bytes _ _ bytes1#) .<=  n2 = bytes1# .<=  n2
+    xs <.=> n2 = unpack xs <.=> n2
+    xs  .>  n2 = unpack xs  .>  n2
+    xs  .<  n2 = unpack xs  .<  n2
+    xs .>=  n2 = unpack xs .>=  n2
+    xs .<=  n2 = unpack xs .<=  n2
 
 --------------------------------------------------------------------------------
 
@@ -133,25 +131,25 @@ instance (Index i, Unboxed e, Read i, Read e) => Read (Bytes i e)
 
 instance (Index i, Unboxed e) => Linear (Bytes i e) e
   where
-    isNull (Bytes _ _ bytes#) = isNull bytes#
+    isNull = isNull . unpack
     
     lzero = withBounds Z
     
-    toHead e (Bytes _ _ bytes#) = withBounds $ e :> bytes#
+    toHead e es = withBounds $ e :> unpack es
     
     head es = isNull es ? pfailEx "(:>)" $ es !^ 0
     
     -- | O(1) 'tail', O(1) memory.
     tail Z = pfailEx "(:>)"
-    tail (Bytes _ _ bytes#) = withBounds $ tail bytes#
+    tail (Bytes _ _ es) = withBounds (tail es)
     
-    toLast (Bytes _ _ bytes#) e = withBounds $ bytes# :< e
+    toLast es e = withBounds (unpack es :< e)
     
     last es = isNull es ? pfailEx "(:<)" $ es !^ (sizeOf es - 1)
     
     -- | O(1) 'init', O(1) memory.
     init Z = pfailEx "(:<)"
-    init (Bytes _ _ bytes#) = withBounds $ init bytes#
+    init (Bytes _ _ es) = withBounds (init es)
     
     fromList = fromFoldable
     
@@ -161,57 +159,45 @@ instance (Index i, Unboxed e) => Linear (Bytes i e) e
     single = withBounds . single
     
     -- | O(n + m) '++', O(n + m) memory.
-    (Bytes _ _ xs) ++ (Bytes _ _ ys) = withBounds $ xs ++ ys
+    xs ++ ys = withBounds $ on (++) unpack xs ys
     
     -- | O(n) 'replicate', O(n) memory.
     replicate n = withBounds . replicate n
     
-    listL (Bytes _ _ bytes#) = listL bytes#
-    listR (Bytes _ _ bytes#) = listR bytes#
+    listL = listL . unpack
+    listR = listR . unpack
     
-    concatMap f = fromList . foldr (\ a l -> i_foldr (:) l $ f a) []
+    concatMap f = fromList . foldr (flip $ (. f) . i_foldr (:)) []
+    concat      = fromList . foldr (flip $ i_foldr (:)) []
     
-    concat = fromList . foldr (\ a l -> i_foldr (:) l a) []
-    
-    partitions f es = fromList <$> partitions f (listL es)
+    partitions f = fmap fromList . partitions f . listL
 
 instance (Index i, Unboxed e) => Split (Bytes i e) e
   where
-    -- | O(1) 'take', O(1) memory.
-    take n (Bytes _ _ bytes#) = withBounds $ take n bytes#
+    take n = withBounds . take n . unpack
+    drop n = withBounds . drop n . unpack
     
-    -- | O(1) 'drop', O(1) memory.
-    drop n (Bytes _ _ bytes#) = withBounds $ drop n bytes#
+    splits ns = fmap withBounds . splits ns . unpack
+    chunks ns = fmap withBounds . chunks ns . unpack
+    parts  ns = fmap withBounds . parts  ns . unpack
     
-    -- | O(m) 'splits', O(m) memory (m - sizes list length).
-    splits ns (Bytes _ _ bytes#) = withBounds <$> splits ns bytes#
+    isPrefixOf xs ys = xs .<=. ys && on isPrefixOf unpack xs ys
     
-    -- | O(m) 'chuncks', O(m) memory (m - sizes list length).
-    chunks ns (Bytes _ _ bytes#) = withBounds <$> chunks ns bytes#
-    
-    -- | O(m) 'parts', O(m) memory (m - sizes list length).
-    parts  ns (Bytes _ _ bytes#) = withBounds <$> parts  ns bytes#
-    
-    isPrefixOf (Bytes l1 u1 bytes1#) (Bytes l2 u2 bytes2#) =
-      size (l1, u1) <= size (l2, u2) && bytes1# `isPrefixOf` bytes2#
-    
-    isSuffixOf (Bytes l1 u1 bytes1#) (Bytes l2 u2 bytes2#) =
-      size (l1, u1) <= size (l2, u2) && bytes1# `isSuffixOf` bytes2#
+    isSuffixOf xs ys = xs .<=. ys && on isSuffixOf unpack xs ys
     
     prefix p = i_foldr (\ e c -> p e ? c + 1 $ 0) 0
     suffix p = i_foldl (\ c e -> p e ? c + 1 $ 0) 0
 
 instance (Index i, Unboxed e) => Bordered (Bytes i e) i e
   where
-    offsetOf (Bytes l u _) = offset (l, u)
-    
+    offsetOf (Bytes l u _) = offset  (l, u)
     indexIn  (Bytes l u _) = inRange (l, u)
     indexOf  (Bytes l u _) = index (l, u)
     bounds   (Bytes l u _) = (l, u)
     lower    (Bytes l _ _) = l
     upper    (Bytes _ u _) = u
     
-    sizeOf (Bytes _ _ bytes#) = sizeOf bytes#
+    sizeOf = sizeOf . unpack
 
 --------------------------------------------------------------------------------
 
@@ -221,38 +207,28 @@ instance (Index i, Unboxed e) => Set (Bytes i e) e
   where
     setWith f (Bytes _ _ bytes#) = withBounds $ setWith f bytes#
     
-    insertWith f e (Bytes _ _ bytes#) = withBounds $ insertWith f e bytes#
-    deleteWith f e (Bytes _ _ bytes#) = withBounds $ deleteWith f e bytes#
+    insertWith f e = withBounds . insertWith f e . unpack
+    deleteWith f e = withBounds . deleteWith f e . unpack
     
-    {-# INLINE intersectionWith #-}
-    intersectionWith f (Bytes _ _ bytes1#) (Bytes _ _ bytes2#) =
-      withBounds $ intersectionWith f bytes1# bytes2#
+    intersectionWith f xs ys = withBounds $ on (intersectionWith f) unpack xs ys
+    unionWith        f xs ys = withBounds $ on (unionWith        f) unpack xs ys
     
-    {-# INLINE unionWith #-}
-    unionWith f (Bytes _ _ bytes1#) (Bytes _ _ bytes2#) =
-      withBounds $ unionWith f bytes1# bytes2#
+    differenceWith f xs ys = withBounds $ on (differenceWith f) unpack xs ys
+    symdiffWith    f xs ys = withBounds $ on (differenceWith f) unpack xs ys
     
-    {-# INLINE differenceWith #-}
-    differenceWith f (Bytes _ _ bytes1#) (Bytes _ _ bytes2#) =
-      withBounds $ differenceWith f bytes1# bytes2#
+    isContainedIn f e = isContainedIn f e . unpack
+    lookupLTWith  f o = lookupLTWith  f o . unpack
+    lookupGTWith  f o = lookupGTWith  f o . unpack
+    lookupLEWith  f o = lookupLEWith  f o . unpack
+    lookupGEWith  f o = lookupGEWith  f o . unpack
     
-    {-# INLINE symdiffWith #-}
-    symdiffWith f (Bytes _ _ bytes1#) (Bytes _ _ bytes2#) =
-      withBounds $ differenceWith f bytes1# bytes2#
-    
-    isContainedIn f e (Bytes _ _     es) = isContainedIn f e     es
-    lookupLTWith  f o (Bytes _ _ bytes#) = lookupLTWith  f o bytes#
-    lookupGTWith  f o (Bytes _ _ bytes#) = lookupGTWith  f o bytes#
-    lookupLEWith  f o (Bytes _ _ bytes#) = lookupLEWith  f o bytes#
-    lookupGEWith  f o (Bytes _ _ bytes#) = lookupGEWith  f o bytes#
-    
-    isSubsetWith f (Bytes _ _ xs) (Bytes _ _ ys) = isSubsetWith f xs ys
+    isSubsetWith f = on (isSubsetWith f) unpack
 
 instance (Index i, Unboxed e) => Scan (Bytes i e) e
 
 instance (Index i, Unboxed e) => Sort (Bytes i e) e
   where
-    sortBy cmp (Bytes l u bytes#) = Bytes l u (sortBy cmp bytes#)
+    sortBy cmp (Bytes l u es) = Bytes l u (sortBy cmp es)
 
 --------------------------------------------------------------------------------
 
@@ -260,15 +236,15 @@ instance (Index i, Unboxed e) => Sort (Bytes i e) e
 
 instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
   where
-    assoc bnds@(l, u) ascs = Bytes l u $ assoc bnds' ies
+    assoc bnds@(l, u) ascs = Bytes l u (assoc bnds' ies)
       where
         ies   = [ (offset bnds i, e) | (i, e) <- ascs, inRange bnds i ]
-        bnds' = defaultBounds $ size bnds
+        bnds' = defaultBounds (size bnds)
     
-    assoc' bnds@(l, u) defvalue ascs = Bytes l u $ assoc' bnds' defvalue ies
+    assoc' bnds@(l, u) defvalue ascs = Bytes l u (assoc' bnds' defvalue ies)
       where
         ies   = [ (offset bnds i, e) | (i, e) <- ascs, inRange bnds i ]
-        bnds' = defaultBounds $ size bnds
+        bnds' = defaultBounds (size bnds)
     
     fromIndexed = withBounds . fromIndexed
     
@@ -279,20 +255,20 @@ instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
     bytes // ascs = runST $ thaw bytes >>= (`overwrite` ascs) >>= done
     
     {-# INLINE (!^) #-}
-    (!^) (Bytes _ _ bytes#) = (bytes# !^)
+    (!^) es = (unpack es !^)
     
     {-# INLINE (.!) #-}
-    (.!) (Bytes l u bytes#) = (bytes# !^) . offset (l, u)
+    (.!) es = (unpack es !^) . offsetOf es
     
     (*$) p = ifoldr (\ i e is -> p e ? (i : is) $ is) []
 
 instance (Index i, Unboxed e) => IFold (Bytes i e) i e
   where
-    ifoldr f base = \ (Bytes l u bytes#) -> ifoldr (f . index (l, u)) base bytes#
-    ifoldl f base = \ (Bytes l u bytes#) -> ifoldl (f . index (l, u)) base bytes#
+    ifoldr f base = \ es -> ifoldr (f . indexOf es) base (unpack es)
+    ifoldl f base = \ es -> ifoldl (f . indexOf es) base (unpack es)
     
-    i_foldr f base = \ (Bytes _ _ bytes#) -> i_foldr f base bytes#
-    i_foldl f base = \ (Bytes _ _ bytes#) -> i_foldl f base bytes#
+    i_foldr f base = i_foldr f base . unpack
+    i_foldl f base = i_foldl f base . unpack
 
 --------------------------------------------------------------------------------
 
@@ -300,23 +276,27 @@ instance (Index i, Unboxed e) => IFold (Bytes i e) i e
 
 instance (Index i, Unboxed e) => Thaw (ST s) (Bytes i e) (STBytes s i e)
   where
-    thaw       (Bytes l u bytes#) = STBytes l u <$> thaw bytes#
-    unsafeThaw (Bytes l u bytes#) = STBytes l u <$> unsafeThaw bytes#
+    thaw       (Bytes l u es) = STBytes l u <$> thaw es
+    unsafeThaw (Bytes l u es) = STBytes l u <$> unsafeThaw es
 
 instance (Index i, Unboxed e) => Freeze (ST s) (STBytes s i e) (Bytes i e)
   where
-    freeze       (STBytes l u mbytes#) = Bytes l u <$> freeze mbytes#
-    unsafeFreeze (STBytes l u mbytes#) = Bytes l u <$> unsafeFreeze mbytes#
+    freeze       (STBytes l u es') = Bytes l u <$> freeze es'
+    unsafeFreeze (STBytes l u es') = Bytes l u <$> unsafeFreeze es'
 
 --------------------------------------------------------------------------------
 
 {-# INLINE withBounds #-}
 withBounds :: (Index i, Unboxed e) => SBytes# e -> Bytes i e
-withBounds bytes# = let (l, u) = defaultBounds (sizeOf bytes#) in Bytes l u bytes#
+withBounds es = let (l, u) = defaultBounds (sizeOf es) in Bytes l u es
+
+{-# INLINE unpack #-}
+unpack :: Bytes i e -> SBytes# e
+unpack =  \ (Bytes _ _ bytes#) -> bytes#
 
 {-# INLINE done #-}
 done :: (Unboxed e) => STBytes s i e -> ST s (Bytes i e)
-done (STBytes l u mbytes#) = Bytes l u <$> unsafeFreeze mbytes#
+done (STBytes l u es) = Bytes l u <$> unsafeFreeze es
 
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Bytes." ++ msg

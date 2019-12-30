@@ -95,14 +95,15 @@ instance Ord1 Unlist
   where
     liftCompare cmp = go
       where
+        go Z Z = EQ
+        go Z _ = LT
+        go _ Z = GT
         go xs@(Unlist arr1# arr1) ys@(Unlist arr2# arr2) = if n1 > n2
             then liftCompare cmp (take n2 arr1#) arr2# <> go (drop n2 xs) arr2
             else liftCompare cmp arr1# (take n2 arr2#) <> go arr1 (drop n2 ys)
           where
-            n1 = sizeOf arr1#; n2 = sizeOf arr2#
-        go Z Z = EQ
-        go Z _ = LT
-        go _ Z = GT
+            n1 = sizeOf arr1#
+            n2 = sizeOf arr2#
 
 --------------------------------------------------------------------------------
 
@@ -315,7 +316,7 @@ instance Set (Unlist e) e
         head' = es !^ 0
         last' = es !^ upper es
         
-        look' r l u = if l > u then Just r else case o `f` e of
+        look' r l u = l > u ? Just r $ case o `f` e of
             LT -> look' r l (j - 1)
             _  -> look' e (j + 1) u
           where
@@ -330,7 +331,7 @@ instance Set (Unlist e) e
         head' = es !^ 0
         last' = es !^ upper es
         
-        look' r l u = if l > u then Just r else case o `f` e of
+        look' r l u = l > u ? Just r $ case o `f` e of
             LT -> look' e l (j - 1)
             EQ -> (j + 1) >=. es ? Nothing $ Just (es !^ (j + 1))
             GT -> look' r (j + 1) u
@@ -346,7 +347,7 @@ instance Set (Unlist e) e
         head' = es !^ 0
         last' = es !^ upper es
         
-        look' r l u = if l > u then Just r else case o `f` e of
+        look' r l u = l > u ? Just r $ case o `f` e of
             LT -> look' e l (j - 1)
             EQ -> Just e
             GT -> look' r (j + 1) u
@@ -436,7 +437,7 @@ instance Freeze (ST s) (STUnlist s e) (Unlist e)
 
 {-# INLINE done #-}
 done :: STUnlist s e -> ST s (Unlist e)
-done = unsafeFreeze
+done =  unsafeFreeze
 
 {-# INLINE center #-}
 center :: Int -> Int -> Int
@@ -455,6 +456,5 @@ unreachEx msg = throw . UnreachableException $ "in SDP.Unrolled.Unlist." ++ msg
 
 lim :: Int
 lim =  1024
-
 
 

@@ -52,10 +52,10 @@ class (Ord k) => Map m k e | m -> k, m -> e
     {-# INLINE toMap #-}
     -- | toMap creates correct map from any data.
     toMap :: m -> m
-    toMap = mapAssocs . listMap
+    toMap =  mapAssocs . listMap
     
     -- | listMap is just 'assocs'.
-    listMap   :: m -> [(k, e)]
+    listMap :: m -> [(k, e)]
     
     {-# INLINE filterMap #-}
     -- | @filterMap f@ is same as @'mapAssocs' . 'filter' ('uncurry' f) . 'listMap'@
@@ -78,7 +78,7 @@ class (Ord k) => Map m k e | m -> k, m -> e
     {-# INLINE insert' #-}
     -- | @insert' key e@ is just @'insert' (k, e)@.
     insert' :: k -> e -> m -> m
-    insert' k e = \ me -> union' me $ mapAssocs [(k, e)]
+    insert' =  curry (union' . mapAssocs . single)
     
     {-# INLINE delete' #-}
     -- | delete' removes element with given key.
@@ -111,7 +111,7 @@ class (Ord k) => Map m k e | m -> k, m -> e
     {-# INLINE keys #-}
     -- | Return list of keys.
     keys :: m -> [k]
-    keys = fsts . listMap
+    keys =  fsts . listMap
     
     {-# INLINE isMapElem #-}
     -- | isMapElem is just 'isContainedIn' for maps.

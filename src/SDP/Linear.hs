@@ -32,9 +32,7 @@ module SDP.Linear
   pattern (:>), pattern (:<), pattern Z,
   
   -- * Other functions
-  stripPrefix, stripSuffix,
-  
-  intercalate, tails, inits, sorted, ascending
+  stripPrefix, stripSuffix, intercalate, tails, inits, sorted, ascending
 )
 where
 
@@ -68,8 +66,8 @@ class (Index i) => Bordered (b) i e | b -> i, b -> e
       structure. If the structure doesn't have explicitly defined boundaries
       (list, for example), use the @'defaultBounds' ('sizeOf' es)@.
     -}
-    bounds    :: b -> (i, i)
-    bounds es =  (lower es, upper es)
+    bounds :: b -> (i, i)
+    bounds es = (lower es, upper es)
     
     {-# INLINE lower #-}
     -- | lower bound of structure
@@ -84,13 +82,13 @@ class (Index i) => Bordered (b) i e | b -> i, b -> e
     {-# INLINE assocs #-}
     -- | list of associations (index, element).
     default assocs :: (Linear b e) => b -> [(i, e)]
-    assocs    :: b -> [(i, e)]
-    assocs es =  indices es `zip` listL es
+    assocs :: b -> [(i, e)]
+    assocs es = indices es `zip` listL es
     
     {-# INLINE sizeOf #-}
     -- | actual size of structure.
-    sizeOf  :: b -> Int
-    sizeOf  =  size . bounds
+    sizeOf :: b -> Int
+    sizeOf =  size . bounds
     
     {-# INLINE indexIn #-}
     -- | checks if an index falls within the boundaries of the structure.
@@ -105,12 +103,12 @@ class (Index i) => Bordered (b) i e | b -> i, b -> e
     {-# INLINE indexOf #-}
     -- | index by offset in structure.
     indexOf :: b -> Int -> i
-    indexOf es = index (bounds es)
+    indexOf =  index . bounds
     
     {-# INLINE offsetOf #-}
     -- | index offset in structure bounds.
     offsetOf :: b -> i -> Int
-    offsetOf es = offset (bounds es)
+    offsetOf =  offset . bounds
 
 --------------------------------------------------------------------------------
 
@@ -149,12 +147,12 @@ class Linear l e | l -> e
     lzero =  fromList []
     
     -- | Separates 'head' and 'tail'. Service function, used in (':>').
-    uncons      :: l -> (e, l)
-    uncons xs   =  (head xs, tail xs)
+    uncons :: l -> (e, l)
+    uncons xs = (head xs, tail xs)
     
     -- | Adds element to line as 'head'. Service function, used in (':>').
-    toHead      :: e -> l -> l
-    toHead e es =  single e ++ es
+    toHead :: e -> l -> l
+    toHead =  (++) . single
     
     head :: l -> e
     head =  fst . uncons
@@ -163,12 +161,12 @@ class Linear l e | l -> e
     tail =  snd . uncons
     
     -- | Separates 'init' and 'last'. Service function, used in (':<').
-    unsnoc      :: l -> (l, e)
-    unsnoc xs   =  (init xs, last xs)
+    unsnoc :: l -> (l, e)
+    unsnoc xs = (init xs, last xs)
     
     -- | Adds element to line as 'last'. Service function, used in (':<').
-    toLast      :: l -> e -> l
-    toLast es e =  es ++ single e
+    toLast :: l -> e -> l
+    toLast es =  (es ++) . single
     
     init :: l -> l
     init =  fst . unsnoc
@@ -179,24 +177,24 @@ class Linear l e | l -> e
     {- Construction. -}
     
     -- | Singleton.
-    single      :: e -> l
-    single x    =  fromList [x]
+    single :: e -> l
+    single =  fromList . pure
     
     -- | Generalization of (++).
-    (++)        :: l -> l -> l
-    xs ++ ys    =  fromList $ listL xs ++ listL ys
+    (++) :: l -> l -> l
+    xs ++ ys = fromList $ on (++) listL xs ys
     
     -- | Line of n equal elements.
-    replicate   :: Int -> e -> l
-    replicate n =  fromListN n . replicate n
+    replicate :: Int -> e -> l
+    replicate n = fromListN n . replicate n
     
     -- | Creates line from list elements.
-    fromList    :: [e] -> l
-    fromList es =  fromListN (length es) es
+    fromList :: [e] -> l
+    fromList es = fromListN (length es) es
     
     -- | May create finite line from infinite list.
-    fromListN   :: Int -> [e] -> l
-    fromListN n =  fromList . take n
+    fromListN :: Int -> [e] -> l
+    fromListN n = fromList . take n
     
     -- | Same as @listL . reverse@.
     listR :: l -> [e]
@@ -217,26 +215,26 @@ class Linear l e | l -> e
     concat =  foldr (++) Z
     
     -- | Generalization of concatMap.
-    concatMap   :: (Foldable f) => (a -> l) -> f a -> l
-    concatMap f =  foldr' (\ x y -> f x ++ y) Z
+    concatMap :: (Foldable f) => (a -> l) -> f a -> l
+    concatMap f = foldr' ((++) . f) Z
     
     -- | Generalization of intersperse.
-    intersperse   :: e -> l -> l
-    intersperse e =  fromList . intersperse e . listL
+    intersperse :: e -> l -> l
+    intersperse e = fromList . intersperse e . listL
     
     {- Filtering functions. -}
     
     -- | Generalization of filter.
-    filter   :: (e -> Bool) -> l -> l
-    filter p =  fromList . filter p . listL
+    filter :: (e -> Bool) -> l -> l
+    filter p = fromList . filter p . listL
     
     -- | Generalization of partition.
-    partition      :: (e -> Bool) -> l -> (l, l)
-    partition p es =  (filter p es, filter (not . p) es)
+    partition :: (e -> Bool) -> l -> (l, l)
+    partition p es = (filter p es, filter (not . p) es)
     
     -- | Generalization of partition, that select sublines by predicates.
-    partitions       :: (Foldable f) => f (e -> Bool) -> l -> [l]
-    partitions ps' = partitions' (toList ps')
+    partitions :: (Foldable f) => f (e -> Bool) -> l -> [l]
+    partitions = partitions' . toList
       where
         partitions'    []    xs = [xs]
         partitions' (p : ps) xs = let (y, ys) = partition p xs in y : partitions' ps ys
@@ -253,14 +251,14 @@ class Linear l e | l -> e
     reverse =  fromList . listR
     
     -- | Generalization of subsequences.
-    subsequences     :: l -> [l]
-    subsequences xxs =  Z : ss xxs
+    subsequences :: l -> [l]
+    subsequences =  (Z :) . ss
       where
         ss es = case es of {(x :> xs) -> single x : foldr (\ ys r -> ys : (x :> ys) : r) [] (ss xs); _ -> Z}
     
     -- | Same as nubBy ('=='), but may be faster (for bytestring, for example).
     nub :: (Eq e) => l -> l
-    nub = nubBy (==)
+    nub =  nubBy (==)
     
     -- | Generalization of nubBy.
     nubBy :: (e -> e -> Bool) -> l -> l
@@ -290,28 +288,28 @@ class (Linear s e) => Split s e | s -> e
     
     {- Simple splitters. -}
     
-    take   :: Int -> s -> s
-    take n =  fst . split n
+    take :: Int -> s -> s
+    take n = fst . split n
     
-    drop   :: Int -> s -> s
-    drop n =  snd . split n
+    drop :: Int -> s -> s
+    drop n = snd . split n
     
     -- | split, also known as splitAt.
-    split      :: Int -> s -> (s, s)
-    split n es =  (take n es, drop n es)
+    split :: Int -> s -> (s, s)
+    split n es = (take n es, drop n es)
     
     {-# INLINE splits #-}
     -- | Splits structures into sublines by given lengths.
-    splits      :: (Foldable f) => f Int -> s -> [s]
-    splits ints =  splits' (toList ints)
+    splits :: (Foldable f) => f Int -> s -> [s]
+    splits =  splits' . toList
       where
         splits'    []    xs = [xs]
         splits' (i : is) xs = let (y, ys) = split i xs in y : splits is ys
     
     {-# INLINE parts #-}
     -- | Splits structures into parts by given initial indices.
-    parts      :: (Foldable f) => f Int -> s -> [s]
-    parts ints =  parts' 0 (toList ints)
+    parts :: (Foldable f) => f Int -> s -> [s]
+    parts =  parts' 0 . toList
       where
         parts' _ [] xs = [xs]
         parts' c (i : is) xs = let (y, ys) = split (i - c) xs in y : parts' i is ys
@@ -319,7 +317,7 @@ class (Linear s e) => Split s e | s -> e
     {-# INLINE chunks #-}
     -- | Splits structures into chunks of a given size (and the rest).
     chunks :: Int -> s -> [s]
-    chunks n = \ es -> case split n es of {(x, Z) -> [x]; (x, xs) -> x : chunks n xs}
+    chunks n es = case split n es of {(x, Z) -> [x]; (x, xs) -> x : chunks n xs}
     
     {- Subsequence checkers. -}
     
@@ -335,8 +333,8 @@ class (Linear s e) => Split s e | s -> e
     
     -- | isInfixOf checks whether the first line is the substring of the second
     isInfixOf  :: (Eq e) => s -> s -> Bool
-    isInfixOf xs ys@(_ :> ys') = xs `isPrefixOf` ys || xs `isInfixOf` ys'
-    isInfixOf _ _ = False
+    isInfixOf _   Z = False
+    isInfixOf xs ys = xs `isPrefixOf` ys || xs `isInfixOf` tail ys
     
     {- Largest sequences. -}
     
@@ -357,38 +355,38 @@ class (Linear s e) => Split s e | s -> e
     dropWhile p es = drop (p `prefix` es) es
     
     -- | Takes the longest tail by predicate.
-    takeEnd   :: (e -> Bool) -> s -> s
+    takeEnd :: (e -> Bool) -> s -> s
     
     -- | Drops the longest tail by predicate.
-    dropEnd   :: (e -> Bool) -> s -> s
+    dropEnd :: (e -> Bool) -> s -> s
     
     -- | Left-side span.
-    spanl       :: (e -> Bool) -> s -> (s, s)
-    spanl  p es =  (takeWhile p es, dropWhile p es)
+    spanl :: (e -> Bool) -> s -> (s, s)
+    spanl p es = (takeWhile p es, dropWhile p es)
     
     -- | Left-side break.
-    breakl      :: (e -> Bool) -> s -> (s, s)
-    breakl p es =  (takeWhile (not . p) es, dropWhile (not . p) es)
+    breakl :: (e -> Bool) -> s -> (s, s)
+    breakl p es = (takeWhile (not . p) es, dropWhile (not . p) es)
     
     -- | Right-side span.
-    spanr       :: (e -> Bool) -> s -> (s, s)
-    spanr p es  =  (takeEnd p es, dropEnd p es)
+    spanr :: (e -> Bool) -> s -> (s, s)
+    spanr p es = (takeEnd p es, dropEnd p es)
     
     -- | Right-side break.
-    breakr      :: (e -> Bool) -> s -> (s, s)
+    breakr :: (e -> Bool) -> s -> (s, s)
     breakr p es = (takeEnd (not . p) es, dropEnd (not . p) es)
     
     default takeEnd :: (Bordered s i e) => (e -> Bool) -> s -> s
-    takeEnd p es    =  drop (sizeOf es - suffix p es) es
+    takeEnd p es = drop (sizeOf es - suffix p es) es
     
     default dropEnd :: (Bordered s i e) => (e -> Bool) -> s -> s
-    dropEnd p es    =  take (sizeOf es - suffix p es) es
+    dropEnd p es = take (sizeOf es - suffix p es) es
     
-    default prefix  :: (Foldable t, t e ~~ s) => (e -> Bool) -> s -> Int
-    prefix p        =  foldr (\ e c -> p e ? c + 1 $ 0) 0
+    default prefix :: (Foldable t, t e ~~ s) => (e -> Bool) -> s -> Int
+    prefix p = foldr (\ e c -> p e ? c + 1 $ 0) 0
 
-    default suffix  :: (Foldable t, t e ~~ s) => (e -> Bool) -> s -> Int
-    suffix p        =  foldl (\ c e -> p e ? c + 1 $ 0) 0
+    default suffix :: (Foldable t, t e ~~ s) => (e -> Bool) -> s -> Int
+    suffix p = foldl (\ c e -> p e ? c + 1 $ 0) 0
 
 --------------------------------------------------------------------------------
 
@@ -416,45 +414,43 @@ pattern xs :< x <- ((isNull ?: unsnoc) -> Just (xs, x)) where (:<) = toLast
 
 instance Linear [e] e
   where
+    lzero  = []
+    toHead = (:)
     isNull = null
+    single = pure
+    (++)   = (L.++)
     
-    fromList    = id
-    fromListN   = take
-    lzero       = [ ]
-    single x    = [x]
+    fromList     = id
+    fromListN    = take
+    fromFoldable = toList
     
-    (++)        = (L.++)
-    toHead      = (:)
-    toLast xs x = foldr' (:) [x] xs
+    toLast = flip (foldr' (:) . pure)
+    listR  = L.reverse
+    listL  = toList
+    nubBy  = L.nubBy
     
-    uncons   [ ]    = throw $ PatternMatchFail "in SDP.Linear.(:>)"
+    uncons    []    = throw $ PatternMatchFail "in SDP.Linear.(:>)"
     uncons (e : es) = (e, es)
     
     unsnoc   [ ]    = throw $ PatternMatchFail "in SDP.Linear.(:<)"
     unsnoc   [e]    = ([], e)
     unsnoc (e : es) = let (es', e') = unsnoc es in (e : es', e')
     
-    reverse      = L.reverse
-    replicate    = L.replicate
-    intersperse  = L.intersperse
-    
-    filter       = L.filter
-    partition    = L.partition
-    concatMap    = L.concatMap
-    fromFoldable = toList
-    
-    isSubseqOf   = L.isSubsequenceOf
-    listL        = toList
-    listR        = L.reverse
-    nubBy        = L.nubBy
+    filter      = L.filter
+    reverse     = L.reverse
+    replicate   = L.replicate
+    partition   = L.partition
+    concatMap   = L.concatMap
+    intersperse = L.intersperse
+    isSubseqOf  = L.isSubsequenceOf
 
 instance Bordered [e] Int e
   where
-    assocs  es = zip  [0 .. ] es
-    sizeOf  es = length es
+    assocs = zip [0 .. ]
+    sizeOf = length
     
-    lower   _  = 0
-    upper   es = length es - 1
+    lower _  = 0
+    upper es = length es - 1
 
 instance Split [e] e
   where
@@ -463,8 +459,8 @@ instance Split [e] e
     split = L.splitAt
     
     isPrefixOf = L.isPrefixOf
-    isInfixOf  = L.isInfixOf
     isSuffixOf = L.isSuffixOf
+    isInfixOf  = L.isInfixOf
     
     spanl  = L.span
     breakl = L.break
@@ -496,10 +492,9 @@ inits es = es : inits (init es)
 -- | sorted is a function that checks for sorting.
 sorted :: (Linear l e, Ord e) => l -> Bool
 sorted Z  = True
-sorted es = and $ zipWith (<=) es' (tail es') where es' = listL es
+sorted es = and $ zipWith (<=) xs tail' where xs@(_ : tail') = listL es
 
 -- | @ascending line seqs@ checks if the @(start, count) <- seqs@ are sorted.
-ascending :: (Split s e, Ord e) => s -> [(Int, Int)] -> Bool
-ascending es ss = sorted `all` splits (snds ss) es
-
+ascending :: (Split s e, Ord e) => s -> [Int] -> Bool
+ascending es = all sorted . (`splits` es)
 

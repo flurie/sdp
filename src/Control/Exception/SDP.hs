@@ -6,8 +6,8 @@
     Portability :  portable
   
   @Control.Exception.SDP@ - service module that contain two useful exception
-  types and reexports @"Control.Exception"@. @SDP.SafePrelude@ doesn't export
-  this module (just like @"Prelude"@ doesn't export @"Control.Exception"@).
+  types. @SDP.SafePrelude@ doesn't export this module (just like "Prelude"
+  doesn't export "Control.Exception").
 -}
 module Control.Exception.SDP
 (
@@ -34,13 +34,9 @@ default ()
   
   If the founded error may depend on the check order, then it should be
   indicated in the documentation. For example: first it checks overflow, and
-  then underflow. But if an overflow is detected, the underflow may not be\
-  noticed.
-  
-  A check is recommended in the constructors order: empty bounds, overflow and
-  underflow.
+  then underflow. But if an overflow is detected, the underflow may not be
+  noticed. Recommended check order is: empty bounds, overflow and underflow.
 -}
-
 data IndexException = UndefinedValue String
                     | EmptyRange     String
                     | IndexOverflow  String
@@ -58,23 +54,17 @@ instance Exception IndexException
 
 --------------------------------------------------------------------------------
 
-{-|
-    'UnreachableException' is a service exception type that should never be
-    thrown.
-    
-    Unlike 'ErrorCall', it doesn't mean "this is an erroneous action", but "as
-    intended".
-    
-    Unlike 'AssertionFailed', it doesn't imply any additional checks - this is a
-    fact.
+{- |
+   A 'UnreachableException' is used as an exception that should never be thrown.
+  Unlike 'ErrorCall' and 'AssertionFailed', which signal an incorrect use of a
+  function or an error in its behavior, 'UnreachableException' indicates an
+  unreachable calculation.
 -}
-data UnreachableException = UnreachableException String
-  deriving (Eq, Typeable)
+data UnreachableException = UnreachableException String deriving (Eq, Typeable)
 
 instance Show UnreachableException
   where
     show (UnreachableException s) = "unreachable exception " ++ s
 
 instance Exception UnreachableException
-
 

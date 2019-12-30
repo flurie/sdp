@@ -51,7 +51,7 @@ class (Monad m, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
     {-# INLINE fromAssocs #-}
     -- | fromAssocs returns new mutable structure created from assocs.
     fromAssocs :: (i, i) -> [(i, e)] -> m v
-    fromAssocs bnds ascs =  fromAssocs' bnds (undEx "fromAssocs") ascs
+    fromAssocs bnds = fromAssocs' bnds (undEx "fromAssocs")
     
     -- | fromAssocs' return new mutable structure created from assocs and default element
     fromAssocs' :: (i, i) -> e -> [(i, e)] -> m v
@@ -65,7 +65,7 @@ class (Monad m, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
     -- | (>!) is unsafe monadic reader.
     {-# INLINE (>!) #-}
     (>!) :: v -> i -> m e
-    es >! i = fromMaybe (undEx "(!)") <$> es !?> i
+    (>!) es = fmap (fromMaybe $ undEx "(!)") . (es !?>)
     
     -- | (!>) is well-safe monadic reader.
     {-# INLINE (!>) #-}
@@ -141,10 +141,10 @@ class (IndexedM m v i e) => IFoldM m v i e
     i_foldrM :: (e -> r -> m r) -> r -> v -> m r
     i_foldlM :: (r -> e -> m r) -> r -> v -> m r
     
-    -- | i_foldr is just foldrM in IFoldM context
+    -- | i_foldrM is just foldrM in IFoldM context
     i_foldrM f = ifoldrM (const f)
     
-    -- | i_foldl is just foldlM in IFoldM context
+    -- | i_foldlM is just foldlM in IFoldM context
     i_foldlM f = ifoldlM (const f)
 
 --------------------------------------------------------------------------------
