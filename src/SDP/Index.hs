@@ -63,6 +63,7 @@ import GHC.Exts ( IsList )
 import qualified GHC.Exts as E
 
 import GHC.Types
+import GHC.Read
 
 import Test.QuickCheck
 
@@ -89,6 +90,8 @@ data InBounds = ER {- ^ Empty Range     -}
               | IN {- ^ Index IN range  -}
               | OR {- ^ Overflow Range  -}
             deriving ( Eq, Show, Read, Enum )
+
+--------------------------------------------------------------------------------
 
 {- |
   Index is service class for Indexed and Bordered. It's the result of combining
@@ -337,12 +340,15 @@ instance Index Word64  where offset = intOffset; defaultBounds = defUB
   N-dimensional index type. The type (head :& tail) allows working with any
   finite dimension number.
 -}
-data tail :& head = !tail :& !head deriving (Eq, Ord, Read)
+data tail :& head = !tail :& !head deriving ( Eq, Ord )
 
--- Derived instance doesn't have whitespaces, but I like whitespaces...
-instance (Show tail, Show head) => Show (tail :& head)
+instance (IsList (i' :& i), E.Item (i' :& i) ~~ i, Show i) => Show (i' :& i)
   where
-    show (es :& e) = shows es . showString " :& " $ show e
+    showsPrec p = showsPrec p . E.toList
+
+instance (IsList (i' :& i), E.Item (i' :& i) ~~ i, Read i) => Read (i' :& i)
+  where
+    readPrec = E.fromList <$> readPrec
 
 instance (Arbitrary i, Arbitrary i') => Arbitrary (i' :& i)
   where

@@ -1,0 +1,206 @@
+version preindex:
+  IMPROVED:
+    Read and Show instances for (:&).
+
+version 0.2:
+  FIXED:
+    * assoc and assoc'
+    * copied' implementation for Array and Bytes and related segfault in timSort
+    * test suite for Sort: the probability that a structure longer than 64
+    elements will be generated during the test is too small and insertionSort
+    is tested instead of timSort.
+    * Freeze instances for Array, Ublist and ByteList.
+    * some stupid bugs
+  
+  DEPRECATED:
+    * SDP.Index.unsafeBounds (in favour of defaultBounds)
+    * SDP.SortM.Stuff (in favour of SDP.SortM.Tim, SDP.Linear and SDP.LinearM)
+  
+  ADDED:
+    * SDP.SortM.Tim (replaces SDP.SortM.Stuff)
+    * SDP.SortM.Insertion (reexport of insertionSort from SDP.SortM.Tim)
+    * SDP.Map (preliminary realisation of dictionary)
+    
+    * Typeable, Data and Generic instances for all structures.
+    
+    * OverloadedIndices (see SDP.Index docs)
+    
+    * [internal] SArray#, SBytes#, STArray# and STBytes# primitives.
+    
+    * RopeM service structure for efficient splitting in TimSort.
+    
+    * Test.SDP.Eq and Test.SDP.Ord test suites
+    
+    * Test.SDP module for short import of basic test suite.
+    * Test.SDP.Gen module with Short, Medium and Long newtypes for Arbitrary.
+    
+    * binaryContain, new (/>), assocMap and assocMap' functions (Indexed)
+    * offsetOf and new indexOf functions (Bordered)
+    * defaultBounds function (Index)
+    * groupSetWith function (Set)
+    * chunks function (Split)
+    
+    * test suites for estimate and indices
+    
+    * benchmark for timsort
+  
+  MOVED:
+    Old indexOf (to indexIn)
+    Old (/>) (to update)
+  
+  IMPROVED:
+    * Scan class rewrited
+    * Estimate class rewrited
+    * Ord instances - now lexicographic, like lists
+    * Foldable and IFold rewrited for inline with 2 arguments
+    * Indexed and IndexedM now independent from Linear and LinearM resp.
+    * All structures representation: O(1) splits, trustworthy size
+    property and just code deduplication.
+    * sortTest suite rewrited for Medium-sized structures generator (see fixes)
+    * prevTest and nextTest now work fast (fixed memory leak in where expr.)
+
+--------------------------------------------------------------------------------
+
+version 0.1.1:
+  ADDED:
+    * imap and accum functions (Indexed)
+    * reshape and fromAccum procedures (IndexedM)
+    * IFold and IFoldM classes
+
+version 0.1:
+  DEPRECATED:
+    * SDP.Tree.BinTree
+      1) BinTree is memory inefficient
+      2) BinTree is very slow
+      3) The idea of using AVL turned out to be worse than I thought. I see no
+      reason to optimize the existing implementation or change the algorithm to
+      a faster one. The result will be noticeably worse than the implementation
+      on arrays
+      4) Effective tools appeared in the library for working with mutable data
+      5) TimSort showed a good enough result so that heapSort implementation
+      isn't required
+  
+  ADDED:
+    * Set   instances for Array, Bytes, Unlist, Ublist, Unrolled and ByteList
+    * Sort  instances for Unrolled, ByteList, Unlist, Ublist and BinTree
+    * SortM instances for STUnrolled, STByteList, STUnlist and STUblist
+    
+    * (!^) and fromIndexed functions (Indexed)
+    * (!#>), write_ fromIndexed' and fromIndexedM procedures (SDP.IndexedM)
+    
+    * Test.SDP.Sort module (very short)
+    * Thaw and Freeze classes
+  
+  MOVED:
+    * arrcopy procedure (internal for SDP.SortM.Stuff)
+    * write function (Indexed class)
+    * Some internal common comparators (SDP.Estimate)
+
+--------------------------------------------------------------------------------
+
+version 0.0.2:
+  FIXED:
+    * old bug in SDP.Index.inBounds ("wrong" Ord for default declaration)
+  
+  ADDED:
+    * STArray, STBytes, STUnrolled, STByteList, STUnlist and STUblist
+    * BorderedM, LinearM, IndexedM and SortM classes
+    
+    * Service class IndexEQ for trivial index declarations
+    * Index instances for 2- ... 15-dimensional indices
+    * Index instances for 2- .. 15-dimensional tuples
+
+version 0.0.1.2:
+  ADDED:
+    * IsString instances
+    * IsList   instances
+
+version 0.0.1.1:
+  ADDED:
+    * Set instance for BinTree
+    * Semigroup and Monoid instances
+
+version 0.0.1.0:
+  FIXED:
+    * Some bugs
+  
+  ADDED:
+    * UnreachableException type
+
+version 0.0.0.11:
+  ADDED:
+    * Binary trees
+
+version 0.0.0.10:
+  ADDED:
+    * ByteList (Unrolled + UArray)
+    * Functions parts, partitions, stripPrefix and stripSuffix
+
+version 0.0.0.9:
+  ADDED:
+    * Bytes (UArray analogue)
+  
+  IMPROVED:
+    * Test suite rewrited and documented
+    * List instance: implemented lost fucntions (prefix, suffix) for list
+    * Changed Unboxed class (removed fillByteArray# and changed newUnboxed
+    implementation)
+
+version 0.0.0.8:
+  ADDED:
+    * Service class Unboxed for ByteArray
+
+version 0.0.0.7:
+  ADDED:
+    * [internal] STUArray (rewrited Data.Array.Base type)
+  
+  IMPROVED:
+    * Linear and LineS now completely (formally) independent of Foldable
+
+version 0.0.0.6:
+  ADDED:
+    * New dependency: ghc-prim >= 0.5.3 (to use ~~ class)
+    * Sort class.
+
+version 0.0.0.5:
+  FIXED:
+    * unsafeIndex for unsigned types - (toEnum (-1)) fail. Structures with
+    unsigned indices now indexed from (toEnum 1)
+  
+  ADDED:
+    * Haddock documentation.
+
+version 0.0.0.4:
+  ADDED:
+    * LineS and Split classes
+    * Tuple instances for Index
+    * Unrolled linked list type
+  
+  IMPROVED:
+    * Linear class extended
+
+version 0.0.0.3:
+  FIXED:
+    * Many stupid bugs
+  
+  ADDED:
+    * Сommon tests for standard classes were added
+
+version 0.0.0.2:
+  ADDED:
+    Array type (rewrited GHC.Arr)
+
+version 0.0.0.1:
+  ADDED:
+    * Indexed class
+    * Linear class
+    * Set class
+    
+    * Estimate class
+    * Index class
+    * Scan class
+    * Zip class
+    
+    * IndexException type
+
+
