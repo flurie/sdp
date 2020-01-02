@@ -1,6 +1,9 @@
 version preindex:
   IMPROVED:
     Read and Show instances for (:&).
+  
+  REMOVED:
+    unsafeBounds function.
 
 version 0.2:
   FIXED:

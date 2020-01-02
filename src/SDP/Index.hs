@@ -52,7 +52,7 @@ module SDP.Index
   ind10, ind11, ind12, ind13, ind14, ind15,
   
   -- * IndexEQ class
-  IndexEQ (..), unsafeBounds, toBounds
+  IndexEQ (..), toBounds
 )
 where
 
@@ -712,20 +712,4 @@ defUB n = n < 1 ? (unsafeIndex 1, unsafeIndex 0) $ (unsafeIndex 0, unsafeIndex $
 -- | > toBounds (l, u) = (toIndex l, toIndex u)
 toBounds :: (IndexEQ i j) => (i, i) -> (j, j)
 toBounds (l, u) = (toIndex l, toIndex u)
-
-{-# DEPRECATED unsafeBounds "unsafeBounds deprecated in favour of defaultBounds" #-}
-{-# INLINE unsafeBounds #-}
-{- |
-  Old version of unsafeBounds n is (unsafeIndex 0, unsafeIndex $ n - 1). That
-  realization, though not a crutch, but still restricts the permissible limits
-  for unsigned index (without this restriction in toEnum can occur underflow),
-  which is critical for the indices with a small range (Int8, Word8, etc).
-  
-  The actual unsafeBounds implementation is 'defaultBounds', which handles the
-  case with an empty space more correctly (due to the possibility of overriding
-  in instance).
--}
-unsafeBounds :: (Index i) => Int -> (i, i)
-unsafeBounds = defaultBounds
-
 
