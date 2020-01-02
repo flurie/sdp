@@ -196,6 +196,8 @@ test-suite test-array
     SDP.Internal.SArray
     SDP.Internal.Show
     SDP.Internal.Read
+    
+    SDP.Tuple
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -252,6 +254,8 @@ test-suite test-bytes
     SDP.Internal.SBytes
     SDP.Internal.Read
     SDP.Internal.Show
+    
+    SDP.Tuple
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -309,6 +313,8 @@ test-suite test-unrolled
     SDP.Internal.SArray
     SDP.Internal.Read
     SDP.Internal.Show
+    
+    SDP.Tuple
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -367,6 +373,8 @@ test-suite test-bytelist
     SDP.Internal.SBytes
     SDP.Internal.Read
     SDP.Internal.Show
+    
+    SDP.Tuple
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -422,6 +430,8 @@ test-suite test-ublist
     
     SDP.Internal.SBytes
     SDP.Internal.Show
+    
+    SDP.Tuple
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -476,6 +486,8 @@ test-suite test-unlist
     
     SDP.Internal.SArray
     SDP.Internal.Show
+    
+    SDP.Tuple
   
   build-depends:
     base                       >= 4.12  && < 5,
@@ -542,6 +554,8 @@ benchmark bench-sort
     
     SDP.Internal.SArray
     SDP.Internal.SBytes
+    
+    SDP.Tuple
   
   build-depends:
     base         >= 4.12  && < 5,

@@ -12,19 +12,13 @@
     Portability :  non-portable (a lot of GHC extensions)
   
   @SDP.Index@ provides 'Index' - service class of types that may represent
-  indices, based on "Data.Ix" and @Data.Array.Repa.Shape@ (repa), but has more
-  useful functions and may be eaily extended.
-  
-  In addition, I don't like the Ix implementation: different instances use
-  different types of exceptions, some checks restrict my implementations,
-  @rangeSize@ is too long to write...
-  I refused to create a class based on Ix, because in this case I still need one
-  new class.
+  indices, based on "Data.Ix" and @Data.Array.Repa.Shape@ (see repa). I refused
+  to create a Ix-based class, because in this case I still need one new class.
   
   SDP.Index provides a generic n-dimensional index (type ':&').
   
   Also (since sdp-0.2) are available @OverloadedIndices@ - syntactic sugar based
-  on the language extension @OverloadedLists@. For example, instead of the
+  on the @OverloadedLists@ language extension. For example, instead of the
   inconvenient @es!(ind4 0 1 2 3)@ and just the awful @es!(E:&0:&1:&2:&3)@ you
   can write shorter and more understandable indices: @es![0, 1, 2, 3]@.
   
@@ -40,16 +34,19 @@ module SDP.Index
   module Data.Word,
   module Data.Int,
   
-  -- * Index class
-  InBounds (..), Bounds, Index (..),
+  -- * Service types
+  InBounds (..), Bounds,
   
   -- * N-dimensional index
   E (..), (:&) (..),
   
-  -- ** Type synonyms and short constuctors for n-dimensional indices
-  I2, I3, I4, I5, I6, I7, I8, I9, I10 , I11, I12, I13, I14, I15,
+  -- * Index class
+  Index (..),
   
-  -- ** Comfortable index constructors
+  -- ** Type synonyms
+  I2, I3, I4, I5, I6, I7, I8, I9, I10, I11, I12, I13, I14, I15,
+  
+  -- ** Old constructors
   ind2,  ind3,  ind4,  ind5,  ind6,  ind7,  ind8,  ind9,
   ind10, ind11, ind12, ind13, ind14, ind15,
   
@@ -81,6 +78,8 @@ default ()
 
 --------------------------------------------------------------------------------
 
+{- Service types. -}
+
 {- |
   Type synonym for very long type annotation, e.g. @Bounds (Int, Int, Int, Int)@
   is same as @((Int, Int, Int, Int), (Int, Int, Int, Int))@
@@ -96,21 +95,100 @@ data InBounds = ER {- ^ Empty Range     -}
 
 --------------------------------------------------------------------------------
 
+{- N-dimensional index type. -}
+
+-- | Service type, that represents zero-dimensional index.
+data E = E deriving ( Eq, Ord, Show, Read )
+
+instance Arbitrary E where arbitrary = return E
+
+instance Default E where def = E
+
 {- |
-  Index is service class for Indexed and Bordered. It's the result of combining
-  Data.Ix (base) and Data.Array.Repa.Index (repa), but adds several features of
-  its own and more polymorphic instances. Also module may be extended.
+  N-dimensional index type. The type (head :& tail) allows working with any
+  finite dimension number.
+-}
+data tail :& head = !tail :& !head deriving ( Eq, Ord )
+
+instance (IsList (i' :& i), E.Item (i' :& i) ~~ i, Show i) => Show (i' :& i)
+  where
+    showsPrec p = showsPrec p . E.toList
+
+instance (IsList (i' :& i), E.Item (i' :& i) ~~ i, Read i) => Read (i' :& i)
+  where
+    readPrec = E.fromList <$> readPrec
+
+instance (Arbitrary i, Arbitrary i') => Arbitrary (i' :& i)
+  where
+    arbitrary = applyArbitrary2 (:&)
+
+instance (Enum i) => Enum (E :& i)
+  where
+    succ (E :& e) = E :& succ e
+    pred (E :& e) = E :& pred e
+    
+    toEnum n          = E :& toEnum n
+    fromEnum (E :& e) = fromEnum e
+    
+    enumFrom       (E :& f)                   = (E :&) <$> [f .. ]
+    enumFromTo     (E :& f) (E :& l)          = (E :&) <$> [f .. l]
+    enumFromThen   (E :& f) (E :& n)          = (E :&) <$> [f, n .. ]
+    enumFromThenTo (E :& f) (E :& n) (E :& l) = (E :&) <$> [f, n .. l]
+
+instance (Default d, Default d') => Default (d :& d') where def = def :& def
+
+--------------------------------------------------------------------------------
+
+{- |
+  Index is service class. It's the result of combining Data.Ix (base) and
+  Data.Array.Repa.Index (repa), but adds several features of its own and more
+  polymorphic instances. Also module may be extended.
   
-  The default definitions is correct for all (Ord, Enum) types with rank 1.
+  Note that the default definitions are only valid for one-dimensional indexes
+  (like Int, Word, etc.). Integral types and enumeration types are best suited
+  for indexes.
 -}
 class (Ord i) => Index i
   where
+    {- Type familes -}
+    
+    {- |
+      Type of upper (sliceable) dimension:
+      
+      > DimLast (T7 Int) ~~ Int
+      > DimLast (I3 Int) ~~ Int
+      > DimLast Integer  ~~ Integer
+    -}
+    type DimLast i :: *
+    type DimLast i =  i
+    
+    {- |
+      The type of subspace, of 'rank' @N-1@, where @N@ is the 'rank' of the
+      space specified by this 'Index' type.
+      
+      > DimInit (T2 Char) ~~ Char
+      > DimInit (I3 Word) ~~ I2 Word
+      > DimInit Integer   ~~ E
+    -}
+    type DimInit i :: *
+    type DimInit i =  E
+    
+    {- |
+      The type of generalized index (':&'), that represent same space:
+      
+      > GIndex (T5 Char) ~~ I5 Char
+      > GIndex (I2  Int) ~~ I2 Int
+      > GIndex Integer   ~~ E :& Integer
+    -}
+    type GIndex i :: *
+    type GIndex i =  E :& i
+    
     {- Commons -}
     
     -- | Returns the number of dimensions that this type of index represents.
-    default rank :: (Enum i) => i -> Int
+    default rank :: (DimInit i ~~ E, Enum i) => i -> Int
     rank :: i -> Int
-    rank = const 1
+    rank =  const 1
     
     {- |
       Returns the size (length) of range.
@@ -121,7 +199,7 @@ class (Ord i) => Index i
       > size (3, 0) == 0
     -}
     {-# INLINE size #-}
-    default size :: (Enum i) => (i, i) -> Int
+    default size :: (DimInit i ~~ E, Enum i) => (i, i) -> Int
     size :: (i, i) -> Int
     size (l, u) = u >= l ? u -. l + 1 $ 0
     
@@ -130,23 +208,23 @@ class (Ord i) => Index i
     defaultBounds :: Int -> (i, i)
     defaultBounds n = (unsafeIndex 0, unsafeIndex $ max 0 n - 1)
     
-    -- | Returns index by this offset in default range.
+    -- | Returns index by this offset default range.
     {-# INLINE unsafeIndex #-}
-    default unsafeIndex :: (Enum i) => Int -> i
+    default unsafeIndex :: (DimInit i ~~ E, Enum i) => Int -> i
     unsafeIndex :: Int -> i
     unsafeIndex =  toEnum
     
     {- Enum operations -}
     
     -- | Returns previous index in range.
-    default prev  :: (Enum i) => (i, i) -> i -> i
+    default prev  :: (DimInit i ~~ E, Enum i) => (i, i) -> i -> i
     prev :: (i, i) -> i -> i
     prev (l, u) i | isEmpty (l, u) = er | i <= l = l | i > u = u | True = pred i
       where
         er = throw $ EmptyRange "in SDP.Index.prev (default)"
     
     -- | Returns next index in range.
-    default next  :: (Enum i) => (i, i) -> i -> i
+    default next  :: (DimInit i ~~ E, Enum i) => (i, i) -> i -> i
     next :: (i, i) -> i -> i
     next (l, u) i | isEmpty (l, u) = er | i >= u = u | i < l = l | True = succ i
       where
@@ -154,13 +232,13 @@ class (Ord i) => Index i
     
     -- | Returns offset (indent) of index in this bounds.
     {-# INLINE offset #-}
-    default offset :: (Enum i) => (i, i) -> i -> Int
+    default offset :: (DimInit i ~~ E, Enum i) => (i, i) -> i -> Int
     offset :: (i, i) -> i -> Int
     offset bnds i = checkBounds bnds i (i -. fst bnds) "offset (default)"
     
     -- | Returns index by this offset in range.
     {-# INLINE index #-}
-    default index :: (Enum i) => (i, i) -> Int -> i
+    default index :: (DimInit i ~~ E, Enum i) => (i, i) -> Int -> i
     index :: (i, i) -> Int -> i
     index bnds n = checkBounds (0, size bnds - 1) n res "index (default)"
       where
@@ -173,7 +251,7 @@ class (Ord i) => Index i
       > range (7, 2) == []
     -}
     {-# INLINE range #-}
-    default range :: (Enum i) => (i, i) -> [i]
+    default range :: (DimInit i ~~ E, Enum i) => (i, i) -> [i]
     range :: (i, i) -> [i]
     range =  uncurry enumFromTo
     
@@ -191,12 +269,12 @@ class (Ord i) => Index i
       > inRange (4, -5) 3 == False
     -}
     {-# INLINE inRange #-}
-    default inRange :: (Enum i) => (i, i) -> i -> Bool
+    default inRange :: (DimInit i ~~ E, Enum i) => (i, i) -> i -> Bool
     inRange :: (i, i) -> i -> Bool
     inRange (l, u) i = l <= i && i <= u
     
     -- | Returns the index and bounds status.
-    default inBounds :: (Enum i) => (i, i) -> i -> InBounds
+    default inBounds :: (DimInit i ~~ E, Enum i) => (i, i) -> i -> InBounds
     inBounds :: (i, i) -> i -> InBounds
     inBounds (l, u) i | l > u = ER | i > u = OR | i < l = UR | True = IN
     
@@ -232,13 +310,13 @@ class (Ord i) => Index i
       default definitions).
     -}
     {-# INLINE isOverflow  #-}
-    default isOverflow :: (Enum i) => (i, i) -> i -> Bool
+    default isOverflow :: (DimInit i ~~ E, Enum i) => (i, i) -> i -> Bool
     isOverflow :: (i, i) -> i -> Bool
     isOverflow (l, u) i = i > u || l > u
     
     -- | Checks if the index is underflow.
     {-# INLINE isUnderflow #-}
-    default isUnderflow :: (Enum i) => (i, i) -> i -> Bool
+    default isUnderflow :: (DimInit i ~~ E, Enum i) => (i, i) -> i -> Bool
     isUnderflow :: (i, i) -> i -> Bool
     isUnderflow (l, u) i = i < l || l > u
     
@@ -252,7 +330,7 @@ class (Ord i) => Index i
       > sizes (ind4 7 (-1) 12 4, ind4 0 12 9 (4 :: Int)) == [0, 14, 0, 1]
       > sizes ([7, -1, 12, 4], [0, 12, 9, 4] :: I4 Int) == [0, 14, 0, 1]
     -}
-    default sizes :: (Enum i) => (i, i) -> [Int]
+    default sizes :: (DimInit i ~~ E, Enum i) => (i, i) -> [Int]
     sizes :: (i, i) -> [Int]
     sizes bnds = [size bnds]
     
@@ -269,15 +347,10 @@ class (Ord i) => Index i
 
 {- Basic instances -}
 
--- | Service type, that represents zero-dimensional index.
-data E = E deriving ( Eq, Ord, Show, Read )
-
-instance Arbitrary E where arbitrary = return E
-
-instance Default E where def = E
-
 instance Index E
   where
+    type GIndex E = E
+    
     rank  = const 0
     size  = const 0
     sizes = const []
@@ -320,8 +393,6 @@ instance Index ()
     unsafeIndex 0 = ()
     unsafeIndex _ = throw $ EmptyRange "in SDP.Index.unsafeIndex ()"
 
-instance Index Char    where defaultBounds = defUB
-
 instance Index Int     where offset = intOffset
 instance Index Int8    where offset = intOffset
 instance Index Int16   where offset = intOffset
@@ -329,48 +400,12 @@ instance Index Int32   where offset = intOffset
 instance Index Int64   where offset = intOffset
 instance Index Integer where offset = intOffset
 
-instance Index Word    where offset = intOffset; defaultBounds = defUB
-instance Index Word8   where offset = intOffset; defaultBounds = defUB
-instance Index Word16  where offset = intOffset; defaultBounds = defUB
-instance Index Word32  where offset = intOffset; defaultBounds = defUB
-instance Index Word64  where offset = intOffset; defaultBounds = defUB
-
---------------------------------------------------------------------------------
-
-{- N-dimensional index type. -}
-
-{- |
-  N-dimensional index type. The type (head :& tail) allows working with any
-  finite dimension number.
--}
-data tail :& head = !tail :& !head deriving ( Eq, Ord )
-
-instance (IsList (i' :& i), E.Item (i' :& i) ~~ i, Show i) => Show (i' :& i)
-  where
-    showsPrec p = showsPrec p . E.toList
-
-instance (IsList (i' :& i), E.Item (i' :& i) ~~ i, Read i) => Read (i' :& i)
-  where
-    readPrec = E.fromList <$> readPrec
-
-instance (Arbitrary i, Arbitrary i') => Arbitrary (i' :& i)
-  where
-    arbitrary = applyArbitrary2 (:&)
-
-instance (Enum i) => Enum (E :& i)
-  where
-    succ (E :& e) = E :& succ e
-    pred (E :& e) = E :& pred e
-    
-    toEnum n          = E :& toEnum n
-    fromEnum (E :& e) = fromEnum e
-    
-    enumFrom       (E :& first)                       = (E :&) <$> [first .. ]
-    enumFromTo     (E :& first) (E :& lst)            = (E :&) <$> [first .. lst]
-    enumFromThen   (E :& first) (E :& nxt)            = (E :&) <$> [first, nxt .. ]
-    enumFromThenTo (E :& first) (E :& nxt) (E :& lst) = (E :&) <$> [first, nxt .. lst]
-
-instance (Default d, Default d') => Default (d :& d') where def = def :& def
+instance Index Char    where defaultBounds = defUB
+instance Index Word    where defaultBounds = defUB; offset = intOffset
+instance Index Word8   where defaultBounds = defUB; offset = intOffset
+instance Index Word16  where defaultBounds = defUB; offset = intOffset
+instance Index Word32  where defaultBounds = defUB; offset = intOffset
+instance Index Word64  where defaultBounds = defUB; offset = intOffset
 
 --------------------------------------------------------------------------------
 
@@ -378,6 +413,11 @@ instance (Default d, Default d') => Default (d :& d') where def = def :& def
 
 instance (Index i, Enum i) => Index (E :& i)
   where
+    type DimInit (E :& i) = E
+    type DimLast (E :& i) = i
+    
+    type GIndex (E :& i) = E :& i
+    
     rank ~[e] = rank e
     
     size  (~[l], ~[u]) = size  (l, u)
@@ -402,6 +442,10 @@ instance (Index i, Enum i) => Index (E :& i)
 
 instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
   where
+    type GIndex  (i' :& i :& i) = i' :& i :& i
+    type DimInit (i' :& i :& i) = i' :& i
+    type DimLast (i' :& i :& i) = i
+    
     rank  (rs :& _) = rank rs + 1
     
     size  (ls :& l, us :& u) = size (l, u) * size (ls, us)
@@ -415,14 +459,16 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
         |    i /= l    = is :& pred i
         |   is /= ls   = prev (ls, us) is :& u
         |     True     = ls :& l
-      where  (is :& i) = safeElem bnds ix
+      where
+        (is :& i) = safeElem bnds ix
     
-    next bounds@(ls :& l, us :& u) ix
-        | isEmpty bounds = throw $ EmptyRange "in SDP.Index.next (n-dimensional)"
-        |     i /= u     = is :& succ i
-        |    is /= us    = prev (ls, us) is :& u
-        |      True      = ls :& l
-      where (is :& i) = safeElem bounds ix
+    next bnds@(ls :& l, us :& u) ix
+        | isEmpty bnds = throw $ EmptyRange "in SDP.Index.next (n-dimensional)"
+        |    i /= u    = is :& succ i
+        |   is /= us   = prev (ls, us) is :& u
+        |     True     = ls :& l
+      where
+        (is :& i) = safeElem bnds ix
     
     inBounds bs i
       |    isEmpty bs    = ER
@@ -434,7 +480,7 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
     isOverflow  (ls :& l, us :& u) (is :& i) = isOverflow  (l, u) i || isOverflow  (ls, us) is
     isUnderflow (ls :& l, us :& u) (is :& i) = isUnderflow (l, u) i || isUnderflow (ls, us) is
     
-    safeElem    (ls :& l, us :& u) (is :& i) = safeElem    (ls, us) is :& safeElem (l, u) i
+    safeElem    (ls :& l, us :& u) (is :& i) = safeElem (ls, us) is :& safeElem (l, u) i
     isEmpty     (ls :& l, us :& u) = isEmpty (l, u) || isEmpty (ls, us)
     ordBounds   (ls :& l, us :& u) = (ls' :& l', us' :& u')
       where
@@ -467,7 +513,7 @@ instance (Index i) => IsList (E :& i)
     
     toList (E :& i) = [i]
 
-instance (Index (i' :& i :& i), Index (i' :& i), E.Item (i' :& i) ~~ i, IsList (i' :& i)) => IsList (i' :& i :& i)
+instance (Index (i' :& i :& i), E.Item (i' :& i) ~~ i, IsList (i' :& i)) => IsList (i' :& i :& i)
   where
     type Item (i' :& i :& i) = i
     
@@ -480,33 +526,33 @@ instance (Index (i' :& i :& i), Index (i' :& i), E.Item (i' :& i) ~~ i, IsList (
 {- Type synonyms are declared up to 15 dimensions. -}
 
 -- | 2-dimensional index
-type  I2  i = E :& i  :& i
+type I2  i = E :& i  :& i
 -- | 3-dimensional index
-type  I3  i = (I2  i) :& i
+type I3  i = (I2  i) :& i
 -- | 4-dimensional index
-type  I4  i = (I3  i) :& i
+type I4  i = (I3  i) :& i
 -- | 5-dimensional index
-type  I5  i = (I4  i) :& i
+type I5  i = (I4  i) :& i
 -- | 6-dimensional index
-type  I6  i = (I5  i) :& i
+type I6  i = (I5  i) :& i
 -- | 7-dimensional index
-type  I7  i = (I6  i) :& i
+type I7  i = (I6  i) :& i
 -- | 8-dimensional index
-type  I8  i = (I7  i) :& i
+type I8  i = (I7  i) :& i
 -- | 9-dimensional index
-type  I9  i = (I8  i) :& i
+type I9  i = (I8  i) :& i
 -- | 10-dimensional index
-type  I10 i = (I9  i) :& i
+type I10 i = (I9  i) :& i
 -- | 11-dimensional index
-type  I11 i = (I10 i) :& i
+type I11 i = (I10 i) :& i
 -- | 12-dimensional index
-type  I12 i = (I11 i) :& i
+type I12 i = (I11 i) :& i
 -- | 13-dimensional index
-type  I13 i = (I12 i) :& i
+type I13 i = (I12 i) :& i
 -- | 14-dimensional index
-type  I14 i = (I13 i) :& i
+type I14 i = (I13 i) :& i
 -- | i-think-you-guessed-how-much-dimensional index
-type  I15 i = (I14 i) :& i
+type I15 i = (I14 i) :& i
 
 -- | 2-dimensional index clever constructor.
 ind2  :: (Index i, Enum i, Bounded i) => i -> i                                                                  -> I2  i
@@ -636,8 +682,11 @@ instance (Index i, Enum i, Bounded i) => Shape (T15 i) (I15 i)
 
 {- Tuple instances. -}
 
-#define INDEX_INSTANCE(TYPEi) instance (Index i, Enum i, Bounded i) => Index (TYPEi) where\
+#define INDEX_INSTANCE(TYPE,LAST,GTYPE) instance (Index i, Enum i, Bounded i) => Index (TYPE) where\
 {\
+type DimLast (TYPE) = i;\
+type DimInit (TYPE) = LAST;\
+type GIndex  (TYPE) = GTYPE;\
 rank             = rank . toIndex;\
 size             = size . toBounds;\
 sizes            = sizes . toBounds;\
@@ -656,20 +705,20 @@ index       bs c = fromIndex $ toBounds bs `index` c;\
 unsafeIndex      = fromIndex . unsafeIndex;\
 }
 
-INDEX_INSTANCE(T2  i)
-INDEX_INSTANCE(T3  i)
-INDEX_INSTANCE(T4  i)
-INDEX_INSTANCE(T5  i)
-INDEX_INSTANCE(T6  i)
-INDEX_INSTANCE(T7  i)
-INDEX_INSTANCE(T8  i)
-INDEX_INSTANCE(T9  i)
-INDEX_INSTANCE(T10 i)
-INDEX_INSTANCE(T11 i)
-INDEX_INSTANCE(T12 i)
-INDEX_INSTANCE(T13 i)
-INDEX_INSTANCE(T14 i)
-INDEX_INSTANCE(T15 i)
+INDEX_INSTANCE(T2  i,     i, I2  i)
+INDEX_INSTANCE(T3  i, T2  i, I3  i)
+INDEX_INSTANCE(T4  i, T3  i, I4  i)
+INDEX_INSTANCE(T5  i, T4  i, I5  i)
+INDEX_INSTANCE(T6  i, T5  i, I6  i)
+INDEX_INSTANCE(T7  i, T6  i, I7  i)
+INDEX_INSTANCE(T8  i, T7  i, I8  i)
+INDEX_INSTANCE(T9  i, T8  i, I9  i)
+INDEX_INSTANCE(T10 i, T9  i, I10 i)
+INDEX_INSTANCE(T11 i, T10 i, I11 i)
+INDEX_INSTANCE(T12 i, T11 i, I12 i)
+INDEX_INSTANCE(T13 i, T12 i, I13 i)
+INDEX_INSTANCE(T14 i, T13 i, I14 i)
+INDEX_INSTANCE(T15 i, T14 i, I15 i)
 
 #undef INDEX_INSTANCE
 
@@ -701,4 +750,6 @@ defUB n = n < 1 ? (unsafeIndex 1, unsafeIndex 0) $ (unsafeIndex 0, unsafeIndex $
 -- | > toBounds (l, u) = (toIndex l, toIndex u)
 toBounds :: (Shape i j) => (i, i) -> (j, j)
 toBounds (l, u) = (toIndex l, toIndex u)
+
+
 
