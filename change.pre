@@ -1,9 +1,13 @@
 version preindex:
   IMPROVED:
-    Read and Show instances for (:&).
+    Read and Show instances for (:&)
+    Index instances
   
   REMOVED:
-    unsafeBounds function.
+    unsafeBounds function
+  
+  MOVED:
+    IndexEQ (now Shape)
 
 version 0.2:
   FIXED:

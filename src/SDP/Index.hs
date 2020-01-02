@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE UndecidableInstances, TypeFamilies, TypeOperators #-}
+{-# LANGUAGE UndecidableInstances, TypeFamilies, TypeOperators, OverloadedLists #-}
 {-# LANGUAGE DefaultSignatures, CPP #-}
 
 {-# OPTIONS_HADDOCK ignore-exports #-}
@@ -9,7 +9,7 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC extensions)
+    Portability :  non-portable (a lot of GHC extensions)
   
   @SDP.Index@ provides 'Index' - service class of types that may represent
   indices, based on "Data.Ix" and @Data.Array.Repa.Shape@ (repa), but has more
@@ -35,6 +35,8 @@
 module SDP.Index
 (
   -- * Exports
+  module SDP.Tuple,
+  
   module Data.Word,
   module Data.Int,
   
@@ -51,8 +53,8 @@ module SDP.Index
   ind2,  ind3,  ind4,  ind5,  ind6,  ind7,  ind8,  ind9,
   ind10, ind11, ind12, ind13, ind14, ind15,
   
-  -- * IndexEQ class
-  IndexEQ (..), toBounds
+  -- * Shape class
+  Shape (..), toBounds
 )
 where
 
@@ -72,6 +74,7 @@ import Data.Int  ( Int,  Int8,  Int16,  Int32,  Int64  )
 
 import Data.Tuple
 
+import SDP.Tuple
 import SDP.Simple
 
 default ()
@@ -375,27 +378,27 @@ instance (Default d, Default d') => Default (d :& d') where def = def :& def
 
 instance (Index i, Enum i) => Index (E :& i)
   where
-    rank  (E :& e) = rank e
+    rank ~[e] = rank e
     
-    size  (E :& l, E :& u) = size  (l, u)
-    sizes (E :& l, E :& u) = sizes (l, u)
-    range (E :& l, E :& u) = (E :&) <$> range (l, u)
+    size  (~[l], ~[u]) = size  (l, u)
+    sizes (~[l], ~[u]) = sizes (l, u)
+    range (~[l], ~[u]) = (E :&) <$> range (l, u)
     
-    next  (E :& l, E :& u) (E :& i) = E :& next (l, u) i
-    prev  (E :& l, E :& u) (E :& i) = E :& prev (l, u) i
+    next  (~[l], ~[u]) ~[i] = [next (l, u) i]
+    prev  (~[l], ~[u]) ~[i] = [prev (l, u) i]
     
-    inRange     (E :& l, E :& u) (E :& i) = inRange       (l, u) i
-    isOverflow  (E :& l, E :& u) (E :& i) = isOverflow    (l, u) i
-    isUnderflow (E :& l, E :& u) (E :& i) = isUnderflow   (l, u) i
-    safeElem    (E :& l, E :& u) (E :& i) = E :& safeElem (l, u) i
+    inRange     (~[l], ~[u]) ~[i] = inRange       (l, u) i
+    isOverflow  (~[l], ~[u]) ~[i] = isOverflow    (l, u) i
+    isUnderflow (~[l], ~[u]) ~[i] = isUnderflow   (l, u) i
+    safeElem    (~[l], ~[u]) ~[i] = E :& safeElem (l, u) i
     
-    isEmpty     (E :& l, E :& u) = isEmpty (l, u)
-    ordBounds   (E :& l, E :& u) = let (l', u') = ordBounds (l, u) in (E :& l', E :& u')
+    isEmpty     (~[l], ~[u]) = isEmpty (l, u)
+    ordBounds   (~[l], ~[u]) = let (l', u') = ordBounds (l, u) in ([l'], [u'])
     
-    offset (E :& l, E :& u) (E :& i) = offset     (l, u) i
-    index  (E :& l, E :& u)     n    = E :& index (l, u) n
+    offset ~([l], [u]) ~[i] = offset     (l, u) i
+    index  ~([l], [u])   n  = E :& index (l, u) n
     
-    unsafeIndex n = E :& unsafeIndex n
+    unsafeIndex n = [unsafeIndex n]
 
 instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
   where
@@ -506,150 +509,136 @@ type  I14 i = (I13 i) :& i
 type  I15 i = (I14 i) :& i
 
 -- | 2-dimensional index clever constructor.
-ind2  :: (Index i) => i -> i                                                                  -> I2  i
+ind2  :: (Index i, Enum i, Bounded i) => i -> i                                                                  -> I2  i
 -- | 3-dimensional index clever constructor.
-ind3  :: (Index i) => i -> i -> i                                                             -> I3  i
+ind3  :: (Index i, Enum i, Bounded i) => i -> i -> i                                                             -> I3  i
 -- | 4-dimensional index clever constructor.
-ind4  :: (Index i) => i -> i -> i -> i                                                        -> I4  i
+ind4  :: (Index i, Enum i, Bounded i) => i -> i -> i -> i                                                        -> I4  i
 -- | 5-dimensional index clever constructor.
-ind5  :: (Index i) => i -> i -> i -> i -> i                                                   -> I5  i
+ind5  :: (Index i, Enum i, Bounded i) => i -> i -> i -> i -> i                                                   -> I5  i
 -- | 6-dimensional index clever constructor.
-ind6  :: (Index i) => i -> i -> i -> i -> i -> i                                              -> I6  i
+ind6  :: (Index i, Enum i, Bounded i) => i -> i -> i -> i -> i -> i                                              -> I6  i
 -- | 7-dimensional index clever constructor.
-ind7  :: (Index i) => i -> i -> i -> i -> i -> i -> i                                         -> I7  i
+ind7  :: (Index i, Enum i, Bounded i) => i -> i -> i -> i -> i -> i -> i                                         -> I7  i
 -- | 8-dimensional index clever constructor.
-ind8  :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i                                    -> I8  i
+ind8  :: (Index i, Enum i, Bounded i) => i -> i -> i -> i -> i -> i -> i -> i                                    -> I8  i
 -- | 9-dimensional index clever constructor.
-ind9  :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i -> i                               -> I9  i
+ind9  :: (Index i, Enum i, Bounded i) => i -> i -> i -> i -> i -> i -> i -> i -> i                               -> I9  i
 -- | 10-dimensional index clever constructor.
-ind10 :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i                          -> I10 i
+ind10 :: (Index i, Enum i, Bounded i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i                          -> I10 i
 
 -- | 11-dimensional index clever constructor.
-ind11 :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i                     -> I11 i
+ind11 :: (Index i, Enum i, Bounded i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i                     -> I11 i
 -- | 12-dimensional index clever constructor.
-ind12 :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i                -> I12 i
+ind12 :: (Index i, Enum i, Bounded i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i                -> I12 i
 -- | 13-dimensional index clever constructor.
-ind13 :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i           -> I13 i
+ind13 :: (Index i, Enum i, Bounded i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i           -> I13 i
 -- | 14-dimensional index clever constructor.
-ind14 :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i      -> I14 i
+ind14 :: (Index i, Enum i, Bounded i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i      -> I14 i
 -- | 15-dimensional index clever constructor.
-ind15 :: (Index i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> I15 i
+ind15 :: (Index i, Enum i, Bounded i) => i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> I15 i
 
-ind2  a b                             = E :& a :& b
-ind3  a b c                           = E :& a :& b :& c
-ind4  a b c d                         = E :& a :& b :& c :& d
-ind5  a b c d e                       = E :& a :& b :& c :& d :& e
-ind6  a b c d e f                     = E :& a :& b :& c :& d :& e :& f
-ind7  a b c d e f g                   = E :& a :& b :& c :& d :& e :& f :& g
-ind8  a b c d e f g h                 = E :& a :& b :& c :& d :& e :& f :& g :& h
-ind9  a b c d e f g h i               = E :& a :& b :& c :& d :& e :& f :& g :& h :& i
-ind10 a b c d e f g h i j             = E :& a :& b :& c :& d :& e :& f :& g :& h :& i :& j
+ind2  a b                           = [a,b]
+ind3  a b c                         = [a,b,c]
+ind4  a b c d                       = [a,b,c,d]
+ind5  a b c d e                     = [a,b,c,d,e]
+ind6  a b c d e f                   = [a,b,c,d,e,f]
+ind7  a b c d e f g                 = [a,b,c,d,e,f,g]
+ind8  a b c d e f g h               = [a,b,c,d,e,f,g,h]
+ind9  a b c d e f g h i             = [a,b,c,d,e,f,g,h,i]
+ind10 a b c d e f g h i j           = [a,b,c,d,e,f,g,h,i,j]
 
-ind11 a b c d e f g h i j k           = E :& a :& b :& c :& d :& e :& f :& g :& h :& i :& j :& k
-ind12 a b c d e f g h i j k l         = E :& a :& b :& c :& d :& e :& f :& g :& h :& i :& j :& k :& l
-ind13 a b c d e f g h i j k l m       = E :& a :& b :& c :& d :& e :& f :& g :& h :& i :& j :& k :& l :& m
-ind14 a b c d e f g h i j k l m n     = E :& a :& b :& c :& d :& e :& f :& g :& h :& i :& j :& k :& l :& m :& n
-ind15 a b c d e f g h i j k l m n o   = E :& a :& b :& c :& d :& e :& f :& g :& h :& i :& j :& k :& l :& m :& n :& o
+ind11 a b c d e f g h i j k         = [a,b,c,d,e,f,g,h,i,j,k]
+ind12 a b c d e f g h i j k l       = [a,b,c,d,e,f,g,h,i,j,k,l]
+ind13 a b c d e f g h i j k l m     = [a,b,c,d,e,f,g,h,i,j,k,l,m]
+ind14 a b c d e f g h i j k l m n   = [a,b,c,d,e,f,g,h,i,j,k,l,m,n]
+ind15 a b c d e f g h i j k l m n o = [a,b,c,d,e,f,g,h,i,j,k,l,m,n,o]
 
 --------------------------------------------------------------------------------
 
--- | IndexEQ is class of index type equality.
-class (Index i, Index j) => IndexEQ i j | i -> j
+-- | Shape is class of index type equality.
+class (Index i, Index j) => Shape i j | i -> j
   where
     toIndex   :: i -> j
     fromIndex :: j -> i
 
-instance (Index i, Enum i, Bounded i) => IndexEQ (i,i) (I2 i)
+instance (Index i, Enum i, Bounded i) => Shape (T2 i) (I2 i)
   where
-    toIndex (a, b) = ind2 a b
-    
-    fromIndex (E :& a :& b) = (a, b)
+    toIndex    (a,b) = [a,b]
+    fromIndex ~[a,b] = (a,b)
 
-instance (Index i, Enum i, Bounded i) => IndexEQ (i,i,i) (I3 i)
+instance (Index i, Enum i, Bounded i) => Shape (T3 i) (I3 i)
   where
-    toIndex (a, b, c) = ind3 a b c
-    
-    fromIndex (E :& a :& b :& c) = (a, b, c)
+    toIndex    (a,b,c) = [a,b,c]
+    fromIndex ~[a,b,c] = (a,b,c)
 
-instance (Index i, Enum i, Bounded i) => IndexEQ (i,i,i,i) (I4 i)
+instance (Index i, Enum i, Bounded i) => Shape (T4 i) (I4 i)
   where
-    toIndex (a, b, c, d) = ind4 a b c d
-    
-    fromIndex (E :& a :& b :& c :& d) = (a, b, c, d)
+    toIndex    (a,b,c,d) = [a,b,c,d]
+    fromIndex ~[a,b,c,d] = (a,b,c,d)
 
-instance (Index i, Enum i, Bounded i) => IndexEQ (i,i,i,i,i) (I5 i)
+instance (Index i, Enum i, Bounded i) => Shape (T5 i) (I5 i)
   where
-    toIndex (a, b, c, d, e) = ind5 a b c d e
-    
-    fromIndex (E :& a :& b :& c :& d :& e) = (a, b, c, d, e)
+    toIndex    (a,b,c,d,e) = [a,b,c,d,e]
+    fromIndex ~[a,b,c,d,e] = (a,b,c,d,e)
 
-instance (Index i, Enum i, Bounded i) => IndexEQ (i,i,i,i,i,i) (I6 i)
+instance (Index i, Enum i, Bounded i) => Shape (T6 i) (I6 i)
   where
-    toIndex (a, b, c, d, e, f) = ind6 a b c d e f
-    
-    fromIndex (E :& a :& b :& c :& d :& e :& f) = (a, b, c, d, e, f)
+    toIndex    (a,b,c,d,e,f) = [a,b,c,d,e,f]
+    fromIndex ~[a,b,c,d,e,f] = (a,b,c,d,e,f)
 
-instance (Index i, Enum i, Bounded i) => IndexEQ (i,i,i,i,i,i,i) (I7 i)
+instance (Index i, Enum i, Bounded i) => Shape (T7 i) (I7 i)
   where
-    toIndex (a, b, c, d, e, f, g) = ind7 a b c d e f g
-    
-    fromIndex (E :& a :& b :& c :& d :& e :& f :& g) = (a, b, c, d, e, f, g)
+    toIndex    (a,b,c,d,e,f,g) = [a,b,c,d,e,f,g]
+    fromIndex ~[a,b,c,d,e,f,g] = (a,b,c,d,e,f,g)
 
-instance (Index i, Enum i, Bounded i) => IndexEQ (i,i,i,i,i,i,i,i) (I8 i)
+instance (Index i, Enum i, Bounded i) => Shape (T8 i) (I8 i)
   where
-    toIndex (a, b, c, d, e, f, g, h) = ind8 a b c d e f g h
-    
-    fromIndex (E :& a :& b :& c :& d :& e :& f :& g :& h) = (a, b, c, d, e, f, g, h)
+    toIndex    (a,b,c,d,e,f,g,h) = [a,b,c,d,e,f,g,h]
+    fromIndex ~[a,b,c,d,e,f,g,h] = (a,b,c,d,e,f,g,h)
 
-instance (Index i, Enum i, Bounded i) => IndexEQ (i,i,i,i,i,i,i,i,i) (I9 i)
+instance (Index i, Enum i, Bounded i) => Shape (T9 i) (I9 i)
   where
-    toIndex (a, b, c, d, e, f, g, h, i) = ind9 a b c d e f g h i
-    
-    fromIndex (E :& a :& b :& c :& d :& e :& f :& g :& h :& i) = (a, b, c, d, e, f, g, h, i)
+    toIndex    (a,b,c,d,e,f,g,h,i) = [a,b,c,d,e,f,g,h,i]
+    fromIndex ~[a,b,c,d,e,f,g,h,i] = (a,b,c,d,e,f,g,h,i)
 
-instance (Index i, Enum i, Bounded i) => IndexEQ (i,i,i,i,i,i,i,i,i,i) (I10 i)
+instance (Index i, Enum i, Bounded i) => Shape (T10 i) (I10 i)
   where
-    toIndex (a, b, c, d, e, f, g, h, i, j) = ind10 a b c d e f g h i j
-    
-    fromIndex (E :& a :& b :& c :& d :& e :& f :& g :& h :& i :& j) = (a, b, c, d, e, f, g, h, i, j)
+    toIndex    (a,b,c,d,e,f,g,h,i,j) = [a,b,c,d,e,f,g,h,i,j]
+    fromIndex ~[a,b,c,d,e,f,g,h,i,j] = (a,b,c,d,e,f,g,h,i,j)
 
-instance (Index i, Enum i, Bounded i) => IndexEQ (i,i,i,i,i,i,i,i,i,i,i) (I11 i)
+instance (Index i, Enum i, Bounded i) => Shape (T11 i) (I11 i)
   where
-    toIndex (a, b, c, d, e, f, g, h, i, j, k) = ind11 a b c d e f g h i j k
-    
-    fromIndex (E :& a :& b :& c :& d :& e :& f :& g :& h :& i :& j :& k) = (a, b, c, d, e, f, g, h, i, j, k)
+    toIndex    (a,b,c,d,e,f,g,h,i,j,k) = [a,b,c,d,e,f,g,h,i,j,k]
+    fromIndex ~[a,b,c,d,e,f,g,h,i,j,k] = (a,b,c,d,e,f,g,h,i,j,k)
 
-instance (Index i, Enum i, Bounded i) => IndexEQ (i,i,i,i,i,i,i,i,i,i,i,i) (I12 i)
+instance (Index i, Enum i, Bounded i) => Shape (T12 i) (I12 i)
   where
-    toIndex (a, b, c, d, e, f, g, h, i, j, k, l) = ind12 a b c d e f g h i j k l
-    
-    fromIndex (E :& a :& b :& c :& d :& e :& f :& g :& h :& i :& j :& k :& l) = (a, b, c, d, e, f, g, h, i, j, k, l)
+    toIndex    (a,b,c,d,e,f,g,h,i,j,k,l) = [a,b,c,d,e,f,g,h,i,j,k,l]
+    fromIndex ~[a,b,c,d,e,f,g,h,i,j,k,l] = (a,b,c,d,e,f,g,h,i,j,k,l)
 
-instance (Index i, Enum i, Bounded i) => IndexEQ (i,i,i,i,i,i,i,i,i,i,i,i,i) (I13 i)
+instance (Index i, Enum i, Bounded i) => Shape (T13 i) (I13 i)
   where
-    toIndex (a, b, c, d, e, f, g, h, i, j, k, l, m) = ind13 a b c d e f g h i j k l m
-    
-    fromIndex (E :& a :& b :& c :& d :& e :& f :& g :& h :& i :& j :& k :& l :& m) = (a, b, c, d, e, f, g, h, i, j, k, l, m)
+    toIndex    (a,b,c,d,e,f,g,h,i,j,k,l,m) = [a,b,c,d,e,f,g,h,i,j,k,l,m]
+    fromIndex ~[a,b,c,d,e,f,g,h,i,j,k,l,m] = (a,b,c,d,e,f,g,h,i,j,k,l,m)
 
-instance (Index i, Enum i, Bounded i) => IndexEQ (i,i,i,i,i,i,i,i,i,i,i,i,i,i) (I14 i)
+instance (Index i, Enum i, Bounded i) => Shape (T14 i) (I14 i)
   where
-    toIndex (a, b, c, d, e, f, g, h, i, j, k, l, m, n) = ind14 a b c d e f g h i j k l m n
-    
-    fromIndex (E :& a :& b :& c :& d :& e :& f :& g :& h :& i :& j :& k :& l :& m :& n) = (a, b, c, d, e, f, g, h, i, j, k, l, m, n)
+    toIndex    (a,b,c,d,e,f,g,h,i,j,k,l,m,n) = [a,b,c,d,e,f,g,h,i,j,k,l,m,n]
+    fromIndex ~[a,b,c,d,e,f,g,h,i,j,k,l,m,n] = (a,b,c,d,e,f,g,h,i,j,k,l,m,n)
 
-instance (Index i, Enum i, Bounded i) => IndexEQ (i,i,i,i,i,i,i,i,i,i,i,i,i,i,i) (I15 i)
+instance (Index i, Enum i, Bounded i) => Shape (T15 i) (I15 i)
   where
-    toIndex (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o) = ind15 a b c d e f g h i j k l m n o
-    
-    fromIndex (E :& a :& b :& c :& d :& e :& f :& g :& h :& i :& j :& k :& l :& m :& n :& o) = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o)
+    toIndex    (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o) = [a,b,c,d,e,f,g,h,i,j,k,l,m,n,o]
+    fromIndex ~[a,b,c,d,e,f,g,h,i,j,k,l,m,n,o] = (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o)
 
 --------------------------------------------------------------------------------
 
 {- Tuple instances. -}
 
-#define INDEX_INSTANCE(TYPEi) instance (Index i, Enum i, Bounded i) => Index TYPEi where\
+#define INDEX_INSTANCE(TYPEi) instance (Index i, Enum i, Bounded i) => Index (TYPEi) where\
 {\
-rank             = const 2;\
+rank             = rank . toIndex;\
 size             = size . toBounds;\
 sizes            = sizes . toBounds;\
 range            = fmap fromIndex . range . toBounds;\
@@ -667,28 +656,28 @@ index       bs c = fromIndex $ toBounds bs `index` c;\
 unsafeIndex      = fromIndex . unsafeIndex;\
 }
 
-INDEX_INSTANCE((i,i))
-INDEX_INSTANCE((i,i,i))
-INDEX_INSTANCE((i,i,i,i))
-INDEX_INSTANCE((i,i,i,i,i))
-INDEX_INSTANCE((i,i,i,i,i,i))
-INDEX_INSTANCE((i,i,i,i,i,i,i))
-INDEX_INSTANCE((i,i,i,i,i,i,i,i))
-INDEX_INSTANCE((i,i,i,i,i,i,i,i,i))
-INDEX_INSTANCE((i,i,i,i,i,i,i,i,i,i))
-INDEX_INSTANCE((i,i,i,i,i,i,i,i,i,i,i))
-INDEX_INSTANCE((i,i,i,i,i,i,i,i,i,i,i,i))
-INDEX_INSTANCE((i,i,i,i,i,i,i,i,i,i,i,i,i))
-INDEX_INSTANCE((i,i,i,i,i,i,i,i,i,i,i,i,i,i))
-INDEX_INSTANCE((i,i,i,i,i,i,i,i,i,i,i,i,i,i,i))
+INDEX_INSTANCE(T2  i)
+INDEX_INSTANCE(T3  i)
+INDEX_INSTANCE(T4  i)
+INDEX_INSTANCE(T5  i)
+INDEX_INSTANCE(T6  i)
+INDEX_INSTANCE(T7  i)
+INDEX_INSTANCE(T8  i)
+INDEX_INSTANCE(T9  i)
+INDEX_INSTANCE(T10 i)
+INDEX_INSTANCE(T11 i)
+INDEX_INSTANCE(T12 i)
+INDEX_INSTANCE(T13 i)
+INDEX_INSTANCE(T14 i)
+INDEX_INSTANCE(T15 i)
 
 #undef INDEX_INSTANCE
 
 --------------------------------------------------------------------------------
 
 unsnoc :: [i] -> ([i], i)
-unsnoc   [ ]    = error "unexpected rank in SDP.Index.{IsList (i' :& i)}fromList"
-unsnoc   [i]    = ([], i)
+unsnoc    [ ]   = error "unexpected rank in SDP.Index.{IsList (i' :& i)}fromList"
+unsnoc    [i]   = ([], i)
 unsnoc (i : is) = let (init', last') = unsnoc is in (i : init', last')
 
 (-.) :: (Enum i) => i -> i -> Int
@@ -710,6 +699,6 @@ defUB :: (Index i, Bounded i) => Int -> (i, i)
 defUB n = n < 1 ? (unsafeIndex 1, unsafeIndex 0) $ (unsafeIndex 0, unsafeIndex $ n - 1)
 
 -- | > toBounds (l, u) = (toIndex l, toIndex u)
-toBounds :: (IndexEQ i j) => (i, i) -> (j, j)
+toBounds :: (Shape i j) => (i, i) -> (j, j)
 toBounds (l, u) = (toIndex l, toIndex u)
 

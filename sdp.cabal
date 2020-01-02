@@ -114,6 +114,8 @@ Library
     SDP.Internal.SBytes
     SDP.Internal.Read
     SDP.Internal.Show
+    
+    SDP.Tuple
   
   other-modules:
     SDP.Simple
