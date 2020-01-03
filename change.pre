@@ -1,13 +1,17 @@
 version preindex:
+  ADDED:
+    * SDP.Tuple module with tuple type synonyms.
+    
+    * toGIndex, fromGIndex, fromGBounds and toGBounds functions
+    * DimInit, DimLast and GIndex type families
+  
   IMPROVED:
     Read and Show instances for (:&)
     Index instances
   
   REMOVED:
-    unsafeBounds function
-  
-  MOVED:
-    IndexEQ (now Shape)
+    unsafeBounds and toBounds function
+    IndexEQ class. Now toIndex and fromIndex is toGIndex and fromGIndex.
 
 version 0.2:
   FIXED:

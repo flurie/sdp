@@ -1,6 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE UndecidableInstances, TypeFamilies, TypeOperators, OverloadedLists #-}
-{-# LANGUAGE DefaultSignatures, CPP #-}
+{-# LANGUAGE TypeFamilies, UndecidableInstances, FlexibleContexts #-}
+{-# LANGUAGE DefaultSignatures, TypeOperators, OverloadedLists #-}
+{-# LANGUAGE CPP #-}
 
 {-# OPTIONS_HADDOCK ignore-exports #-}
 
@@ -48,10 +49,7 @@ module SDP.Index
   
   -- ** Old constructors
   ind2,  ind3,  ind4,  ind5,  ind6,  ind7,  ind8,  ind9,
-  ind10, ind11, ind12, ind13, ind14, ind15,
-  
-  -- * Shape class
-  Shape (..), toBounds
+  ind10, ind11, ind12, ind13, ind14, ind15
 )
 where
 
@@ -110,10 +108,12 @@ instance Default E where def = E
 -}
 data tail :& head = !tail :& !head deriving ( Eq, Ord )
 
+-- [internal]: undecidable
 instance (IsList (i' :& i), E.Item (i' :& i) ~~ i, Show i) => Show (i' :& i)
   where
     showsPrec p = showsPrec p . E.toList
 
+-- [internal]: undecidable
 instance (IsList (i' :& i), E.Item (i' :& i) ~~ i, Read i) => Read (i' :& i)
   where
     readPrec = E.fromList <$> readPrec
@@ -183,12 +183,26 @@ class (Ord i) => Index i
     type GIndex i :: *
     type GIndex i =  E :& i
     
+    default fromGIndex :: (GIndex i ~~ (E :& i)) => GIndex i -> i
+    fromGIndex :: GIndex i -> i
+    fromGIndex ~[i] = i
+    
+    default toGIndex :: (GIndex i ~~ (E :& i)) => i -> GIndex i
+    toGIndex :: i -> GIndex i
+    toGIndex i = [i]
+    
+    toGBounds :: (i, i) -> (GIndex i, GIndex i)
+    toGBounds (l, u) = (toGIndex l, toGIndex u)
+    
+    fromGBounds :: (GIndex i, GIndex i) -> (i, i)
+    fromGBounds (l, u) = (fromGIndex l, fromGIndex u)
+    
     {- Commons -}
     
     -- | Returns the number of dimensions that this type of index represents.
-    default rank :: (DimInit i ~~ E, Enum i) => i -> Int
+    default rank :: (Index (GIndex i)) => i -> Int
     rank :: i -> Int
-    rank =  const 1
+    rank =  rank . toGIndex
     
     {- |
       Returns the size (length) of range.
@@ -351,6 +365,9 @@ instance Index E
   where
     type GIndex E = E
     
+    fromGIndex = id
+    toGIndex   = id
+    
     rank  = const 0
     size  = const 0
     sizes = const []
@@ -413,12 +430,14 @@ instance Index Word64  where defaultBounds = defUB; offset = intOffset
 
 instance (Index i, Enum i) => Index (E :& i)
   where
+    type GIndex  (E :& i) = E :& i
     type DimInit (E :& i) = E
     type DimLast (E :& i) = i
     
-    type GIndex (E :& i) = E :& i
+    fromGIndex = id
+    toGIndex   = id
     
-    rank ~[e] = rank e
+    rank = const 1
     
     size  (~[l], ~[u]) = size  (l, u)
     sizes (~[l], ~[u]) = sizes (l, u)
@@ -440,11 +459,15 @@ instance (Index i, Enum i) => Index (E :& i)
     
     unsafeIndex n = [unsafeIndex n]
 
+-- [internal]: undecidable
 instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
   where
     type GIndex  (i' :& i :& i) = i' :& i :& i
     type DimInit (i' :& i :& i) = i' :& i
     type DimLast (i' :& i :& i) = i
+    
+    fromGIndex = id
+    toGIndex   = id
     
     rank  (rs :& _) = rank rs + 1
     
@@ -602,84 +625,6 @@ ind15 a b c d e f g h i j k l m n o = [a,b,c,d,e,f,g,h,i,j,k,l,m,n,o]
 
 --------------------------------------------------------------------------------
 
--- | Shape is class of index type equality.
-class (Index i, Index j) => Shape i j | i -> j
-  where
-    toIndex   :: i -> j
-    fromIndex :: j -> i
-
-instance (Index i, Enum i, Bounded i) => Shape (T2 i) (I2 i)
-  where
-    toIndex    (a,b) = [a,b]
-    fromIndex ~[a,b] = (a,b)
-
-instance (Index i, Enum i, Bounded i) => Shape (T3 i) (I3 i)
-  where
-    toIndex    (a,b,c) = [a,b,c]
-    fromIndex ~[a,b,c] = (a,b,c)
-
-instance (Index i, Enum i, Bounded i) => Shape (T4 i) (I4 i)
-  where
-    toIndex    (a,b,c,d) = [a,b,c,d]
-    fromIndex ~[a,b,c,d] = (a,b,c,d)
-
-instance (Index i, Enum i, Bounded i) => Shape (T5 i) (I5 i)
-  where
-    toIndex    (a,b,c,d,e) = [a,b,c,d,e]
-    fromIndex ~[a,b,c,d,e] = (a,b,c,d,e)
-
-instance (Index i, Enum i, Bounded i) => Shape (T6 i) (I6 i)
-  where
-    toIndex    (a,b,c,d,e,f) = [a,b,c,d,e,f]
-    fromIndex ~[a,b,c,d,e,f] = (a,b,c,d,e,f)
-
-instance (Index i, Enum i, Bounded i) => Shape (T7 i) (I7 i)
-  where
-    toIndex    (a,b,c,d,e,f,g) = [a,b,c,d,e,f,g]
-    fromIndex ~[a,b,c,d,e,f,g] = (a,b,c,d,e,f,g)
-
-instance (Index i, Enum i, Bounded i) => Shape (T8 i) (I8 i)
-  where
-    toIndex    (a,b,c,d,e,f,g,h) = [a,b,c,d,e,f,g,h]
-    fromIndex ~[a,b,c,d,e,f,g,h] = (a,b,c,d,e,f,g,h)
-
-instance (Index i, Enum i, Bounded i) => Shape (T9 i) (I9 i)
-  where
-    toIndex    (a,b,c,d,e,f,g,h,i) = [a,b,c,d,e,f,g,h,i]
-    fromIndex ~[a,b,c,d,e,f,g,h,i] = (a,b,c,d,e,f,g,h,i)
-
-instance (Index i, Enum i, Bounded i) => Shape (T10 i) (I10 i)
-  where
-    toIndex    (a,b,c,d,e,f,g,h,i,j) = [a,b,c,d,e,f,g,h,i,j]
-    fromIndex ~[a,b,c,d,e,f,g,h,i,j] = (a,b,c,d,e,f,g,h,i,j)
-
-instance (Index i, Enum i, Bounded i) => Shape (T11 i) (I11 i)
-  where
-    toIndex    (a,b,c,d,e,f,g,h,i,j,k) = [a,b,c,d,e,f,g,h,i,j,k]
-    fromIndex ~[a,b,c,d,e,f,g,h,i,j,k] = (a,b,c,d,e,f,g,h,i,j,k)
-
-instance (Index i, Enum i, Bounded i) => Shape (T12 i) (I12 i)
-  where
-    toIndex    (a,b,c,d,e,f,g,h,i,j,k,l) = [a,b,c,d,e,f,g,h,i,j,k,l]
-    fromIndex ~[a,b,c,d,e,f,g,h,i,j,k,l] = (a,b,c,d,e,f,g,h,i,j,k,l)
-
-instance (Index i, Enum i, Bounded i) => Shape (T13 i) (I13 i)
-  where
-    toIndex    (a,b,c,d,e,f,g,h,i,j,k,l,m) = [a,b,c,d,e,f,g,h,i,j,k,l,m]
-    fromIndex ~[a,b,c,d,e,f,g,h,i,j,k,l,m] = (a,b,c,d,e,f,g,h,i,j,k,l,m)
-
-instance (Index i, Enum i, Bounded i) => Shape (T14 i) (I14 i)
-  where
-    toIndex    (a,b,c,d,e,f,g,h,i,j,k,l,m,n) = [a,b,c,d,e,f,g,h,i,j,k,l,m,n]
-    fromIndex ~[a,b,c,d,e,f,g,h,i,j,k,l,m,n] = (a,b,c,d,e,f,g,h,i,j,k,l,m,n)
-
-instance (Index i, Enum i, Bounded i) => Shape (T15 i) (I15 i)
-  where
-    toIndex    (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o) = [a,b,c,d,e,f,g,h,i,j,k,l,m,n,o]
-    fromIndex ~[a,b,c,d,e,f,g,h,i,j,k,l,m,n,o] = (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o)
-
---------------------------------------------------------------------------------
-
 {- Tuple instances. -}
 
 #define INDEX_INSTANCE(TYPE,LAST,GTYPE) instance (Index i, Enum i, Bounded i) => Index (TYPE) where\
@@ -687,38 +632,94 @@ instance (Index i, Enum i, Bounded i) => Shape (T15 i) (I15 i)
 type DimLast (TYPE) = i;\
 type DimInit (TYPE) = LAST;\
 type GIndex  (TYPE) = GTYPE;\
-rank             = rank . toIndex;\
-size             = size . toBounds;\
-sizes            = sizes . toBounds;\
-range            = fmap fromIndex . range . toBounds;\
-inRange     bs i = toBounds bs `inRange` toIndex i;\
-next        bs i = fromIndex $ toBounds bs `next` toIndex i;\
-prev        bs i = fromIndex $ toBounds bs `prev` toIndex i;\
-inBounds    bs i | isEmpty bs = ER | isUnderflow bs i = UR | isOverflow bs i = OR | True = IN;\
-isEmpty          = isEmpty . toBounds;\
-isOverflow  bs i = toBounds bs `isOverflow`  toIndex i;\
-isUnderflow bs i = toBounds bs `isUnderflow` toIndex i;\
-safeElem    bs i = fromIndex $ toBounds bs `safeElem` (toIndex i);\
-ordBounds   bs   = let (f, s) = ordBounds $ toBounds bs in (fromIndex f, fromIndex s);\
-offset      bs i = toBounds bs `offset` toIndex i;\
-index       bs c = fromIndex $ toBounds bs `index` c;\
-unsafeIndex      = fromIndex . unsafeIndex;\
+\
+size        = size . toGBounds;\
+sizes       = sizes . toGBounds;\
+isEmpty     = isEmpty . toGBounds;\
+range       = fmap fromGIndex . range . toGBounds;\
+inRange  bs = inRange (toGBounds bs) . toGIndex;\
+next     bs = fromGIndex . next (toGBounds bs) . toGIndex;\
+prev     bs = fromGIndex . prev (toGBounds bs) . toGIndex;\
+safeElem bs = fromGIndex . safeElem (toGBounds bs) . toGIndex;\
+offset   bs = offset (toGBounds bs) . toGIndex;\
+index    bs = fromGIndex . index (toGBounds bs);\
+ordBounds   = fromGBounds . ordBounds . toGBounds;\
+unsafeIndex = fromGIndex . unsafeIndex;\
+\
+isOverflow  bs = isOverflow  (toGBounds bs) . toGIndex;\
+isUnderflow bs = isUnderflow (toGBounds bs) . toGIndex;\
+inBounds    bs i | isEmpty bs = ER | isUnderflow bs i = UR | isOverflow bs i = OR | True = IN;
+-- incomplete definition, toGIndex and fromGIndex needed.
+
+INDEX_INSTANCE(T2 i, i, I2 i)
+fromGIndex ~[a,b] = (a,b);
+toGIndex    (a,b) = [a,b];
 }
 
-INDEX_INSTANCE(T2  i,     i, I2  i)
-INDEX_INSTANCE(T3  i, T2  i, I3  i)
-INDEX_INSTANCE(T4  i, T3  i, I4  i)
-INDEX_INSTANCE(T5  i, T4  i, I5  i)
-INDEX_INSTANCE(T6  i, T5  i, I6  i)
-INDEX_INSTANCE(T7  i, T6  i, I7  i)
-INDEX_INSTANCE(T8  i, T7  i, I8  i)
-INDEX_INSTANCE(T9  i, T8  i, I9  i)
-INDEX_INSTANCE(T10 i, T9  i, I10 i)
+INDEX_INSTANCE(T3 i, T2 i, I3 i)
+fromGIndex ~[a,b,c] = (a,b,c);
+toGIndex    (a,b,c) = [a,b,c];
+}
+
+INDEX_INSTANCE(T4 i, T3 i, I4 i)
+fromGIndex ~[a,b,c,d] = (a,b,c,d);
+toGIndex    (a,b,c,d) = [a,b,c,d];
+}
+
+INDEX_INSTANCE(T5 i, T4 i, I5 i)
+fromGIndex ~[a,b,c,d,e] = (a,b,c,d,e);
+toGIndex    (a,b,c,d,e) = [a,b,c,d,e];
+}
+
+INDEX_INSTANCE(T6 i, T5 i, I6 i)
+fromGIndex ~[a,b,c,d,e,f] = (a,b,c,d,e,f);
+toGIndex    (a,b,c,d,e,f) = [a,b,c,d,e,f];
+}
+
+INDEX_INSTANCE(T7 i, T6 i, I7 i)
+fromGIndex ~[a,b,c,d,e,f,g] = (a,b,c,d,e,f,g);
+toGIndex    (a,b,c,d,e,f,g) = [a,b,c,d,e,f,g];
+}
+
+INDEX_INSTANCE(T8 i, T7 i, I8 i)
+fromGIndex ~[a,b,c,d,e,f,g,h] = (a,b,c,d,e,f,g,h);
+toGIndex    (a,b,c,d,e,f,g,h) = [a,b,c,d,e,f,g,h];
+}
+
+INDEX_INSTANCE(T9 i, T8 i, I9 i)
+fromGIndex ~[a,b,c,d,e,f,g,h,i] = (a,b,c,d,e,f,g,h,i);
+toGIndex    (a,b,c,d,e,f,g,h,i) = [a,b,c,d,e,f,g,h,i];
+}
+
+INDEX_INSTANCE(T10 i, T9 i, I10 i)
+fromGIndex ~[a,b,c,d,e,f,g,h,i,j] = (a,b,c,d,e,f,g,h,i,j);
+toGIndex    (a,b,c,d,e,f,g,h,i,j) = [a,b,c,d,e,f,g,h,i,j];
+}
+
 INDEX_INSTANCE(T11 i, T10 i, I11 i)
+fromGIndex ~[a,b,c,d,e,f,g,h,i,j,k] = (a,b,c,d,e,f,g,h,i,j,k);
+toGIndex    (a,b,c,d,e,f,g,h,i,j,k) = [a,b,c,d,e,f,g,h,i,j,k];
+}
+
 INDEX_INSTANCE(T12 i, T11 i, I12 i)
+fromGIndex ~[a,b,c,d,e,f,g,h,i,j,k,l] = (a,b,c,d,e,f,g,h,i,j,k,l);
+toGIndex    (a,b,c,d,e,f,g,h,i,j,k,l) = [a,b,c,d,e,f,g,h,i,j,k,l];
+}
+
 INDEX_INSTANCE(T13 i, T12 i, I13 i)
+fromGIndex ~[a,b,c,d,e,f,g,h,i,j,k,l,m] = (a,b,c,d,e,f,g,h,i,j,k,l,m);
+toGIndex    (a,b,c,d,e,f,g,h,i,j,k,l,m) = [a,b,c,d,e,f,g,h,i,j,k,l,m];
+}
+
 INDEX_INSTANCE(T14 i, T13 i, I14 i)
+fromGIndex ~[a,b,c,d,e,f,g,h,i,j,k,l,m,n] = (a,b,c,d,e,f,g,h,i,j,k,l,m,n);
+toGIndex    (a,b,c,d,e,f,g,h,i,j,k,l,m,n) = [a,b,c,d,e,f,g,h,i,j,k,l,m,n];
+}
+
 INDEX_INSTANCE(T15 i, T14 i, I15 i)
+fromGIndex ~[a,b,c,d,e,f,g,h,i,j,k,l,m,n,o] = (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o);
+toGIndex    (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o) = [a,b,c,d,e,f,g,h,i,j,k,l,m,n,o];
+}
 
 #undef INDEX_INSTANCE
 
@@ -746,10 +747,4 @@ intOffset (l, u) i = checkBounds (l, u) i (fromEnum i - fromEnum l) "offset (def
 -- | Default bounds for unsigned numeric types.
 defUB :: (Index i, Bounded i) => Int -> (i, i)
 defUB n = n < 1 ? (unsafeIndex 1, unsafeIndex 0) $ (unsafeIndex 0, unsafeIndex $ n - 1)
-
--- | > toBounds (l, u) = (toIndex l, toIndex u)
-toBounds :: (Shape i j) => (i, i) -> (j, j)
-toBounds (l, u) = (toIndex l, toIndex u)
-
-
 
