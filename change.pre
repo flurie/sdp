@@ -1,6 +1,9 @@
 version preindex:
   ADDED:
-    * SDP.Tuple module with tuple type synonyms.
+    * SDP.Tuple  module for tuple type synonyms
+    * SDP.Finite module for finite-dimension index
+    
+    * UnexpectedRank exception
     
     * toGIndex, fromGIndex, fromGBounds and toGBounds functions
     * DimInit, DimLast and GIndex type families

@@ -6,8 +6,7 @@
     Portability :  portable
   
   @Control.Exception.SDP@ - service module that contain two useful exception
-  types. @SDP.SafePrelude@ doesn't export this module (just like "Prelude"
-  doesn't export "Control.Exception").
+  types. @SDP.SafePrelude@ doesn't export this module.
 -}
 module Control.Exception.SDP
 (
@@ -15,7 +14,7 @@ module Control.Exception.SDP
   module Control.Exception,
   
   -- * Exceptions
-  UnreachableException (..), IndexException (..)
+  UnreachableException (..), IndexException (..), UnexpectedRank (..)
 )
 where
 
@@ -51,6 +50,22 @@ instance Show IndexException
     show (IndexUnderflow  s) = "index out of lower bound " ++ s
 
 instance Exception IndexException
+
+--------------------------------------------------------------------------------
+
+{- |
+  'UnexpectedRank' - service exception for "SDP.Finite" @IsList@ instances.
+  
+  This exception is thrown when the rank of the index doesn't match the number
+  of elements in its list representation.
+-}
+data UnexpectedRank = UnexpectedRank String deriving ( Eq, Typeable )
+
+instance Show UnexpectedRank
+  where
+    show (UnexpectedRank s) = "unexpected rank " ++ s
+
+instance Exception UnexpectedRank
 
 --------------------------------------------------------------------------------
 

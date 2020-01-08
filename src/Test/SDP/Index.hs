@@ -37,35 +37,35 @@ default ()
 -- | TestIndex is service type synonym for more comfortable quickCheck using.
 type TestIndex i = (i, i) -> i -> Bool
 
-listSizeRestriction :: Int
-listSizeRestriction = 65536
+lim :: Int
+lim = 65536
 
 {- |
   rangeTest checks relations of 'inRange', 'isOverflow', 'isUnderflow' and
   'isEmpty'.
 -}
 rangeTest :: (Index i) => (i, i) -> i -> Bool
-rangeTest (l, u) i = and
+rangeTest bnds i = and
   [
-    not $ inRange (l, u) i && isOverflow  (l, u) i,
-    not $ inRange (l, u) i && isUnderflow (l, u) i,
-    not $ inRange (l, u) i && isEmpty     (l, u),
+    not $ inRange bnds i && isOverflow  bnds i,
+    not $ inRange bnds i && isUnderflow bnds i,
+    not $ inRange bnds i && isEmpty     bnds,
     
-    not (isEmpty  (l, u))  || isOverflow  (l, u) i,
-    not (isEmpty  (l, u))  || isUnderflow (l, u) i
+    not (isEmpty  bnds)  || isOverflow  bnds i,
+    not (isEmpty  bnds)  || isUnderflow bnds i
   ]
 
 -- | prevTest checks relations of 'prev' and 'range'.
 prevTest :: (Index i) => (i, i) -> Bool
 prevTest bnds = isEmpty bnds || and test
   where
-    test = take listSizeRestriction $ zipWith (==) (range bnds) (tail $ prev bnds <$> range bnds)
+    test = take lim $ zipWith (==) (range bnds) (tail $ prev bnds <$> range bnds)
 
 -- | nextTest checks relations of 'next' and 'range'.
 nextTest :: (Index i) => (i, i) -> Bool
 nextTest bnds = isEmpty bnds || and test
   where
-    test = take listSizeRestriction $ zipWith (==) (range bnds) (tail $ prev bnds <$> range bnds)
+    test = take lim $ zipWith (==) (range bnds) (tail $ prev bnds <$> range bnds)
 
 -- | inBoundsTest checks relations of 'inBounds' and other range functions.
 inBoundsTest :: (Index i) => (i, i) -> i -> Bool
@@ -84,13 +84,13 @@ dumbSizeTest bnds = length (range bnds) == size bnds
 
 -- | basicIndexTest checks relations of 'rank', 'size' and 'sizes'.
 basicIndexTest :: (Index i) => (i, i) -> i -> Bool
-basicIndexTest (l, u) i = and
+basicIndexTest bnds@(l, u) i = and
   [
     rank u == rank i,
     rank l == rank i,
     
-    length  (sizes (l, u)) == rank i,
-    product (sizes (l, u)) == size (l, u)
+    length  (sizes bnds) == rank i,
+    product (sizes bnds) == size bnds
   ]
 
 {- |
