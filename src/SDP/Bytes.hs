@@ -45,10 +45,10 @@ import Data.String ( IsString (..) )
 
 import SDP.Bytes.ST
 
+import SDP.Internal.Commons
 import SDP.Internal.SBytes
 import SDP.Internal.Read
 import SDP.Internal.Show
-import SDP.Simple
 
 default ()
 

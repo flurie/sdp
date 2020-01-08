@@ -48,9 +48,9 @@ import SDP.Unrolled.STUnlist
 import SDP.Unrolled.Unlist
 import SDP.Unrolled.ST
 
+import SDP.Internal.Commons
 import SDP.Internal.Read
 import SDP.Internal.Show
-import SDP.Simple
 
 default ()
 

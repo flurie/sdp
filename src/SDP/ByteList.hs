@@ -50,9 +50,9 @@ import Data.String ( IsString (..) )
 import SDP.ByteList.Ublist
 import SDP.ByteList.ST
 
-import SDP.Internal.Read hiding ( pfail )
+import SDP.Internal.Commons
+import SDP.Internal.Read
 import SDP.Internal.Show
-import SDP.Simple
 
 default ()
 
@@ -127,32 +127,32 @@ instance (Index i, Unboxed e) => Linear (ByteList i e) e
     
     toHead e es = withSize (sizeOf es + 1) (e :> unpack es)
     
-    uncons Z = pfail "(:>)"
+    uncons Z = pfailEx "(:>)"
     uncons (ByteList l u es) = (x, es .<= 1 ? Z $ ByteList l' u xs)
       where
         (x, xs) = uncons es
         l' = next (l, u) l
     
-    head Z = pfail "(:>)"
+    head Z = pfailEx "(:>)"
     head (ByteList _ _ es) = head es
     
-    tail Z = pfail "(:>)"
+    tail Z = pfailEx "(:>)"
     tail (ByteList l u es) = ByteList l' u (tail es)
       where
         l' = next (l, u) l
     
     toLast es e = withSize (sizeOf es + 1) (unpack es :< e)
     
-    unsnoc Z = pfail "(:<)"
+    unsnoc Z = pfailEx "(:<)"
     unsnoc (ByteList l u es) = (es .<= 1 ? Z $ ByteList l u' xs, x)
       where
         (xs, x) = unsnoc es
         u' = prev (l, u) u
     
-    last Z = pfail "(:<)"
+    last Z = pfailEx "(:<)"
     last (ByteList _ _ es) = last es
     
-    init Z = pfail "(:<)"
+    init Z = pfailEx "(:<)"
     init (ByteList l u es) = ByteList l u' (init es)
       where
         u' = prev (l, u) u
@@ -323,8 +323,8 @@ withSize =  \ n es -> let (l, u) = defaultBounds n in ByteList l u es
 withBounds :: (Index i, Unboxed e) => Ublist e -> ByteList i e
 withBounds =  \ es -> let (l, u) = defaultBounds (sizeOf es) in ByteList l u es
 
-pfail :: String -> a
-pfail msg = throw . PatternMatchFail $ "in SDP.ByteList." ++ msg
+pfailEx :: String -> a
+pfailEx msg = throw . PatternMatchFail $ "in SDP.ByteList." ++ msg
 
 
 

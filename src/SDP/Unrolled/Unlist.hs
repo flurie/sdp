@@ -43,9 +43,9 @@ import Data.String ( IsString (..) )
 import SDP.Unrolled.STUnlist
 import SDP.SortM.Tim
 
+import SDP.Internal.Commons
 import SDP.Internal.SArray
 import SDP.Internal.Show
-import SDP.Simple
 
 default ()
 

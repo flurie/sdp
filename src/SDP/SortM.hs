@@ -23,7 +23,7 @@ where
 import Prelude ()
 import SDP.SafePrelude
 
-import SDP.Simple
+import SDP.Internal.Commons
 
 default ()
 

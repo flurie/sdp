@@ -34,7 +34,7 @@ import Data.List ( findIndex, findIndices )
 import SDP.Linear
 import SDP.Map
 
-import SDP.Simple
+import SDP.Internal.Commons
 
 default ()
 

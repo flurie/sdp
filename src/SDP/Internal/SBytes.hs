@@ -26,6 +26,8 @@ import Test.QuickCheck
 
 import SDP.IndexedM
 import SDP.Unboxed
+
+import SDP.SortM.Tim
 import SDP.SortM
 import SDP.Sort
 import SDP.Scan
@@ -41,8 +43,7 @@ import GHC.Exts
   )
 import GHC.ST ( runST, ST (..), STRep )
 
-import SDP.SortM.Tim
-import SDP.Simple
+import SDP.Internal.Commons
 
 default ()
 
@@ -198,11 +199,9 @@ instance (Unboxed e) => Bordered (SBytes# e) Int e
     sizeOf   (SBytes# c _ _) = c
     upper    (SBytes# c _ _) = c - 1
     bounds   (SBytes# c _ _) = (0, c - 1)
-    
     indices  (SBytes# c _ _) = [0 .. c - 1]
     indexOf  (SBytes# c _ _) = index (0, c - 1)
     indexIn  (SBytes# c _ _) = \ i -> i >= 0 && i < c
-    
     offsetOf (SBytes# c _ _) = offset (0, c - 1)
 
 --------------------------------------------------------------------------------
@@ -622,4 +621,5 @@ undEx msg = throw . UndefinedValue $ "in SDP.Internal.SBytes." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Internal.SBytes." ++ msg
+
 

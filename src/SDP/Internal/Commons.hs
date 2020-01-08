@@ -2,7 +2,7 @@
   NOTE: This is an internal module for typical functions and imports.
   Its contents may be changed or removed without reference to the changelog.
 -}
-module SDP.Simple
+module SDP.Internal.Commons
 (
   module Control.Exception.SDP,
   

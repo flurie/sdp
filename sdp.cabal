@@ -116,7 +116,7 @@ Library
     SDP.Internal.Show
   
   other-modules:
-    SDP.Simple
+    SDP.Internal.Commons
 
 ---            _____  _____  _____  _____  _____  _   _  _____               ---
 ---           |_   _||  ___|/  ___||_   _||_   _|| \ | ||  __ \              ---
@@ -134,10 +134,13 @@ test-suite test-indices
   
   other-modules:
     Control.Exception.SDP
+    
+    SDP.Internal.Commons
     SDP.SafePrelude
+    
     Test.SDP.Index
+    
     SDP.Estimate
-    SDP.Simple
     SDP.Finite
     SDP.Index
     SDP.Tuple
@@ -165,9 +168,9 @@ test-suite test-array
     
     Control.Exception.SDP
     Control.Monad.Rope
+    
     SDP.SafePrelude
     SDP.SortM.Tim
-    SDP.Simple
     
     SDP.Estimate
     SDP.IndexedM
@@ -183,17 +186,17 @@ test-suite test-array
     SDP.Map
     SDP.Zip
     
-    Test.SDP
-    Test.SDP.Gen
-    
     Test.SDP.Estimate
     Test.SDP.Indexed
     Test.SDP.Linear
     Test.SDP.Sort
+    Test.SDP.Gen
     Test.SDP.Set
     Test.SDP.Ord
     Test.SDP.Eq
+    Test.SDP
     
+    SDP.Internal.Commons
     SDP.Internal.SArray
     SDP.Internal.Show
     SDP.Internal.Read
@@ -225,7 +228,6 @@ test-suite test-bytes
     Control.Monad.Rope
     SDP.SafePrelude
     SDP.SortM.Tim
-    SDP.Simple
     
     SDP.Estimate
     SDP.IndexedM
@@ -253,6 +255,7 @@ test-suite test-bytes
     Test.SDP.Ord
     Test.SDP.Eq
     
+    SDP.Internal.Commons
     SDP.Internal.SBytes
     SDP.Internal.Read
     SDP.Internal.Show
@@ -286,7 +289,6 @@ test-suite test-unrolled
     Control.Monad.Rope
     SDP.SafePrelude
     SDP.SortM.Tim
-    SDP.Simple
     
     SDP.Estimate
     SDP.IndexedM
@@ -313,6 +315,7 @@ test-suite test-unrolled
     Test.SDP.Ord
     Test.SDP.Eq
     
+    SDP.Internal.Commons
     SDP.Internal.SArray
     SDP.Internal.Read
     SDP.Internal.Show
@@ -344,9 +347,9 @@ test-suite test-bytelist
     
     Control.Exception.SDP
     Control.Monad.Rope
+    
     SDP.SafePrelude
     SDP.SortM.Tim
-    SDP.Simple
     
     SDP.Estimate
     SDP.IndexedM
@@ -374,6 +377,7 @@ test-suite test-bytelist
     Test.SDP.Ord
     Test.SDP.Eq
     
+    SDP.Internal.Commons
     SDP.Internal.SBytes
     SDP.Internal.Read
     SDP.Internal.Show
@@ -405,7 +409,6 @@ test-suite test-ublist
     Control.Monad.Rope
     SDP.SafePrelude
     SDP.SortM.Tim
-    SDP.Simple
     
     SDP.Estimate
     SDP.IndexedM
@@ -433,6 +436,7 @@ test-suite test-ublist
     Test.SDP.Ord
     Test.SDP.Eq
     
+    SDP.Internal.Commons
     SDP.Internal.SBytes
     SDP.Internal.Show
     
@@ -463,7 +467,6 @@ test-suite test-unlist
     Control.Monad.Rope
     SDP.SafePrelude
     SDP.SortM.Tim
-    SDP.Simple
     
     SDP.Estimate
     SDP.IndexedM
@@ -490,6 +493,7 @@ test-suite test-unlist
     Test.SDP.Ord
     Test.SDP.Eq
     
+    SDP.Internal.Commons
     SDP.Internal.SArray
     SDP.Internal.Show
     
@@ -540,7 +544,6 @@ benchmark bench-sort
     Control.Monad.Rope
     SDP.SafePrelude
     SDP.SortM.Tim
-    SDP.Simple
     
     SDP.Estimate
     SDP.IndexedM
@@ -559,6 +562,7 @@ benchmark bench-sort
     
     Test.SDP.Gen
     
+    SDP.Internal.Commons
     SDP.Internal.SArray
     SDP.Internal.SBytes
     

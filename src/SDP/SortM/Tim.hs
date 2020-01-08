@@ -25,11 +25,12 @@ import Prelude ()
 
 import SDP.SafePrelude
 import SDP.IndexedM
-import SDP.Simple
 
 import Control.Monad.Rope
 
 import Data.Bits
+
+import SDP.Internal.Commons
 
 default ()
 
@@ -161,5 +162,4 @@ arrcopy xs ys ix iy count = copy ix iy (max 0 count)
   where
     copy _  _  0 = return ()
     copy ox oy c = xs !#> ox >>= writeM_ ys oy >> copy (ox + 1) (oy + 1) (c - 1)
-
 

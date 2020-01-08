@@ -45,9 +45,9 @@ import Data.String ( IsString (..) )
 import SDP.ByteList.STUblist
 import SDP.SortM.Tim
 
+import SDP.Internal.Commons
 import SDP.Internal.SBytes
 import SDP.Internal.Show
-import SDP.Simple
 
 default ()
 

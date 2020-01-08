@@ -46,7 +46,7 @@ import SDP.Zip
 
 import GHC.Types
 
-import SDP.Simple
+import SDP.Internal.Commons
 
 default ()
 

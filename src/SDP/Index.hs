@@ -60,7 +60,7 @@ import Data.Int  ( Int,  Int8,  Int16,  Int32,  Int64  )
 import Data.Tuple
 import Data.Char  ( ord )
 
-import SDP.Simple
+import SDP.Internal.Commons
 
 default ()
 

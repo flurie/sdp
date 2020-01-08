@@ -27,15 +27,15 @@ import SDP.SafePrelude
 
 import SDP.IndexedM
 import SDP.Unboxed
+
+import SDP.SortM.Tim
 import SDP.SortM
 
 import GHC.Base ( Int (..) )
 import GHC.ST   ( ST  (..) )
 
-import SDP.SortM.Tim
-
+import SDP.Internal.Commons
 import SDP.Internal.SBytes
-import SDP.Simple
 
 default ()
 

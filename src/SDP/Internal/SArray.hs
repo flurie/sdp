@@ -25,10 +25,12 @@ import SDP.SafePrelude
 import Test.QuickCheck
 
 import SDP.IndexedM
-import SDP.SortM
 import SDP.Sort
 import SDP.Scan
 import SDP.Set
+
+import SDP.SortM.Tim
+import SDP.SortM
 
 import GHC.Exts
   (
@@ -44,8 +46,7 @@ import GHC.Exts
   )
 import GHC.ST ( runST, ST (..), STRep )
 
-import SDP.SortM.Tim
-import SDP.Simple
+import SDP.Internal.Commons
 
 default ()
 
@@ -665,6 +666,5 @@ pfailEx msg = throw . PatternMatchFail $ "in SDP.Internal.SArray." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Internal.SArray." ++ msg
-
 
 

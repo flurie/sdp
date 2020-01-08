@@ -30,7 +30,7 @@ import SDP.Set
 import qualified Data.List as L
 import Data.Maybe
 
-import SDP.Simple
+import SDP.Internal.Commons
 
 default ()
 

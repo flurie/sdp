@@ -5,8 +5,8 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
   
-  @Control.Exception.SDP@ - service module that contain two useful exception
-  types. @SDP.SafePrelude@ doesn't export this module.
+  @Control.Exception.SDP@ - service module that provide some useful exceptions.
+  Note that @SDP.SafePrelude@ doesn't export this module.
 -}
 module Control.Exception.SDP
 (

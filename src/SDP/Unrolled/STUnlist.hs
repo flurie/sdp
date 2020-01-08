@@ -33,8 +33,8 @@ import GHC.ST   ( ST  (..) )
 
 import SDP.SortM.Tim
 
+import SDP.Internal.Commons
 import SDP.Internal.SArray
-import SDP.Simple
 
 default ()
 
