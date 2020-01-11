@@ -13,18 +13,18 @@ module SDP.Internal.Read
   module Text.Read,
   module Text.Read.Lex,
   
+  appPrec,
+  
   -- * Common parsers
   linearPrec, indexedPrec, linearIndexedPrec,
   
   readZeroPrec, readAsList, readAsListN, readAssocsPrec,
   
   -- * Common parser combinators
-  manyPrec, manyPrecWith, expectPrec,
+  allPrec, allPrecWith, expectPrec, namedPrec,
   
   -- * Generalized readers
   readBy, readMaybeBy, readEitherBy,
-  
-  readFinal, readFinalWith, namedPrec,
   
   -- * Enum parsers
   readAsEnum, enumFromPrec, enumFromToPrec, enumFromThenPrec, enumFromThenToPrec
@@ -32,7 +32,7 @@ module SDP.Internal.Read
 where
 
 import Prelude ()
-import SDP.SafePrelude hiding ( many )
+import SDP.SafePrelude
 
 import SDP.Indexed
 
@@ -41,7 +41,7 @@ import Text.Read.Lex ( expect )
 
 import GHC.Show ( appPrec )
 
-import Text.ParserCombinators.ReadP ( many, skipSpaces )
+import Text.ParserCombinators.ReadP ( eof, manyTill, skipSpaces )
 
 default ()
 
@@ -135,23 +135,30 @@ enumFromThenToPrec =  fromList <$> parens' fromThenToPrec_
 
 {- Common parser combinators. -}
 
+-- | Just lifted 'expect'.
+expectPrec :: Lexeme -> ReadPrec ()
+expectPrec = lift . expect
+
 {- |
-  manyPrec is 'many'-based combinator (ambiguous):
+  manyPrec is just
   
-  > readBy manyPrec "1 2 3 4 5 6 7" :: [Int] == *** Exception ...
-  
-  but
-  
-  > manyPrec "1 2 3 4 5 6 7" == [1 .. 7]
+  > allPrecWith readPrec
 -}
-manyPrec :: (Read e) => ReadPrec [e]
-manyPrec = lift . many $ readPrec_to_P readPrec appPrec
+allPrec :: (Read e) => ReadPrec [e]
+allPrec =  allPrecWith readPrec
 
--- | Just lifted 'many'.
-manyPrecWith :: ReadPrec e -> ReadPrec [e]
-manyPrecWith parser = lift . many $ readPrec_to_P parser appPrec
+{- |
+  allPrecWith is 'manyTill'-based combinator, which reads a sequence of elements
+  without any separators:
+  
+  > readBy allPrecWith readPrec "1 2 3 4 5 6 7" :: [Int] == [1 .. 7]
+-}
+allPrecWith :: ReadPrec e -> ReadPrec [e]
+allPrecWith parser = lift (manyTill reader eof)
+  where
+    reader = readPrec_to_P parser 0
 
--- | @namedPrec name readprec@ parses @[name] readprec@.
+-- | @namedPrec name readprec@ is readPrec with optional @name@ prefix.
 namedPrec :: String -> ReadPrec e -> ReadPrec e
 namedPrec name parser = named +++ parser
   where
@@ -181,20 +188,6 @@ readEitherBy parser string = case readPrec_to_S read' minPrec string of
     _         -> Left "SDP.Internal.Read.readBy: ambiguous parse"
   where
     read' = do x <- parser; lift skipSpaces; return x
-
--- | readFinal reads the most complete sequence.
-readFinal :: (Read e) => String -> [e]
-readFinal string = fst (last cases)
-  where
-    read' = do x <- manyPrec; lift skipSpaces; return x
-    cases = readPrec_to_S read' minPrec string
-
--- | readFinalWith reads the most complete sequence.
-readFinalWith :: ReadPrec e -> String -> [e]
-readFinalWith parser string = fst (last cases)
-  where
-    read' = do x <- manyPrecWith parser; lift skipSpaces; return x
-    cases = readPrec_to_S read' minPrec string
 
 --------------------------------------------------------------------------------
 
@@ -229,7 +222,4 @@ parens' parser = do
   expectPrec (Punc "]")
   return value
 
--- | Just lifted 'expect'.
-expectPrec :: Lexeme -> ReadPrec ()
-expectPrec = lift . expect
 
