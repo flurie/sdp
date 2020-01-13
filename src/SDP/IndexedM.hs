@@ -49,11 +49,19 @@ class (Monad m, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
     {-# MINIMAL fromAssocs', fromIndexed', fromIndexedM, overwrite, ((>!)|(!?>)) #-}
     
     {-# INLINE fromAssocs #-}
-    -- | fromAssocs returns new mutable structure created from assocs.
+    {- |
+      @fromAssocs bnds ascs@ creates new structure from list of associations,
+      without default element. Note that @bnds@ is @ascs@ bounds and may not
+      match with the result bounds (not always possible).
+    -}
     fromAssocs :: (i, i) -> [(i, e)] -> m v
     fromAssocs bnds = fromAssocs' bnds (undEx "fromAssocs")
     
-    -- | fromAssocs' return new mutable structure created from assocs and default element
+    {- |
+      @fromAssocs' bnds defvalue ascs@ creates new structure from list of
+      associations, without default element. Note that @bnds@ is @ascs@ bounds
+      and may not match with the result bounds (not always possible).
+    -}
     fromAssocs' :: (i, i) -> e -> [(i, e)] -> m v
     
     -- | (!#>) is unsafe monadic offset-based reader.
@@ -204,7 +212,4 @@ swapM es i j = do ei <- es !#> i; writeM_ es i =<< es !#> j; writeM_ es j ei
 
 undEx :: String -> a
 undEx msg = throw . UndefinedValue $ "in SDP.IndexedM" ++ msg
-
-
-
 

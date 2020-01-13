@@ -50,13 +50,18 @@ class (Index i) => Indexed v i e | v -> i, v -> e
     {- Global operations. -}
     
     {- |
-      assoc creates new structure from list of associations [(index, element)],
-      where default element is 'IndexException' ('UndefinedValue').
+      @assoc bnds ascs@ creates new structure from list of associations, without
+      default element. Note that @bnds@ is @ascs@ bounds and may not match with
+      the result bounds (not always possible).
     -}
     assoc :: (i, i) -> [(i, e)] -> v
     assoc bnds = assoc' bnds (undEx "assoc (default)")
     
-    -- | assoc' is safe version of assoc.
+    {- |
+      @assoc' bnds defvalue ascs@ creates new structure from list of
+      associations with default element. Note that @bnds@ is @ascs@ bounds and
+      may not match with the result bounds (not always possible).
+    -}
     assoc' :: (i, i) -> e -> [(i, e)] -> v
     
     assocMap :: (Map map i e) => (i, i) -> map -> v
@@ -77,7 +82,7 @@ class (Index i) => Indexed v i e | v -> i, v -> e
     accum :: (e -> e' -> e) -> v -> [(i, e')] -> v
     accum f es ies = bounds es `assoc` [ (i, es ! i `f` e') | (i, e') <- ies ]
     
-    -- | Writes elements to immutable structure (by copying).
+    -- | Update elements to immutable structure (by copying).
     (//) :: v -> [(i, e)] -> v
     
     -- | Update function, by default uses ('!') and may throw 'IndexException'.
