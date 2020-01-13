@@ -307,7 +307,13 @@ instance (Index i) => Indexed (Array i e) i e
       where
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
-    arr // ascs = runST $ fromFoldableM arr >>= (`overwrite` ascs) >>= done
+    
+    arr // ascs = runST $ do
+        marr <- fromFoldableM arr
+        overwrite (reshape' (bounds arr) marr) ascs >>= done
+      where
+        reshape' :: (i, i) -> STArray s i e -> STArray s i e
+        reshape' (l, u) (STArray _ _ arr#) = STArray l u arr#
     
     {-# INLINE (!^) #-}
     (!^) (Array _ _ arr#) = (arr# !^)
@@ -355,6 +361,5 @@ done (STArray l u marr#) = Array l u <$> unsafeFreeze marr#
 
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Array." ++ msg
-
 
 

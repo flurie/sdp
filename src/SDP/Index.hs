@@ -42,7 +42,7 @@ module SDP.Index
   Index (..),
   
   -- * Helpers
-  toGBounds, fromGBounds
+  toGBounds, fromGBounds, intOffset, defUB, checkBounds
 )
 where
 
@@ -448,7 +448,7 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
     
     unsafeIndex c = unsafeIndex d :& i
       where
-        (d, m) = defLimit c < lim ? (0, c) $ c `divMod` fromInteger lim
+        (d, m) = defLimit c <= lim ? (0, c) $ c `divMod` fromInteger lim
         i   = unsafeIndex m
         lim = defLimit i
 
@@ -461,7 +461,6 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
 type DimLast (TYPE) = i;\
 type DimInit (TYPE) = LAST;\
 type GIndex  (TYPE) = GTYPE;\
-\
 size        = size . toGBounds;\
 sizes       = sizes . toGBounds;\
 isEmpty     = isEmpty . toGBounds;\
@@ -475,7 +474,6 @@ offset   bs = offset (toGBounds bs) . toGIndex;\
 index    bs = fromGIndex . index (toGBounds bs);\
 ordBounds   = fromGBounds . ordBounds . toGBounds;\
 unsafeIndex = fromGIndex . unsafeIndex;\
-\
 isOverflow  bs = isOverflow  (toGBounds bs) . toGIndex;\
 isUnderflow bs = isUnderflow (toGBounds bs) . toGIndex;\
 inBounds    bs i | isEmpty bs = ER | isUnderflow bs i = UR | isOverflow bs i = OR | True = IN;
@@ -570,10 +568,12 @@ fromGBounds =  uncurry (on (,) fromGIndex)
 (-.) :: (Enum i) => i -> i -> Int
 (-.) =  on (-) fromEnum
 
+-- | intOffset is default offset for 'Integral' types.
 {-# INLINE intOffset #-}
-intOffset :: (Index i, Num i, Enum i) => (i, i) -> i -> Int
+intOffset :: (Index i, Integral i) => (i, i) -> i -> Int
 intOffset bnds@(l, _) i = checkBounds bnds i (fromEnum i - fromEnum l) "offset (default)"
 
+-- | Default 'defaultBounds' for unsigned types.
 {-# INLINE defUB #-}
 defUB :: (Index i, Bounded i) => Int -> (i, i)
 defUB n = n < 1 ? (unsafeIndex 1, unsafeIndex 0) $ (unsafeIndex 0, unsafeIndex $ n - 1)

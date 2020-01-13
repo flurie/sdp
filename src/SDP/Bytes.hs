@@ -252,7 +252,12 @@ instance (Index i, Unboxed e) => Indexed (Bytes i e) i e
       where
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
-    bytes // ascs = runST $ thaw bytes >>= (`overwrite` ascs) >>= done
+    bytes // ascs = runST $ do
+        mbytes <- thaw bytes
+        overwrite (reshape' (bounds bytes) mbytes) ascs >>= done
+      where
+        reshape' :: (i, i) -> STBytes s i e -> STBytes s i e
+        reshape' (l, u) (STBytes _ _ bytes#) = STBytes l u bytes#
     
     {-# INLINE (!^) #-}
     (!^) es = (unpack es !^)
