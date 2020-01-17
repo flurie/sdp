@@ -13,8 +13,12 @@ module SDP.SafePrelude
 (
   module Control.Applicative,
   module Control.Monad,
+  
   module Data.Foldable,
+  
+  module SDP.Comparing,
   module SDP.Estimate,
+  
   module Prelude,
   
   (?)
@@ -38,6 +42,8 @@ import Control.Applicative
 import Control.Monad
 
 import Data.Foldable hiding ( concat, concatMap )
+
+import SDP.Comparing
 import SDP.Estimate
 
 infixr 1 ? -- Lowest priority, compatible with infixr 0 $
@@ -54,7 +60,6 @@ default ()
 {-# INLINE (?) #-}
 (?) :: Bool -> a -> a -> a
 (?) p t e = if p then t else e
-
 
 
 

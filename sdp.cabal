@@ -47,7 +47,9 @@ Library
     
     Control.Exception.SDP
     Control.Monad.Rope
+    
     SDP.SafePrelude
+    SDP.Comparing
     SDP.Estimate
     SDP.Unboxed
     SDP.Finite
@@ -140,6 +142,7 @@ test-suite test-indices
     
     Test.SDP.Index
     
+    SDP.Comparing
     SDP.Estimate
     SDP.Finite
     SDP.Index
@@ -172,6 +175,7 @@ test-suite test-array
     SDP.SafePrelude
     SDP.SortM.Tim
     
+    SDP.Comparing
     SDP.Estimate
     SDP.IndexedM
     SDP.Indexed
@@ -229,6 +233,7 @@ test-suite test-bytes
     SDP.SafePrelude
     SDP.SortM.Tim
     
+    SDP.Comparing
     SDP.Estimate
     SDP.IndexedM
     SDP.Indexed
@@ -290,6 +295,7 @@ test-suite test-unrolled
     SDP.SafePrelude
     SDP.SortM.Tim
     
+    SDP.Comparing
     SDP.Estimate
     SDP.IndexedM
     SDP.Indexed
@@ -351,6 +357,7 @@ test-suite test-bytelist
     SDP.SafePrelude
     SDP.SortM.Tim
     
+    SDP.Comparing
     SDP.Estimate
     SDP.IndexedM
     SDP.Indexed
@@ -410,6 +417,7 @@ test-suite test-ublist
     SDP.SafePrelude
     SDP.SortM.Tim
     
+    SDP.Comparing
     SDP.Estimate
     SDP.IndexedM
     SDP.Indexed
@@ -468,6 +476,7 @@ test-suite test-unlist
     SDP.SafePrelude
     SDP.SortM.Tim
     
+    SDP.Comparing
     SDP.Estimate
     SDP.IndexedM
     SDP.Indexed
@@ -545,6 +554,7 @@ benchmark bench-sort
     SDP.SafePrelude
     SDP.SortM.Tim
     
+    SDP.Comparing
     SDP.Estimate
     SDP.IndexedM
     SDP.Indexed
