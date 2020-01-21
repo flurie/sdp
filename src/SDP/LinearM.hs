@@ -84,32 +84,40 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
   where
     {-# MINIMAL (newLinear|newLinearN), (getLeft|getRight), reversed, filled #-}
     
-    -- | Creates new mutable line from list.
+    -- | Prepend new element to the start of the structure (monadic 'toHead').
+    prepend :: e -> l -> m l
+    prepend e es = newLinear . (e :) =<< getLeft es
+    
+    -- | Append new element to the end of the structure (monadic 'toLast').
+    append  :: l -> e -> m l
+    append es e = newLinear . (:< e) =<< getLeft es
+    
+    -- | Create new mutable line from list.
     {-# INLINE newLinear #-}
     newLinear :: [e] -> m l
     newLinear es = newLinearN (length es) es
     
-    -- | Creates new mutable line from limited list.
+    -- | Create new mutable line from limited list.
     {-# INLINE newLinearN #-}
     newLinearN :: Int -> [e] -> m l
     newLinearN n = newLinear . take n
     
-    -- | Creates new mutable line from foldable structure.
+    -- | Create new mutable line from foldable structure.
     {-# INLINE fromFoldableM #-}
     fromFoldableM :: (Foldable f) => f e -> m l
     fromFoldableM =  newLinear . toList
     
-    -- | Returns left view of line.
+    -- | Return left view of line.
     {-# INLINE getLeft #-}
     getLeft :: l -> m [e]
     getLeft =  fmap reverse . getRight
     
-    -- | Returns right view of line.
+    -- | Return right view of line.
     {-# INLINE getRight #-}
     getRight :: l -> m [e]
     getRight =  fmap reverse . getLeft
     
-    -- | copied creates copy of structure.
+    -- | Create copy of structure.
     copied :: l -> m l
     copied es = getLeft es >>= newLinear
     
@@ -129,7 +137,9 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
 sortedM :: (LinearM m l e, Ord e) => l -> m Bool
 sortedM =  fmap f . getLeft
   where
-    f es = null es ? True $ and $ zipWith (<=) es (tail es)
+    f Z  = True
+    f es = and $ zipWith (<=) es (tail es)
+
 
 
 

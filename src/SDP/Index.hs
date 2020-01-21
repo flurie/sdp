@@ -173,7 +173,7 @@ class (Ord i) => Index i
     
     -- | Returns index by this offset default range.
     {-# INLINE unsafeIndex #-}
-    default unsafeIndex :: (DimInit i ~~ E, Enum i) => Int -> i
+    default unsafeIndex :: (Enum i) => Int -> i
     unsafeIndex :: Int -> i
     unsafeIndex =  toEnum
     
@@ -185,19 +185,16 @@ class (Ord i) => Index i
     isEmpty =  uncurry (>)
     
     -- | Checks the index status in bounds.
-    default inBounds :: (i, i) -> i -> InBounds
     inBounds :: (i, i) -> i -> InBounds
     inBounds (l, u) i | l > u = ER | i > u = OR | i < l = UR | True = IN
     
     -- | Checks if the index is overflow.
     {-# INLINE isOverflow  #-}
-    default isOverflow :: (DimInit i ~~ E, Enum i) => (i, i) -> i -> Bool
     isOverflow :: (i, i) -> i -> Bool
     isOverflow (l, u) i = i > u || l > u
     
     -- | Checks if the index is underflow.
     {-# INLINE isUnderflow #-}
-    default isUnderflow :: (DimInit i ~~ E, Enum i) => (i, i) -> i -> Bool
     isUnderflow :: (i, i) -> i -> Bool
     isUnderflow (l, u) i = i < l || l > u
     
@@ -587,4 +584,7 @@ checkBounds bnds i res msg = case inBounds bnds i of
 
 emptyEx :: String -> a
 emptyEx =  throw . EmptyRange . ("in SDP.Index." ++)
+
+
+
 

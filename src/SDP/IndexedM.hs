@@ -59,8 +59,8 @@ class (Monad m, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
     
     {- |
       @fromAssocs' bnds defvalue ascs@ creates new structure from list of
-      associations, without default element. Note that @bnds@ is @ascs@ bounds
-      and may not match with the result bounds (not always possible).
+      associations, with default element. Note that @bnds@ is @ascs@ bounds and
+      may not match with the result bounds (not always possible).
     -}
     fromAssocs' :: (i, i) -> e -> [(i, e)] -> m v
     
@@ -106,14 +106,36 @@ class (Monad m, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
     -- | fromIndexed converts one mutable structure to other.
     fromIndexedM :: (BorderedM m v' j e, IndexedM m v' j e) => v' -> m v
     
-    -- | overwrite rewrites mutable structure using assocs.
+    {- |
+      This function designed to overwrite large enough fragments of the
+      structure (unlike 'writeM' and 'writeM_'). In addition to the main
+      conversion it can be moved, cleaned and optimized in any possible way. As
+      a result, the original structure may become incorrect and its change may
+      lead to undesirable consequences. Therefore, overwrite explicitly return
+      the result of the conversion and the original structure should never been
+      used.
+      
+      Standard SDP structures support secure in-place @overwrite@.
+      
+      If the structure uses unmanaged memory, when ann unused fragments should
+      be cleared regardless of the reachability from the original structure and
+      its correctness.
+      
+      Please note that @overwrite@ require a list of associations with indices
+      in the current structure bounds and ignore any other, therefore
+      
+      > (fromAssocs bnds ascs) /= (fromAssocs bnds ascs >>= (`overwrite` ascs))
+    -}
     overwrite :: v -> [(i, e)] -> m v
-    overwrite es ies = mapM_ (uncurry $ writeM es) ies >> return es
     
     -- | reshape creates new indexed structure from old with reshaping function.
     reshape :: (IndexedM m v' j e) => (i, i) -> v' -> (i -> j) -> m v
     reshape bnds es f = fromAssocs bnds =<< range bnds `forM` \ i -> do e <- es !> f i; return (i, e)
     
+    {- |
+      @'fromAccum' f es ies@ create a new structure from @es@ elements
+      selectively updated by function @f@ and @ies@ associations list.
+    -}
     default fromAccum :: (BorderedM m v i e) => (e -> e' -> e) -> v -> [(i, e')] -> m v
     fromAccum :: (e -> e' -> e) -> v -> [(i, e')] -> m v
     fromAccum f es ascs = bindM2 (getBounds es) ies fromAssocs
@@ -146,14 +168,13 @@ class (IndexedM m v i e) => IFoldM m v i e
     -- | ifoldlM is left  monadic fold with index
     ifoldlM  :: (i -> r -> e -> m r) -> r -> v -> m r
     
-    i_foldrM :: (e -> r -> m r) -> r -> v -> m r
-    i_foldlM :: (r -> e -> m r) -> r -> v -> m r
-    
     -- | i_foldrM is just foldrM in IFoldM context
-    i_foldrM f = ifoldrM (const f)
+    i_foldrM :: (e -> r -> m r) -> r -> v -> m r
+    i_foldrM =  ifoldrM . const
     
     -- | i_foldlM is just foldlM in IFoldM context
-    i_foldlM f = ifoldlM (const f)
+    i_foldlM :: (r -> e -> m r) -> r -> v -> m r
+    i_foldlM =  ifoldlM . const
 
 --------------------------------------------------------------------------------
 
@@ -161,19 +182,16 @@ class (IndexedM m v i e) => IFoldM m v i e
 class (Monad m) => Thaw m v v' | v' -> m
   where
     {- |
-      thaw is safe way to convert a immutable structure to a mutable.
-      
-      thaw should copy the old structure or ensure that it will not be used
-      after calling the procedure.
+      @thaw@ is safe way to convert a immutable structure to a mutable. @thaw@
+      should copy the old structure or ensure that it will not be used after the
+      procedure calling.
     -}
     thaw :: v -> m v'
     
     {- |
-      unsafeThaw is unsafe version of 'thaw'.
-      
-      unsafeThaw doesn't guarantee that the structure will be copied or locked.
-      It only guarantees that if the old structure is not used, no error will
-      occur.
+      @unsafeThaw@ is unsafe version of 'thaw'. @unsafeThaw@ doesn't guarantee
+      that the structure will be copied or locked. It only guarantees that if
+      the old structure isn't used, no error will occur.
     -}
     unsafeThaw :: v -> m v'
     unsafeThaw =  thaw
@@ -184,19 +202,16 @@ class (Monad m) => Thaw m v v' | v' -> m
 class (Monad m) => Freeze m v' v | v' -> m
   where
     {- |
-      freeze is a safe way to convert a mutable structure to a immutable.
-      
-      freeze should copy the old structure or ensure that it will not be used
+      @freeze@ is a safe way to convert a mutable structure to a immutable.
+      @freeze@ should copy the old structure or ensure that it will not be used
       after calling the procedure.
     -}
     freeze :: v' -> m v
     
     {- |
-      unsafeFreeze is unsafe version of 'freeze'.
-      
-      unsafeFreeze doesn't guarantee that the structure will be copied or locked.
-      It only guarantees that if the old structure is not used, no error will
-      occur.
+      @unsafeFreeze@ is unsafe version of 'freeze'. @unsafeFreeze@ doesn't
+      guarantee that the structure will be copied or locked. It only guarantees
+      that if the old structure isn't used, no error will occur.
     -}
     unsafeFreeze :: v' -> m v
     unsafeFreeze =  freeze
@@ -204,7 +219,7 @@ class (Monad m) => Freeze m v' v | v' -> m
 --------------------------------------------------------------------------------
 
 {-# INLINE swapM #-}
--- | swaps two elements. And yet, I'm tired of writing this swap everywhere.
+-- | Just swap two elements.
 swapM :: (IndexedM m v i e) => v -> Int -> Int -> m ()
 swapM es i j = do ei <- es !#> i; writeM_ es i =<< es !#> j; writeM_ es j ei
 

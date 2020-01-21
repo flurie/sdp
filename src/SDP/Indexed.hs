@@ -50,7 +50,7 @@ class (Index i) => Indexed v i e | v -> i, v -> e
     {- Global operations. -}
     
     {- |
-      @assoc bnds ascs@ creates new structure from list of associations, without
+      @assoc bnds ascs@ create new structure from list of associations, without
       default element. Note that @bnds@ is @ascs@ bounds and may not match with
       the result bounds (not always possible).
     -}
@@ -64,25 +64,30 @@ class (Index i) => Indexed v i e | v -> i, v -> e
     -}
     assoc' :: (i, i) -> e -> [(i, e)] -> v
     
+    -- | 'assocMap' is 'assoc' where @ascs@ represented by 'Map'.
     assocMap :: (Map map i e) => (i, i) -> map -> v
     assocMap =  (`assocMap'` undEx "assocMap (default)")
     
+    -- | 'assocMap'' is 'assoc'' where @ascs@ represented by 'Map'.
     assocMap' :: (Map map i e) => (i, i) -> e -> map -> v
     assocMap' bnds defvalue = assoc' bnds defvalue . listMap
     
-    -- | fromIndexed converts indexed structure to another one.
+    -- | 'fromIndexed' converts this indexed structure to another one.
     fromIndexed :: (Bordered v' j e, Indexed v' j e) => v' -> v
     
-    -- | imap creates new indexed structure from old with reshaping function.
+    -- | 'imap' creates new indexed structure from old with reshaping function.
     imap :: (Indexed v' j e) => (i, i) -> v' -> (i -> j) -> v
     imap bnds es f = assoc bnds [ (i, es ! f i) | i <- range bnds ]
     
-    -- | accum creates a new structure from the old and the assocs list.
+    {- |
+      @'accum' f es ies@ create a new structure from @es@ elements selectively
+      updated by function @f@ and @ies@ associations list.
+    -}
     default accum :: (Bordered v i e) => (e -> e' -> e) -> v -> [(i, e')] -> v
     accum :: (e -> e' -> e) -> v -> [(i, e')] -> v
     accum f es ies = bounds es `assoc` [ (i, es ! i `f` e') | (i, e') <- ies ]
     
-    -- | Update elements to immutable structure (by copying).
+    -- | Update elements of immutable structure (by copying).
     (//) :: v -> [(i, e)] -> v
     
     -- | Update function, by default uses ('!') and may throw 'IndexException'.
@@ -106,7 +111,7 @@ class (Index i) => Indexed v i e | v -> i, v -> e
     (.!) :: v -> i -> e
     (.!) es = fromMaybe (undEx "(.!)") . (es !?)
     
-    -- | (!) is well-safe reader. Must throw 'IndexException'.
+    -- | (!) is well-safe reader. Must 'throw' 'IndexException'.
     default (!) :: (Bordered v i e) => v -> i -> e
     (!) :: v -> i -> e
     (!) es i = case inBounds (bounds es) i of
@@ -151,37 +156,37 @@ class (Indexed v i e) => IFold v i e
   where
     {-# MINIMAL ifoldr, ifoldl #-}
     
-    -- | ifoldr is right fold with index
+    -- | 'ifoldr' is right fold with index
     ifoldr   :: (i -> e -> r -> r) -> r -> v -> r
     
-    -- | ifoldl is left  fold with index
+    -- | 'ifoldl' is left  fold with index
     ifoldl   :: (i -> r -> e -> r) -> r -> v -> r
     
-    -- | ifoldr' is strict version of ifoldr
+    -- | 'ifoldr'' is strict version of 'ifoldr'
     ifoldr'  :: (i -> e -> r -> r) -> r -> v -> r
     
-    -- | ifoldl' is strict version of ifoldl
+    -- | 'ifoldl'' is strict version of 'ifoldl'
     ifoldl'  :: (i -> r -> e -> r) -> r -> v -> r
     
-    -- | i_foldr is just foldr with IFold context
+    -- | 'i_foldr' is just 'foldr' in 'IFold' context
     i_foldr  :: (e -> r -> r) -> r -> v -> r
     
-    -- | i_foldl is just foldl with IFold context
+    -- | 'i_foldl' is just 'foldl' in 'IFold' context
     i_foldl  :: (r -> e -> r) -> r -> v -> r
     
-    -- | i_foldr' is just foldl' with IFoldl context
+    -- | 'i_foldr'' is just 'foldl'' with 'IFold' context
     i_foldr' :: (e -> r -> r) -> r -> v -> r
     
-    -- | i_foldl' is just foldl' with IFold context
+    -- | 'i_foldl'' is just 'foldl'' with 'IFold' context
     i_foldl' :: (r -> e -> r) -> r -> v -> r
     
     ifoldr'  f = ifoldr (\ i e r -> id $! f i e r)
     ifoldl'  f = ifoldl (\ i r e -> id $! f i r e)
     
-    i_foldr  f = ifoldr  (const f)
-    i_foldl  f = ifoldl  (const f)
-    i_foldr' f = ifoldr' (const f)
-    i_foldl' f = ifoldl' (const f)
+    i_foldr  = ifoldr  . const
+    i_foldl  = ifoldl  . const
+    i_foldr' = ifoldr' . const
+    i_foldl' = ifoldl' . const
 
 --------------------------------------------------------------------------------
 
@@ -235,7 +240,7 @@ instance IFold [e] Int e
 
 -- | binaryContain checks that sorted structure has equal element.
 binaryContain :: (Bordered v i e, Indexed v i e) => Compare e -> e -> v -> Bool
-binaryContain f e es = s /= 0 && f e (es !^ 0) /= LT && f e (es !^ u') /= GT && contain 0 u'
+binaryContain f e es = and [ s /= 0, f e (es !^ 0) /= LT, f e (es !^ u') /= GT, contain 0 u' ]
   where
     contain l u = l > u ? False $ case f e (es !^ j) of
         LT -> contain l (j - 1)
