@@ -63,9 +63,22 @@ instance (Unboxed e) => BorderedM (ST s) (STUblist s e) Int e
 
 instance (Unboxed e) => LinearM (ST s) (STUblist s e) e
   where
+    prepend e es@(STUblist marr# marr) = do n <- getSizeOf marr#; n < lim ? res1 $ res2
+      where
+        res1 = snoc marr <$> prepend e marr#
+        res2 = snoc   es <$> newLinear [e]
+    prepend e STUBEmpty = newLinear [e]
+    
+    append es@(STUblist marr# STUBEmpty) e = do n <- getSizeOf marr#; n < lim ? res1 $ res2
+      where
+        res1 = finish  <$> append marr# e
+        res2 = snoc es <$> newLinear [e]
+    append (STUblist marr# es) e = STUblist marr# <$> append es e
+    append      STUBEmpty      e = newLinear [e]
+    
     newLinear es = liftA2 (foldr STUblist) rest' chs'
       where
-        rest' = (`STUblist` STUBEmpty) <$> newLinearN (length rest) rest
+        rest' = finish <$> newLinear rest
         chs'  = forM chs (newLinearN lim)
         (chs :< rest) = chunks lim es
     
@@ -77,7 +90,7 @@ instance (Unboxed e) => LinearM (ST s) (STUblist s e) e
     
     reversed es = go es STUBEmpty
       where
-        go (STUblist mbytes# mbytes) acc = go mbytes . (`STUblist` acc) =<< reversed mbytes#
+        go (STUblist mbytes# mbytes) acc = go mbytes . snoc acc =<< reversed mbytes#
         go _ acc = return acc
     
     filled n e = n <= 0 ? return STUBEmpty $ liftA2 STUblist chunk rest
@@ -144,32 +157,39 @@ instance (Unboxed e) => IndexedM (ST s) (STUblist s e) Int e
 
 instance (Unboxed e) => IFoldM (ST s) (STUblist s e) Int e
   where
-    ifoldrM _ base STUBEmpty = return base
     ifoldrM f base (STUblist mbytes# mbytes) = do
       base' <- ifoldrM f base mbytes
       ifoldrM f base' mbytes#
+    ifoldrM _ base _ = return base
     
-    ifoldlM _ base STUBEmpty = return base
     ifoldlM f base (STUblist mbytes# mbytes) = do
       base' <- ifoldlM f base mbytes#
       ifoldlM f base' mbytes
+    ifoldlM _ base _ = return base
     
-    i_foldrM _ base STUBEmpty = return base
     i_foldrM f base (STUblist mbytes# mbytes) = do
       base' <- i_foldrM f base mbytes
       i_foldrM f base' mbytes#
+    i_foldrM _ base _ = return base
     
-    i_foldlM _ base STUBEmpty = return base
     i_foldlM f base (STUblist mbytes# mbytes) = do
       base' <- i_foldlM f base mbytes#
       i_foldlM f base' mbytes
+    i_foldlM _ base _ = return base
 
 instance (Unboxed e) => SortM (ST s) (STUblist s e) e where sortMBy = timSortBy
 
 --------------------------------------------------------------------------------
 
+{-# INLINE snoc #-}
+snoc :: STUblist s e -> STBytes# s e -> STUblist s e
+snoc =  flip STUblist
+
+{-# INLINE finish #-}
+finish :: STBytes# s e -> STUblist s e
+finish =  flip STUblist STUBEmpty
+
 lim :: Int
 lim =  1024
-
 
 

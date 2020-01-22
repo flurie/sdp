@@ -84,11 +84,19 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
   where
     {-# MINIMAL (newLinear|newLinearN), (getLeft|getRight), reversed, filled #-}
     
-    -- | Prepend new element to the start of the structure (monadic 'toHead').
+    {- |
+      Prepend new element to the start of the structure (monadic 'toHead').
+      Like most size-changing operations, @prepend@ doesn't guarantee the
+      correctness of the original structure after conversion.
+    -}
     prepend :: e -> l -> m l
     prepend e es = newLinear . (e :) =<< getLeft es
     
-    -- | Append new element to the end of the structure (monadic 'toLast').
+    {- |
+      Append new element to the end of the structure (monadic 'toLast').
+      Like most size-changing operations, @append@ doesn't guarantee the
+      correctness of the original structure after conversion.
+    -}
     append  :: l -> e -> m l
     append es e = newLinear . (:< e) =<< getLeft es
     
@@ -139,7 +147,4 @@ sortedM =  fmap f . getLeft
   where
     f Z  = True
     f es = and $ zipWith (<=) es (tail es)
-
-
-
 

@@ -66,16 +66,18 @@ instance (Index i) => BorderedM (ST s) (STUnrolled s i e) i e
 
 instance (Index i) => LinearM (ST s) (STUnrolled s i e) e
   where
-    newLinear es = STUnrolled l u <$> newLinear es
-      where
-        (l, u) = defaultBounds $ sizeOf es
+    prepend e = withBounds <=< prepend e . unpack
+    append es = withBounds <=< append (unpack es)
     
-    filled n e = STUnrolled l u <$> filled n e where (l, u) = defaultBounds n
+    newLinear = withBounds <=< newLinear
+    filled  n = withBounds <=< filled n
     
-    getLeft  (STUnrolled _ _ unr#) = getLeft unr#
-    copied   (STUnrolled l u unr#) = STUnrolled l u <$> copied unr#
-    copied'  (STUnrolled l u unr#) = \ l' u' -> STUnrolled l u <$> copied' unr# l' u'
-    reversed (STUnrolled l u unr#) = STUnrolled l u <$> reversed unr#
+    getLeft   = getLeft  . unpack
+    getRight  = getRight . unpack
+    
+    copied   (STUnrolled l u es) = STUnrolled l u <$> copied es
+    copied'  (STUnrolled l u es) = \ o n -> STUnrolled l u <$> copied' es o n
+    reversed (STUnrolled l u es) = STUnrolled l u <$> reversed es
 
 --------------------------------------------------------------------------------
 
@@ -89,47 +91,50 @@ instance (Index i) => IndexedM (ST s) (STUnrolled s i e) i e
         bnds = (0, size (l, u) - 1)
     
     {-# INLINE (!#>) #-}
-    (STUnrolled _ _ es) !#> i = es !#> i
+    (!#>) es = (unpack es !#>)
     
     {-# INLINE (>!) #-}
-    (STUnrolled l u es) >! i = es !#> offset (l, u) i
+    (>!) (STUnrolled l u es) = (es !#>) . offset (l, u)
     
     {-# INLINE writeM_ #-}
-    writeM_ (STUnrolled _ _ es) = writeM es
+    writeM_ = writeM . unpack
     
     {-# INLINE writeM #-}
     writeM  (STUnrolled l u es) = writeM es . offset (l, u)
     
     overwrite es [] = return es
-    overwrite (STUnrolled l u unr#) ascs = if isEmpty (l, u)
+    overwrite (STUnrolled l u es) ascs = if isEmpty (l, u)
         then fromAssocs (l', u') ascs
-        else STUnrolled l u <$> overwrite unr# ies
+        else STUnrolled l u <$> overwrite es ies
       where
         ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
         l'  = fst $ minimumBy cmpfst ascs
         u'  = fst $ maximumBy cmpfst ascs
     
-    fromIndexed' es = STUnrolled l u <$> fromIndexed' es
-      where
-        (l, u) = defaultBounds $ sizeOf es
-    
-    fromIndexedM es = do
-      es' <- fromIndexedM es
-      n   <- getSizeOf es'
-      return $ let (l, u) = defaultBounds n in STUnrolled l u es'
+    fromIndexed' = withBounds <=< fromIndexed'
+    fromIndexedM = withBounds <=< fromIndexedM
 
 instance (Index i) => IFoldM (ST s) (STUnrolled s i e) i e
   where
     ifoldrM f e (STUnrolled l u es) = ifoldrM (f . index (l, u)) e es
     ifoldlM f e (STUnrolled l u es) = ifoldlM (f . index (l, u)) e es
     
-    i_foldrM f e (STUnrolled _ _ es) = i_foldrM f e es
-    i_foldlM f e (STUnrolled _ _ es) = i_foldlM f e es
+    i_foldrM f e = i_foldrM f e . unpack
+    i_foldlM f e = i_foldlM f e . unpack
 
 instance (Index i) => SortM (ST s) (STUnrolled s i e) e
   where
     sortMBy = timSortBy
 
+--------------------------------------------------------------------------------
 
+withBounds :: (Index i) => STUnlist s e -> ST s (STUnrolled s i e)
+withBounds es = do
+  n <- getSizeOf es
+  let (l, u) = defaultBounds n
+  return (STUnrolled l u es)
+
+unpack :: STUnrolled s i e -> STUnlist s e
+unpack =  \ (STUnrolled _ _ es) -> es
 
 

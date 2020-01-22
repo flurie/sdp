@@ -67,15 +67,17 @@ instance (Index i, Unboxed e) => BorderedM (ST s) (STByteList s i e) i e
 
 instance (Index i, Unboxed e) => LinearM (ST s) (STByteList s i e) e
   where
-    newLinear es = STByteList l u <$> newLinear es
-      where
-        (l, u) = defaultBounds $ sizeOf es
+    prepend e = withBounds <=< prepend e . unpack
+    append es = withBounds <=< append (unpack es)
     
-    filled n e = let (l, u) = defaultBounds n in STByteList l u <$> filled n e
+    newLinear = withBounds <=< newLinear
+    filled  n = withBounds <=< filled n
     
-    getLeft  (STByteList _ _ es) = getLeft es
+    getLeft   = getLeft  . unpack
+    getRight  = getRight . unpack
+    
     copied   (STByteList l u es) = STByteList l u <$> copied  es
-    copied'  (STByteList l u es) = \ l' u' -> STByteList l u <$> copied' es l' u'
+    copied'  (STByteList l u es) = \ o n -> STByteList l u <$> copied' es o n
     reversed (STByteList l u es) = STByteList l u <$> reversed es
 
 --------------------------------------------------------------------------------
@@ -95,46 +97,49 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STByteList s i e) i e
         bnds = (0, size (l, u) - 1)
     
     {-# INLINE (!#>) #-}
-    (STByteList _ _ ubl#) !#> i = ubl# !#> i
+    (!#>) es = (unpack es !#>)
     
     {-# INLINE (>!) #-}
-    (STByteList l u ubl#) >! i = ubl# !#> offset (l, u) i
+    (>!) (STByteList l u es) = (es !#>) . offset (l, u)
     
     {-# INLINE writeM_ #-}
-    writeM_ (STByteList _ _ ubl#) = writeM ubl#
+    writeM_ = writeM . unpack
     
     {-# INLINE writeM #-}
-    writeM  (STByteList l u ubl#) = writeM ubl# . offset (l, u)
+    writeM  (STByteList l u es) = writeM es . offset (l, u)
     
     overwrite es [] = return es
-    overwrite (STByteList l u ubl#) ascs = if isEmpty (l, u)
+    overwrite (STByteList l u es) ascs = if isEmpty (l, u)
         then fromAssocs (l', u') ascs
-        else STByteList l u <$> overwrite ubl# ies
+        else STByteList l u <$> overwrite es ies
       where
         ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
         l'  = fst $ minimumBy cmpfst ascs
         u'  = fst $ maximumBy cmpfst ascs
     
-    fromIndexed' es = STByteList l u <$> fromIndexed' es
-      where
-        (l, u) = defaultBounds $ sizeOf es
-    
-    fromIndexedM es = do
-      es' <- fromIndexedM es
-      n   <- getSizeOf es'
-      return $ let (l, u) = defaultBounds n in STByteList l u es'
+    fromIndexed' = withBounds <=< fromIndexed'
+    fromIndexedM = withBounds <=< fromIndexedM
 
 instance (Index i, Unboxed e) => IFoldM (ST s) (STByteList s i e) i e
   where
-    ifoldrM f e (STByteList l u ubl#) = ifoldrM (f . index (l, u)) e ubl#
-    ifoldlM f e (STByteList l u ubl#) = ifoldlM (f . index (l, u)) e ubl#
+    ifoldrM f e (STByteList l u es) = ifoldrM (f . index (l, u)) e es
+    ifoldlM f e (STByteList l u es) = ifoldlM (f . index (l, u)) e es
     
-    i_foldrM f e (STByteList _ _ ubl#) = i_foldrM f e ubl#
-    i_foldlM f e (STByteList _ _ ubl#) = i_foldlM f e ubl#
+    i_foldrM f e = i_foldrM f e . unpack
+    i_foldlM f e = i_foldlM f e . unpack
 
 instance (Index i, Unboxed e) => SortM (ST s) (STByteList s i e) e
   where
     sortMBy = timSortBy
 
+--------------------------------------------------------------------------------
 
+withBounds :: (Index i, Unboxed e) => STUblist s e -> ST s (STByteList s i e)
+withBounds es = do
+  n <- getSizeOf es
+  let (l, u) = defaultBounds n
+  return (STByteList l u es)
+
+unpack :: STByteList s i e -> STUblist s e
+unpack =  \ (STByteList _ _ es) -> es
 

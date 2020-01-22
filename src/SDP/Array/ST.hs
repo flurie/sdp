@@ -66,6 +66,9 @@ instance (Index i) => BorderedM (ST s) (STArray s i e) i e
 
 instance (Index i) => LinearM (ST s) (STArray s i e) e
   where
+    prepend e (STArray _ _ marr#) = withBounds =<< prepend e marr#
+    append  (STArray _ _ marr#) e = withBounds =<< append  marr# e
+    
     newLinear = fromFoldableM
     
     newLinearN  n es = newLinearN  n es >>= withBounds
@@ -127,4 +130,6 @@ withBounds :: (Index i) => STArray# s e -> ST s (STArray s i e)
 withBounds marr# = do
   (l, u) <- defaultBounds <$> getSizeOf marr#
   return (STArray l u marr#)
+
+
 

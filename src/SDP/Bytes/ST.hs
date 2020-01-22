@@ -67,6 +67,9 @@ instance (Index i, Unboxed e) => BorderedM (ST s) (STBytes s i e) i e
 
 instance (Index i, Unboxed e) => LinearM (ST s) (STBytes s i e) e
   where
+    prepend e (STBytes _ _ mbytes#) = withBounds =<< prepend e mbytes#
+    append  (STBytes _ _ mbytes#) e = withBounds =<< append  mbytes# e
+    
     newLinear  = fromFoldableM
     filled n e = filled n e >>= withBounds
     
@@ -132,4 +135,6 @@ withBounds :: (Index i, Unboxed e) => STBytes# s e -> ST s (STBytes s i e)
 withBounds marr# = do
   (l, u) <- defaultBounds <$> getSizeOf marr#
   return (STBytes l u marr#)
+
+
 
