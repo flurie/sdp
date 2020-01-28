@@ -16,7 +16,8 @@ module SDP.Internal.SBytes
   SBytes#, STBytes#,
   
   fromPseudoBytes#, fromPseudoMutableBytes#, filled_,
-  unsafeUnpackPseudoBytes#, unsafeUnpackMutableBytes#
+  unsafeUnpackPseudoBytes#, unsafeUnpackMutableBytes#,
+  unsafePackPseudoBytes#, unsafePackMutableBytes#
 )
 where
 
@@ -568,6 +569,10 @@ instance (Unboxed e) => SortM (ST s) (STBytes# s e) e where sortMBy = timSortBy
 unsafeUnpackPseudoBytes# :: (Unboxed e) => SBytes# e -> ByteArray#
 unsafeUnpackPseudoBytes# = \ (SBytes# _ 0 marr#) -> marr#
 
+-- | unsafePackPseudoBytes\# creates new SBytes\# from sized ByteArray\#.
+unsafePackPseudoBytes# :: (Unboxed e) => Int -> ByteArray# -> SBytes# e
+unsafePackPseudoBytes# n marr# = SBytes# (max 0 n) 0 marr#
+
 -- | fromPseudoBytes\# returns new ByteArray\#.
 fromPseudoBytes# :: (Unboxed e) => SBytes# e -> ByteArray#
 fromPseudoBytes# es = case clone err es of (SBytes# _ _ arr#) -> arr#
@@ -586,6 +591,10 @@ fromPseudoBytes# es = case clone err es of (SBytes# _ _ arr#) -> arr#
 -}
 unsafeUnpackMutableBytes# :: (Unboxed e) => STBytes# s e -> MutableByteArray# s
 unsafeUnpackMutableBytes# =  \ (STBytes# _ 0 marr#) -> marr#
+
+-- | unsafePackMutableBytes\# creates new STBytes\# from sized MutableByteArray\#.
+unsafePackMutableBytes# :: (Unboxed e) => Int -> MutableByteArray# s -> STBytes# s e
+unsafePackMutableBytes# n marr# = STBytes# (max 0 n) 0 marr#
 
 -- | fromPseudoMutableBytes\# returns new MutableByteArray\#
 fromPseudoMutableBytes# :: (Unboxed e) => STBytes# s e -> State# s -> (# State# s, MutableByteArray# s #)
@@ -636,5 +645,6 @@ undEx msg = throw . UndefinedValue $ "in SDP.Internal.SBytes." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Internal.SBytes." ++ msg
+
 
 

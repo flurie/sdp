@@ -16,7 +16,8 @@ module SDP.Internal.SArray
   SArray#, STArray#,
   
   fromPseudoArray#, fromPseudoMutableArray#,
-  unsafeUnpackPseudoArray#, unsafeUnpackMutableArray#
+  unsafeUnpackPseudoArray#, unsafeUnpackMutableArray#,
+  unsafePackPseudoArray#, unsafePackMutableArray#
 )
 where
 
@@ -634,11 +635,15 @@ instance SortM (ST s) (STArray# s e) e where sortMBy = timSortBy
 --------------------------------------------------------------------------------
 
 {- |
-  unsafeUnpackPseudoArray\# return ByteArray\# field of SArray\# or fails (if
+  unsafeUnpackPseudoArray\# returns ByteArray\# field of SArray\# or fails (if
   offset is not 0).
 -}
 unsafeUnpackPseudoArray# :: SArray# e -> Array# e
-unsafeUnpackPseudoArray# = \ (SArray# _ 0 marr#) -> marr#
+unsafeUnpackPseudoArray# = \ (SArray# _ 0 arr#) -> arr#
+
+-- | unsafePackPseudoArray\# creates new SArray\# from sized Array\#.
+unsafePackPseudoArray# :: Int -> Array# e -> SArray# e
+unsafePackPseudoArray# n arr# = SArray# (max 0 n) 0 arr#
 
 -- | fromPseudoArray\# returns new Array\# (uses cloneArray\#).
 fromPseudoArray# :: SArray# e -> Array# e
@@ -654,6 +659,10 @@ fromPseudoMutableArray# (STArray# (I# c#) (I# o#) marr#) = cloneMutableArray# ma
 -}
 unsafeUnpackMutableArray# :: STArray# s e -> MutableArray# s e
 unsafeUnpackMutableArray# =  \ (STArray# _ 0 marr#) -> marr#
+
+-- | unsafePackMutableArray\# creates new STArray\# from sized MutableArray\#.
+unsafePackMutableArray# :: Int -> MutableArray# s e -> STArray# s e
+unsafePackMutableArray# n marr# = STArray# (max 0 n) 0 marr#
 
 --------------------------------------------------------------------------------
 
@@ -681,5 +690,6 @@ pfailEx msg = throw . PatternMatchFail $ "in SDP.Internal.SArray." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Internal.SArray." ++ msg
+
 
 
