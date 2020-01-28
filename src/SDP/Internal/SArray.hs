@@ -15,7 +15,8 @@ module SDP.Internal.SArray
 (
   SArray#, STArray#,
   
-  fromPseudoArray#, fromPseudoMutableArray#
+  fromPseudoArray#, fromPseudoMutableArray#,
+  unsafeUnpackPseudoArray#, unsafeUnpackMutableArray#
 )
 where
 
@@ -632,13 +633,27 @@ instance SortM (ST s) (STArray# s e) e where sortMBy = timSortBy
 
 --------------------------------------------------------------------------------
 
+{- |
+  unsafeUnpackPseudoArray\# return ByteArray\# field of SArray\# or fails (if
+  offset is not 0).
+-}
+unsafeUnpackPseudoArray# :: SArray# e -> Array# e
+unsafeUnpackPseudoArray# = \ (SArray# _ 0 marr#) -> marr#
+
 -- | fromPseudoArray\# returns new Array\# (uses cloneArray\#).
 fromPseudoArray# :: SArray# e -> Array# e
 fromPseudoArray# (SArray# (I# c#) (I# o#) arr#) = cloneArray# arr# o# c#
 
--- | fromPseudoMutableArray\# return new MutableArray\#.
+-- | fromPseudoMutableArray\# returns new MutableArray\#.
 fromPseudoMutableArray# :: STArray# s e -> State# s -> (# State# s, MutableArray# s e #)
 fromPseudoMutableArray# (STArray# (I# c#) (I# o#) marr#) = cloneMutableArray# marr# o# c#
+
+{- |
+  unsafeUnpackMutableArray# returns ByteArray\# field of STArray\# or
+  fails (if offset is not 0).
+-}
+unsafeUnpackMutableArray# :: STArray# s e -> MutableArray# s e
+unsafeUnpackMutableArray# =  \ (STArray# _ 0 marr#) -> marr#
 
 --------------------------------------------------------------------------------
 

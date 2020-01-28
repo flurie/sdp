@@ -15,7 +15,8 @@ module SDP.Internal.SBytes
 (
   SBytes#, STBytes#,
   
-  fromPseudoBytes#, fromPseudoMutableBytes#, filled_
+  fromPseudoBytes#, fromPseudoMutableBytes#, filled_,
+  unsafeUnpackPseudoBytes#, unsafeUnpackMutableBytes#
 )
 where
 
@@ -560,6 +561,13 @@ instance (Unboxed e) => SortM (ST s) (STBytes# s e) e where sortMBy = timSortBy
 
 --------------------------------------------------------------------------------
 
+{- |
+  unsafeUnpackPseudoBytes\# returns ByteArray\# field of SBytes\# or fails (if
+  offset is not 0).
+-}
+unsafeUnpackPseudoBytes# :: (Unboxed e) => SBytes# e -> ByteArray#
+unsafeUnpackPseudoBytes# = \ (SBytes# _ 0 marr#) -> marr#
+
 -- | fromPseudoBytes\# returns new ByteArray\#.
 fromPseudoBytes# :: (Unboxed e) => SBytes# e -> ByteArray#
 fromPseudoBytes# es = case clone err es of (SBytes# _ _ arr#) -> arr#
@@ -572,7 +580,14 @@ fromPseudoBytes# es = case clone err es of (SBytes# _ _ arr#) -> arr#
             (# s4#, arr'# #) -> (# s4#, SBytes# c o arr'# #)
     err = unreachEx "fromPseudoBytes#"
 
--- | fromPseudoMutableBytes\# return new MutableByteArray\#
+{- |
+  unsafeUnpackMutableBytes# returns MutableByteArray\# field of STBytes\# or
+  fails (if offset is not 0).
+-}
+unsafeUnpackMutableBytes# :: (Unboxed e) => STBytes# s e -> MutableByteArray# s
+unsafeUnpackMutableBytes# =  \ (STBytes# _ 0 marr#) -> marr#
+
+-- | fromPseudoMutableBytes\# returns new MutableByteArray\#
 fromPseudoMutableBytes# :: (Unboxed e) => STBytes# s e -> State# s -> (# State# s, MutableByteArray# s #)
 fromPseudoMutableBytes# es = \ s1# -> case clone es s1# of
     (# s2#, (STBytes# _ _ marr#) #) -> (# s2#, marr# #)
