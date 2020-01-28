@@ -13,11 +13,20 @@
 -}
 module SDP.Internal.SArray
 (
+  -- * Pseudo-primitive types
   SArray#, STArray#,
   
+  -- ** Safe (copy) unpack
   fromPseudoArray#, fromPseudoMutableArray#,
+  
+  -- ** Unsafe unpack
   unsafeUnpackPseudoArray#, unsafeUnpackMutableArray#,
-  unsafePackPseudoArray#, unsafePackMutableArray#
+  
+  -- ** Unsafe pack
+  unsafePackPseudoArray#, unsafePackMutableArray#,
+  
+  -- ** Coerce
+  coercePseudoArray#, coerceMutableArray#
 )
 where
 
@@ -33,6 +42,8 @@ import SDP.Set
 
 import SDP.SortM.Tim
 import SDP.SortM
+
+import Data.Coerce
 
 import GHC.Exts
   (
@@ -649,6 +660,10 @@ unsafePackPseudoArray# n arr# = SArray# (max 0 n) 0 arr#
 fromPseudoArray# :: SArray# e -> Array# e
 fromPseudoArray# (SArray# (I# c#) (I# o#) arr#) = cloneArray# arr# o# c#
 
+-- | coercePseudoArray\# is 'coerce' alias.
+coercePseudoArray# :: (Coercible a b) => SArray# a -> SArray# b
+coercePseudoArray# =  coerce
+
 -- | fromPseudoMutableArray\# returns new MutableArray\#.
 fromPseudoMutableArray# :: STArray# s e -> State# s -> (# State# s, MutableArray# s e #)
 fromPseudoMutableArray# (STArray# (I# c#) (I# o#) marr#) = cloneMutableArray# marr# o# c#
@@ -663,6 +678,10 @@ unsafeUnpackMutableArray# =  \ (STArray# _ 0 marr#) -> marr#
 -- | unsafePackMutableArray\# creates new STArray\# from sized MutableArray\#.
 unsafePackMutableArray# :: Int -> MutableArray# s e -> STArray# s e
 unsafePackMutableArray# n marr# = STArray# (max 0 n) 0 marr#
+
+-- | coercePseudoArray\# is 'coerce' alias.
+coerceMutableArray# :: (Coercible a b) => STArray# s a -> STArray# s b
+coerceMutableArray# =  coerce
 
 --------------------------------------------------------------------------------
 
@@ -690,6 +709,7 @@ pfailEx msg = throw . PatternMatchFail $ "in SDP.Internal.SArray." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Internal.SArray." ++ msg
+
 
 
 

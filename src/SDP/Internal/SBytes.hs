@@ -13,11 +13,23 @@
 -}
 module SDP.Internal.SBytes
 (
+  -- * Preudo-primitive types
   SBytes#, STBytes#,
   
-  fromPseudoBytes#, fromPseudoMutableBytes#, filled_,
+  -- ** Safe (copy) unpack
+  fromPseudoBytes#, fromPseudoMutableBytes#,
+  
+  -- ** Unsafe unpack
   unsafeUnpackPseudoBytes#, unsafeUnpackMutableBytes#,
-  unsafePackPseudoBytes#, unsafePackMutableBytes#
+  
+  -- ** Unsafe pack
+  unsafePackPseudoBytes#, unsafePackMutableBytes#,
+  
+  -- ** Unsafe coerce
+  unsafeCoercePseudoBytes#, unsafeCoerceMutableBytes#,
+  
+  -- ** Safe memory allocation
+  filled_
 )
 where
 
@@ -45,6 +57,8 @@ import GHC.Exts
   )
 import GHC.ST ( runST, ST (..), STRep )
 
+import Data.Proxy
+
 import SDP.Internal.Commons
 
 default ()
@@ -62,7 +76,7 @@ default ()
 -}
 data SBytes# e = SBytes#
                         {-# UNPACK #-} !Int -- ^ Element count (not a real size)
-                        {-# UNPACK #-} !Int -- ^ Offset
+                        {-# UNPACK #-} !Int -- ^ Offset (in elements)
                         !(ByteArray#)       -- ^ Real primitive byte array
 
 type role SBytes# representational
@@ -586,6 +600,19 @@ fromPseudoBytes# es = case clone err es of (SBytes# _ _ arr#) -> arr#
     err = unreachEx "fromPseudoBytes#"
 
 {- |
+  Unsafe low-lowel coerce of an array with recounting the number of elements and
+  offset (with possible rounding).
+-}
+unsafeCoercePseudoBytes# :: (Unboxed a, Unboxed b) => SBytes# a -> SBytes# b
+unsafeCoercePseudoBytes# =  go Proxy Proxy
+  where
+    go :: (Unboxed a, Unboxed b) => Proxy a -> Proxy b -> SBytes# a -> SBytes# b
+    go pa pb (SBytes# n o arr#) = SBytes# n' o' arr#
+      where
+        n' = n * s1 `div` s2; s1 = psizeof pa
+        o' = o * s1 `div` s2; s2 = psizeof pb
+
+{- |
   unsafeUnpackMutableBytes# returns MutableByteArray\# field of STBytes\# or
   fails (if offset is not 0).
 -}
@@ -603,6 +630,19 @@ fromPseudoMutableBytes# es = \ s1# -> case clone es s1# of
   where
     clone :: (Unboxed e) => STBytes# s e -> State# s -> (# State# s, STBytes# s e #)
     clone es' = \ s1# -> case cloneSTBytes# es' of ST rep -> rep s1#
+
+{- |
+  Unsafe low-lowel coerce of an mutable array with recounting the number of
+  elements and offset (with possible rounding).
+-}
+unsafeCoerceMutableBytes# :: (Unboxed a, Unboxed b) => STBytes# s a -> STBytes# s b
+unsafeCoerceMutableBytes# =  go Proxy Proxy
+  where
+    go :: (Unboxed a, Unboxed b) => Proxy a -> Proxy b -> STBytes# s a -> STBytes# s b
+    go pa pb (STBytes# n o arr#) = STBytes# n' o' arr#
+      where
+        n' = n * s1 `div` s2; s1 = psizeof pa
+        o' = o * s1 `div` s2; s2 = psizeof pb
 
 --------------------------------------------------------------------------------
 

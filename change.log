@@ -13,36 +13,50 @@ version 0.2:
     * SDP.SortM.Stuff (in favour of SDP.SortM.Tim, SDP.Linear and SDP.LinearM)
   
   ADDED:
+    * SDP.Tuple  module for tuple type synonyms
+    * SDP.Finite module for finite-dimension index
+    
     * SDP.SortM.Tim (replaces SDP.SortM.Stuff)
     * SDP.SortM.Insertion (reexport of insertionSort from SDP.SortM.Tim)
     * SDP.Map (preliminary realisation of dictionary)
     
-    * Typeable, Data and Generic instances for all structures.
+    * Typeable, Data and Generic instances for all structures
     
     * OverloadedIndices (see SDP.Index docs)
     
-    * [internal] SArray#, SBytes#, STArray# and STBytes# primitives.
+    * [internal] SArray#, SBytes#, STArray# and STBytes# primitives
     
-    * RopeM service structure for efficient splitting in TimSort.
+    * RopeM service structure for efficient splitting in TimSort
     
-    * Test.SDP.Eq and Test.SDP.Ord test suites
+    * sizeof#, bsizeof# and psizeof functions (Unboxed)
+    
+    * Test.SDP.Eq and Test.SDP.Ord default tests
     
     * Test.SDP module for short import of basic test suite.
-    * Test.SDP.Gen module with Short, Medium and Long newtypes for Arbitrary.
+    * Test.SDP.Gen module with Short, Medium and Long newtypes for Arbitrary
     
     * binaryContain, new (/>), assocMap and assocMap' functions (Indexed)
     * offsetOf and new indexOf functions (Bordered)
-    * defaultBounds function (Index)
     * groupSetWith function (Set)
     * chunks function (Split)
     
+    * defaultBounds toGIndex, fromGIndex, fromGBounds and toGBounds functions
+    (Index)
+    * DimInit, DimLast and GIndex type families (Index)
+    
     * test suites for estimate and indices
+    
+    * UnexpectedRank exception
     
     * benchmark for timsort
   
   MOVED:
     Old indexOf (to indexIn)
     Old (/>) (to update)
+  
+  REMOVED:
+    unsafeBounds and toBounds function
+    IndexEQ class. Now toIndex and fromIndex is toGIndex and fromGIndex.
   
   IMPROVED:
     * Scan class rewrited
@@ -54,6 +68,8 @@ version 0.2:
     property and just code deduplication.
     * sortTest suite rewrited for Medium-sized structures generator (see fixes)
     * prevTest and nextTest now work fast (fixed memory leak in where expr.)
+    * Read and Show instances for (:&)
+    * Index instances
 
 --------------------------------------------------------------------------------
 

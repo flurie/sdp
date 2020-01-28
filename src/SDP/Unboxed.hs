@@ -1,5 +1,4 @@
 {-# LANGUAGE Unsafe, CPP, MagicHash, UnboxedTuples, BangPatterns #-}
-{-# LANGUAGE RoleAnnotations #-}
 
 {- |
     Module      :  SDP.Unboxed
@@ -36,6 +35,11 @@ import GHC.Int  ( Int  (..), Int8  (..), Int16  (..), Int32  (..), Int64  (..) )
 import GHC.Word ( Word (..), Word8 (..), Word16 (..), Word32 (..), Word64 (..) )
 import GHC.Ptr  ( nullPtr, nullFunPtr )
 
+import qualified Foreign.Storable as FS
+
+import Data.Proxy
+import Data.Bits
+
 #include "MachDeps.h"
 
 default ()
@@ -57,6 +61,17 @@ default ()
 
 class (Eq e) => Unboxed e
   where
+    -- | Size of element in bits.
+    bsizeof# :: e -> Int
+    bsizeof# =  (`shiftL` 3) . sizeof#
+    
+    -- | Size of element in bytes.
+    sizeof# :: e -> Int
+    sizeof# =  psizeof . asTypeProxyOf undefined
+    
+    psizeof :: Proxy e -> Int
+    psizeof =  sizeof# . asProxyTypeOf undefined
+    
     -- | Unsafe ByteList reader with overloaded result type.
     (!#) :: ByteArray# -> Int# -> e
     
@@ -98,6 +113,8 @@ class (Eq e) => Unboxed e
 
 instance Unboxed Int
   where
+    sizeof# = FS.sizeOf
+    
     {-# INLINE (!#) #-}
     bytes#  !#  i# = I# (indexIntArray# bytes# i#)
     
@@ -113,6 +130,8 @@ instance Unboxed Int
 
 instance Unboxed Int8
   where
+    psizeof = const 1
+    
     {-# INLINE (!#) #-}
     bytes#  !#  i# = I8# (indexInt8Array# bytes# i#)
     
@@ -128,6 +147,8 @@ instance Unboxed Int8
 
 instance Unboxed Int16
   where
+    psizeof = const 2
+    
     {-# INLINE (!#) #-}
     bytes#  !#  i# = I16# (indexInt16Array# bytes# i#)
     
@@ -143,6 +164,8 @@ instance Unboxed Int16
 
 instance Unboxed Int32
   where
+    psizeof = const 4
+    
     {-# INLINE (!#) #-}
     bytes#  !#  i# = I32# (indexInt32Array# bytes# i#)
     
@@ -158,6 +181,8 @@ instance Unboxed Int32
 
 instance Unboxed Int64
   where
+    psizeof = const 8
+    
     {-# INLINE (!#) #-}
     bytes#  !#  i# = I64# (indexInt64Array# bytes# i#)
     
@@ -177,6 +202,8 @@ instance Unboxed Int64
 
 instance Unboxed Word
   where
+    sizeof# = FS.sizeOf
+    
     {-# INLINE (!#) #-}
     bytes#  !#  i# = W# (indexWordArray# bytes# i#)
     
@@ -192,6 +219,8 @@ instance Unboxed Word
 
 instance Unboxed Word8
   where
+    psizeof = const 1
+    
     {-# INLINE (!#) #-}
     bytes#  !#  i# = W8# (indexWord8Array# bytes# i#)
     
@@ -207,6 +236,8 @@ instance Unboxed Word8
 
 instance Unboxed Word16
   where
+    psizeof = const 2
+    
     {-# INLINE (!#) #-}
     bytes#  !#  i# = W16# (indexWord16Array# bytes# i#)
     
@@ -222,6 +253,8 @@ instance Unboxed Word16
 
 instance Unboxed Word32
   where
+    psizeof = const 4
+    
     {-# INLINE (!#) #-}
     bytes#  !#  i# = W32# (indexWord32Array# bytes# i#)
     
@@ -237,6 +270,8 @@ instance Unboxed Word32
 
 instance Unboxed Word64
   where
+    psizeof = const 8
+    
     {-# INLINE (!#) #-}
     bytes#  !#  i# = W64# (indexWord64Array# bytes# i#)
     
@@ -256,6 +291,8 @@ instance Unboxed Word64
 
 instance Unboxed (Ptr a)
   where
+    sizeof# = FS.sizeOf
+    
     {-# INLINE (!#) #-}
     bytes#  !#  i# = Ptr (indexAddrArray# bytes# i#)
     
@@ -271,6 +308,8 @@ instance Unboxed (Ptr a)
 
 instance Unboxed (FunPtr a)
   where
+    sizeof# = FS.sizeOf
+    
     {-# INLINE (!#) #-}
     bytes#  !#  i# = FunPtr (indexAddrArray# bytes# i#)
     
@@ -286,6 +325,8 @@ instance Unboxed (FunPtr a)
 
 instance Unboxed (StablePtr a)
   where
+    sizeof# = FS.sizeOf
+    
     {-# INLINE (!#) #-}
     bytes#  !#  i# = StablePtr (indexStablePtrArray# bytes# i#)
     
@@ -308,6 +349,8 @@ nullStablePtr =  StablePtr (unsafeCoerce# 0#)
 
 instance Unboxed ()
   where
+    sizeof# = const 0
+    
     {-# INLINE (!#) #-}
     (!#) = \ _ _ -> ()
     _ !># _ = \ s# -> (# s#, () #)
@@ -320,6 +363,9 @@ instance Unboxed ()
 
 instance Unboxed Bool
   where
+    bsizeof# = const 1
+    psizeof  = const 1
+    
     {-# INLINE (!#) #-}
     bytes#  !#  i# = isTrue# ((indexWordArray# bytes# (bool_index i#) `and#` bool_bit i#) `neWord#` int2Word# 0#)
     
@@ -343,6 +389,8 @@ instance Unboxed Bool
 
 instance Unboxed Char
   where
+    sizeof# = FS.sizeOf
+    
     {-# INLINE (!#) #-}
     bytes#  !#  i# = C# (indexWideCharArray# bytes# i#)
     
@@ -358,6 +406,8 @@ instance Unboxed Char
 
 instance Unboxed Float
   where
+    sizeof# = FS.sizeOf
+    
     {-# INLINE (!#) #-}
     bytes#  !#  i# = F# (indexFloatArray# bytes# i#)
     
@@ -373,6 +423,8 @@ instance Unboxed Float
 
 instance Unboxed Double
   where
+    sizeof# = FS.sizeOf
+    
     {-# INLINE (!#) #-}
     bytes#  !#  i# = D# (indexDoubleArray# bytes# i#)
     
@@ -484,6 +536,9 @@ bool_index = (`uncheckedIShiftRA#` 5#)
 #elif SIZEOF_HSWORD == 8
 bool_index = (`uncheckedIShiftRA#` 6#)
 #endif
+
+asTypeProxyOf :: proxy a -> a -> proxy a
+asTypeProxyOf =  const
 
 
 
