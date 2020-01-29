@@ -319,6 +319,11 @@ class (Linear s e) => Split s e | s -> e
     chunks :: Int -> s -> [s]
     chunks n es = case split n es of {(x, Z) -> [x]; (x, xs) -> x : chunks n xs}
     
+    {-# INLINE each #-}
+    -- | Returns each nth element of structure. If @n < 0@, returns 'Z'.
+    each :: Int -> s -> s
+    each n = case n <=> 1 of {LT -> const Z; EQ -> id; GT -> fromList . each n . listL}
+    
     {- Subsequence checkers. -}
     
     -- | isPrefixOf checks whether the first line is the beginning of the second
@@ -457,6 +462,11 @@ instance Split [e] e
     take  = L.take
     drop  = L.drop
     split = L.splitAt
+    
+    each n = case n <=> 1 of {LT -> const []; EQ -> id; GT -> go n}
+      where
+        go _    []    = []
+        go i (x : xs) = i == 1 ? x : go n xs $ go (i - 1) xs
     
     isPrefixOf = L.isPrefixOf
     isSuffixOf = L.isSuffixOf

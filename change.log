@@ -37,8 +37,8 @@ version 0.2:
     
     * binaryContain, new (/>), assocMap and assocMap' functions (Indexed)
     * offsetOf and new indexOf functions (Bordered)
+    * chunks and each functions (Split)
     * groupSetWith function (Set)
-    * chunks function (Split)
     
     * defaultBounds toGIndex, fromGIndex, fromGBounds and toGBounds functions
     (Index)
