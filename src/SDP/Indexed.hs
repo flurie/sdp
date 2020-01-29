@@ -45,7 +45,7 @@ infixl 9 !^, .!, !, !?
 -- | Class of indexed data structures.
 class (Index i) => Indexed v i e | v -> i, v -> e
   where
-    {-# MINIMAL assoc', fromIndexed, (//), ((.!)|(!?)), (*$) #-}
+    {-# MINIMAL assoc', fromIndexed, (//), ((.!)|(!?)) #-}
     
     {- Global operations. -}
     
