@@ -13,11 +13,21 @@ almost with containers (except Graphs and Trees) and partly with the ByteString
 
 ## Reasons
 
-The purpose of SDP is to provide the most comfortable interface for working with
-different data structures in the same namespace without qualified imports,
-keeping sufficiently high quality code and speed of work. So that it can be use
-in practice, and rewriting programs from old and more specialized libraries
-didn't cause serious problems.
+* Solve the problem of name clashes for basic definitions without qualified
+imports.
+* Offer a replacement for the legacy array package. SDP uses ideas taken from
+vector, bytestring, repa and other libraries to implement common structures and
+algorithms more efficiently.
+* Offer an interface for generalized programming.
+* Offer more convenient notation for commonly used operations (compare SDP.Set
+and Data.Set).
+* Create a base for quick implementation of new structures. SDP pseudo-primitive
+structures are much more functional and flexible than their counterparts from
+primitive package.
+* Smooth out the problems of generalizing. Text and ByteString are excellent
+structures, but functors, folds and other useful operations on them cannot be
+generalized using the standard library. Unfortunately, solving the problem in
+the general case is still not easy.
 
 ## Functionality
 
@@ -52,7 +62,7 @@ protected from tampering and provide some important guarantees.
 SDP provides the following classes:
 
 - Bordered, Linear and Indexed - for common immutable operations.
-- BorderedM, LinearM and IndexedM - for most common mutable operations.
+- BorderedM, LinearM and IndexedM - for common mutable operations.
 - IFold and IFoldM - folds with index. For some structures may be used instead
 Foldable.
 - Sort and SortM - sorts for immutable and mutable structures.
