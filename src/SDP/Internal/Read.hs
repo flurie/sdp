@@ -68,7 +68,7 @@ linearPrec :: (Linear l e, Read e) => String -> ReadPrec l
 linearPrec name = namedPrec name (readZeroPrec +++ readAsList +++ readAsListN)
 
 -- | Common 'Linear' and 'Indexed' parser.
-linearIndexedPrec :: (Indexed v i e, Linear v e, Read i, Read e) => String -> ReadPrec v
+linearIndexedPrec :: (Indexed v i e, Read i, Read e) => String -> ReadPrec v
 linearIndexedPrec name = namedPrec name (readZeroPrec +++ readAsList +++ readAsListN +++ readAssocsPrec)
 
 --------------------------------------------------------------------------------
