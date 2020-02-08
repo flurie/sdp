@@ -63,7 +63,6 @@ version 0.2:
     * Estimate class rewrited
     * Ord instances - now lexicographic, like lists
     * Foldable and IFold rewrited for inline with 2 arguments
-    * Indexed and IndexedM now independent from Linear and LinearM resp.
     * All structures representation: O(1) splits, trustworthy size
     property and just code deduplication.
     * sortTest suite rewrited for Medium-sized structures generator (see fixes)

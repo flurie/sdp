@@ -74,14 +74,14 @@ insertionSort_ cmp es b s e' = mapM_ insert [s + 1 .. e']
 {- Monadic TimSort. -}
 
 -- | timsort is just synonym for timSortBy compare
-timSort :: (LinearM m v e, BorderedM m v i e, IndexedM m v i e, Ord e) => v -> m ()
+timSort :: (BorderedM m v i e, IndexedM m v i e, Ord e) => v -> m ()
 timSort es = timSortBy compare es
 
 {- |
   timSortOn is a version of timSortBy that uses a conversion function to compare
   elements.
 -}
-timSortOn :: (LinearM m v e, BorderedM m v i e, IndexedM m v i e, Ord o) => (e -> o) -> v -> m ()
+timSortOn :: (BorderedM m v i e, IndexedM m v i e, Ord o) => (e -> o) -> v -> m ()
 timSortOn f es = timSortBy (compare `on` f) es
 
 {- |
@@ -89,7 +89,7 @@ timSortOn f es = timSortBy (compare `on` f) es
   using any comparison function and having O(n * log n) complexity in the worst
   case.
 -}
-timSortBy :: (BorderedM m v i e, LinearM m v e, IndexedM m v i e) => Compare e -> v -> m ()
+timSortBy :: (BorderedM m v i e, IndexedM m v i e) => Compare e -> v -> m ()
 timSortBy cmp es = getSizeOf es >>= timSort'
   where
     timSort' n
