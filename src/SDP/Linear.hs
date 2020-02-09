@@ -1,6 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 {-# LANGUAGE TypeFamilies, TypeOperators, DefaultSignatures #-}
-{-# LANGUAGE PatternSynonyms, ViewPatterns #-}
+{-# LANGUAGE PatternSynonyms, ViewPatterns, ConstraintKinds #-}
 {-# LANGUAGE Trustworthy #-}
 
 {- |
@@ -19,13 +19,13 @@ module SDP.Linear
   module SDP.Zip,
   
   -- * Bordered class
-  Bordered (..),
+  Bordered (..), Bordered1, Bordered2,
   -- * Linear class
   -- $linearDoc
-  Linear   (..),
+  Linear (..), Linear1,
   -- * Split class
   -- $splitDoc
-  Split    (..),
+  Split (..), Split1,
   
   -- * Patterns
   -- $patternDoc
@@ -410,6 +410,20 @@ pattern x :> xs <- ((isNull ?: uncons) -> Just (x, xs)) where (:>) = toHead
 -- | Pattern (:<) is right-size view of line. Same as 'unsnoc' and 'toLast'.
 pattern   (:<)  :: (Linear l e) => l -> e -> l
 pattern xs :< x <- ((isNull ?: unsnoc) -> Just (xs, x)) where (:<) = toLast
+
+--------------------------------------------------------------------------------
+
+-- | Rank (* -> *) 'Linear' structure.
+type Linear1 l e = Linear (l e) e
+
+-- | Rank (* -> *) 'Split' structure.
+type Split1 s e = Split (s e) e
+
+-- | Rank (* -> *) 'Bordered' structure.
+type Bordered1 l i e = Bordered (l e) i e
+
+-- | Rank (* -> * -> *) 'Bordered' structure.
+type Bordered2 l i e = Bordered (l i e) i e
 
 --------------------------------------------------------------------------------
 

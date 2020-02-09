@@ -1,4 +1,5 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, DefaultSignatures #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
+{-# LANGUAGE ConstraintKinds, DefaultSignatures #-}
 
 {- |
     Module      :  SDP.IndexedM
@@ -16,10 +17,10 @@ module SDP.IndexedM
     module SDP.Indexed,
     
     -- * IndexedM
-    IndexedM (..),
+    IndexedM (..), IndexedM1, IndexedM2,
     
     -- * IFoldM
-    IFoldM (..),
+    IFoldM (..), IFoldM1, IFoldM2,
     
     -- * Freeze and Thaw
     Freeze (..), Thaw (..),
@@ -218,6 +219,20 @@ class (Monad m) => Freeze m v' v | v' -> m
 
 --------------------------------------------------------------------------------
 
+-- | Rank (* -> *) 'IndexedM' structure.
+type IndexedM1 v i e = IndexedM (v e) i e
+
+-- | Rank (* -> * -> *) 'IndexedM' structure.
+type IndexedM2 v i e = IndexedM (v i e) i e
+
+-- | Rank (* -> *) 'IFoldM' structure.
+type IFoldM1 v i e = IFoldM (v e) i e
+
+-- | Rank (* -> * -> *) 'IFoldM' structure.
+type IFoldM2 v i e = IFoldM (v i e) i e
+
+--------------------------------------------------------------------------------
+
 {-# INLINE swapM #-}
 -- | Just swap two elements.
 swapM :: (IndexedM m v i e) => v -> Int -> Int -> m ()
@@ -227,4 +242,3 @@ swapM es i j = do ei <- es !#> i; writeM_ es i =<< es !#> j; writeM_ es j ei
 
 undEx :: String -> a
 undEx msg = throw . UndefinedValue $ "in SDP.IndexedM" ++ msg
-

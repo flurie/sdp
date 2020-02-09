@@ -1,4 +1,5 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, DefaultSignatures #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
+{-# LANGUAGE ConstraintKinds, DefaultSignatures #-}
 
 {- |
     Module      :  SDP.LinearM
@@ -15,10 +16,10 @@ module SDP.LinearM
     module SDP.Linear,
     
     -- * BorderedM class
-    BorderedM (..),
+    BorderedM (..), BorderedM1, BorderedM2,
     
     -- * LinearM class
-    LinearM   (..),
+    LinearM (..), LinearM1,
     
     -- * Related section
     sortedM
@@ -141,10 +142,23 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
 
 --------------------------------------------------------------------------------
 
+-- | Rank (* -> *) 'LinearM' structure.
+type LinearM1 m l e = LinearM m (l e) e
+
+-- | Rank (* -> *) 'BorderedM' structure.
+type BorderedM1 m l i e = BorderedM m (l e) i e
+
+-- | Rank (* -> * -> *) 'BorderedM' structure.
+type BorderedM2 m l i e = BorderedM m (l i e) i e
+
+--------------------------------------------------------------------------------
+
 -- | sortedM is a procedure that checks for sorting.
 sortedM :: (LinearM m l e, Ord e) => l -> m Bool
 sortedM =  fmap f . getLeft
   where
     f Z  = True
     f es = and $ zipWith (<=) es (tail es)
+
+
 
