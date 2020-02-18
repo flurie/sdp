@@ -44,15 +44,14 @@ type TestIndexed1 l i e = i -> l e -> Bool
 -- | TestIndexed2 is service type synonym for more comfortable quickCheck using.
 type TestIndexed2 l i e = i -> l i e -> Bool
 
--- | basicIndexedTest checks relations of 'isNull', 'safeElem' and 'inRange'.
+-- | 'basicIndexedTest' checks relations of 'isNull', 'safeElem' and 'inRange'.
 basicIndexedTest :: (Bordered l i e, Indexed l i e) => i -> l -> Bool
-basicIndexedTest i es = isNull es || inRange bnds i'
+basicIndexedTest i es = isNull es || inRange bnds (safeElem bnds i)
   where
-    i'   = safeElem bnds i
     bnds = bounds es
 
 {- |
-  assocIndexedTest checks relations of 'assoc', 'assocs', ('.$'), ('*$') and
+  'assocIndexedTest' checks relations of 'assoc', 'assocs', ('.$'), ('*$') and
   ('//').
 -}
 assocIndexedTest :: (Bordered l i e, Indexed l i e, Eq e, Eq l) => i -> l -> Bool
@@ -66,13 +65,13 @@ assocIndexedTest i es = and
     
     -- if structure contain dublicates, (.$) may find earlier match.
     isNull es || i' >= fromJust ((== es ! i') .$ es),
-    isNull es || elem i' ((== es ! i') *$ es)
+    isNull es || elem i' ((== es ! (safeElem bnds i)) *$ es)
   ]
   where
     i'   = safeElem bnds i
     bnds = bounds es
 
--- | readIndexedTest checks relations of 'listL', ('.!'), ('!') and ('!?').
+-- | 'readIndexedTest' checks relations of 'listL', ('.!'), ('!') and ('!?').
 readIndexedTest :: (Bordered l i e, Indexed l i e, Eq e) => i -> l -> Bool
 readIndexedTest i es = and
     [
@@ -88,7 +87,7 @@ readIndexedTest i es = and
     i'   = safeElem bnds i
     bnds = bounds es
 
--- | indexedTest is complex test, that includes all other tests.
+-- | 'indexedTest' is complex test, that includes all other tests.
 indexedTest :: (Bordered l i e, Indexed l i e, Eq e, Eq l) => i -> l -> Bool
 indexedTest i es = and
   [

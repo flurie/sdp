@@ -80,6 +80,5 @@ instance (Linear l e, Arbitrary e) => Arbitrary (Long l)
 
 -- | linearA is overloaded 'vector'.
 linearA :: (Linear l e, Arbitrary e) => Int -> Gen l
-linearA n = fromList <$> vector n
-
+linearA =  fmap fromList . vector
 

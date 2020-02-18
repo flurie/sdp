@@ -42,7 +42,7 @@ type TestSet  s o = o -> s -> s -> Bool
 type TestSet1 s o = o -> s o -> s o -> Bool
 
 {- |
-  basicSetTest checks relations of 'set', ('/?\') and ('\?/').
+  'basicSetTest' checks relations of 'set', ('/?\') and ('\?/').
   Note that basicSetTest requires any @('Set' s o) => s@, not necessarily a set
   (may contain any data).
 -}
@@ -59,8 +59,8 @@ basicSetTest sx = and
     sx' = set sx
 
 {- |
-  insdelSetTest checks rules of 'insert' and 'delete'.
-  Note that insdelSetTest requires a set, not any @('Set' s o) => s@.
+  'insdelSetTest' checks rules of 'insert' and 'delete'.
+  Note that 'insdelSetTest' requires a set, not any @('Set' s o) => s@.
 -}
 insdelSetTest :: (Set s o, Eq s, Ord o) => o -> s -> Bool
 insdelSetTest e sx' = and
@@ -70,7 +70,7 @@ insdelSetTest e sx' = and
   ]
 
 {- |
-  unintSetTest checks the laws of union ('\/') and intersection ('/\').
+  'unintSetTest' checks the laws of union ('\/') and intersection ('/\').
   Note that unintSetTest requires any @('Set' s o) => s@, not necessarily a set
   (may contain any data).
 -}
@@ -85,8 +85,8 @@ unintSetTest sx' sy' = and
     un = sx' \/  sy'
 
 {- |
-  diffSetTest checks laws of difference ('\\') and symmetric difference ('\^/').
-  Note that diffSetTest requires a set, not any @('Set' s o) => s@
+  'diffSetTest' checks laws of difference ('\\') and symmetric difference
+  ('\^/'). Note that diffSetTest requires a set, not any @('Set' s o) => s@
 -}
 diffSetTest :: (Set s o, Ord o) => s -> s -> Bool
 diffSetTest sx' sy' = and
@@ -101,7 +101,7 @@ diffSetTest sx' sy' = and
     sd = sx' \^/ sy'
 
 {- |
-  elemSetTest checks relations of 'isSetElem' and 'isSubseqOf'.
+  'elemSetTest' checks relations of 'isSetElem' and 'isSubseqOf'.
   Note that elemSetTest requires any @('Set' s o) => s@, not necessarily a set
   (may contain any data).
 -}
@@ -115,7 +115,7 @@ elemSetTest e sx = and
     sx' = set sx; e' = single e
 
 {- |
-  lookupSetTest checks relations of 'lookupLT', 'lookupGT', 'lookupLE' and
+  'lookupSetTest' checks relations of 'lookupLT', 'lookupGT', 'lookupLE' and
   'lookupGE'. Note that lookupSetTest requires a set, not any @('Set' s o) => s@
 -}
 lookupSetTest :: (Set s o, Ord o) => o -> s -> Bool
@@ -133,7 +133,7 @@ lookupSetTest e sx = and
     ]
 
 {- |
-  setTest is complex test, that includes all other tests.
+  'setTest' is complex test, that includes all other tests.
   Note that setTest requires any @('Set' s o) => s@, not necessarily a set (may
   contain any data).
 -}
@@ -141,20 +141,14 @@ setTest :: (Ord o, Ord s, Set s o) => o -> s -> s -> Bool
 setTest e xs ys = and
     [
       basicSetTest xs,
-      
       insdelSetTest e sx,
-      
       unintSetTest sx sy,
-      
       diffSetTest sx sy,
-      
       elemSetTest e xs,
-      
       lookupSetTest e sx
     ]
   where
     sx = set xs
     sy = set ys
-
 
 

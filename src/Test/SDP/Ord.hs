@@ -52,4 +52,3 @@ lexicographicOrdTest xs ys = (xs <=> ys) == (listL xs <=> listL ys)
 
 
 
-

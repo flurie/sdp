@@ -24,10 +24,10 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | RopeM is primitive monadic sequence representation.
+-- | 'RopeM' is primitive monadic sequence representation.
 data RopeM m a = RopeEnd | RopeM (m (a, RopeM m a))
 
--- | runRope return full rope evaluation.
+-- | 'runRope' returns full rope evaluation.
 runRope :: (Monad m) => RopeM m a -> m [a]
 runRope RopeEnd = return []
 runRope (RopeM rope) = do
@@ -40,7 +40,7 @@ runRope (RopeM rope) = do
   and the tail of the @rope@.
 -}
 evalInit :: (Monad m) => RopeM m a -> Int -> m ([a], RopeM m a)
-evalInit = \ rope n -> n < 1 ? return ([], rope) $ eval n rope
+evalInit =  \ rope n -> n < 1 ? return ([], rope) $ eval n rope
   where
     eval 0    rope   = return ([], rope)
     eval _  RopeEnd  = return ([], RopeEnd)
@@ -51,5 +51,4 @@ evalInit = \ rope n -> n < 1 ? return ([], rope) $ eval n rope
 
 -- | @nextR rope@ is just @evalInit rope 1@.
 nextR :: (Monad m) => RopeM m a -> m ([a], RopeM m a)
-nextR rope = evalInit rope 1
-
+nextR =  flip evalInit 1

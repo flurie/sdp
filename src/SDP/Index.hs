@@ -575,6 +575,7 @@ intOffset bnds@(l, _) i = checkBounds bnds i (fromEnum i - fromEnum l) "offset (
 defUB :: (Index i, Bounded i) => Int -> (i, i)
 defUB n = n < 1 ? (unsafeIndex 1, unsafeIndex 0) $ (unsafeIndex 0, unsafeIndex $ n - 1)
 
+-- | Check bounds and 'throw' 'IndexException' if needed.
 checkBounds :: (Index i) => (i, i) -> i -> res -> String -> res
 checkBounds bnds i res msg = case inBounds bnds i of
   ER -> throw . EmptyRange     $ "in SDP.Index." ++ msg
@@ -584,7 +585,5 @@ checkBounds bnds i res msg = case inBounds bnds i of
 
 emptyEx :: String -> a
 emptyEx =  throw . EmptyRange . ("in SDP.Index." ++)
-
-
 
 

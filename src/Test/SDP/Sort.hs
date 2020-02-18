@@ -30,16 +30,10 @@ default ()
 --------------------------------------------------------------------------------
 
 {- |
-  sortTest is just @sorted . sort@ synonym.
-  
-  Please note that for default definition of Arbitrary generates very short
+  'sortTest' is just @sorted . sort@ synonym.
+  Please note that for default definition of @Arbitrary@ generates very short
   structures and this isn't enough for verification (if the length of the
   structure is less than 65, then TimSort uses InsertionSort).
 -}
 sortTest :: (Sort s e, Linear s e, Ord e) => Medium s -> Bool
 sortTest (Medium es) =  sorted $ sort es
-
-
-
-
-

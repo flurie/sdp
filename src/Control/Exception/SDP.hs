@@ -72,8 +72,8 @@ instance Exception UnexpectedRank
 {- |
    A 'UnreachableException' is used as an exception that should never be thrown.
   Unlike 'ErrorCall' and 'AssertionFailed', which signal an incorrect use of a
-  function or an error in its behavior, 'UnreachableException' indicates an
-  unreachable calculation.
+  function or an error in its behavior, 'UnreachableException' indicates that
+  expression is unreachable.
 -}
 data UnreachableException = UnreachableException String deriving (Eq, Typeable)
 
@@ -82,4 +82,3 @@ instance Show UnreachableException
     show (UnreachableException s) = "unreachable exception " ++ s
 
 instance Exception UnreachableException
-

@@ -77,4 +77,3 @@ estimateTest n xs ys = and
     eq1 = xs .==. ys; ne1 = xs ./=. ys
     
     cmp' = xs <==> ys; sx = sizeOf xs; sy = sizeOf ys
-

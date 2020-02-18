@@ -41,7 +41,7 @@ lim :: Int
 lim = 65536
 
 {- |
-  rangeTest checks relations of 'inRange', 'isOverflow', 'isUnderflow' and
+  'rangeTest' checks relations of 'inRange', 'isOverflow', 'isUnderflow' and
   'isEmpty'.
 -}
 rangeTest :: (Index i) => (i, i) -> i -> Bool
@@ -55,19 +55,19 @@ rangeTest bnds i = and
     not (isEmpty  bnds)  || isUnderflow bnds i
   ]
 
--- | prevTest checks relations of 'prev' and 'range'.
+-- | 'prevTest' checks relations of 'prev' and 'range'.
 prevTest :: (Index i) => (i, i) -> Bool
 prevTest bnds = isEmpty bnds || and test
   where
     test = take lim $ zipWith (==) (range bnds) (tail $ prev bnds <$> range bnds)
 
--- | nextTest checks relations of 'next' and 'range'.
+-- | 'nextTest' checks relations of 'next' and 'range'.
 nextTest :: (Index i) => (i, i) -> Bool
 nextTest bnds = isEmpty bnds || and test
   where
     test = take lim $ zipWith (==) (range bnds) (tail $ prev bnds <$> range bnds)
 
--- | inBoundsTest checks relations of 'inBounds' and other range functions.
+-- | 'inBoundsTest' checks relations of 'inBounds' and other range functions.
 inBoundsTest :: (Index i) => (i, i) -> i -> Bool
 inBoundsTest bnds i = case inBounds bnds i of
   ER -> isEmpty     bnds
@@ -76,13 +76,13 @@ inBoundsTest bnds i = case inBounds bnds i of
   OR -> isOverflow  bnds i
 
 {- |
-  dumbSizeTest is O(n) (very long) test, that checks relation of range 'size'
+  'dumbSizeTest' is O(n) (very long) test, that checks relation of range 'size'
   and 'range' length.
 -}
 dumbSizeTest :: (Index i) => (i, i) -> Bool
 dumbSizeTest bnds = length (range bnds) == size bnds
 
--- | basicIndexTest checks relations of 'rank', 'size' and 'sizes'.
+-- | 'basicIndexTest' checks relations of 'rank', 'size' and 'sizes'.
 basicIndexTest :: (Index i) => (i, i) -> i -> Bool
 basicIndexTest bnds@(l, u) i = and
   [
@@ -94,7 +94,7 @@ basicIndexTest bnds@(l, u) i = and
   ]
 
 {- |
-  indexTest is complex test, that includes all other tests.
+  'indexTest' is complex test, that includes all other tests.
   May crash with very big numbers (Word64, Integer) because the tested functions
   are limited by size of type Int.
   In practice, structures of such sizes would take more memory than the address
@@ -111,5 +111,4 @@ indexTest bnds i = and
     
     prevTest bnds, nextTest bnds
   ]
-
 
