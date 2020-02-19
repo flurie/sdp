@@ -176,6 +176,8 @@ instance (Index i, Unboxed e) => Split (Bytes i e) e
   where
     take n = withBounds . take n . unpack
     drop n = withBounds . drop n . unpack
+    keep n = withBounds . keep n . unpack
+    sans n = withBounds . sans n . unpack
     
     splits ns = fmap withBounds . splits ns . unpack
     chunks ns = fmap withBounds . chunks ns . unpack
@@ -305,6 +307,3 @@ done (STBytes l u es) = Bytes l u <$> unsafeFreeze es
 
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Bytes." ++ msg
-
-
-

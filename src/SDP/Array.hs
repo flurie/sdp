@@ -242,6 +242,8 @@ instance (Index i) => Split (Array i e) e
   where
     take n = withBounds . take n . unpack
     drop n = withBounds . drop n . unpack
+    keep n = withBounds . keep n . unpack
+    sans n = withBounds . sans n . unpack
     
     splits ns = fmap withBounds . splits ns . unpack
     chunks ns = fmap withBounds . chunks ns . unpack
@@ -274,9 +276,8 @@ instance (Index i) => Set (Array i e) e
     
     intersectionWith f xs ys = withBounds $ on (intersectionWith f) unpack xs ys
     unionWith        f xs ys = withBounds $ on (unionWith        f) unpack xs ys
-    
-    differenceWith f xs ys = withBounds $ on (differenceWith f) unpack xs ys
-    symdiffWith    f xs ys = withBounds $ on (symdiffWith    f) unpack xs ys
+    differenceWith   f xs ys = withBounds $ on (differenceWith   f) unpack xs ys
+    symdiffWith      f xs ys = withBounds $ on (symdiffWith      f) unpack xs ys
     
     isContainedIn f e = isContainedIn f e . unpack
     lookupLTWith  f o = lookupLTWith  f o . unpack
@@ -361,5 +362,3 @@ done (STArray l u marr#) = Array l u <$> unsafeFreeze marr#
 
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Array." ++ msg
-
-

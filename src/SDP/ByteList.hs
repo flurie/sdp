@@ -171,9 +171,7 @@ instance (Index i, Unboxed e) => Linear (ByteList i e) e
     
     Z  ++ ys = ys
     xs ++  Z = xs
-    xs ++ ys = n `withSize` on (++) unpack xs ys
-      where
-        n = on (+) sizeOf xs ys
+    xs ++ ys = on (+) sizeOf xs ys `withSize` on (++) unpack xs ys
     
     listL = listL . unpack
     listR = listR . unpack
@@ -183,18 +181,32 @@ instance (Index i, Unboxed e) => Linear (ByteList i e) e
 instance (Index i, Unboxed e) => Split (ByteList i e) e
   where
     take n xs@(ByteList l _ es)
-      |   n < 1  = Z
+      |  n <= 0  = Z
       | n >=. xs = xs
       |   True   = ByteList l u' (take n es)
         where
           u' = indexOf xs (n - 1)
     
     drop n xs@(ByteList _ u es)
-      |   n < 1  = xs
+      |  n <= 0  = xs
       | n >=. xs = Z
       |   True   = ByteList l' u (drop n es)
         where
           l' = indexOf xs n
+    
+    keep n xs@(ByteList _ u es)
+      |  n <= 0  = Z
+      | n >=. xs = xs
+      |   True   = ByteList l' u (keep n es)
+        where
+          l' = indexOf xs (n - 1)
+    
+    sans n xs@(ByteList l _ es)
+      |  n <= 0  = xs
+      | n >=. xs = Z
+      |   True   = ByteList l u' (sans n es)
+        where
+          u' = indexOf xs (sizeOf xs - n - 1)
     
     isPrefixOf = on isPrefixOf unpack
     isSuffixOf = on isSuffixOf unpack
@@ -325,6 +337,3 @@ withBounds =  \ es -> let (l, u) = defaultBounds (sizeOf es) in ByteList l u es
 
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.ByteList." ++ msg
-
-
-

@@ -197,6 +197,18 @@ instance (Unboxed e) => Split (SBytes# e) e
       | n >= c = Z
       |  True  = SBytes# (c - n) (o + n) arr#
     
+    -- | O(1) 'keep', O(1) memory.
+    keep n es@(SBytes# c o arr#)
+      | n <= 0 = Z
+      | n >= c = es
+      |  True  = SBytes# n (o + c - n) arr#
+    
+    -- | O(1) 'sans', O(1) memory.
+    sans n es@(SBytes# c o arr#)
+      | n <= 0 = es
+      | n >= c = Z
+      |  True  = SBytes# (c - n) o arr#
+    
     isPrefixOf xs@(SBytes# c1 _ _) ys@(SBytes# c2 _ _) = c1 <= c2 && eq 0
       where
         eq i = i == c1 || (xs !^ i) == (ys !^ i) && eq (i + 1)
@@ -685,6 +697,3 @@ undEx msg = throw . UndefinedValue $ "in SDP.Internal.SBytes." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Internal.SBytes." ++ msg
-
-
-

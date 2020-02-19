@@ -277,6 +277,18 @@ instance Split (SArray# e) e
       | n >= c = Z
       |  True  = SArray# (c - n) (o + n) arr#
     
+    -- | O(1) 'keep', O(1) memory.
+    keep n es@(SArray# c o arr#)
+      | n <= 0 = Z
+      | n >= c = es
+      |  True  = SArray# n (o + c - n) arr#
+    
+    -- | O(1) 'sans', O(1) memory.
+    sans n es@(SArray# c o arr#)
+      | n <= 0 = es
+      | n >= c = Z
+      |  True  = SArray# (c - n) o arr#
+    
     isPrefixOf xs@(SArray# c1 _ _) ys@(SArray# c2 _ _) = c1 <= c2 && eq 0
       where
         eq i = i == c1 || (xs !^ i) == (ys !^ i) && eq (i + 1)
@@ -709,7 +721,4 @@ pfailEx msg = throw . PatternMatchFail $ "in SDP.Internal.SArray." ++ msg
 
 unreachEx :: String -> a
 unreachEx msg = throw . UnreachableException $ "in SDP.Internal.SArray." ++ msg
-
-
-
 

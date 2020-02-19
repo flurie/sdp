@@ -457,4 +457,3 @@ unreachEx msg = throw . UnreachableException $ "in SDP.Unrolled.Unlist." ++ msg
 lim :: Int
 lim =  1024
 
-

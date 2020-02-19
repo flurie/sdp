@@ -37,7 +37,7 @@ version 0.2:
     
     * binaryContain, new (/>), assocMap and assocMap' functions (Indexed)
     * offsetOf and new indexOf functions (Bordered)
-    * chunks and each functions (Split)
+    * chunks, each, keep, sans, divide, divides functions (Split)
     * groupSetWith function (Set)
     
     * defaultBounds toGIndex, fromGIndex, fromGBounds and toGBounds functions
@@ -69,6 +69,7 @@ version 0.2:
     * prevTest and nextTest now work fast (fixed memory leak in where expr.)
     * Read and Show instances for (:&)
     * Index instances
+    * Split default definitions
 
 --------------------------------------------------------------------------------
 

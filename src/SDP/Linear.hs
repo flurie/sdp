@@ -10,8 +10,8 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
   
-  Linear is a module that provides several convenient interfaces for working
-  with various linear data structures.
+  @SDP.Linear@ is a module that provides several convenient interfaces for
+  working with various linear data structures.
 -}
 module SDP.Linear
 (
@@ -20,9 +20,11 @@ module SDP.Linear
   
   -- * Bordered class
   Bordered (..), Bordered1, Bordered2,
+  
   -- * Linear class
   -- $linearDoc
   Linear (..), Linear1,
+  
   -- * Split class
   -- $splitDoc
   Split (..), Split1,
@@ -114,19 +116,13 @@ class (Index i) => Bordered (b) i e | b -> i, b -> e
 
 {- $linearDoc
   Linear is a class for linear data structures that contains functions for:
-  
   * simple separation: 'head', 'tail', 'init', 'last', 'uncons', 'unsnoc'
-    
   * append and concatenation: 'toHead', 'toLast', ('++'), 'concat', 'concatMap'
-    
   * creation: empty ('lzero'), singleton ('single'), finite ('fromListN',
     'replicate') and, if the structure allows, potentially infinite ('fromList',
     'fromFoldable') data structures
-    
   * left- and right-side view ('listL' and 'listR'), 'reverse'
-    
   * filtering by condition: 'filter', 'partition', 'partitions'
-    
   * deleting repeats: 'nub', 'nubBy'
   
   Linear doesn't require 'Foldable' because it's a bit stricter than needed.
@@ -136,8 +132,6 @@ class (Index i) => Bordered (b) i e | b -> i, b -> e
 class Linear l e | l -> e
   where
     {-# MINIMAL isNull, (listL|listR), (fromList|fromListN), (head,tail|uncons), (init,last|unsnoc) #-}
-    
-    {- Service functions. -}
     
     -- | isNull - synonym for 'null', check function for 'Z'.
     isNull :: l -> Bool
@@ -174,8 +168,6 @@ class Linear l e | l -> e
     last :: l -> e
     last =  snd . unsnoc
     
-    {- Construction. -}
-    
     -- | Singleton.
     single :: e -> l
     single =  fromList . pure
@@ -204,8 +196,6 @@ class Linear l e | l -> e
     listL :: l -> [e]
     listL =  reverse . listR
     
-    {- Generalized folds. -}
-    
     -- | Generalisation of 'fromList'.
     fromFoldable :: (Foldable f) => f e -> l
     fromFoldable =  fromList . toList
@@ -222,8 +212,6 @@ class Linear l e | l -> e
     intersperse :: e -> l -> l
     intersperse e = fromList . intersperse e . listL
     
-    {- Filtering functions. -}
-    
     -- | Generalization of filter.
     filter :: (e -> Bool) -> l -> l
     filter p = fromList . filter p . listL
@@ -238,8 +226,6 @@ class Linear l e | l -> e
       where
         partitions'    []    xs = [xs]
         partitions' (p : ps) xs = let (y, ys) = partition p xs in y : partitions' ps ys
-    
-    {- Special functions -}
     
     -- Compares lines as sorted multisets.
     isSubseqOf :: (Eq e) => l -> l -> Bool
@@ -267,64 +253,69 @@ class Linear l e | l -> e
 --------------------------------------------------------------------------------
 
 {- $splitDoc
-  Split is class for structures that may be splitted on parts:
-    
-  * by length: 'take', 'drop' and 'split' (also known as splitAt)
-    
-  * by condition: 'takeWhile', 'dropWhile', 'spanl', 'breakl' (left to right)
-    and 'takeEnd', 'dropEnd', 'spanr', 'breakr' (right to left).
+  Split is class of structures that may be:
+  * truncated by length 'take', 'drop', 'keep', 'sans'
+  * splitted by 'split', 'divide', 'splits', 'divides', 'parts', 'chunks'
+  * truncated by 'each', 'takeWhile', 'dropWhile', 'spanl', 'breakl' (left to
+  right), 'takeEnd', 'dropEnd', 'spanr', 'breakr' (right to left)
   
-  Also Split contain some comparators:
-    
+  Also Split contain comparators:
   * by content: 'isPrefixOf', 'isInfixOf' and 'isSuffixOf'
-    
   * by condition: 'prefix' and 'suffix'.
 -}
 
 -- | Split - class of splittable data structures.
 class (Linear s e) => Split s e | s -> e
   where
-    {-# MINIMAL (take,drop|split) #-}
+    {-# MINIMAL (take|sans), (drop|keep) #-}
     
-    {- Simple splitters. -}
-    
+    -- | @take n es@ takes first @n@ elements of @es@.
     take :: Int -> s -> s
-    take n = fst . split n
+    default take :: (Bordered s i e) => Int -> s -> s
+    take n es = sans (sizeOf es - n) es
     
+    -- | @drop n es@ drops first @n@ elements of @es@.
     drop :: Int -> s -> s
-    drop n = snd . split n
+    default drop :: (Bordered s i e) => Int -> s -> s
+    drop n es = keep (sizeOf es - n) es
     
-    -- | split, also known as splitAt.
+    -- | @keep n es@ takes last @n@ elements of @es@.
+    keep :: Int -> s -> s
+    default keep :: (Bordered s i e) => Int -> s -> s
+    keep n es = drop (sizeOf es - n) es
+    
+    -- | @sans n es@ drops last @n@ elements of @es@.
+    sans :: Int -> s -> s
+    default sans :: (Bordered s i e) => Int -> s -> s
+    sans n es = take (sizeOf es - n) es
+    
+    -- | @split n es@ is same to @(take n es, drop n es)@.
     split :: Int -> s -> (s, s)
     split n es = (take n es, drop n es)
     
-    {-# INLINE splits #-}
-    -- | Splits structures into sublines by given lengths.
+    -- | Splits line into sequences of given sizes (left to right).
     splits :: (Foldable f) => f Int -> s -> [s]
-    splits =  splits' . toList
-      where
-        splits'    []    xs = [xs]
-        splits' (i : is) xs = let (y, ys) = split i xs in y : splits is ys
+    splits ns es = reverse $ foldl (\ (r : ds) n -> let (d, r') = split n r in r' : d : ds) [es] ns
     
-    {-# INLINE parts #-}
+    -- | @divide n es@ is same to @(sans n es, keep n es)@.
+    divide :: Int -> s -> (s, s)
+    divide n es = (sans n es, keep n es)
+    
+    -- | Splits line into sequences of given sizes (left to right).
+    divides :: (Foldable f) => f Int -> s -> [s]
+    divides ns es = foldr (\ n (r : ds) -> let (r', d) = divide n r in r' : d : ds) [es] ns
+    
     -- | Splits structures into parts by given initial indices.
     parts :: (Foldable f) => f Int -> s -> [s]
-    parts =  parts' 0 . toList
-      where
-        parts' _ [] xs = [xs]
-        parts' c (i : is) xs = let (y, ys) = split (i - c) xs in y : parts' i is ys
+    parts =  splits . go . toList where go is = zipWith (-) is (0 : is)
     
-    {-# INLINE chunks #-}
     -- | Splits structures into chunks of a given size (and the rest).
     chunks :: Int -> s -> [s]
     chunks n es = case split n es of {(x, Z) -> [x]; (x, xs) -> x : chunks n xs}
     
-    {-# INLINE each #-}
     -- | Returns each nth element of structure. If @n < 0@, returns 'Z'.
     each :: Int -> s -> s
     each n = case n <=> 1 of {LT -> const Z; EQ -> id; GT -> fromList . each n . listL}
-    
-    {- Subsequence checkers. -}
     
     -- | isPrefixOf checks whether the first line is the beginning of the second
     isPrefixOf :: (Eq e) => s -> s -> Bool
@@ -341,29 +332,31 @@ class (Linear s e) => Split s e | s -> e
     isInfixOf _   Z = False
     isInfixOf xs ys = xs `isPrefixOf` ys || xs `isInfixOf` tail ys
     
-    {- Largest sequences. -}
-    
     -- | prefix gives length of init, satisfying preducate.
     prefix :: (e -> Bool) -> s -> Int
+    default prefix :: (Foldable t, t e ~~ s) => (e -> Bool) -> s -> Int
+    prefix p = foldr (\ e c -> p e ? c + 1 $ 0) 0
     
     -- | suffix gives length of tail, satisfying predicate.
     suffix :: (e -> Bool) -> s -> Int
-    
-    {- "Clever" splitters. -}
+    default suffix :: (Foldable t, t e ~~ s) => (e -> Bool) -> s -> Int
+    suffix p = foldl (\ c e -> p e ? c + 1 $ 0) 0
     
     -- | Takes the longest init by predicate.
     takeWhile :: (e -> Bool) -> s -> s
-    takeWhile p es = take (p `prefix` es) es
+    takeWhile p es = take (prefix p es) es
     
     -- | Drops the longest init by predicate.
     dropWhile :: (e -> Bool) -> s -> s
-    dropWhile p es = drop (p `prefix` es) es
+    dropWhile p es = drop (prefix p es) es
     
-    -- | Takes the longest tail by predicate.
+    -- | Takes the longest suffix by predicate.
     takeEnd :: (e -> Bool) -> s -> s
+    takeEnd p es = keep (suffix p es) es
     
-    -- | Drops the longest tail by predicate.
+    -- | Drops the longest prefix by predicate.
     dropEnd :: (e -> Bool) -> s -> s
+    dropEnd p es = sans (suffix p es) es
     
     -- | Left-side span.
     spanl :: (e -> Bool) -> s -> (s, s)
@@ -380,18 +373,6 @@ class (Linear s e) => Split s e | s -> e
     -- | Right-side break.
     breakr :: (e -> Bool) -> s -> (s, s)
     breakr p es = (takeEnd (not . p) es, dropEnd (not . p) es)
-    
-    default takeEnd :: (Bordered s i e) => (e -> Bool) -> s -> s
-    takeEnd p es = drop (sizeOf es - suffix p es) es
-    
-    default dropEnd :: (Bordered s i e) => (e -> Bool) -> s -> s
-    dropEnd p es = take (sizeOf es - suffix p es) es
-    
-    default prefix :: (Foldable t, t e ~~ s) => (e -> Bool) -> s -> Int
-    prefix p = foldr (\ e c -> p e ? c + 1 $ 0) 0
-
-    default suffix :: (Foldable t, t e ~~ s) => (e -> Bool) -> s -> Int
-    suffix p = foldl (\ c e -> p e ? c + 1 $ 0) 0
 
 --------------------------------------------------------------------------------
 
@@ -505,7 +486,7 @@ intercalate l =  concat . intersperse l
 
 -- | tails is generalization of tails.
 tails :: (Linear l e) => l -> [l]
-tails Z  = Z
+tails Z  = []
 tails es = es : tails (tail es)
 
 -- | tails is generalization of inits.
@@ -521,4 +502,3 @@ sorted es = and $ zipWith (<=) xs tail' where xs@(_ : tail') = listL es
 -- | @ascending line seqs@ checks if the @(start, count) <- seqs@ are sorted.
 ascending :: (Split s e, Ord e) => s -> [Int] -> Bool
 ascending es = all sorted . (`splits` es)
-

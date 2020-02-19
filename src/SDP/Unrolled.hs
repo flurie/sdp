@@ -238,6 +238,20 @@ instance (Index i) => Split (Unrolled i e) e
         where
           l' = indexOf xs n
     
+    keep n xs@(Unrolled _ u es)
+      |  n <= 0  = Z
+      | n >=. xs = xs
+      |   True   = Unrolled l' u (keep n es)
+        where
+          l' = indexOf xs (n - 1)
+    
+    sans n xs@(Unrolled l _ es)
+      |  n <= 0  = xs
+      | n >=. xs = Z
+      |   True   = Unrolled l u' (sans n es)
+        where
+          u' = indexOf xs (sizeOf xs - n - 1)
+    
     isPrefixOf = on isPrefixOf unpack
     isSuffixOf = on isSuffixOf unpack
     isInfixOf  = on isInfixOf  unpack
@@ -363,8 +377,3 @@ withSize =  uncurry Unrolled . defaultBounds
 
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Unrolled." ++ msg
-
-
-
-
-
