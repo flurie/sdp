@@ -14,6 +14,7 @@ module SDP.ByteList
 (
   -- * Exports
   module SDP.Indexed,
+  module SDP.Unboxed,
   module SDP.Sort,
   module SDP.Scan,
   module SDP.Set,
