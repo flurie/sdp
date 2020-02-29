@@ -65,7 +65,6 @@ type role Bytes nominal representational
 
 instance (Index i, Unboxed e) => Eq (Bytes i e)
   where
-    Z  ==  Z = True
     xs == ys = on (==) unpack xs ys
 
 instance (Index i, Unboxed e, Ord e) => Ord (Bytes i e)
@@ -307,3 +306,5 @@ done (STBytes l u es) = Bytes l u <$> unsafeFreeze es
 
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Bytes." ++ msg
+
+

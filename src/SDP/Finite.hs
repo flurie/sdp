@@ -76,16 +76,16 @@ instance (Arbitrary i, Arbitrary i') => Arbitrary (i' :& i)
 
 instance (Enum i) => Enum (E :& i)
   where
-    succ ~[e] = [e]
-    pred ~[e] = [e]
+    succ = \ [e] -> [e]
+    pred = \ [e] -> [e]
     
-    toEnum     n  = [toEnum n]
-    fromEnum ~[e] = fromEnum e
+    toEnum   = \  n  -> [toEnum n]
+    fromEnum = \ [e] -> fromEnum e
     
-    enumFrom       ~[f]           = [ [e] | e <- [f ..] ]
-    enumFromTo     ~[f] ~[l]      = [ [e] | e <- [f .. l] ]
-    enumFromThen   ~[f] ~[n]      = [ [e] | e <- [f, n ..] ]
-    enumFromThenTo ~[f] ~[n] ~[l] = [ [e] | e <- [f, n .. l] ]
+    enumFrom       = \     [f]     -> [ [e] | e <- [f ..] ]
+    enumFromTo     = \   [f] [l]   -> [ [e] | e <- [f .. l] ]
+    enumFromThen   = \   [f] [n]   -> [ [e] | e <- [f, n ..] ]
+    enumFromThenTo = \ [f] [n] [l] -> [ [e] | e <- [f, n .. l] ]
 
 instance (Default d, Default d') => Default (d :& d') where def = def :& def
 
@@ -116,7 +116,7 @@ instance (E.Item (i' :& i) ~~ i, IsList (i' :& i)) => IsList (i' :& i :& i)
     
     toList (i' :& i) = E.toList i' ++ [i]
     
-    fromList is = E.fromList init' :& last' where (init', last') = unsnoc is
+    fromList = (uncurry $ (:&) . E.fromList) . unsnoc
 
 --------------------------------------------------------------------------------
 
@@ -200,6 +200,6 @@ ind15 a b c d e f g h i j k l m n o = [a,b,c,d,e,f,g,h,i,j,k,l,m,n,o]
 unsnoc :: [i] -> ([i], i)
 unsnoc    [ ]   = throw $ UnexpectedRank "in SDP.Finite.fromList"
 unsnoc    [i]   = ([], i)
-unsnoc (i : is) = let (init', last') = unsnoc is in (i : init', last')
+unsnoc (i : is) = (\ (is', i') -> (i : is', i')) $ unsnoc is
 
 

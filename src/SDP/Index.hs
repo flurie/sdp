@@ -245,13 +245,13 @@ class (Ord i) => Index i
     {-# INLINE fromGIndex #-}
     default fromGIndex :: (GIndex i ~~ (E :& i)) => GIndex i -> i
     fromGIndex :: GIndex i -> i
-    fromGIndex (E :& i) = i
+    fromGIndex =  \ [i] -> i
     
     -- | Create generalized index from index.
     {-# INLINE toGIndex #-}
     default toGIndex :: (GIndex i ~~ (E :& i)) => i -> GIndex i
     toGIndex :: i -> GIndex i
-    toGIndex i = E :& i
+    toGIndex =  \ i -> [i]
 
 --------------------------------------------------------------------------------
 
@@ -353,23 +353,23 @@ instance (Index i, Enum i, Bounded i) => Index (E :& i)
     
     rank = const 1
     
-    size  (~[l], ~[u]) =  size (l, u)
-    sizes (~[l], ~[u]) = [size (l, u)]
-    range (~[l], ~[u]) = (E :&) <$> range (l, u)
+    size  = \ ([l], [u]) -> size  (l, u)
+    sizes = \ ([l], [u]) -> [size (l, u)]
+    range = \ ([l], [u]) -> [ [i] | i <- range (l, u) ]
     
-    next  (~[l], ~[u]) ~[i] = [next (l, u) i]
-    prev  (~[l], ~[u]) ~[i] = [prev (l, u) i]
+    next = \ ([l], [u]) [i] -> [next (l, u) i]
+    prev = \ ([l], [u]) [i] -> [prev (l, u) i]
     
-    inRange     (~[l], ~[u]) ~[i] = inRange       (l, u) i
-    isOverflow  (~[l], ~[u]) ~[i] = isOverflow    (l, u) i
-    isUnderflow (~[l], ~[u]) ~[i] = isUnderflow   (l, u) i
-    safeElem    (~[l], ~[u]) ~[i] = E :& safeElem (l, u) i
+    inRange     = \ ([l], [u]) [i] -> inRange     (l, u) i
+    isOverflow  = \ ([l], [u]) [i] -> isOverflow  (l, u) i
+    isUnderflow = \ ([l], [u]) [i] -> isUnderflow (l, u) i
+    safeElem    = \ ([l], [u]) [i] -> [safeElem   (l, u) i]
     
-    isEmpty     (~[l], ~[u]) = isEmpty (l, u)
-    ordBounds   (~[l], ~[u]) = let (l', u') = ordBounds (l, u) in ([l'], [u'])
+    isEmpty   = \ ([l], [u]) -> isEmpty (l, u)
+    ordBounds = \ ([l], [u]) -> let (l', u') = ordBounds (l, u) in ([l'], [u'])
     
-    offset ~([l], [u]) ~[i] =  offset (l, u) i
-    index  ~([l], [u])   n  = [index  (l, u) n]
+    offset = \ ([l], [u]) [i] -> offset (l, u) i
+    index  = \ ([l], [u])  n  -> [index (l, u) n]
     
     defaultBounds = uncurry (on (,) (E :&)) . defaultBounds
     unsafeIndex n = [unsafeIndex n]
@@ -398,22 +398,21 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
     sizes (ls :& l, us :& u) = sizes (ls, us) ++ sizes (l, u)
     range (ls :& l, us :& u) = liftA2 (:&) (range (ls, us)) (range (l, u))
     
-    -- [internal]: prev and next uses safeElem. Needed to rewrite.
-    prev bnds@(ls :& l, us :& u) ix
-        | isEmpty bnds = emptyEx "prev (n-dimensional)"
-        |    i /= l    = is :& pred i
-        |   is /= ls   = prev (ls, us) is :& u
-        |     True     = ls :& l
+    prev bs@(ls :& l, us :& u) ix
+        | isEmpty bs = emptyEx "prev (n-dimensional)"
+        |   i /= l   = is :& pred i
+        |  is /= ls  = prev (ls, us) is :& u
+        |    True    = ls :& l
       where
-        (is :& i) = safeElem bnds ix
+        (is :& i) = safeElem bs ix
     
-    next bnds@(ls :& l, us :& u) ix
-        | isEmpty bnds = emptyEx "next (n-dimensional)"
-        |    i /= u    = is :& succ i
-        |   is /= us   = prev (ls, us) is :& u
-        |     True     = ls :& l
+    next bs@(ls :& l, us :& u) ix
+        | isEmpty bs = emptyEx "next (n-dimensional)"
+        |   i /= u   = is :& succ i
+        |  is /= us  = prev (ls, us) is :& u
+        |    True    = ls :& l
       where
-        (is :& i) = safeElem bnds ix
+        (is :& i) = safeElem bs ix
     
     inBounds bs i
       |    isEmpty bs    = ER
@@ -425,9 +424,9 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
     isOverflow  (ls :& l, us :& u) (is :& i) = isOverflow  (l, u) i || isOverflow  (ls, us) is
     isUnderflow (ls :& l, us :& u) (is :& i) = isUnderflow (l, u) i || isUnderflow (ls, us) is
     
-    safeElem    (ls :& l, us :& u) (is :& i) = safeElem (ls, us) is :& safeElem (l, u) i
-    isEmpty     (ls :& l, us :& u) = isEmpty (l, u) || isEmpty (ls, us)
-    ordBounds   (ls :& l, us :& u) = (ls' :& l', us' :& u')
+    safeElem  (ls :& l, us :& u) (is :& i) = safeElem (ls, us) is :& safeElem (l, u) i
+    isEmpty   (ls :& l, us :& u) = isEmpty (l, u) || isEmpty (ls, us)
+    ordBounds (ls :& l, us :& u) = (ls' :& l', us' :& u')
       where
         (ls', us') = ordBounds (ls, us)
         (l', u')   = ordBounds (l, u)
@@ -477,73 +476,73 @@ inBounds    bs i | isEmpty bs = ER | isUnderflow bs i = UR | isOverflow bs i = O
 -- incomplete definition, toGIndex and fromGIndex needed.
 
 INDEX_INSTANCE(T2 i, i, I2 i)
-fromGIndex ~[a,b] = (a,b);
-toGIndex    (a,b) = [a,b];
+fromGIndex = \ [a,b] -> (a,b);
+toGIndex       (a,b) =  [a,b];
 }
 
 INDEX_INSTANCE(T3 i, T2 i, I3 i)
-fromGIndex ~[a,b,c] = (a,b,c);
-toGIndex    (a,b,c) = [a,b,c];
+fromGIndex = \ [a,b,c] -> (a,b,c);
+toGIndex       (a,b,c) =  [a,b,c];
 }
 
 INDEX_INSTANCE(T4 i, T3 i, I4 i)
-fromGIndex ~[a,b,c,d] = (a,b,c,d);
-toGIndex    (a,b,c,d) = [a,b,c,d];
+fromGIndex = \ [a,b,c,d] -> (a,b,c,d);
+toGIndex       (a,b,c,d) =  [a,b,c,d];
 }
 
 INDEX_INSTANCE(T5 i, T4 i, I5 i)
-fromGIndex ~[a,b,c,d,e] = (a,b,c,d,e);
-toGIndex    (a,b,c,d,e) = [a,b,c,d,e];
+fromGIndex = \ [a,b,c,d,e] -> (a,b,c,d,e);
+toGIndex       (a,b,c,d,e) =  [a,b,c,d,e];
 }
 
 INDEX_INSTANCE(T6 i, T5 i, I6 i)
-fromGIndex ~[a,b,c,d,e,f] = (a,b,c,d,e,f);
-toGIndex    (a,b,c,d,e,f) = [a,b,c,d,e,f];
+fromGIndex = \ [a,b,c,d,e,f] -> (a,b,c,d,e,f);
+toGIndex       (a,b,c,d,e,f) =  [a,b,c,d,e,f];
 }
 
 INDEX_INSTANCE(T7 i, T6 i, I7 i)
-fromGIndex ~[a,b,c,d,e,f,g] = (a,b,c,d,e,f,g);
-toGIndex    (a,b,c,d,e,f,g) = [a,b,c,d,e,f,g];
+fromGIndex = \ [a,b,c,d,e,f,g] -> (a,b,c,d,e,f,g);
+toGIndex       (a,b,c,d,e,f,g) =  [a,b,c,d,e,f,g];
 }
 
 INDEX_INSTANCE(T8 i, T7 i, I8 i)
-fromGIndex ~[a,b,c,d,e,f,g,h] = (a,b,c,d,e,f,g,h);
-toGIndex    (a,b,c,d,e,f,g,h) = [a,b,c,d,e,f,g,h];
+fromGIndex = \ [a,b,c,d,e,f,g,h] -> (a,b,c,d,e,f,g,h);
+toGIndex       (a,b,c,d,e,f,g,h) =  [a,b,c,d,e,f,g,h];
 }
 
 INDEX_INSTANCE(T9 i, T8 i, I9 i)
-fromGIndex ~[a,b,c,d,e,f,g,h,i] = (a,b,c,d,e,f,g,h,i);
-toGIndex    (a,b,c,d,e,f,g,h,i) = [a,b,c,d,e,f,g,h,i];
+fromGIndex = \ [a,b,c,d,e,f,g,h,i] -> (a,b,c,d,e,f,g,h,i);
+toGIndex       (a,b,c,d,e,f,g,h,i) =  [a,b,c,d,e,f,g,h,i];
 }
 
 INDEX_INSTANCE(T10 i, T9 i, I10 i)
-fromGIndex ~[a,b,c,d,e,f,g,h,i,j] = (a,b,c,d,e,f,g,h,i,j);
-toGIndex    (a,b,c,d,e,f,g,h,i,j) = [a,b,c,d,e,f,g,h,i,j];
+fromGIndex = \ [a,b,c,d,e,f,g,h,i,j] -> (a,b,c,d,e,f,g,h,i,j);
+toGIndex       (a,b,c,d,e,f,g,h,i,j) =  [a,b,c,d,e,f,g,h,i,j];
 }
 
 INDEX_INSTANCE(T11 i, T10 i, I11 i)
-fromGIndex ~[a,b,c,d,e,f,g,h,i,j,k] = (a,b,c,d,e,f,g,h,i,j,k);
-toGIndex    (a,b,c,d,e,f,g,h,i,j,k) = [a,b,c,d,e,f,g,h,i,j,k];
+fromGIndex = \ [a,b,c,d,e,f,g,h,i,j,k] -> (a,b,c,d,e,f,g,h,i,j,k);
+toGIndex       (a,b,c,d,e,f,g,h,i,j,k) =  [a,b,c,d,e,f,g,h,i,j,k];
 }
 
 INDEX_INSTANCE(T12 i, T11 i, I12 i)
-fromGIndex ~[a,b,c,d,e,f,g,h,i,j,k,l] = (a,b,c,d,e,f,g,h,i,j,k,l);
-toGIndex    (a,b,c,d,e,f,g,h,i,j,k,l) = [a,b,c,d,e,f,g,h,i,j,k,l];
+fromGIndex = \ [a,b,c,d,e,f,g,h,i,j,k,l] -> (a,b,c,d,e,f,g,h,i,j,k,l);
+toGIndex       (a,b,c,d,e,f,g,h,i,j,k,l) =  [a,b,c,d,e,f,g,h,i,j,k,l];
 }
 
 INDEX_INSTANCE(T13 i, T12 i, I13 i)
-fromGIndex ~[a,b,c,d,e,f,g,h,i,j,k,l,m] = (a,b,c,d,e,f,g,h,i,j,k,l,m);
-toGIndex    (a,b,c,d,e,f,g,h,i,j,k,l,m) = [a,b,c,d,e,f,g,h,i,j,k,l,m];
+fromGIndex = \ [a,b,c,d,e,f,g,h,i,j,k,l,m] -> (a,b,c,d,e,f,g,h,i,j,k,l,m);
+toGIndex       (a,b,c,d,e,f,g,h,i,j,k,l,m) =  [a,b,c,d,e,f,g,h,i,j,k,l,m];
 }
 
 INDEX_INSTANCE(T14 i, T13 i, I14 i)
-fromGIndex ~[a,b,c,d,e,f,g,h,i,j,k,l,m,n] = (a,b,c,d,e,f,g,h,i,j,k,l,m,n);
-toGIndex    (a,b,c,d,e,f,g,h,i,j,k,l,m,n) = [a,b,c,d,e,f,g,h,i,j,k,l,m,n];
+fromGIndex = \ [a,b,c,d,e,f,g,h,i,j,k,l,m,n] -> (a,b,c,d,e,f,g,h,i,j,k,l,m,n);
+toGIndex       (a,b,c,d,e,f,g,h,i,j,k,l,m,n) =  [a,b,c,d,e,f,g,h,i,j,k,l,m,n];
 }
 
 INDEX_INSTANCE(T15 i, T14 i, I15 i)
-fromGIndex ~[a,b,c,d,e,f,g,h,i,j,k,l,m,n,o] = (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o);
-toGIndex    (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o) = [a,b,c,d,e,f,g,h,i,j,k,l,m,n,o];
+fromGIndex = \ [a,b,c,d,e,f,g,h,i,j,k,l,m,n,o] -> (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o);
+toGIndex       (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o) =  [a,b,c,d,e,f,g,h,i,j,k,l,m,n,o];
 }
 
 #undef INDEX_INSTANCE
@@ -585,5 +584,7 @@ checkBounds bnds i res msg = case inBounds bnds i of
 
 emptyEx :: String -> a
 emptyEx =  throw . EmptyRange . ("in SDP.Index." ++)
+
+
 
 
