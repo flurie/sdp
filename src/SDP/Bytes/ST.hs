@@ -109,7 +109,7 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STBytes s i e) i e
     writeM_ (STBytes _ _ mbytes#) = writeM_ mbytes#
     
     {-# INLINE writeM #-}
-    writeM (STBytes l u mbytes#) = \ i -> writeM mbytes# $ offset (l, u) i
+    writeM (STBytes l u mbytes#) = writeM mbytes# . offset (l, u)
     
     overwrite es@(STBytes l u _) ascs = mapM_ (uncurry $ writeM_ es) ies >> return es
       where

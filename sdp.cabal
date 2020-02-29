@@ -42,7 +42,6 @@ Library
   ghc-options: -O2 -Wall
   
   exposed-modules:
-    
     -- common definitions
     
     Control.Exception.SDP

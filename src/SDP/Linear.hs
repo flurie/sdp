@@ -222,10 +222,9 @@ class Linear l e | l -> e
     
     -- | Generalization of partition, that select sublines by predicates.
     partitions :: (Foldable f) => f (e -> Bool) -> l -> [l]
-    partitions = partitions' . toList
+    partitions ps es = reverse $ foldl f [es] ps
       where
-        partitions'    []    xs = [xs]
-        partitions' (p : ps) xs = let (y, ys) = partition p xs in y : partitions' ps ys
+        f = \ (x : xs) -> (\ (y, ys) -> (ys : y : xs)) . (`partition` x)
     
     -- Compares lines as sorted multisets.
     isSubseqOf :: (Eq e) => l -> l -> Bool
@@ -238,9 +237,9 @@ class Linear l e | l -> e
     
     -- | Generalization of subsequences.
     subsequences :: l -> [l]
-    subsequences =  (Z :) . ss
+    subsequences =  (Z :) . go
       where
-        ss es = case es of {(x :> xs) -> single x : foldr (\ ys r -> ys : (x :> ys) : r) [] (ss xs); _ -> Z}
+        go es = case es of {(x :> xs) -> single x : foldr (\ ys r -> ys : (x :> ys) : r) [] (go xs); _ -> Z}
     
     -- | Same as nubBy ('=='), but may be faster (for bytestring, for example).
     nub :: (Eq e) => l -> l

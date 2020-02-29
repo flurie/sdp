@@ -162,3 +162,4 @@ splitTest n line = and
     
     (take n line, drop n line) == split n line
   ]
+

@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Unsafe, MagicHash, RoleAnnotations, DeriveGeneric #-}
+{-# LANGUAGE Unsafe, MagicHash, DeriveGeneric #-}
 
 {- |
     Module      :  SDP.ByteList.Ublist
@@ -20,7 +20,7 @@ module SDP.ByteList.Ublist
   module SDP.Set,
   
   -- * Ublist
-  Ublist (..)
+  Ublist (..), unpack'
 )
 where
 
@@ -53,43 +53,35 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | Ublist is unrolled linked list of unboxed values.
-data Ublist e = UBEmpty | Ublist !(SBytes# e) (Ublist e) deriving ( Generic )
-
-type role Ublist representational
-
-{-# COMPLETE Z, Ublist #-}
+-- | 'Ublist' is unrolled linked list of unboxed values.
+newtype Ublist e = Ublist [SBytes# e] deriving ( Generic )
 
 --------------------------------------------------------------------------------
 
-{- Eq and Eq1 instances. -}
+{- Eq and Ord instances. -}
 
 instance (Unboxed e) => Eq (Ublist e)
   where
     Z == Z = True
-    xs@(Ublist bytes1# bytes1) == ys@(Ublist bytes2# bytes2) = if n1 > n2
-        then take n2 bytes1# == bytes2# && drop n2 xs == bytes2
-        else take n1 bytes2# == bytes1# && drop n1 ys == bytes1
+    xs@(Ublist (x : xs')) == ys@(Ublist (y : ys')) = if n1 > n2
+        then take n2 x == y && drop n2 xs == Ublist ys'
+        else take n1 y == x && drop n1 ys == Ublist xs'
       where
-        n1 = sizeOf bytes1#
-        n2 = sizeOf bytes2#
+        n1 = sizeOf x
+        n2 = sizeOf y
     _ == _ = False
 
---------------------------------------------------------------------------------
-
-{- Ord and Ord1 instances. -}
-
-instance (Ord e, Unboxed e) => Ord (Ublist e)
+instance (Unboxed e, Ord e) => Ord (Ublist e)
   where
     compare Z Z = EQ
     compare Z _ = LT
     compare _ Z = GT
-    compare xs@(Ublist bytes1# bytes1) ys@(Ublist bytes2# bytes2) = if n1 > n2
-        then (take n2 bytes1# <=> bytes2#) <> compare (drop n2 xs) bytes2
-        else (bytes1# <=> take n2 bytes2#) <> compare bytes1 (drop n2 ys)
+    compare xs@(Ublist ~(x : xs')) ys@(Ublist ~(y : ys')) = if n1 > n2
+        then (take n2 x <=> y) <> (drop n2 xs <=> Ublist ys')
+        else (x <=> take n1 y) <> (Ublist xs' <=> drop n1 ys)
       where
-        n1 = sizeOf bytes1#
-        n2 = sizeOf bytes2#
+        n1 = sizeOf x
+        n2 = sizeOf y
 
 --------------------------------------------------------------------------------
 
@@ -103,10 +95,10 @@ instance (Show e, Unboxed e) => Show (Ublist e)
 
 {- Semigroup, Monoid, Default, Arbitrary and Estimate instances. -}
 
-instance (Unboxed e) => Semigroup (Ublist e) where (<>) = (++)
+instance (Unboxed e) => Semigroup (Ublist e) where  (<>)  = (++)
 instance (Unboxed e) => Monoid    (Ublist e) where mempty = def
 
-instance Default (Ublist e) where def = UBEmpty
+instance Default (Ublist e) where def = Ublist []
 
 instance (Arbitrary e, Unboxed e) => Arbitrary (Ublist e)
   where
@@ -117,13 +109,13 @@ instance (Unboxed e) => Estimate (Ublist e)
     (<==>) = go 0
       where
         go o Z   Z = o <=> 0
-        go o xs  Z = xs <.=> (-o)
         go o Z  ys = o <=.> ys
-        go o (Ublist bytes1# bytes1) (Ublist bytes2# bytes2) =
-          go (o + sizeOf bytes1# - sizeOf bytes2#) bytes1 bytes2
+        go o xs  Z = xs <.=> (-o)
+        go o (Ublist ~(x : xs)) (Ublist ~(y : ys)) =
+          go (o + sizeOf x - sizeOf y) (Ublist xs) (Ublist ys)
     
-    Z <.=> n = 0 <=> n
-    (Ublist bytes# bytes) <.=> m = bytes# .> m ? GT $ bytes <.=> (m - sizeOf bytes#)
+    (Ublist (x : xs)) <.=> n = x .> n ? GT $ Ublist xs <.=> (n - sizeOf x)
+    _ <.=> n = 0 <=> n
 
 --------------------------------------------------------------------------------
 
@@ -131,46 +123,37 @@ instance (Unboxed e) => Estimate (Ublist e)
 
 instance (Unboxed e) => Linear (Ublist e) e
   where
-    isNull es = case es of {UBEmpty -> True; Ublist Z UBEmpty -> True; _ -> False}
+    isNull (Ublist es) = all isNull es
     
-    lzero = UBEmpty
+    lzero = def
     
-    toHead e Z = single e
-    toHead e es@(Ublist bytes# bytes) = bytes# .< lim ? Ublist (e :> bytes#) bytes $ Ublist (single e) es
+    toHead e (Ublist es@(x : xs)) = Ublist $ x .< lim ? (e :> x) : xs $ single e : es
+    toHead e _ = single e
     
-    head Z  = pfailEx "(:>)"
-    head es = es !^ 0
+    uncons = uncons' . unpack'
+      where
+        uncons' ((x :> xs) : xss) = (x, Ublist (xs : xss))
+        uncons' _ = pfailEx "(:>)"
     
-    tail Z = pfailEx "(:<)"
-    tail (Ublist bytes# bytes) = isNull bytes# ? tail bytes $ Ublist (tail bytes#) bytes
+    toLast (Ublist (xs :< x)) e = isNull x ? Ublist xs :< e $ Ublist (xs :< (x :< e))
+    toLast _ e = single e
     
-    toLast Z e = single e
-    toLast (Ublist bytes# bytes) e = isNull bytes# ? (bytes :< e) $ Ublist bytes# (bytes :< e)
+    unsnoc = unsnoc' . unpack'
+      where
+        unsnoc' (xss :< (xs :< x)) = (Ublist (xss :< xs), x)
+        unsnoc' _ = pfailEx "(:<)"
     
-    last Z = pfailEx "(:<)"
-    last (Ublist bytes# bytes) = isNull bytes ? last bytes# $ last bytes
+    single e = Ublist [single e]
+    fromList = Ublist . fmap fromList . chunks lim
     
-    init Z = pfailEx "(:>)"
-    init (Ublist bytes# bytes) = isNull bytes ? Ublist (init bytes#) Z $ Ublist bytes# (init bytes)
+    listL = foldr (flip $ i_foldr (:)) [] . unpack'
     
-    single = replicate 1
-    
-    listL = i_foldr (:) []
-    
-    fromList = i_foldr (Ublist . fromList) Z . chunks lim
-    
-    Z ++ ys = ys
-    xs ++ Z = xs
-    (Ublist bytes# bytes) ++ ys = Ublist bytes# (bytes ++ ys)
+    Ublist xs ++ Ublist ys = Ublist (xs ++ ys)
     
     -- | Deduplicated Unlist: O(1), O(1) memory (limited by a constant on top).
-    replicate n e = copy count
+    replicate n e = Ublist $ replicate count chunk :< rest
       where
         (count, rst) = n `divMod` lim
-        copy c = case c <=> 0 of
-          LT -> Z
-          EQ -> Ublist rest Z
-          GT -> Ublist chunk (copy $ c - 1)
         
         chunk = replicate lim e
         rest  = replicate rst e
@@ -178,38 +161,35 @@ instance (Unboxed e) => Linear (Ublist e) e
     reverse = fromList . i_foldl (flip (:)) []
     
     partition p = uncurry ((,) `on` fromList) . partition p . listL
-    
-    partitions ps = fmap fromList . partitions ps . listL
 
 instance (Unboxed e) => Split (Ublist e) e
   where
-    take n es | n < 1 = Z | es .<= n = es | True = take' n es
+    take n es | n < 1 = Z | es .<= n = es | True = Ublist $ take' n (unpack' es)
       where
-        take' _  Z = Z
-        take' n' (Ublist bytes# bytes) = case n <=.> bytes# of
-          LT -> Ublist (take n' bytes#) Z
-          EQ -> bytes
-          GT -> Ublist bytes# (take (n' - sizeOf bytes#) bytes)
+        take' c (x : xs) = case c <=.> x of
+          GT -> x : take' (c - sizeOf x) xs
+          LT -> [take c x]
+          EQ -> [x]
+        take' _ _ = Z
     
-    drop n es | n < 1 = es | es .<= n = Z | True = drop' n es
+    drop n es | n < 1 = es | es .<= n = Z | True = Ublist $ drop' n (unpack' es)
       where
-        drop' _ Z = Z
-        drop' n' (Ublist bytes# bytes) = case n' <=.> bytes# of
-          LT -> Ublist (drop n' bytes#) bytes
-          EQ -> bytes
-          GT -> drop' (n' - sizeOf bytes#) bytes
-    
-    isPrefixOf xs ys = xs .<=. ys && take (sizeOf xs) ys == xs
-    isSuffixOf xs ys = xs .<=. ys && drop (sizeOf ys - sizeOf xs) ys == xs
+        drop' c (x : xs) = case c <=.> x of
+          GT -> drop' (c - sizeOf x) xs
+          LT -> drop c x : xs
+          EQ -> xs
+        drop' _ _ = Z
     
     isInfixOf  xs ys = listL xs `isInfixOf` listL ys
+    isPrefixOf xs ys = sizeOf xs `take` ys == xs
+    isSuffixOf xs ys = sizeOf xs `keep` ys == xs
     
     prefix p = i_foldr (\ e c -> p e ? c + 1 $ 0) 0
     suffix p = i_foldl (\ c e -> p e ? c + 1 $ 0) 0
 
 instance (Unboxed e) => Bordered (Ublist e) Int e
   where
-    sizeOf es = case es of {Ublist bytes# bytes -> sizeOf bytes# + sizeOf bytes; _ -> 0}
+    sizeOf (Ublist es) = foldr' ((+) . sizeOf) 0 es
     
     indexIn es = \ i -> i >= 0 && i <. es
     
@@ -217,9 +197,9 @@ instance (Unboxed e) => Bordered (Ublist e) Int e
     offsetOf = const id
     
     -- | Quick unchecked index.
-    indexOf = const id
+    indexOf  = const id
     
-    lower  _  = 0
+    lower   _ = 0
     upper  es = sizeOf es - 1
     bounds es = (0, sizeOf es - 1)
 
@@ -231,13 +211,15 @@ instance (Unboxed e) => Set (Ublist e) e
   where
     setWith f = nubSorted f . sortBy f
     
-    insertWith _ e Z = single e
-    insertWith f e (Ublist bytes# bytes) = isContainedIn f e bytes# ?
-      Ublist (insertWith f e bytes#) bytes $ Ublist bytes# (insertWith f e bytes)
+    insertWith f' e' = Ublist . go f' e' . unpack'
+      where
+        go f e (x : xs) = isContainedIn f e x ? insertWith f e x : xs $ x : go f e xs
+        go _ e _ = [single e]
     
-    deleteWith _ _ Z = Z
-    deleteWith f e (Ublist bytes# bytes) = isContainedIn f e bytes# ?
-      Ublist (deleteWith f e bytes#) bytes $ Ublist bytes# (deleteWith f e bytes)
+    deleteWith f' e' = Ublist . go f' e' . unpack'
+      where
+        go f e (x : xs) = isContainedIn f e x ? deleteWith f e x : xs $ x : go f e xs
+        go _ _ _ = []
     
     intersectionWith f xs ys = fromList $ on (intersectionWith f) listL xs ys
     
@@ -312,7 +294,7 @@ instance (Unboxed e) => Set (Ublist e) e
     
     isContainedIn = binaryContain
     
-    isSubsetWith f xs ys = i_foldr (\ e b -> b && isContainedIn f e ys) True xs
+    isSubsetWith f xs ys = i_foldr (\ e b -> isContainedIn f e ys && b) True xs
 
 instance (Unboxed e) => Scan (Ublist e) e
 
@@ -336,40 +318,35 @@ instance (Unboxed e) => Indexed (Ublist e) Int e
         u = fst $ maximumBy cmpfst ascs
     es // ascs = isNull ascs ? es $ runST $ thaw es >>= (`overwrite` ascs) >>= done
     
-    fromIndexed es = runST $ do
-        copy <- filled n (unreachEx "fromIndexed")
-        forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
-        done copy
-      where
-        n = sizeOf es
+    fromIndexed es = runST $ fromIndexed' es >>= done
     
-    {-# INLINE (!^) #-}
-    Z !^ _ = error "in SDP.ByteList.Ublist.(!^)"
-    (Ublist bytes# bytes) !^ i = i < c ? bytes# !^ i $ bytes !^ (i - c)
-      where
-        c = sizeOf bytes#
+    (Ublist (x : xs)) !^ i = i <. x ? x !^ i $ Ublist xs !^ (i - sizeOf x)
+    _ !^ _ = error "in SDP.ByteList.Ublist.(!^)"
     
     (.!) = (!^)
     
-    p .$ es = go es 0
-      where
-        go Z _ = Nothing
-        go (Ublist bytes# bytes) o = case p .$ bytes# of
-          Just  i -> Just (i + o)
-          Nothing -> go bytes $! o + sizeOf bytes#
+    (.$) p (Ublist (x : xs)) = p .$ x <|> (+ sizeOf x) <$> p .$ Ublist xs
+    (.$) _ _ = Nothing
     
-    (*$) p es = go es 0
-      where
-        go Z _ = []
-        go (Ublist bytes# bytes) o = (p *$ bytes#) ++ (go bytes $! o + sizeOf bytes#)
+    (*$) p (Ublist (x : xs)) = p *$ x ++ fmap (+ sizeOf x) (p *$ Ublist xs)
+    (*$) _ _ = []
 
 instance (Unboxed e) => IFold (Ublist e) Int e
   where
-    ifoldr  f base = \ es -> case es of {Z -> base; (Ublist bytes# bytes) -> ifoldr  f (ifoldr  f base bytes) bytes#}
-    ifoldl  f base = \ es -> case es of {Z -> base; (Ublist bytes# bytes) -> ifoldl  f (ifoldl  f base bytes#) bytes}
+    ifoldr f' base' = go 0 f' base' . unpack'
+      where
+        go :: (Unboxed e) => Int -> (Int -> e -> r -> r) -> r -> [SBytes# e] -> r
+        go o f base (x : xs) = ifoldr (f . (o +)) (go (o + sizeOf x) f base xs) x
+        go _ _ base _ = base
     
-    i_foldr f base = \ es -> case es of {Z -> base; (Ublist bytes# bytes) -> i_foldr f (i_foldr f base bytes) bytes#}
-    i_foldl f base = \ es -> case es of {Z -> base; (Ublist bytes# bytes) -> i_foldl f (i_foldl f base bytes#) bytes}
+    ifoldl f' base' = go 0 f' base' . unpack'
+      where
+        go :: (Unboxed e) => Int -> (Int -> r -> e -> r) -> r -> [SBytes# e] -> r
+        go o f base (x : xs) = go (o + sizeOf x) f (ifoldl (f . (o +)) base x) xs
+        go _ _ base _ = base
+    
+    i_foldr f base = foldr (flip $ i_foldr f) base . unpack'
+    i_foldl f base = foldl (i_foldl f) base . unpack'
 
 --------------------------------------------------------------------------------
 
@@ -377,27 +354,26 @@ instance IsString (Ublist Char) where fromString = fromList
 
 --------------------------------------------------------------------------------
 
-instance (Unboxed e) => Thaw (ST s) (Ublist e) (STUblist s e)
+instance (Unboxed e) => Thaw   (ST s) (Ublist e) (STUblist s e)
   where
-    thaw Z = return STUBEmpty
-    thaw (Ublist bytes# bytes) = liftA2 STUblist (thaw bytes#) (thaw bytes)
+    thaw (Ublist es) = STUblist <$> mapM thaw es
     
-    unsafeThaw Z = return STUBEmpty
-    unsafeThaw (Ublist bytes# bytes) = liftA2 STUblist (unsafeThaw bytes#) (unsafeThaw bytes)
+    unsafeThaw (Ublist es) = STUblist <$> mapM unsafeThaw es
 
 instance (Unboxed e) => Freeze (ST s) (STUblist s e) (Ublist e)
   where
-    freeze STUBEmpty = return Z
-    freeze (STUblist mbytes# mbytes) = liftA2 Ublist (freeze mbytes#) (freeze mbytes)
+    freeze (STUblist es) = Ublist <$> mapM freeze es
     
-    unsafeFreeze STUBEmpty = return Z
-    unsafeFreeze (STUblist mbytes# mbytes) = liftA2 Ublist (unsafeFreeze mbytes#) (unsafeFreeze mbytes)
+    unsafeFreeze (STUblist es) = Ublist <$> mapM unsafeFreeze es
 
 --------------------------------------------------------------------------------
 
 {-# INLINE done #-}
 done :: (Unboxed e) => STUblist s e -> ST s (Ublist e)
-done = unsafeFreeze
+done =  freeze
+
+unpack' :: (Unboxed e) => Ublist e -> [SBytes# e]
+unpack' =  \ (Ublist es) -> filter (not . isNull) es
 
 {-# INLINE center #-}
 center :: Int -> Int -> Int
@@ -411,9 +387,9 @@ nubSorted _ _ = Z
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.ByteList.Ublist." ++ msg
 
-unreachEx :: String -> a
-unreachEx msg = throw . UnreachableException $ "in SDP.ByteList.Ublist." ++ msg
-
 lim :: Int
 lim =  1024
+
+
+
 

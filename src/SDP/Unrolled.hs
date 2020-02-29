@@ -377,3 +377,4 @@ withSize =  uncurry Unrolled . defaultBounds
 
 pfailEx :: String -> a
 pfailEx msg = throw . PatternMatchFail $ "in SDP.Unrolled." ++ msg
+

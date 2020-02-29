@@ -22,6 +22,7 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
+
 import SDP.Linear
 
 default ()

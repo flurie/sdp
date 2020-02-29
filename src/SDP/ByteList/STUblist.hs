@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Unsafe, MagicHash, RoleAnnotations #-}
+{-# LANGUAGE Unsafe, MagicHash, BangPatterns #-}
 
 {- |
     Module      :  SDP.ByteList.STUblist
@@ -31,6 +31,8 @@ import SDP.Unboxed
 import SDP.SortM.Tim
 import SDP.SortM
 
+import Data.Coerce
+
 import GHC.Base ( Int (..) )
 import GHC.ST   ( ST  (..) )
 
@@ -42,9 +44,7 @@ default ()
 --------------------------------------------------------------------------------
 
 -- | This STUblist is mutable version of Ublist.
-data STUblist s e = STUBEmpty | STUblist !(STBytes# s e) (STUblist s e) deriving ( Eq )
-
-type role STUblist nominal representational
+newtype STUblist s e = STUblist [STBytes# s e] deriving ( Eq )
 
 --------------------------------------------------------------------------------
 
@@ -55,48 +55,32 @@ instance (Unboxed e) => BorderedM (ST s) (STUblist s e) Int e
     getLower _  = return 0
     getUpper es = do n <- getSizeOf es; return (n - 1)
     
-    getSizeOf (STUblist mbytes# mbytes) = liftA2 (+) (getSizeOf mbytes#) (getSizeOf mbytes)
-    getSizeOf _ = return 0
+    getSizeOf (STUblist es) = foldr (liftA2 (+) . getSizeOf) (return 0) es
     
     getIndices es = do n <- getSizeOf es; return [0 .. n - 1]
     getIndexOf es = \ i -> i < 0 ? return False $ do n <- getSizeOf es; return (i < n)
 
 instance (Unboxed e) => LinearM (ST s) (STUblist s e) e
   where
-    prepend e es@(STUblist marr# marr) = do n <- getSizeOf marr#; n < lim ? res1 $ res2
+    prepend e' es' = fmap STUblist . go e' =<< unpack' es'
       where
-        res1 = snoc marr <$> prepend e marr#
-        res2 = snoc   es <$> newLinear [e]
-    prepend e STUBEmpty = newLinear [e]
+        go e es@(x : xs) = do n <- getSizeOf x; n < lim ? (: xs) <$> prepend e x $ (: es) <$> newLinear [e]
+        go e _ = pure <$> newLinear [e]
     
-    append es@(STUblist marr# STUBEmpty) e = do n <- getSizeOf marr#; n < lim ? res1 $ res2
+    append es' e' = fmap STUblist . go e' =<< unpack' es'
       where
-        res1 = finish  <$> append marr# e
-        res2 = snoc es <$> newLinear [e]
-    append (STUblist marr# es) e = STUblist marr# <$> append es e
-    append      STUBEmpty      e = newLinear [e]
+        go e es@(xs :< x) = do n <- getSizeOf x; n < lim ? (xs :<) <$> append x e $ (es :<) <$> newLinear [e]
+        go e _ = pure <$> newLinear [e]
     
-    newLinear es = liftA2 (foldr STUblist) rest' chs'
+    newLinear = fmap STUblist . mapM newLinear . chunks lim
+    
+    getLeft  (STUblist es) = concat <$> mapM getLeft es
+    getRight (STUblist es) = (concat . reverse) <$> mapM getRight es
+    reversed (STUblist es) = (STUblist . reverse) <$> mapM reversed es
+    
+    filled c e = STUblist <$> sequence (replicate d (filled lim e) :< filled n e)
       where
-        rest' = finish <$> newLinear rest
-        chs'  = forM chs (newLinearN lim)
-        (chs :< rest) = chunks lim es
-    
-    getLeft  (STUblist mbytes# mbytes) = liftA2 (++) (getLeft mbytes#) (getLeft mbytes)
-    getLeft  _ = return []
-    
-    getRight (STUblist mbytes mbytes#) = liftA2 (flip (++)) (getRight mbytes#) (getRight mbytes)
-    getRight _ = return []
-    
-    reversed es = go es STUBEmpty
-      where
-        go (STUblist mbytes# mbytes) acc = go mbytes . snoc acc =<< reversed mbytes#
-        go _ acc = return acc
-    
-    filled n e = n <= 0 ? return STUBEmpty $ liftA2 STUblist chunk rest
-      where
-        rest  = filled (n  -  lim) e
-        chunk = filled (min n lim) e
+        (d, n) = c `divMod` lim
 
 --------------------------------------------------------------------------------
 
@@ -105,22 +89,22 @@ instance (Unboxed e) => LinearM (ST s) (STUblist s e) e
 instance (Unboxed e) => IndexedM (ST s) (STUblist s e) Int e
   where
     fromAssocs bnds@(l, _) ascs = do
-        ubl <- filled' $ size bnds
-        overwrite ubl [ (i - l, e) | (i, e) <- ascs ]
+        ubl <- filled' (size bnds)
+        STUblist ubl `overwrite` [ (i - l, e) | (i, e) <- ascs ]
       where
-        filled' :: (Unboxed e) => Int -> ST s (STUblist s e)
-        filled' n = n <= 0 ? return STUBEmpty $ liftA2 STUblist chunk rest
+        filled' n = n < 1 ? return [] $ liftA2 (:) ch' rs'
           where
-            chunk = filled_ (min n lim)
-            rest  = filled' (n - lim)
+            ch' = filled_ (min n lim)
+            rs' = filled' (n - lim)
     
     fromAssocs' bnds@(l, _) defvalue ascs = do
       arr <- size bnds `filled` defvalue
-      overwrite arr [ (i - l, e) | (i, e) <- ascs, inRange bnds i ]
+      arr `overwrite` [ (i - l, e) | (i, e) <- ascs, inRange bnds i ]
     
-    (!#>) (STUblist mbytes# mbytes) i = getSizeOf mbytes# >>=
-      \ n -> i < n ? mbytes# !#> i $ mbytes !#> (i - n)
-    (!#>) _ _ = throw $ IndexOverflow "in SDP.ByteList.STUblist.(>!)"
+    (!#>) (STUblist es) = go es
+      where
+        go (x : xs) i = do n <- getSizeOf x; i < n ? x !#> i $ go xs (i - n)
+        go _ _ = throw $ IndexOverflow "in SDP.ByteList.STUblist.(>!)"
     
     {-# INLINE (>!) #-}
     (>!) es i = i < 0 ? err $ es !#> i
@@ -128,68 +112,69 @@ instance (Unboxed e) => IndexedM (ST s) (STUblist s e) Int e
         err = throw $ IndexUnderflow "in SDP.ByteList.STUblist.(>!)"
     
     {-# INLINE writeM_ #-}
-    writeM_ STUBEmpty _ _ = return ()
-    writeM_ (STUblist mbytes# mbytes) i e = do
-      n <- getSizeOf mbytes#
-      i < n ? writeM_ mbytes# i e $ writeM_ mbytes (i - n) e
+    writeM_ (STUblist es) = go es
+      where
+        go (x : xs) i e = do n <- getSizeOf x; i < n ? writeM_ x i e $ go xs (i - n) e
+        go _ _ _ = return ()
     
     {-# INLINE writeM #-}
-    writeM es i e = i < 0 ? return () $ writeM_ es i e
+    writeM es i e = (i < 0) `unless` writeM_ es i e
     
-    overwrite STUBEmpty ascs = isNull ascs ? return STUBEmpty $ fromAssocs (l, u) ascs
+    overwrite es@(STUblist []) ascs = isNull ascs ? return es $ fromAssocs (l, u) ascs
       where
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
+    overwrite (STUblist es) ascs = STUblist <$> go es ies'
+      where
+        go :: (Unboxed e) => [STBytes# s e] -> [(Int, e)] -> ST s [STBytes# s e]
+        go xs ies = do
+          fs <- mapM (fmap (flip $ (<) . fst) . getSizeOf) xs
+          sequence $ zipWith overwrite xs (partitions fs ies)
+        
+        ies' = filter ((>= 0) . fst) ascs
     
-    overwrite es@(STUblist mbytes# mbytes) ascs = getSizeOf es >>= \ n -> do
-      let (curr, others) = partition (\ (i, _) -> i < n) ascs
-      
-      mbytes'  <- overwrite mbytes [ (i - n, e) | (i, e) <- others ]
-      mbytes'# <- overwrite mbytes# curr
-      return (STUblist mbytes'# mbytes')
-    
-    fromIndexed' es = sizeOf es == 0 ? return STUBEmpty $ do
-      es' <- fromIndexed' es
-      return (STUblist es' STUBEmpty)
-    fromIndexedM es = do
-      n <- getSizeOf es
-      n == 0 ? return STUBEmpty $ do es' <- fromIndexedM es; return (STUblist es' STUBEmpty)
+    fromIndexed' = newLinear . listL
+    fromIndexedM = newLinear <=< getLeft
 
 instance (Unboxed e) => IFoldM (ST s) (STUblist s e) Int e
   where
-    ifoldrM f base (STUblist mbytes# mbytes) = do
-      base' <- ifoldrM f base mbytes
-      ifoldrM f base' mbytes#
-    ifoldrM _ base _ = return base
+    ifoldrM f base = ifoldrCh 0 f base . coerce
+    ifoldlM f base = ifoldlCh 0 f base . coerce
     
-    ifoldlM f base (STUblist mbytes# mbytes) = do
-      base' <- ifoldlM f base mbytes#
-      ifoldlM f base' mbytes
-    ifoldlM _ base _ = return base
+    i_foldrM f base (STUblist es) = foldr g (return base) es
+      where
+        g = \ e -> (flip (i_foldrM f) e =<<)
     
-    i_foldrM f base (STUblist mbytes# mbytes) = do
-      base' <- i_foldrM f base mbytes
-      i_foldrM f base' mbytes#
-    i_foldrM _ base _ = return base
-    
-    i_foldlM f base (STUblist mbytes# mbytes) = do
-      base' <- i_foldlM f base mbytes#
-      i_foldlM f base' mbytes
-    i_foldlM _ base _ = return base
+    i_foldlM f base (STUblist es) = foldl g (return base) es
+      where
+        g = flip $ \ e -> (flip (i_foldlM f) e =<<)
 
 instance (Unboxed e) => SortM (ST s) (STUblist s e) e where sortMBy = timSortBy
 
 --------------------------------------------------------------------------------
 
-{-# INLINE snoc #-}
-snoc :: STUblist s e -> STBytes# s e -> STUblist s e
-snoc =  flip STUblist
+ifoldrCh :: (Unboxed e) =>  Int -> (Int -> e -> r -> ST s r) -> r -> [STBytes# s e] -> ST s r
+ifoldrCh !o f base (x : xs) = do
+  n   <- getSizeOf x
+  xs' <- ifoldrCh (o + n) f base xs
+  ifoldrM (f . (o +)) xs' x
+ifoldrCh _ _ base _ = return base
 
-{-# INLINE finish #-}
-finish :: STBytes# s e -> STUblist s e
-finish =  flip STUblist STUBEmpty
+ifoldlCh :: (Unboxed e) => Int -> (Int -> r -> e -> ST s r) -> r -> [STBytes# s e] -> ST s r
+ifoldlCh !o f base (x : xs) = do
+  n  <- getSizeOf x
+  x' <- ifoldlM (f . (o +)) base x
+  ifoldlCh (o + n) f x' xs
+ifoldlCh _ _ base _ = return base
+
+unpack' :: (Unboxed e) => STUblist s e -> ST s [STBytes# s e]
+unpack' (STUblist es) = go es
+  where
+    go (x : xs) = do n <- getSizeOf x; n < 1 ? go xs $ (x :) <$> go xs
+    go _ = return []
 
 lim :: Int
 lim =  1024
+
 
 

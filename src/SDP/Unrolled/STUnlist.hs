@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Unsafe, MagicHash, RoleAnnotations #-}
+{-# LANGUAGE Unsafe, MagicHash, BangPatterns #-}
 
 {- |
     Module      :  SDP.Unrolled.STUnlist
@@ -26,12 +26,14 @@ import Prelude ()
 import SDP.SafePrelude
 
 import SDP.IndexedM
+
+import SDP.SortM.Tim
 import SDP.SortM
+
+import Data.Coerce
 
 import GHC.Base ( Int (..) )
 import GHC.ST   ( ST  (..) )
-
-import SDP.SortM.Tim
 
 import SDP.Internal.Commons
 import SDP.Internal.SArray
@@ -41,9 +43,7 @@ default ()
 --------------------------------------------------------------------------------
 
 -- | This STUnlist is mutable version of Unlist.
-data STUnlist s e = STUNEmpty | STUnlist !(STArray# s e) (STUnlist s e) deriving ( Eq )
-
-type role STUnlist nominal representational
+newtype STUnlist s e = STUnlist [STArray# s e] deriving ( Eq )
 
 --------------------------------------------------------------------------------
 
@@ -54,48 +54,32 @@ instance BorderedM (ST s) (STUnlist s e) Int e
     getLower _  = return 0
     getUpper es = do n <- getSizeOf es; return (n - 1)
     
-    getSizeOf (STUnlist marr# marr) = liftA2 (+) (getSizeOf marr#) (getSizeOf marr)
-    getSizeOf _ = return 0
+    getSizeOf (STUnlist es) = foldr (liftA2 (+) . getSizeOf) (return 0) es
     
     getIndices es = do n <- getSizeOf es; return [0 .. n - 1]
     getIndexOf es = \ i -> i < 0 ? return False $ do n <- getSizeOf es; return (i < n)
 
 instance LinearM (ST s) (STUnlist s e) e
   where
-    prepend e es@(STUnlist marr# marr) = do n <- getSizeOf marr#; n < lim ? res1 $ res2
+    prepend e' es' = fmap STUnlist . go e' =<< unpack' es'
       where
-        res1 = snoc marr <$> prepend e marr#
-        res2 = snoc   es <$> newLinear [e]
-    prepend e STUNEmpty = newLinear [e]
+        go e es@(x : xs) = do n <- getSizeOf x; n < lim ? (: xs) <$> prepend e x $ (: es) <$> newLinear [e]
+        go e _ = pure <$> newLinear [e]
     
-    append es@(STUnlist marr# STUNEmpty) e = do n <- getSizeOf marr#; n < lim ? res1 $ res2
+    append es' e' = fmap STUnlist . go e' =<< unpack' es'
       where
-        res1 = finish  <$> append marr# e
-        res2 = snoc es <$> newLinear [e]
-    append (STUnlist marr# es) e = STUnlist marr# <$> append es e
-    append      STUNEmpty      e = newLinear [e]
+        go e es@(xs :< x) = do n <- getSizeOf x; n < lim ? (xs :<) <$> append x e $ (es :<) <$> newLinear [e]
+        go e _ = pure <$> newLinear [e]
     
-    newLinear es = liftA2 (foldr STUnlist) rest' chs'
+    newLinear = fmap STUnlist . mapM newLinear . chunks lim
+    
+    getLeft  (STUnlist es) = concat <$> mapM getLeft es
+    getRight (STUnlist es) = (concat . reverse) <$> mapM getRight es
+    reversed (STUnlist es) = (STUnlist . reverse) <$> mapM reversed es
+    
+    filled c e = STUnlist <$> sequence (replicate d (filled lim e) :< filled n e)
       where
-        rest' = finish <$> newLinear rest
-        chs'  = forM chs (newLinearN lim)
-        (chs :< rest) = chunks lim es
-    
-    getLeft  (STUnlist marr# marr) = liftA2 (++) (getLeft marr#) (getLeft marr)
-    getLeft  _ = return []
-    
-    getRight (STUnlist marr marr#) = liftA2 (flip (++)) (getRight marr#) (getRight marr)
-    getRight _ = return []
-    
-    reversed es = go es STUNEmpty
-      where
-        go (STUnlist marr# marr) acc = go marr . snoc acc =<< reversed marr#
-        go _ acc = return acc
-    
-    filled n e = n < 1 ? return STUNEmpty $ liftA2 STUnlist chunk rest
-      where
-        chunk = filled (min n lim) e
-        rest  = filled (n  -  lim) e
+        (d, n) = c `divMod` lim
 
 --------------------------------------------------------------------------------
 
@@ -105,76 +89,82 @@ instance IndexedM (ST s) (STUnlist s e) Int e
   where
     fromAssocs' bnds@(l, _) defvalue ascs = do
       arr <- size bnds `filled` defvalue
-      overwrite arr [ (i - l, e) | (i, e) <- ascs, inRange bnds i ]
+      arr `overwrite` [ (i - l, e) | (i, e) <- ascs, inRange bnds i ]
     
-    (!#>) (STUnlist marr# marr) i = do
-      n <- getSizeOf marr#
-      i < n ? marr# !#> i $ marr !#> (i - n)
-    (!#>) _ _ = throw $ IndexOverflow "in SDP.Unrolled.STUnlist.(>!)"
+    (!#>) (STUnlist es) = go es
+      where
+        go (x : xs) i = do n <- getSizeOf x; i < n ? x !#> i $ go xs (i - n)
+        go _ _ = throw $ IndexOverflow "in SDP.ByteList.STUnlist.(>!)"
     
     {-# INLINE (>!) #-}
     (>!) es i = i < 0 ? err $ es !#> i
       where
-        err = throw $ IndexUnderflow "in SDP.Unrolled.STUnlist.(>!)"
+        err = throw $ IndexUnderflow "in SDP.ByteList.STUnlist.(>!)"
     
-    writeM_ (STUnlist marr# marr) i e = do
-      n <- getSizeOf marr#
-      i < n ? writeM_ marr# i e $ writeM_ marr (i - n) e
-    writeM_ _ _ _ = return ()
+    {-# INLINE writeM_ #-}
+    writeM_ (STUnlist es) = go es
+      where
+        go (x : xs) i e = do n <- getSizeOf x; i < n ? writeM_ x i e $ go xs (i - n) e
+        go _ _ _ = return ()
     
     {-# INLINE writeM #-}
-    writeM es i e = when (i < 0) $ writeM_ es i e
+    writeM es i e = (i < 0) `unless` writeM_ es i e
     
-    overwrite STUNEmpty ascs = isNull ascs ? return STUNEmpty $ fromAssocs (l, u) ascs
+    overwrite es@(STUnlist []) ascs = isNull ascs ? return es $ fromAssocs (l, u) ascs
       where
         l = fst $ minimumBy cmpfst ascs
         u = fst $ maximumBy cmpfst ascs
+    overwrite (STUnlist es) ascs = STUnlist <$> go es ies'
+      where
+        go :: [STArray# s e] -> [(Int, e)] -> ST s [STArray# s e]
+        go xs ies = do
+          fs <- mapM (fmap (flip $ (<) . fst) . getSizeOf) xs
+          sequence $ zipWith overwrite xs (partitions fs ies)
+        
+        ies' = filter ((>= 0) . fst) ascs
     
-    overwrite es@(STUnlist marr# marr) ascs = getSizeOf es >>= \ n -> do
-      let (curr, others) = partition (\ (i, _) -> i < n) ascs
-      
-      marr'  <- overwrite marr [ (i - n, e) | (i, e) <- others ]
-      marr'# <- overwrite marr# curr
-      return (STUnlist marr'# marr')
-    
-    fromIndexed' es = sizeOf es == 0 ? return STUNEmpty $ finish <$> fromIndexed' es
-    fromIndexedM es = getSizeOf es >>= \ n -> n == 0 ? return STUNEmpty $ finish <$> fromIndexedM es
+    fromIndexed' = newLinear . listL
+    fromIndexedM = newLinear <=< getLeft
 
 instance IFoldM (ST s) (STUnlist s e) Int e
   where
-    ifoldrM f base (STUnlist marr# marr) = do
-      base' <- ifoldrM f base marr
-      ifoldrM f base' marr#
-    ifoldrM _ base _ = return base
+    ifoldrM f base = ifoldrCh 0 f base . coerce
+    ifoldlM f base = ifoldlCh 0 f base . coerce
     
-    ifoldlM f base (STUnlist marr# marr) = do
-      base' <- ifoldlM f base marr#
-      ifoldlM f base' marr
-    ifoldlM _ base _ = return base
+    i_foldrM f base (STUnlist es) = foldr g (return base) es
+      where
+        g = \ e -> (flip (i_foldrM f) e =<<)
     
-    i_foldrM f base (STUnlist marr# marr) = do
-      base' <- i_foldrM f base marr
-      i_foldrM f base' marr#
-    i_foldrM _ base _ = return base
-    
-    i_foldlM f base (STUnlist marr# marr) = do
-      base' <- i_foldlM f base marr#
-      i_foldlM f base' marr
-    i_foldlM _ base _ = return base
+    i_foldlM f base (STUnlist es) = foldl g (return base) es
+      where
+        g = flip $ \ e -> (flip (i_foldlM f) e =<<)
 
 instance SortM (ST s) (STUnlist s e) e where sortMBy = timSortBy
 
 --------------------------------------------------------------------------------
 
-{-# INLINE snoc #-}
-snoc :: STUnlist s e -> STArray# s e -> STUnlist s e
-snoc =  flip STUnlist
+ifoldrCh :: Int -> (Int -> e -> r -> ST s r) -> r -> [STArray# s e] -> ST s r
+ifoldrCh !o f base (x : xs) = do
+  n   <- getSizeOf x
+  xs' <- ifoldrCh (o + n) f base xs
+  ifoldrM (f . (o +)) xs' x
+ifoldrCh _ _ base _ = return base
 
-{-# INLINE finish #-}
-finish :: STArray# s e -> STUnlist s e
-finish =  flip STUnlist STUNEmpty
+ifoldlCh :: Int -> (Int -> r -> e -> ST s r) -> r -> [STArray# s e] -> ST s r
+ifoldlCh !o f base (x : xs) = do
+  n  <- getSizeOf x
+  x' <- ifoldlM (f . (o +)) base x
+  ifoldlCh (o + n) f x' xs
+ifoldlCh _ _ base _ = return base
+
+unpack' :: STUnlist s e -> ST s [STArray# s e]
+unpack' (STUnlist es) = go es
+  where
+    go (x : xs) = do n <- getSizeOf x; n < 1 ? go xs $ (x :) <$> go xs
+    go _ = return []
 
 lim :: Int
 lim =  1024
+
 
 

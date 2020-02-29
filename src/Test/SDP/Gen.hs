@@ -82,3 +82,4 @@ instance (Linear l e, Arbitrary e) => Arbitrary (Long l)
 linearA :: (Linear l e, Arbitrary e) => Int -> Gen l
 linearA =  fmap fromList . vector
 
+

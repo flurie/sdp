@@ -37,3 +37,4 @@ default ()
 -}
 sortTest :: (Sort s e, Linear s e, Ord e) => Medium s -> Bool
 sortTest (Medium es) =  sorted $ sort es
+

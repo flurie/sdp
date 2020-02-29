@@ -52,3 +52,4 @@ evalInit =  \ rope n -> n < 1 ? return ([], rope) $ eval n rope
 -- | @nextR rope@ is just @evalInit rope 1@.
 nextR :: (Monad m) => RopeM m a -> m ([a], RopeM m a)
 nextR =  flip evalInit 1
+
