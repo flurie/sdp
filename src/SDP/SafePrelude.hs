@@ -21,7 +21,7 @@ module SDP.SafePrelude
   
   module Prelude,
   
-  (?)
+  (?), (?:)
 )
 where
 
@@ -55,11 +55,26 @@ default ()
 {- |
   Ternary operator.
   
-  > (odd 1 ? "is True" $ "is False") == "is True"
+  > odd 1 ? "is True" $ "is False"
+  "is True"
 -}
 {-# INLINE (?) #-}
 (?) :: Bool -> a -> a -> a
 (?) p t e = if p then t else e
 
+{- |
+  @p ?: f $ a@ is precondition combinator that checks @a@ for incorrectness (by
+  predicate @p@) before applying @f@.
+  Returns @Nothing@ if @(p a)@ and @Just (f a)@ otherwise.
+  
+  > odd ?: (`div` 2) $ 1
+  Nothing
+  
+  > odd ?: (`div` 2) $ 2
+  Just 1
+-}
+{-# INLINE (?:) #-}
+(?:) :: (a -> Bool) -> (a -> b) -> a -> Maybe b
+p ?: f = \ a -> p a ? Nothing $ Just (f a)
 
 

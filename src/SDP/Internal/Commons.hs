@@ -15,11 +15,7 @@ module SDP.Internal.Commons
   
   Bounded (..), Enum (..),
   
-  fst, snd,
-  
-  (?:), minMax,
-  
-  fsts, snds,
+  fst, snd, fsts, snds,
   
   (?>), bindM2, bindM3, bindM4
 )
@@ -40,28 +36,9 @@ default ()
 
 --------------------------------------------------------------------------------
 
-{- Simplest. -}
-
--- Conditional toMaybe.
-(?:) :: (a -> Bool) -> (a -> b) -> a -> Maybe b
-p ?: f = \ a -> if p a then Nothing else Just (f a)
--- >>> odd ?: (`div` 2) $ 1
--- Nothing
--- >>> odd ?: (`div` 2) $ 2
--- Just 1
-
-minMax :: (Ord i) => i -> i -> (i, i)
-minMax x y = if y > x then (x, y) else (y, x)
-
---------------------------------------------------------------------------------
-
-{- Functors. -}
-
--- Gives all first elements.
 fsts :: (Functor f) => f (a, b) -> f a
 fsts =  fmap fst
 
--- Gives all second elements.
 snds :: (Functor f) => f (a, b) -> f b
 snds =  fmap snd
 
@@ -82,4 +59,7 @@ bindM3 ma mb mc kl3 = join $ liftM3 kl3 ma mb mc
 -- Composition of liftM4 and (>>=).
 bindM4 :: (Monad m) => m a -> m b -> m c -> m d -> (a -> b -> c -> d -> m e) -> m e
 bindM4 ma mb mc md kl4 = join $ liftM4 kl4 ma mb mc md
+
+
+
 
