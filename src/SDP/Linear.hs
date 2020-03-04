@@ -367,11 +367,11 @@ class (Linear s e) => Split s e | s -> e
     
     -- | Right-side span.
     spanr :: (e -> Bool) -> s -> (s, s)
-    spanr p es = (takeEnd p es, dropEnd p es)
+    spanr p es = (dropEnd p es, takeEnd p es)
     
     -- | Right-side break.
     breakr :: (e -> Bool) -> s -> (s, s)
-    breakr p es = (takeEnd (not . p) es, dropEnd (not . p) es)
+    breakr p es = (dropEnd (not . p) es, takeEnd (not . p) es)
 
 --------------------------------------------------------------------------------
 
@@ -501,3 +501,5 @@ sorted es = and $ zipWith (<=) xs tail' where xs@(_ : tail') = listL es
 -- | @ascending line seqs@ checks if the @(start, count) <- seqs@ are sorted.
 ascending :: (Split s e, Ord e) => s -> [Int] -> Bool
 ascending es = all sorted . (`splits` es)
+
+
