@@ -15,7 +15,7 @@ module SDP.Internal.Commons
   
   Bounded (..), Enum (..),
   
-  fst, snd, fsts, snds,
+  (...), fst, snd, fsts, snds,
   
   (?>), bindM2, bindM3, bindM4
 )
@@ -32,7 +32,14 @@ import Data.Bool
 import Data.Ord
 import Data.Eq
 
+infixr 9 ...
+
 default ()
+
+--------------------------------------------------------------------------------
+
+(...) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
+f ... g = \ a b -> f (g a b)
 
 --------------------------------------------------------------------------------
 
@@ -59,7 +66,5 @@ bindM3 ma mb mc kl3 = join $ liftM3 kl3 ma mb mc
 -- Composition of liftM4 and (>>=).
 bindM4 :: (Monad m) => m a -> m b -> m c -> m d -> (a -> b -> c -> d -> m e) -> m e
 bindM4 ma mb mc md kl4 = join $ liftM4 kl4 ma mb mc md
-
-
 
 

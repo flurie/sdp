@@ -1,6 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE TypeFamilies, TypeOperators, DefaultSignatures #-}
-{-# LANGUAGE PatternSynonyms, ViewPatterns, ConstraintKinds #-}
+{-# LANGUAGE PatternSynonyms, ViewPatterns, DefaultSignatures #-}
+{-# LANGUAGE TypeFamilies, TypeOperators, ConstraintKinds #-}
 {-# LANGUAGE Trustworthy #-}
 
 {- |
@@ -47,6 +47,8 @@ import SDP.Index
 import SDP.Zip
 
 import GHC.Types
+
+import Data.Bifunctor
 
 import SDP.Internal.Commons
 
@@ -115,56 +117,78 @@ class (Index i) => Bordered (b) i e | b -> i, b -> e
 --------------------------------------------------------------------------------
 
 {- $linearDoc
-  Linear is a class for linear data structures that contains functions for:
-  * simple separation: 'head', 'tail', 'init', 'last', 'uncons', 'unsnoc'
-  * append and concatenation: 'toHead', 'toLast', ('++'), 'concat', 'concatMap'
-  * creation: empty ('lzero'), singleton ('single'), finite ('fromListN',
-    'replicate') and, if the structure allows, potentially infinite ('fromList',
-    'fromFoldable') data structures
-  * left- and right-side view ('listL' and 'listR'), 'reverse'
-  * filtering by condition: 'filter', 'partition', 'partitions'
-  * deleting repeats: 'nub', 'nubBy'
+  Linear is a class for linear (list-like) data structures which supports
   
-  Linear doesn't require 'Foldable' because it's a bit stricter than needed.
+  * creation: 'single', 'replicate', 'fromFoldable', 'fromList', 'fromListN'
+  * deconstruction: 'head', 'tail', 'init', 'last', 'uncons', 'unsnoc'
+  * construction, concatenation: 'toHead', 'toLast', '++', 'concat', 'concatMap'
+  * left- and right-side view: 'listL', 'listR'
+  * filtering, separation and selection: 'filter', 'except', 'partition',
+  'partitions', 'select', 'select'', 'extract', 'extract'', 'selects' and
+  'selects''
+  
+  Select and extract are an easy way to combine filters with functors and folds.
+  They allow you to structure your code, avoid repeating case expressions and
+  write less lambdas:
+  
+  > select (isIncorrect ?: doSomething) == fmap doSomething . except isIncorrect
+  
+  > fmap (\ (OneOfCons x y z) -> x + y * z) . filter (\ es -> case es of {(OneOfCons _ _ _) -> True; _ -> False})
+  
+  is just
+  
+  > select (\ es -> case es of {(OneOfCons x y z) -> Just (x + y * z); _ -> Nothing})
+  
+  The code is greatly simplified if there are more than one such constructor or
+  any additional conditions.
 -}
+
+{-# RULES
+  "select/Just"  select  Just = listL;
+  "select'/Just" select' Just = id;
+#-}
 
 -- | Class of list-like data structures.
 class Linear l e | l -> e
   where
-    {-# MINIMAL isNull, (listL|listR), (fromList|fromListN), (head,tail|uncons), (init,last|unsnoc) #-}
+    {-# MINIMAL isNull, (listL|listR), (fromList|fromFoldable), (head,tail|uncons), (init,last|unsnoc) #-}
     
-    -- | isNull - synonym for 'null', check function for 'Z'.
+    -- | Synonym for 'null', check function for 'Z'.
     isNull :: l -> Bool
     
-    -- | Empty line. Service constant, value for 'Z'.
+    -- | Empty line, value for 'Z'.
     lzero :: l
     lzero =  fromList []
     
-    -- | Separates 'head' and 'tail'. Service function, used in (':>').
+    -- | Separates line to 'head' and 'tail', deconstructor for ':>' pattern.
     uncons :: l -> (e, l)
     uncons xs = (head xs, tail xs)
     
-    -- | Adds element to line as 'head'. Service function, used in (':>').
+    -- | Adds element to line as 'head', constructor for ':>' pattern.
     toHead :: e -> l -> l
     toHead =  (++) . single
     
+    -- | Returns first element of line. May fail.
     head :: l -> e
     head =  fst . uncons
     
+    -- | Returns line, except 'head'. May fail.
     tail :: l -> l
     tail =  snd . uncons
     
-    -- | Separates 'init' and 'last'. Service function, used in (':<').
+    -- | Separates line to 'init' and 'last', deconstructor for ':<' pattern.
     unsnoc :: l -> (l, e)
     unsnoc xs = (init xs, last xs)
     
-    -- | Adds element to line as 'last'. Service function, used in (':<').
+    -- | Adds element to line as 'last', constructor for ':<' pattern.
     toLast :: l -> e -> l
     toLast es =  (es ++) . single
     
+    -- | Returns line, except 'last'. May fail.
     init :: l -> l
     init =  fst . unsnoc
     
+    -- | Returns last element of line. May fail.
     last :: l -> e
     last =  snd . unsnoc
     
@@ -172,53 +196,57 @@ class Linear l e | l -> e
     single :: e -> l
     single =  fromList . pure
     
-    -- | Generalization of (++).
+    -- | Concatenation of two lines.
     (++) :: l -> l -> l
-    xs ++ ys = fromList $ on (++) listL xs ys
+    (++) =  fromList ... on (++) listL
     
-    -- | Line of n equal elements.
+    -- | @replicate n e@ returns a line of @n@ repetitions of the element @e@.
     replicate :: Int -> e -> l
     replicate n = fromListN n . replicate n
     
-    -- | Creates line from list elements.
+    -- | Creates line from list.
     fromList :: [e] -> l
-    fromList es = fromListN (length es) es
+    fromList =  fromFoldable
     
-    -- | May create finite line from infinite list.
+    -- | Create finite line from (possibly infinite) list.
     fromListN :: Int -> [e] -> l
     fromListN n = fromList . take n
     
-    -- | Same as @listL . reverse@.
+    -- | Right to left view of line.
     listR :: l -> [e]
     listR =  listL . reverse
     
-    -- | Same as 'toList', but formally doesn't require 'Foldable'.
+    -- | Left to right view of line, same to 'toList'.
     listL :: l -> [e]
     listL =  reverse . listR
     
-    -- | Generalisation of 'fromList'.
+    -- | Generalized 'fromList'.
     fromFoldable :: (Foldable f) => f e -> l
     fromFoldable =  fromList . toList
     
-    -- | Generalization of concat.
+    -- | Generalized concat.
     concat :: (Foldable f) => f l -> l
     concat =  foldr (++) Z
     
-    -- | Generalization of concatMap.
+    -- | Generalized concatMap.
     concatMap :: (Foldable f) => (a -> l) -> f a -> l
     concatMap f = foldr' ((++) . f) Z
     
-    -- | Generalization of intersperse.
+    -- | Generalized intersperse.
     intersperse :: e -> l -> l
     intersperse e = fromList . intersperse e . listL
     
-    -- | Generalization of filter.
+    -- | Generalized filter.
     filter :: (e -> Bool) -> l -> l
     filter p = fromList . filter p . listL
     
+    -- | Inverted filter.
+    except :: (e -> Bool) -> l -> l
+    except p = filter (not . p)
+    
     -- | Generalization of partition.
     partition :: (e -> Bool) -> l -> (l, l)
-    partition p es = (filter p es, filter (not . p) es)
+    partition p es = (filter p es, except p es)
     
     -- | Generalization of partition, that select sublines by predicates.
     partitions :: (Foldable f) => f (e -> Bool) -> l -> [l]
@@ -226,41 +254,86 @@ class Linear l e | l -> e
       where
         f = \ (x : xs) -> (\ (y, ys) -> (ys : y : xs)) . (`partition` x)
     
-    -- Compares lines as sorted multisets.
-    isSubseqOf :: (Eq e) => l -> l -> Bool
-    isSubseqOf xs@(x :> xs') (y :> ys) = x == y && xs' `isSubseqOf` ys || xs `isSubseqOf` ys
-    isSubseqOf xs _ = isNull xs
+    -- | @select f es@ is selective map of @es@ elements to new list.
+    select :: (e -> Maybe a) -> l -> [a]
+    select f = catMaybes . map f . listL
     
-    -- | Generalization of reverse.
+    -- | @select' f es@ is selective map of @es@ elements to new line.
+    select' :: (t e ~ l, Linear (t b) a) => (e -> Maybe a) -> l -> t b
+    select' f = fromList . select f
+    
+    {- |
+      @extract f es@ returns a selective map of @es@ elements to new list and
+      the remaining elements of the line.
+    -}
+    extract :: (e -> Maybe a) -> l -> ([a], l)
+    extract f = fmap fromList . foldr g ([], []) . listL
+      where
+        g = \ b -> second (b :) `maybe` (first . (:)) $ f b
+    
+    {- |
+      @extract' f es@ returns a selective map of @es@ elements to new line and
+      the remaining elements of the line.
+    -}
+    extract' :: (t e ~ l, Linear (t b) a) => (e -> Maybe a) -> l -> (t b, l)
+    extract' =  first fromList ... extract
+    
+    {- |
+      @selects fs es@ sequentially applies the functions from @fs@ to the
+      remainder of @es@, returns a list of selections and the remainder of the
+      last selection.
+    -}
+    selects :: (Foldable f) => f (e -> Maybe a) -> l -> ([[a]], l)
+    selects fs es = foldl g ([], es) fs
+      where
+        g = uncurry $ \ as -> first (: as) ... flip extract
+    
+    {- |
+      @selects' fs es@ sequentially applies the functions from @fs@ to the
+      remainder of @es@, returns a line of selections and the remainder of the
+      last selection.
+    -}
+    selects' :: (Foldable f, t e ~ l, Linear (t b) a) => f (e -> Maybe a) -> l -> ([t b], l)
+    selects' fs es = foldl g ([], es) fs
+      where
+        g = uncurry $ \ as -> first (: as) ... flip extract'
+    
+    -- | Compares lines as multisets.
+    isSubseqOf :: (Eq e) => l -> l -> Bool
+    isSubseqOf =  isSubseqOf `on` (listL . nub)
+    
+    -- | Generalized reverse.
     reverse :: l -> l
     reverse =  fromList . listR
     
-    -- | Generalization of subsequences.
+    -- | Generalized subsequences.
     subsequences :: l -> [l]
     subsequences =  (Z :) . go
       where
         go es = case es of {(x :> xs) -> single x : foldr (\ ys r -> ys : (x :> ys) : r) [] (go xs); _ -> Z}
     
-    -- | Same as nubBy ('=='), but may be faster (for bytestring, for example).
+    -- | Same as @nubBy ('==')@.
     nub :: (Eq e) => l -> l
     nub =  nubBy (==)
     
     -- | Generalization of nubBy.
-    nubBy :: (e -> e -> Bool) -> l -> l
+    nubBy :: Equal e -> l -> l
     nubBy f = fromList . nubBy f . listL
 
 --------------------------------------------------------------------------------
 
 {- $splitDoc
-  Split is class of structures that may be:
-  * truncated by length 'take', 'drop', 'keep', 'sans'
-  * splitted by 'split', 'divide', 'splits', 'divides', 'parts', 'chunks'
-  * truncated by 'each', 'takeWhile', 'dropWhile', 'spanl', 'breakl' (left to
-  right), 'takeEnd', 'dropEnd', 'spanr', 'breakr' (right to left)
+  Split is class of structures that may be splitted by
   
-  Also Split contain comparators:
-  * by content: 'isPrefixOf', 'isInfixOf' and 'isSuffixOf'
-  * by condition: 'prefix' and 'suffix'.
+  * length: 'take', 'drop', 'split', 'splits', 'keep', 'sans', 'divide',
+  'divides', 'parts', 'chunks'
+  * predicate: 'takeWhile', 'dropWhile', 'spanl', 'breakl' (left to right),
+  'takeEnd', 'dropEnd', 'spanr', 'breakr' (right to left)
+  * selector: 'selectWhile', 'selectEnd', 'extractWhile', 'extractEnd',
+  'selectWhile'', 'selectEnd'', 'extractWhile'', 'extractEnd''
+  
+  Also Split contain useful comparators: 'isPrefixOf', 'isInfixOf' and
+  'isSuffixOf'.
 -}
 
 -- | Split - class of splittable data structures.
@@ -288,6 +361,20 @@ class (Linear s e) => Split s e | s -> e
     default sans :: (Bordered s i e) => Int -> s -> s
     sans n es = take (sizeOf es - n) es
     
+    {- |
+      @save n es@ takes first @n@ elements of @es@ if @n > 0@ and last @-n@
+      elements otherwise.
+    -}
+    save :: Int -> s -> s
+    save n = n > 0 ? take n $ keep (-n)
+    
+    {- |
+      @skip n es@ drops first @n@ elements of @es@ if @n > 0@ and last @-n@
+      elements otherwise.
+    -}
+    skip :: Int -> s -> s
+    skip n = n > 0 ? drop n $ sans (-n)
+    
     -- | @split n es@ is same to @(take n es, drop n es)@.
     split :: Int -> s -> (s, s)
     split n es = (take n es, drop n es)
@@ -312,9 +399,13 @@ class (Linear s e) => Split s e | s -> e
     chunks :: Int -> s -> [s]
     chunks n es = case split n es of {(x, Z) -> [x]; (x, xs) -> x : chunks n xs}
     
-    -- | Returns each nth element of structure. If @n < 0@, returns 'Z'.
+    {- |
+      @each n es@ returns each nth element of structure.
+      If @n == 1@, returns @es@.
+      If @n < 1@, returns 'Z'.
+    -}
     each :: Int -> s -> s
-    each n = case n <=> 1 of {LT -> const Z; EQ -> id; GT -> fromList . each n . listL}
+    each n = fromList . each n . listL
     
     -- | isPrefixOf checks whether the first line is the beginning of the second
     isPrefixOf :: (Eq e) => s -> s -> Bool
@@ -372,6 +463,50 @@ class (Linear s e) => Split s e | s -> e
     -- | Right-side break.
     breakr :: (e -> Bool) -> s -> (s, s)
     breakr p es = (dropEnd (not . p) es, takeEnd (not . p) es)
+    
+    {- |
+      @selectWhile f es@ selects results of applying @f@ to @es@ (left to right)
+      untill first fail.
+    -}
+    selectWhile :: (e -> Maybe a) -> s -> [a]
+    selectWhile f = selectWhile f . listL
+    
+    {- |
+      @selectEnd f es@ selects results of applying @f@ to @es@ (right to left)
+      untill first fail.
+    -}
+    selectEnd :: (e -> Maybe a) -> s -> [a]
+    selectEnd f = selectEnd f . listL
+    
+    {- |
+      @extractWhile f es@ selects results of applying @f@ to @es@ (left to
+      right) untill first fail. Returns selected results and rest of line.
+    -}
+    extractWhile :: (e -> Maybe a) -> s -> ([a], s)
+    extractWhile f es = let as = selectWhile f es in (as, length as `drop` es)
+    
+    {- |
+      @extractEnd f es@ selects results of applying @f@ to @es@ (right to left)
+      untill first fail. Returns rest of line and selected results.
+    -}
+    extractEnd :: (e -> Maybe a) -> s -> (s, [a])
+    extractEnd f es = let as = selectEnd f es in (length as `drop` es, as)
+    
+    -- | @selectWhile'@ is 'selectWhile' version for generalized structures.
+    selectWhile' :: (t e ~ l, Split (t b) a) => (e -> Maybe a) -> s -> t b
+    selectWhile' =  fromList ... selectWhile
+    
+    -- | @selectEnd'@ is 'selectEnd' version for generalized structures.
+    selectEnd' :: (t e ~ l, Split (t b) a) => (e -> Maybe a) -> s -> t b
+    selectEnd' =  fromList ... selectEnd
+    
+    -- | @extractWhile'@ is 'extractWhile' version for generalized structures.
+    extractWhile' :: (t e ~ l, Split (t b) a) => (e -> Maybe a) -> s -> (t b, s)
+    extractWhile' =  first fromList ... extractWhile
+    
+    -- | @extractEnd'@ is 'extractEnd' version for generalized structures.
+    extractEnd' :: (t e ~ l, Split (t b) a) => (e -> Maybe a) -> s -> (s, t b)
+    extractEnd' =  second fromList ... extractEnd
 
 --------------------------------------------------------------------------------
 
@@ -459,8 +594,8 @@ instance Split [e] e
     
     each n = case n <=> 1 of {LT -> const []; EQ -> id; GT -> go n}
       where
-        go _    []    = []
         go i (x : xs) = i == 1 ? x : go n xs $ go (i - 1) xs
+        go _ _ = []
     
     isPrefixOf = L.isPrefixOf
     isSuffixOf = L.isSuffixOf
@@ -477,7 +612,7 @@ stripPrefix sub line = sub `isPrefixOf` line ? drop (sizeOf sub) line $ line
 
 -- | stripSuffix sub line... strips suffix sub of line
 stripSuffix :: (Split s e, Bordered s i e, Eq e) => s -> s -> s
-stripSuffix sub line = sub `isSuffixOf` line ? take (sizeOf line - sizeOf sub) line $ line
+stripSuffix sub line = sub `isSuffixOf` line ? sans (sizeOf sub) line $ line
 
 -- | intercalate is generalization of intercalate
 intercalate   :: (Foldable f, Linear (f l) l, Linear l e) => l -> f l -> l
@@ -496,10 +631,10 @@ inits es = es : inits (init es)
 -- | sorted is a function that checks for sorting.
 sorted :: (Linear l e, Ord e) => l -> Bool
 sorted Z  = True
-sorted es = and $ zipWith (<=) xs tail' where xs@(_ : tail') = listL es
+sorted es = and $ zipWith (<=) (listL es) (tail $ listL es)
 
 -- | @ascending line seqs@ checks if the @(start, count) <- seqs@ are sorted.
 ascending :: (Split s e, Ord e) => s -> [Int] -> Bool
-ascending es = all sorted . (`splits` es)
+ascending =  all sorted ... flip splits
 
 
