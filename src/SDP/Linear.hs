@@ -97,7 +97,7 @@ class (Index i) => Bordered (b) i e | b -> i, b -> e
     {-# INLINE indexIn #-}
     -- | checks if an index falls within the boundaries of the structure.
     indexIn :: b -> i -> Bool
-    indexIn = inRange . bounds
+    indexIn =  inRange . bounds
     
     {-# INLINE indices #-}
     -- | index range list.
@@ -127,11 +127,11 @@ class (Index i) => Bordered (b) i e | b -> i, b -> e
   'partitions', 'select', 'select'', 'extract', 'extract'', 'selects' and
   'selects''
   
-  Select and extract are an easy way to combine filters with functors and folds.
-  They allow you to structure your code, avoid repeating case expressions and
-  write less lambdas:
+  select and extract are needed to combine filtering and mapping, simplifying
+  lambdas and case-expressions in complex cases.
   
-  > select (isIncorrect ?: doSomething) == fmap doSomething . except isIncorrect
+  > select' (p ?+ f) == fmap f . filter p
+  > select' (p ?- f) == fmap f . except p
   
   > fmap (\ (OneOfCons x y z) -> x + y * z) . filter (\ es -> case es of {(OneOfCons _ _ _) -> True; _ -> False})
   
@@ -210,7 +210,7 @@ class Linear l e | l -> e
     
     -- | Create finite line from (possibly infinite) list.
     fromListN :: Int -> [e] -> l
-    fromListN n = fromList . take n
+    fromListN =  fromList ... take
     
     -- | Right to left view of line.
     listR :: l -> [e]
@@ -230,7 +230,7 @@ class Linear l e | l -> e
     
     -- | Generalized concatMap.
     concatMap :: (Foldable f) => (a -> l) -> f a -> l
-    concatMap f = foldr' ((++) . f) Z
+    concatMap f = foldr ((++) . f) Z
     
     -- | Generalized intersperse.
     intersperse :: e -> l -> l
@@ -259,8 +259,8 @@ class Linear l e | l -> e
     select f = catMaybes . map f . listL
     
     -- | @select' f es@ is selective map of @es@ elements to new line.
-    select' :: (t e ~ l, Linear (t b) a) => (e -> Maybe a) -> l -> t b
-    select' f = fromList . select f
+    select' :: (t e ~ l, Linear1 t a) => (e -> Maybe a) -> l -> t a
+    select' =  fromList ... select
     
     {- |
       @extract f es@ returns a selective map of @es@ elements to new list and
@@ -275,7 +275,7 @@ class Linear l e | l -> e
       @extract' f es@ returns a selective map of @es@ elements to new line and
       the remaining elements of the line.
     -}
-    extract' :: (t e ~ l, Linear (t b) a) => (e -> Maybe a) -> l -> (t b, l)
+    extract' :: (t e ~ l, Linear1 t a) => (e -> Maybe a) -> l -> (t a, l)
     extract' =  first fromList ... extract
     
     {- |
@@ -293,14 +293,15 @@ class Linear l e | l -> e
       remainder of @es@, returns a line of selections and the remainder of the
       last selection.
     -}
-    selects' :: (Foldable f, t e ~ l, Linear (t b) a) => f (e -> Maybe a) -> l -> ([t b], l)
-    selects' fs es = foldl g ([], es) fs
-      where
-        g = uncurry $ \ as -> first (: as) ... flip extract'
+    selects' :: (Foldable f, t e ~ l, Linear1 t a) => f (e -> Maybe a) -> l -> ([t a], l)
+    selects' =  first (map fromList) ... selects
     
-    -- | Compares lines as multisets.
+    {- |
+      The @isSubseqOf xs ys@ checks if all the elements of the @xs@ occur,
+      in order, in the @ys@. The elements don't have to occur consecutively.
+    -}
     isSubseqOf :: (Eq e) => l -> l -> Bool
-    isSubseqOf =  isSubseqOf `on` (listL . nub)
+    isSubseqOf =  isSubseqOf `on` listL
     
     -- | Generalized reverse.
     reverse :: l -> l
@@ -311,6 +312,14 @@ class Linear l e | l -> e
     subsequences =  (Z :) . go
       where
         go es = case es of {(x :> xs) -> single x : foldr (\ ys r -> ys : (x :> ys) : r) [] (go xs); _ -> Z}
+    
+    {- |
+      @iterate n f x@ returns an list of repeated applications of @f@ to @x@.
+      
+      Note that @iterate@ returns finite list, instead 'Prelude' prototype.
+    -}
+    iterate :: Int -> (e -> e) -> e -> l
+    iterate n = fromListN n ... iterate n
     
     -- | Same as @nubBy ('==')@.
     nub :: (Eq e) => l -> l
@@ -493,19 +502,19 @@ class (Linear s e) => Split s e | s -> e
     extractEnd f es = let as = selectEnd f es in (length as `drop` es, as)
     
     -- | @selectWhile'@ is 'selectWhile' version for generalized structures.
-    selectWhile' :: (t e ~ l, Split (t b) a) => (e -> Maybe a) -> s -> t b
+    selectWhile' :: (t e ~ l, Split1 t a) => (e -> Maybe a) -> s -> t a
     selectWhile' =  fromList ... selectWhile
     
     -- | @selectEnd'@ is 'selectEnd' version for generalized structures.
-    selectEnd' :: (t e ~ l, Split (t b) a) => (e -> Maybe a) -> s -> t b
+    selectEnd' :: (t e ~ l, Split1 t a) => (e -> Maybe a) -> s -> t a
     selectEnd' =  fromList ... selectEnd
     
     -- | @extractWhile'@ is 'extractWhile' version for generalized structures.
-    extractWhile' :: (t e ~ l, Split (t b) a) => (e -> Maybe a) -> s -> (t b, s)
+    extractWhile' :: (t e ~ l, Split1 t a) => (e -> Maybe a) -> s -> (t a, s)
     extractWhile' =  first fromList ... extractWhile
     
     -- | @extractEnd'@ is 'extractEnd' version for generalized structures.
-    extractEnd' :: (t e ~ l, Split (t b) a) => (e -> Maybe a) -> s -> (s, t b)
+    extractEnd' :: (t e ~ l, Split1 t a) => (e -> Maybe a) -> s -> (s, t a)
     extractEnd' =  second fromList ... extractEnd
 
 --------------------------------------------------------------------------------
@@ -520,11 +529,11 @@ pattern Z <- (isNull -> True)                           where  Z   = lzero
 
 -- | Pattern (:>) is left-size view of line. Same as 'uncons' and 'toHead'.
 pattern  (:>)   :: (Linear l e) => e -> l -> l
-pattern x :> xs <- ((isNull ?: uncons) -> Just (x, xs)) where (:>) = toHead
+pattern x :> xs <- ((isNull ?- uncons) -> Just (x, xs)) where (:>) = toHead
 
 -- | Pattern (:<) is right-size view of line. Same as 'unsnoc' and 'toLast'.
 pattern   (:<)  :: (Linear l e) => l -> e -> l
-pattern xs :< x <- ((isNull ?: unsnoc) -> Just (xs, x)) where (:<) = toLast
+pattern xs :< x <- ((isNull ?- unsnoc) -> Just (xs, x)) where (:<) = toLast
 
 --------------------------------------------------------------------------------
 
@@ -577,6 +586,8 @@ instance Linear [e] e
     concatMap   = L.concatMap
     intersperse = L.intersperse
     isSubseqOf  = L.isSubsequenceOf
+    
+    iterate n f e = n == 0 ? [] $ e : iterate (n - 1) f (f e)
 
 instance Bordered [e] Int e
   where
@@ -606,26 +617,26 @@ instance Split [e] e
 
 --------------------------------------------------------------------------------
 
--- | stripPrefix sub line... strips prefix sub of line
+-- | @stripPrefix sub line@ strips prefix @sub@ of @line@
 stripPrefix :: (Split s e, Bordered s i e, Eq e) => s -> s -> s
 stripPrefix sub line = sub `isPrefixOf` line ? drop (sizeOf sub) line $ line
 
--- | stripSuffix sub line... strips suffix sub of line
+-- | @stripSuffix sub line@ strips suffix @sub@ of @line@ (if any)
 stripSuffix :: (Split s e, Bordered s i e, Eq e) => s -> s -> s
 stripSuffix sub line = sub `isSuffixOf` line ? sans (sizeOf sub) line $ line
 
 -- | intercalate is generalization of intercalate
-intercalate   :: (Foldable f, Linear (f l) l, Linear l e) => l -> f l -> l
-intercalate l =  concat . intersperse l
+intercalate :: (Foldable f, Linear (f l) l, Linear l e) => l -> f l -> l
+intercalate =  concat ... intersperse
 
--- | tails is generalization of tails.
+-- | @tails es@ returns sequence of @es@ tails.
 tails :: (Linear l e) => l -> [l]
-tails Z  = []
+tails Z  = [Z]
 tails es = es : tails (tail es)
 
 -- | tails is generalization of inits.
 inits :: (Linear l e) => l -> [l]
-inits Z  = Z
+inits Z  = [Z]
 inits es = es : inits (init es)
 
 -- | sorted is a function that checks for sorting.
@@ -636,5 +647,4 @@ sorted es = and $ zipWith (<=) (listL es) (tail $ listL es)
 -- | @ascending line seqs@ checks if the @(start, count) <- seqs@ are sorted.
 ascending :: (Split s e, Ord e) => s -> [Int] -> Bool
 ascending =  all sorted ... flip splits
-
 

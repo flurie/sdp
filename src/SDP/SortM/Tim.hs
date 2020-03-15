@@ -39,20 +39,23 @@ default ()
 {- Insertion sort. -}
 
 -- | insertionSort is just synonym for insertionSortBy compare.
+{-# INLINE insertionSort #-}
 insertionSort :: (BorderedM m v i e, IndexedM m v i e, Ord e) => v -> m ()
-insertionSort es = insertionSortBy compare es
+insertionSort =  insertionSortBy compare
 
 {- |
   insertionSortOn is a version of insertionSortBy that uses a cast function to
   compare elements.
 -}
+{-# INLINE insertionSortOn #-}
 insertionSortOn :: (BorderedM m v i e, IndexedM m v i e, Ord o) => (e -> o) -> v -> m ()
-insertionSortOn f es = insertionSortBy (compare `on` f) es
+insertionSortOn =  insertionSortBy . comparing
 
 {- |
   insertionSortBy is naive service sorting procedure, that have O(n^2)
   complexity in all cases.
 -}
+{-# INLINE insertionSortBy #-}
 insertionSortBy :: (BorderedM m v i e, IndexedM m v i e) => Compare e -> v -> m ()
 insertionSortBy cmp es = do n <- getSizeOf es; insertionSort_ cmp es 0 0 (n - 1)
 
@@ -73,22 +76,25 @@ insertionSort_ cmp es b s e' = mapM_ insert [s + 1 .. e']
 
 {- Monadic TimSort. -}
 
--- | timsort is just synonym for timSortBy compare
+-- | timsort is just synonym for timSortBy compare.
+{-# INLINE timSort #-}
 timSort :: (BorderedM m v i e, IndexedM m v i e, Ord e) => v -> m ()
-timSort es = timSortBy compare es
+timSort =  timSortBy compare
 
 {- |
   timSortOn is a version of timSortBy that uses a conversion function to compare
   elements.
 -}
+{-# INLINE timSortOn #-}
 timSortOn :: (BorderedM m v i e, IndexedM m v i e, Ord o) => (e -> o) -> v -> m ()
-timSortOn f es = timSortBy (compare `on` f) es
+timSortOn =  timSortBy . comparing
 
 {- |
   timSortBy is a sorting procedure for mutable random access data structures
   using any comparison function and having O(n * log n) complexity in the worst
   case.
 -}
+{-# INLINE timSortBy #-}
 timSortBy :: (BorderedM m v i e, IndexedM m v i e) => Compare e -> v -> m ()
 timSortBy cmp es = getSizeOf es >>= timSort'
   where
@@ -152,14 +158,18 @@ minrunTS :: Int -> Int
 minrunTS i = mr i 0 where mr n r = n >= 64 ? mr (shiftR n 1) (n .&. 1) $ n + r
 
 {-
-  arrcopy is a utility function that copies a fragment of the first array to the
-  second array. This function is not intended for copying to an adjacent memory
-  area. The first 2 Int arguments are the offsets in the first and second
-  arrays, respectively, the third is the number of elements to be copied.
+  @arrcopy xs ys ix iy count@ copies a fragment of the @xs@ to the @ys@, where
+  @ix@ and @iy@ - offsets in @xs@ and @ys@, @count@ - count of elements to be
+  copied.
+  
+  This function isn't intended for copying to an adjacent memory area.
 -}
 arrcopy :: (IndexedM m v i e) => v -> v -> Int -> Int -> Int -> m ()
 arrcopy xs ys ix iy count = copy ix iy (max 0 count)
   where
     copy _  _  0 = return ()
     copy ox oy c = xs !#> ox >>= writeM_ ys oy >> copy (ox + 1) (oy + 1) (c - 1)
+
+
+
 

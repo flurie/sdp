@@ -48,6 +48,8 @@ import qualified GHC.Exts as E
 
 import Data.String ( IsString (..) )
 
+import Data.Bifunctor
+
 import SDP.ByteList.Ublist
 import SDP.ByteList.ST
 
@@ -70,7 +72,7 @@ type role ByteList nominal representational
 
 instance (Eq e, Unboxed e, Index i) => Eq (ByteList i e)
   where
-    xs == ys = on (==) sizeOf xs ys && on (==) unpack xs ys
+    xs == ys = on (==) unpack xs ys
 
 instance (Ord e, Unboxed e, Index i) => Ord (ByteList i e)
   where
@@ -127,48 +129,35 @@ instance (Index i, Unboxed e) => Linear (ByteList i e) e
     lzero = def
     
     toHead e es = withSize (sizeOf es + 1) (e :> unpack es)
-    
-    uncons Z = pfailEx "(:>)"
-    uncons (ByteList l u es) = (x, es .<= 1 ? Z $ ByteList l' u xs)
-      where
-        (x, xs) = uncons es
-        l' = next (l, u) l
-    
-    head Z = pfailEx "(:>)"
-    head (ByteList _ _ es) = head es
-    
-    tail Z = pfailEx "(:>)"
-    tail (ByteList l u es) = ByteList l' u (tail es)
-      where
-        l' = next (l, u) l
-    
     toLast es e = withSize (sizeOf es + 1) (unpack es :< e)
     
-    unsnoc Z = pfailEx "(:<)"
-    unsnoc (ByteList l u es) = (es .<= 1 ? Z $ ByteList l u' xs, x)
-      where
-        (xs, x) = unsnoc es
-        u' = prev (l, u) u
+    head es@(ByteList _ _ xs) = isNull es ? pfailEx "(:>)" $ head xs
+    last es@(ByteList _ _ xs) = isNull es ? pfailEx "(:<)" $ last xs
     
-    last Z = pfailEx "(:<)"
-    last (ByteList _ _ es) = last es
+    tail Z = pfailEx "(:>)"
+    tail (ByteList l u es) = ByteList (next (l, u) l) u (tail es)
     
     init Z = pfailEx "(:<)"
-    init (ByteList l u es) = ByteList l u' (init es)
+    init (ByteList l u es) = ByteList l (prev (l, u) u) (init es)
+    
+    uncons Z = pfailEx "(:>)"
+    uncons (ByteList l u es) = (x, es .<= 1 ? Z $ ByteList (next (l, u) l) u xs)
       where
-        u' = prev (l, u) u
+        (x, xs) = uncons es
+    
+    unsnoc Z = pfailEx "(:<)"
+    unsnoc (ByteList l u es) = (es .<= 1 ? Z $ ByteList l (prev (l, u) u) xs, x)
+      where
+        (xs, x) = unsnoc es
     
     fromList = withBounds . fromList
     
-    replicate n e = max 0 n `withSize` replicate n e
+    replicate n = withSize (max 0 n) . replicate n
     
-    concat ess = withSize n es
-      where
-        es = foldr ((++) . unpack) Z ess
-        n  = foldr' ((+) . sizeOf) 0 ess
+    concat es = foldr' ((+) . sizeOf) 0 es `withSize` foldMap unpack es
     
     intersperse _  Z = Z
-    intersperse e es = withSize (2 * sizeOf es - 1) $ intersperse e (unpack es)
+    intersperse e es = (2 * sizeOf es - 1) `withSize` intersperse e (unpack es)
     
     Z  ++ ys = ys
     xs ++  Z = xs
@@ -178,36 +167,32 @@ instance (Index i, Unboxed e) => Linear (ByteList i e) e
     listR = listR . unpack
     
     partitions ps = fmap fromList . partitions ps . listL
+    
+    select   f = select f . unpack
+    extract  f = second withBounds . extract  f . unpack
+    selects fs = second withBounds . selects fs . unpack
 
 instance (Index i, Unboxed e) => Split (ByteList i e) e
   where
     take n xs@(ByteList l _ es)
       |  n <= 0  = Z
       | n >=. xs = xs
-      |   True   = ByteList l u' (take n es)
-        where
-          u' = indexOf xs (n - 1)
+      |   True   = ByteList l (indexOf xs (n - 1)) (take n es)
     
     drop n xs@(ByteList _ u es)
       |  n <= 0  = xs
       | n >=. xs = Z
-      |   True   = ByteList l' u (drop n es)
-        where
-          l' = indexOf xs n
+      |   True   = ByteList (indexOf xs n) u (drop n es)
     
     keep n xs@(ByteList _ u es)
       |  n <= 0  = Z
       | n >=. xs = xs
-      |   True   = ByteList l' u (keep n es)
-        where
-          l' = indexOf xs (n - 1)
+      |   True   = ByteList (indexOf xs (n - 1)) u (keep n es)
     
     sans n xs@(ByteList l _ es)
       |  n <= 0  = xs
       | n >=. xs = Z
-      |   True   = ByteList l u' (sans n es)
-        where
-          u' = indexOf xs (sizeOf xs - n - 1)
+      |   True   = ByteList l (indexOf xs (sizeOf xs - n - 1)) (sans n es)
     
     isPrefixOf = on isPrefixOf unpack
     isSuffixOf = on isSuffixOf unpack
@@ -234,16 +219,15 @@ instance (Index i, Unboxed e) => Set (ByteList i e) e
   where
     setWith f = withBounds . setWith f . unpack
     
-    intersectionWith f xs ys = withBounds $ on (intersectionWith f) unpack xs ys
-    unionWith        f xs ys = withBounds $ on (unionWith        f) unpack xs ys
-    
-    differenceWith f xs ys = withBounds $ on (differenceWith f) unpack xs ys
-    symdiffWith    f xs ys = withBounds $ on (symdiffWith    f) unpack xs ys
+    intersectionWith f = withBounds ... on (intersectionWith f) unpack
+    unionWith        f = withBounds ... on (unionWith        f) unpack
+    differenceWith   f = withBounds ... on (differenceWith   f) unpack
+    symdiffWith      f = withBounds ... on (symdiffWith      f) unpack
     
     insertWith f e = withBounds . insertWith f e . unpack
     deleteWith f e = withBounds . deleteWith f e . unpack
     
-    isSubsetWith f = isSubsetWith f `on` unpack
+    isSubsetWith f = on (isSubsetWith f) unpack
     
     isContainedIn f e = isContainedIn f e . unpack
     lookupLTWith  f e = lookupLTWith  f e . unpack
@@ -337,4 +321,5 @@ withBounds :: (Index i, Unboxed e) => Ublist e -> ByteList i e
 withBounds =  \ es -> let (l, u) = defaultBounds (sizeOf es) in ByteList l u es
 
 pfailEx :: String -> a
-pfailEx msg = throw . PatternMatchFail $ "in SDP.ByteList." ++ msg
+pfailEx =  throw . PatternMatchFail . showString "in SDP.ByteList."
+

@@ -32,6 +32,7 @@ import GHC.ST   ( ST  (..) )
 import SDP.SortM
 import SDP.SortM.Tim
 
+import SDP.Internal.Commons
 import SDP.Internal.SArray
 
 default ()
@@ -66,22 +67,21 @@ instance (Index i) => BorderedM (ST s) (STArray s i e) i e
 
 instance (Index i) => LinearM (ST s) (STArray s i e) e
   where
-    prepend e (STArray _ _ marr#) = withBounds =<< prepend e marr#
-    append  (STArray _ _ marr#) e = withBounds =<< append  marr# e
+    prepend e = withBounds <=< prepend e . unpack
+    append    = (withBounds <=<< append) . unpack
     
-    newLinear = fromFoldableM
+    newLinear     = fromFoldableM
+    newLinearN    = newLinearN   >>=> withBounds
+    fromFoldableM = fromFoldableM >=> withBounds
     
-    newLinearN  n es = newLinearN  n es >>= withBounds
-    fromFoldableM es = fromFoldableM es >>= withBounds
+    getLeft  = getLeft  . unpack
+    getRight = getRight . unpack
     
-    getLeft  (STArray _ _ marr#) = getLeft  marr#
-    getRight (STArray _ _ marr#) = getRight marr#
     reversed (STArray l u marr#) = STArray l u <$> reversed marr#
+    copied   (STArray l u marr#) = STArray l u <$> copied marr#
+    copied'  (STArray _ _ marr#) = copied' marr# >>=> withBounds
     
-    copied  (STArray l u marr#) = STArray l u <$> copied marr#
-    copied' (STArray _ _ marr#) = \ o c -> copied' marr# o c >>= withBounds
-    
-    filled n e = filled n e >>= withBounds
+    filled = filled >>=> withBounds
 
 --------------------------------------------------------------------------------
 
@@ -95,13 +95,13 @@ instance (Index i) => IndexedM (ST s) (STArray s i e) i e
         ies   = [ (offset bs i, e) | (i, e) <- ascs, inRange bs i ]
     
     {-# INLINE (!#>) #-}
-    (!#>) (STArray _ _ marr#) = (marr# !#>)
+    (!#>) = (!#>) . unpack
     
     {-# INLINE (>!) #-}
     (>!) (STArray l u marr#) = (marr# !#>) . offset (l, u)
     
     {-# LANGUAGE writeM_ #-}
-    writeM_ (STArray _ _ marr#) = writeM_ marr#
+    writeM_ = writeM_ . unpack
     
     {-# INLINE writeM #-}
     writeM  (STArray l u marr#) = writeM_ marr# . offset (l, u)
@@ -110,16 +110,16 @@ instance (Index i) => IndexedM (ST s) (STArray s i e) i e
       where
         ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
     
-    fromIndexed' es = fromIndexed' es >>= withBounds
-    fromIndexedM es = fromIndexedM es >>= withBounds
+    fromIndexed' = fromIndexed' >=> withBounds
+    fromIndexedM = fromIndexedM >=> withBounds
 
 instance (Index i) => IFoldM (ST s) (STArray s i e) i e
   where
     ifoldrM f base (STArray l u marr#) = ifoldrM (f . index (l, u)) base marr#
     ifoldlM f base (STArray l u marr#) = ifoldlM (f . index (l, u)) base marr#
     
-    i_foldrM f base (STArray _ _ marr#) = i_foldrM f base marr#
-    i_foldlM f base (STArray _ _ marr#) = i_foldlM f base marr#
+    i_foldrM f base = i_foldrM f base . unpack
+    i_foldlM f base = i_foldlM f base . unpack
 
 instance (Index i) => SortM (ST s) (STArray s i e) e where sortMBy = timSortBy
 
@@ -130,6 +130,11 @@ withBounds :: (Index i) => STArray# s e -> ST s (STArray s i e)
 withBounds marr# = do
   (l, u) <- defaultBounds <$> getSizeOf marr#
   return (STArray l u marr#)
+
+unpack :: (STArray s i e) -> STArray# s e
+unpack =  \ (STArray _ _ arr#) -> arr#
+
+
 
 
 

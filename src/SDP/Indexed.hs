@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE ConstraintKinds, DefaultSignatures #-}
+{-# LANGUAGE BangPatterns, DefaultSignatures, ConstraintKinds #-}
 
 {- |
     Module      :  SDP.Indexed
@@ -55,7 +55,7 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
       the result bounds (not always possible).
     -}
     assoc :: (i, i) -> [(i, e)] -> v
-    assoc bnds = assoc' bnds (undEx "assoc (default)")
+    assoc =  (`assoc'` undEx "assoc (default)")
     
     {- |
       @assoc' bnds defvalue ascs@ creates new structure from list of
@@ -104,12 +104,12 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
     -- | (!^) is completely unsafe reader. Must work as fast, as possible.
     default (!^) :: (Bordered v i e) => v -> Int -> e
     (!^) :: v -> Int -> e
-    (!^) es = (es .!) . indexOf es
+    (!^) =  both (.) (.!) indexOf
     
     -- | (.!) is unsafe reader, but on bit faster of ('!').
     {-# INLINE (.!) #-}
     (.!) :: v -> i -> e
-    (.!) es = fromMaybe (undEx "(.!)") . (es !?)
+    (.!) =  fromMaybe (undEx "(.!)") ... (!?)
     
     -- | (!) is well-safe reader. Must 'throw' 'IndexException'.
     default (!) :: (Bordered v i e) => v -> i -> e
@@ -120,12 +120,12 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
         OR -> throw $ IndexOverflow  msg
         UR -> throw $ IndexUnderflow msg
       where
-        msg = "in SDP.Indexed.(!) [default]"
+        msg = "in SDP.Indexed.(!) {default}"
     
     -- | (!?) is completely safe, but very boring function.
     default (!?) :: (Bordered v i e) => v -> i -> Maybe e
     (!?) :: v -> i -> Maybe e
-    (!?) es = (not . indexIn es) ?: (es .!)
+    (!?) es = not . indexIn es ?- (es .!)
     
     -- |  Write one element to structure.
     default write_ :: (Bordered v i e) => v -> Int -> e -> v
@@ -138,12 +138,12 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
     
     -- | Searches the index of first matching element.
     (.$) :: (e -> Bool) -> v -> Maybe i
-    (.$) f es = null ?: head $ f *$ es
+    (.$) =  null ?- head ... (*$)
     
     -- | Searches the indices of all matching elements.
     default (*$) :: (Bordered v i e) => (e -> Bool) -> v -> [i]
     (*$) :: (e -> Bool) -> v -> [i]
-    (*$) f = fsts . filter (f . snd) . assocs
+    (*$) f = select (f . snd ?+ fst) . assocs
 
 --------------------------------------------------------------------------------
 
@@ -180,8 +180,8 @@ class (Indexed v i e) => IFold v i e
     -- | 'i_foldl'' is just 'foldl'' with 'IFold' context
     i_foldl' :: (r -> e -> r) -> r -> v -> r
     
-    ifoldr'  f = ifoldr (\ i e r -> id $! f i e r)
-    ifoldl'  f = ifoldl (\ i r e -> id $! f i r e)
+    ifoldr'  f = ifoldr (\ !i e !r -> f i e r)
+    ifoldl'  f = ifoldl (\ !i !r e -> f i r e)
     
     i_foldr  = ifoldr  . const
     i_foldl  = ifoldl  . const
@@ -205,19 +205,19 @@ instance Indexed [e] Int e
     
     (!^) = (.!)
     
-    []       .! _ = error "in SDP.Indexed.(.!)"
     (x : xs) .! n = n == 0 ? x $ xs .! (n - 1)
+    _        .! _ = error "in SDP.Indexed.(.!)"
     
-    [] ! _ = throw $ EmptyRange "in SDP.Indexed.(!)"
-    es ! n = n >= 0 ? es !# n $ throw $ IndexUnderflow "in SDP.Indexed.(!)"
+    (!) [] _ = throw $ EmptyRange "in SDP.Indexed.(!)"
+    (!) es n = n >= 0 ? es !# n $ throw $ IndexUnderflow "in SDP.Indexed.(!)"
       where
         []       !# _  = throw $ IndexOverflow "in SDP.Indexed.(!)"
         (x : xs) !# n' = n' == 0 ? x $ xs !# (n' - 1)
     
     (x : xs) !? n = case n <=> 0 of {LT -> Nothing; EQ -> Just x; GT -> xs !? (n - 1)}
-    []       !? _ = Nothing
+    _        !? _ = Nothing
     
-    fromIndexed es = (es !) <$> indices es
+    fromIndexed = both fmap (!) indices
     
     xs // es = snds $ unionWith cmpfst (assocs xs) (setWith cmpfst es)
     
@@ -226,15 +226,13 @@ instance Indexed [e] Int e
 
 instance IFold [e] Int e
   where
-    ifoldr f base = go 0
-      where
-        go _    []    = base
-        go i (x : xs) = f i x $ go (i + 1) xs
+    ifoldr f base =
+      let go i es = case es of {(x : xs) -> f i x $ go (i + 1) xs; _ -> base}
+      in  go 0
     
-    ifoldl f = go 0
-      where
-        go _ e    []    = e
-        go i e (x : xs) = go (i + 1) (f i e x) xs
+    ifoldl f =
+      let go i e es = case es of {(x : xs) -> go (i + 1) (f i e x) xs; _ -> e}
+      in  go 0
 
 --------------------------------------------------------------------------------
 
@@ -262,7 +260,8 @@ binaryContain f e es = and [ s /= 0, f e (es !^ 0) /= LT, f e (es !^ u') /= GT, 
         GT -> contain (j + 1) u
       where
         j = l + (u - l `div` 2)
-    s = sizeOf es; u' = s - 1
+    s  = sizeOf es
+    u' = s - 1
 
 -- | Update some elements in structure (without indices).
 {-# DEPRECATED (>/>) "use (/>) or update instead" #-}
@@ -270,5 +269,7 @@ binaryContain f e es = and [ s /= 0, f e (es !^ 0) /= LT, f e (es !^ u') /= GT, 
 (>/>) es is = update es is . const
 
 undEx :: String -> a
-undEx msg = throw . UndefinedValue $ "in SDP.Indexed." ++ msg
+undEx =  throw . UndefinedValue . showString "in SDP.Indexed."
+
+
 

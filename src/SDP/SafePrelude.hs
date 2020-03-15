@@ -21,7 +21,7 @@ module SDP.SafePrelude
   
   module Prelude,
   
-  (?), (?:)
+  (?), (?+), (?-), (...)
 )
 where
 
@@ -35,7 +35,7 @@ import Prelude hiding
     
     -- defined in SDP.Linear and Data.List (originally in GHC.List)
     head, tail, init, last, take, drop, (!!), (++), reverse, filter, lookup,
-    concat, concatMap, replicate, takeWhile, dropWhile
+    concat, concatMap, replicate, takeWhile, dropWhile, iterate
   )
 
 import Control.Applicative
@@ -46,7 +46,9 @@ import Data.Foldable hiding ( concat, concatMap )
 import SDP.Comparing
 import SDP.Estimate
 
-infixr 1 ? -- Lowest priority, compatible with infixr 0 $
+infixl 8 ?+, ?-
+infixr 1  ?  -- Lowest priority, compatible with infixr 0 $
+infixr 0 ...
 
 default ()
 
@@ -54,7 +56,6 @@ default ()
 
 {- |
   Ternary operator.
-  
   > odd 1 ? "is True" $ "is False"
   "is True"
 -}
@@ -62,19 +63,18 @@ default ()
 (?) :: Bool -> a -> a -> a
 (?) p t e = if p then t else e
 
-{- |
-  @p ?: f $ a@ is precondition combinator that checks @a@ for incorrectness (by
-  predicate @p@) before applying @f@.
-  Returns @Nothing@ if @(p a)@ and @Just (f a)@ otherwise.
-  
-  > odd ?: (`div` 2) $ 1
-  Nothing
-  
-  > odd ?: (`div` 2) $ 2
-  Just 1
--}
-{-# INLINE (?:) #-}
-(?:) :: (a -> Bool) -> (a -> b) -> a -> Maybe b
-p ?: f = \ a -> p a ? Nothing $ Just (f a)
+-- | @p ?+ f $ a@ returns @'Just' (f a)@ if @(p a)@ and 'Nothing' otherwise.
+{-# INLINE (?+) #-}
+(?+) :: (a -> Bool) -> (a -> b) -> a -> Maybe b
+p ?+ f = \ a -> p a ? Just (f a) $ Nothing
 
+-- | @p ?- f $ a@ returns 'Nothing' if @(p a)@ and @'Just' (f a)@ otherwise.
+{-# INLINE (?-) #-}
+(?-) :: (a -> Bool) -> (a -> b) -> a -> Maybe b
+p ?- f = \ a -> p a ? Nothing $ Just (f a)
+
+-- | @f ... g@ is just @\ a b -> f (g a b)@
+{-# INLINE (...) #-}
+(...) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
+f ... g = \ a b -> f (g a b)
 

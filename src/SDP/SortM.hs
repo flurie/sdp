@@ -23,8 +23,6 @@ where
 import Prelude ()
 import SDP.SafePrelude
 
-import SDP.Internal.Commons
-
 default ()
 
 --------------------------------------------------------------------------------
@@ -49,17 +47,14 @@ sortM :: (SortM m s e, Ord e) => s -> m ()
 sortM =  sortMBy compare
 
 -- | Sort by comparing the results of a key function applied to each element.
-sortMOn   :: (SortM m s e, Ord o) => (e -> o) -> s -> m ()
-sortMOn f =  sortMBy (compare `on` f)
+sortMOn :: (SortM m s e, Ord o) => (e -> o) -> s -> m ()
+sortMOn =  sortMBy . comparing
 
 -- | mathsort is just synonym for @mathsortBy compare@
 mathsortM :: (SortM m s e, Ord e) => s -> m ()
 mathsortM =  mathsortMBy compare
 
 -- | Math sort by comparing the results of a key function applied to each element.
-mathsortMOn   :: (SortM m s e, Ord o) => (e -> o) -> s -> m ()
-mathsortMOn f =  mathsortMBy (compare `on` f)
-
-
-
+mathsortMOn :: (SortM m s e, Ord o) => (e -> o) -> s -> m ()
+mathsortMOn =  mathsortMBy . comparing
 

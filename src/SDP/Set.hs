@@ -33,10 +33,11 @@ import SDP.SafePrelude
 
 import SDP.Linear
 
-import Data.Maybe ( isJust )
-import Data.List  ( sortBy )
+import Data.List ( sortBy, groupBy )
 
 import GHC.Types
+
+import SDP.Internal.Commons
 
 default ()
 
@@ -76,7 +77,7 @@ class (Linear s o) => Set s o | s -> o
     
     -- | Adding element to set.
     insertWith :: Compare o -> o -> s -> s
-    insertWith f e es = unionWith f es $ single e
+    insertWith f = unionWith f . single
     
     -- | Deleting element from set.
     deleteWith :: Compare o -> o -> s -> s
@@ -105,7 +106,7 @@ class (Linear s o) => Set s o | s -> o
     
     -- | Fold by differenceWith.
     differencesWith :: (Foldable f) => Compare o -> f s -> s
-    differencesWith f = differenceWith f `foldl` Z
+    differencesWith =  (`foldl` Z) . differenceWith
     
     -- | Fold by unionWith.
     unionsWith :: (Foldable f) => Compare o -> f s -> s
@@ -119,11 +120,11 @@ class (Linear s o) => Set s o | s -> o
     
     -- | Compares sets on intersection.
     isIntersectsWith :: Compare o -> s -> s -> Bool
-    isIntersectsWith f xs ys = not . isNull $ intersectionWith f xs ys
+    isIntersectsWith f = not ... isDisjointWith f
     
     -- | Compares sets on disjoint.
     isDisjointWith :: Compare o -> s -> s -> Bool
-    isDisjointWith f xs ys = isNull (intersectionWith f xs ys)
+    isDisjointWith f = isNull ... intersectionWith f
     
     -- | Same as 'elem', but can work faster. By default, uses 'find'.
     default isContainedIn :: (t o ~~ s, Foldable t) => Compare o -> o -> s -> Bool
@@ -138,7 +139,7 @@ class (Linear s o) => Set s o | s -> o
     -- | Generates a list of different subsets (including empty and equivalent).
     default subsets :: (Ord s, Ord o) => s -> [s]
     subsets :: (Ord o) => s -> [s]
-    subsets = set . subsequences . set
+    subsets =  set . subsequences . set
     
     {- Lookups. -}
     
@@ -217,8 +218,8 @@ intersections =  intersectionsWith compare
 
 -- | Union of some sets.
 {-# INLINE unions #-}
-unions  :: (Foldable f, Set s o, Ord o) => f s -> s
-unions  =  unionsWith compare
+unions :: (Foldable f, Set s o, Ord o) => f s -> s
+unions =  unionsWith compare
 
 -- | Diference of some sets.
 {-# INLINE differences #-}
@@ -236,18 +237,22 @@ isSetElem :: (Set s o, Ord o) => o -> s -> Bool
 isSetElem =  isContainedIn compare
 
 -- | lookupLT tries to search lesser element in set.
+{-# INLINE lookupLT #-}
 lookupLT :: (Set s o, Ord o) => o -> s -> Maybe o
 lookupLT =  lookupLTWith compare
 
 -- | lookupGT tries to search greater element in set.
+{-# INLINE lookupGT #-}
 lookupGT :: (Set s o, Ord o) => o -> s -> Maybe o
 lookupGT =  lookupGTWith compare
 
 -- | lookupLE tries to search lesser of equal element in set.
+{-# INLINE lookupLE #-}
 lookupLE :: (Set s o, Ord o) => o -> s -> Maybe o
 lookupLE =  lookupLEWith compare
 
 -- | lookupGE tries to search greater or equal element in set.
+{-# INLINE lookupGE #-}
 lookupGE :: (Set s o, Ord o) => o -> s -> Maybe o
 lookupGE =  lookupGEWith compare
 
@@ -255,121 +260,76 @@ lookupGE =  lookupGEWith compare
 
 instance Set [e] e
   where
-    {-
-      [internal]: O(n) at best, but O(n ^ 2) at worst, rewrite setWith.
-      
-      setWith -- minor improvement of insertion sort for partially ordered data.
-      It selects ordered sequences of elements and merges them.  For an ordered
-      list, it has complexity O(n) and O (n ^ 2) for an reversed.
-    -}
-    setWith _ [] = []
-    setWith f xs = dumbMergeList ordered (setWith f rest)
-      where
-        (ordered, rest) = splitSeq xs
-        
-        splitSeq (e1 : e2 : es) = let (initseq, others) = splitSeq (e2 : es) in
-          case f e1 e2 of
-            LT -> (e1 : initseq, others)
-            EQ -> (initseq, others)
-            GT -> ([e1], e2 : es)
-        splitSeq es = (es, [])
-        
-        dumbMergeList    []       bs    = bs
-        dumbMergeList    as       []    = as
-        dumbMergeList (a : as) (b : bs) = case f a b of
-          LT -> a : dumbMergeList as (b : bs)
-          GT -> b : dumbMergeList (a : as) bs
-          EQ -> a : dumbMergeList as bs
+    setWith f = sortBy f . nubBy ((EQ ==) ... f)
     
-    insertWith _ e [] = [e]
-    insertWith f e (x : xs) = case f e x of
-      LT -> e : x : xs
-      EQ -> x : xs
-      GT -> x : insertWith f e xs
+    insertWith f e es@(x : xs) = case e `f` x of {GT -> x : insertWith f e xs; LT -> e : es; EQ -> es}
+    insertWith _ e _ = [e]
     
-    deleteWith _ _ [] = []
-    deleteWith f e (x : xs) = case f e x of
-      LT -> x : xs
-      EQ -> xs
-      GT -> x : deleteWith f e xs
+    deleteWith f e es@(x : xs) = case e `f` x of {GT -> x : deleteWith f e xs; LT -> es; EQ -> xs}
+    deleteWith _ _ _ = []
     
-    isContainedIn _ _ [] = False
-    isContainedIn f e (x : xs) = case f e x of
-      LT -> False
-      EQ -> True
-      GT -> isContainedIn f e xs
+    isContainedIn f e (x : xs) = case e `f` x of {GT -> isContainedIn f e xs; LT -> False; EQ -> True}
+    isContainedIn _ _ _ = False
     
-    intersectionWith _ [] _  = []
-    intersectionWith _ _  [] = []
-    intersectionWith f (x : xs) (y : ys) = case f x y of
-      LT -> intersectionWith f xs (y : ys)
+    intersectionWith f xs'@(x : xs) ys'@(y : ys) = case x `f` y of
+      LT -> intersectionWith f xs  ys'
+      GT -> intersectionWith f xs' ys
       EQ -> x : intersectionWith f xs ys
-      GT -> intersectionWith f (x : xs) ys
+    intersectionWith _ _ _ = []
     
-    unionWith _ [] ys = ys
-    unionWith _ xs [] = xs
-    unionWith f (x : xs) (y : ys) = case f x y of
-      LT -> x : unionWith f xs (y : ys)
-      EQ -> x : unionWith f xs ys
-      GT -> y : unionWith f (x : xs) ys
+    unionWith f xs'@(x : xs) ys'@(y : ys) = case x `f` y of
+      LT -> x : unionWith f xs  ys'
+      EQ -> x : unionWith f xs  ys
+      GT -> y : unionWith f xs' ys
+    unionWith _ xs ys = xs ++ ys
     
-    differenceWith _ xs [] = xs
-    differenceWith _ [] _  = []
-    differenceWith f (x : xs) (y : ys) = case f x y of
-      LT -> x : differenceWith f xs (y : ys)
-      EQ -> differenceWith f xs ys
-      GT -> differenceWith f (x : xs) ys
+    differenceWith f xs'@(x : xs) ys'@(y : ys) = case f x y of
+      LT -> x : differenceWith f xs ys'
+      EQ -> differenceWith f xs  ys
+      GT -> differenceWith f xs' ys
+    differenceWith _ xs _ = xs
     
-    symdiffWith _ xs [] = xs
-    symdiffWith _ [] ys = ys
-    symdiffWith f (x : xs) (y : ys) = case f x y of
+    symdiffWith f xs'@(x : xs) ys'@(y : ys) = case f x y of
       EQ -> symdiffWith f xs ys
-      LT -> x : symdiffWith f xs (y : ys)
-      GT -> y : symdiffWith f (x : xs) ys
+      LT -> x : symdiffWith f xs  ys'
+      GT -> y : symdiffWith f xs' ys
+    symdiffWith _ xs ys = xs ++ ys
     
-    isIntersectsWith f (x : xs) (y : ys) = case f x y of
-      LT -> isIntersectsWith f xs (y : ys)
+    isIntersectsWith f xs'@(x : xs) ys'@(y : ys) = case f x y of
+      LT -> isIntersectsWith f xs  ys'
+      GT -> isIntersectsWith f xs' ys
       EQ -> True
-      GT -> isIntersectsWith f (x : xs) ys
-    isIntersectsWith _ _  _  = False
+    isIntersectsWith _ _ _ = False
     
-    isDisjointWith f (x : xs) (y : ys) = case f x y of
-      LT -> isDisjointWith f xs (y : ys)
+    isDisjointWith f xs'@(x : xs) ys'@(y : ys) = case f x y of
+      LT -> isDisjointWith f xs  ys'
+      GT -> isDisjointWith f xs' ys
       EQ -> False
-      GT -> isDisjointWith f (x : xs) ys
-    isDisjointWith _ _  _  = True
+    isDisjointWith _ _ _ = True
     
-    lookupLTWith _ _    []    = Nothing
     lookupLTWith f o (x : xs) = case o `f` x of {GT -> look x xs; _ -> Nothing}
       where
-        look r [] = Just r
         look r (e : es) = case o `f` e of {GT -> look e es; _ -> Just r}
+        look r _ = Just r
+    lookupLTWith _ _ _ = Nothing
     
-    lookupGTWith _ _    []    = Nothing
     lookupGTWith f o (x : xs) = case o `f` x of {LT -> Just x; _ -> look xs}
       where
-        look    []    = Nothing
         look (e : es) = case o `f` e of {LT -> Just e; _ -> look es}
+        look _ = Nothing
+    lookupGTWith _ _ _ = Nothing
     
-    lookupLEWith _ _    []    = Nothing
     lookupLEWith f o (x : xs) = case o `f` x of {LT -> Nothing; _ -> look x xs}
       where
-        look r    []    = Just r
         look r (e : es) = case o `f` e of {LT -> Just r; _ -> look e es}
+        look r _ = Just r
+    lookupLEWith _ _ _ = Nothing
     
-    lookupGEWith _ _    []    = Nothing
     lookupGEWith f o (x : xs) = case o `f` x of {GT -> look xs; _ -> Just x}
       where
-        look    []    = Nothing
         look (e : es) = case o `f` e of {GT -> look es; _ -> Just e}
+        look _ = Nothing
+    lookupGEWith _ _ _ = Nothing
     
-    groupSetWith cmp mrg = group . sortBy cmp
-      where
-        group (e1 : e2 : es) = case e1 `cmp` e2 of
-          EQ -> group (e1 `mrg` e2 : es)
-          _  -> e1 : group (e2 : es)
-        group es = es
-
-
-
+    groupSetWith cmp f = map (foldr1 f) . groupBy ((== EQ) ... cmp) . sortBy cmp
 

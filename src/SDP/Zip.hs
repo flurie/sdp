@@ -12,12 +12,14 @@ module SDP.Zip ( Zip (..) ) where
 import Prelude ()
 import SDP.SafePrelude
 
+default ()
+
 --------------------------------------------------------------------------------
 
 -- | Zip is generalization of ZipList applicative semantics (but without pure).
 class (Functor z) => Zip z
   where
-    {-# MINIMAL zipWith, zipWith3, zipWith4, zipWith5, zipWith6 #-}
+    {-# MINIMAL zipWith #-}
     
     zip  :: z a -> z b                             -> z (a, b)
     zip3 :: z a -> z b -> z c                      -> z (a, b, c)
@@ -36,45 +38,28 @@ class (Functor z) => Zip z
     zipWith4 :: (a -> b -> c -> d -> e)           -> z a -> z b -> z c -> z d -> z e
     zipWith5 :: (a -> b -> c -> d -> e -> f)      -> z a -> z b -> z c -> z d -> z e -> z f
     zipWith6 :: (a -> b -> c -> d -> e -> f -> g) -> z a -> z b -> z c -> z d -> z e -> z f -> z g
+    
+    zipWith3 f as bs          = zipWith ($) $ zipWith  f as bs
+    zipWith4 f as bs cs       = zipWith ($) $ zipWith3 f as bs cs
+    zipWith5 f as bs cs ds    = zipWith ($) $ zipWith4 f as bs cs ds
+    zipWith6 f as bs cs ds es = zipWith ($) $ zipWith5 f as bs cs ds es
 
 --------------------------------------------------------------------------------
 
 instance Zip []
   where
-    zip (a : as) (b : bs) = (a, b) : zip as bs
-    zip _ _ = []
+    zipWith f (a : as) (b : bs) = f a b : zipWith f as bs
+    zipWith _ _ _ = []
     
-    zip3 (a : as) (b : bs) (c : cs) = (a, b, c) : zip3 as bs cs
-    zip3 _ _ _ = []
+    zipWith3 f (a : as) (b : bs) (c : cs) = f a b c : zipWith3 f as bs cs
+    zipWith3 _ _ _ _ = []
     
-    zip4 (a : as) (b : bs) (c : cs) (d : ds) = (a, b, c, d) : zip4 as bs cs ds
-    zip4 _ _ _ _ = []
+    zipWith4 f (a : as) (b : bs) (c : cs) (d : ds) = f a b c d : zipWith4 f as bs cs ds
+    zipWith4 _ _ _ _ _ = []
     
-    zip5 (a : as) (b : bs) (c :cs) (d : ds) (e : es) = (a, b, c, d, e) : zip5 as bs cs ds es
-    zip5 _ _ _ _ _ = []
+    zipWith5 f (a : as) (b : bs) (c : cs) (d : ds) (e : es) = f a b c d e : zipWith5 f as bs cs ds es
+    zipWith5 _ _ _ _ _ _ = []
     
-    zipWith  f' = go
-      where
-        go (a : as) (b : bs) = f' a b : go as bs
-        go _ _ = []
-    
-    zipWith3 f' = go
-      where
-        go (a : as) (b : bs) (c : cs) = f' a b c : go as bs cs
-        go _ _ _ = []
-    
-    zipWith4 f' = go
-      where
-        go (a : as) (b : bs) (c : cs) (d : ds) = f' a b c d : go as bs cs ds
-        go _ _ _ _ = []
-    
-    zipWith5 f' = go
-      where
-        go (a : as) (b : bs) (c : cs) (d : ds) (e : es) = f' a b c d e : go as bs cs ds es
-        go _ _ _ _ _ = []
-    
-    zipWith6 f' = go
-      where
-        go (a : as) (b : bs) (c : cs) (d : ds) (e : es) (f : fs) = f' a b c d e f : go as bs cs ds es fs
-        go _ _ _ _ _ _ = []
+    zipWith6 f (a : as) (b : bs) (c : cs) (d : ds) (e : es) (g : gs) = f a b c d e g : zipWith6 f as bs cs ds es gs
+    zipWith6 _ _ _ _ _ _ _ = []
 

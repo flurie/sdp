@@ -56,7 +56,7 @@ class (Monad m, Index i, LinearM m v e) => IndexedM m v i e | v -> m, v -> i, v 
       match with the result bounds (not always possible).
     -}
     fromAssocs :: (i, i) -> [(i, e)] -> m v
-    fromAssocs bnds = fromAssocs' bnds (undEx "fromAssocs")
+    fromAssocs =  (`fromAssocs'` undEx "fromAssocs")
     
     {- |
       @fromAssocs' bnds defvalue ascs@ creates new structure from list of
@@ -74,7 +74,7 @@ class (Monad m, Index i, LinearM m v e) => IndexedM m v i e | v -> m, v -> i, v 
     -- | (>!) is unsafe monadic reader.
     {-# INLINE (>!) #-}
     (>!) :: v -> i -> m e
-    (>!) es = fmap (fromMaybe $ undEx "(!)") . (es !?>)
+    (>!) =  fmap (fromMaybe $ undEx "(!) {default}") ... (!?>)
     
     -- | (!>) is well-safe monadic reader.
     {-# INLINE (!>) #-}
@@ -86,7 +86,7 @@ class (Monad m, Index i, LinearM m v e) => IndexedM m v i e | v -> m, v -> i, v 
         OR -> throw $ IndexOverflow  msg
         UR -> throw $ IndexUnderflow msg
       where
-        msg = "in SDP.IndexedM.(!>) [default]"
+        msg = "in SDP.IndexedM.(!>) {default}"
     
     -- | (!?>) is completely safe monadic reader.
     default (!?>) :: (BorderedM m v i e) => v -> i -> m (Maybe e)
@@ -110,17 +110,16 @@ class (Monad m, Index i, LinearM m v e) => IndexedM m v i e | v -> m, v -> i, v 
     {- |
       This function designed to overwrite large enough fragments of the
       structure (unlike 'writeM' and 'writeM_'). In addition to the main
-      conversion it can be moved, cleaned and optimized in any possible way. As
-      a result, the original structure may become incorrect and its change may
-      lead to undesirable consequences. Therefore, overwrite explicitly return
-      the result of the conversion and the original structure should never been
-      used.
+      conversion it can be moved, cleaned and optimized in any possible way. So,
+      the original structure may become incorrect and its change may lead to
+      undesirable consequences. Therefore, overwrite explicitly return the
+      result and the original structure should never been used.
       
-      Standard SDP structures support secure in-place @overwrite@.
+      All standard SDP structures support secure in-place @overwrite@.
       
-      If the structure uses unmanaged memory, when ann unused fragments should
-      be cleared regardless of the reachability from the original structure and
-      its correctness.
+      If the structure uses unmanaged memory, when all unused fragments should
+      be cleared regardless of the reachability from the original structure
+      (after rewriting) and its correctness.
       
       Please note that @overwrite@ require a list of associations with indices
       in the current structure bounds and ignore any other, therefore
@@ -131,7 +130,7 @@ class (Monad m, Index i, LinearM m v e) => IndexedM m v i e | v -> m, v -> i, v 
     
     -- | reshape creates new indexed structure from old with reshaping function.
     reshape :: (IndexedM m v' j e) => (i, i) -> v' -> (i -> j) -> m v
-    reshape bnds es f = fromAssocs bnds =<< range bnds `forM` \ i -> do e <- es !> f i; return (i, e)
+    reshape bnds es f = fromAssocs bnds =<< range bnds `forM` both fmap (,) ((!>) es . f)
     
     {- |
       @'fromAccum' f es ies@ create a new structure from @es@ elements
@@ -149,12 +148,12 @@ class (Monad m, Index i, LinearM m v e) => IndexedM m v i e | v -> m, v -> i, v 
     
     -- | (.?) is monadic version of (.$).
     (.?) :: (e -> Bool) -> v -> m (Maybe i)
-    f .? es = listToMaybe <$> f *? es
+    (.?) =  fmap listToMaybe ... (*?)
     
     -- | (*?) is monadic version of (*$).
     default (*?) :: (BorderedM m v i e) => (e -> Bool) -> v -> m [i]
     (*?) :: (e -> Bool) -> v -> m [i]
-    p *? marr = fsts . filter (p . snd) <$> getAssocs marr
+    (*?) p es = select (p . snd ?+ fst) <$> getAssocs es
 
 --------------------------------------------------------------------------------
 
@@ -241,4 +240,6 @@ swapM es i j = do ei <- es !#> i; writeM_ es i =<< es !#> j; writeM_ es j ei
 --------------------------------------------------------------------------------
 
 undEx :: String -> a
-undEx msg = throw . UndefinedValue $ "in SDP.IndexedM" ++ msg
+undEx =  throw . UndefinedValue . showString "in SDP.IndexedM"
+
+

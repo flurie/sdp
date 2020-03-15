@@ -43,6 +43,7 @@ import SDP.Set
 import SDP.SortM.Tim
 import SDP.SortM
 
+import Data.Bifunctor
 import Data.Coerce
 
 import GHC.Exts
@@ -53,7 +54,7 @@ import GHC.Exts
     
     thawArray#, unsafeThawArray#, freezeArray#, unsafeFreezeArray#,
     
-    cloneArray#, cloneMutableArray#,
+    copyArray#, cloneArray#, cloneMutableArray#,
     
     isTrue#, sameMutableArray#, (+#), (-#), (==#)
   )
@@ -103,7 +104,7 @@ instance Ord1 SArray#
   where
     liftCompare cmp xs@(SArray# c1 _ _) ys@(SArray# c2 _ _) = cmp' 0
       where
-        cmp' i = i == c ? (c1 <=> c2) $ cmp (xs !^ i) (ys !^ i) <> cmp' (i + 1)
+        cmp' i = i == c ? c1 <=> c2 $ (xs!^i) `cmp` (ys!^i) <> cmp' (i + 1)
         c = min c1 c2
 
 --------------------------------------------------------------------------------
@@ -176,7 +177,7 @@ instance Zip SArray#
 instance Applicative SArray#
   where
     pure = single
-    fs <*> es = (<$> es) `concatMap` fs
+    fs <*> es = concatMap (<$> es) fs
 
 --------------------------------------------------------------------------------
 
@@ -223,24 +224,32 @@ instance Traversable SArray#
 
 instance Linear (SArray# e) e
   where
-    isNull (SArray# c _ _) = c == 0
+    isNull (SArray# c _ _) = c < 1
     
-    lzero = runST $ filled 0 (unreachEx "lzero") >>= done
+    lzero         = runST $ filled 0 (unreachEx "lzero") >>= done
+    single      e = runST $ filled 1 e >>= done
+    replicate n e = runST $ filled n e >>= done
     
-    -- | O(n) 'toHead', O(n) memory.
-    toHead e es = fromListN (sizeOf es + 1) (e : listL es)
+    toHead e (SArray# (I# c#) (I# o#) arr#) = runST $ ST $
+        \ s1# -> case newArray# n# e s1# of
+          (# s2#, marr# #) -> case copyArray# arr# o# marr# 1# c# s2# of
+            s3# -> case unsafeFreezeArray# marr# s3# of
+              (# s4#, res# #) -> (# s4#, SArray# (I# n#) 0 res# #)
+      where
+        n# = c# +# 1#
+    
+    toLast (SArray# (I# c#) (I# o#) arr#) e = runST $ ST $
+        \ s1# -> case newArray# n# e s1# of
+          (# s2#, marr# #) -> case copyArray# arr# o# marr# 0# c# s2# of
+            s3# -> case unsafeFreezeArray# marr# s3# of
+              (# s4#, res# #) -> (# s4#, SArray# (I# n#) 0 res# #)
+      where
+        n# = c# +# 1#
     
     head es = es !^ 0
-    
-    -- | O(1) 'tail', O(1) memory.
-    tail (SArray# c o arr#) = SArray# (c - 1) (o + 1) arr#
-    
-    -- | O(n) 'toLast', O(n) memory.
-    toLast es e = fromListN (sizeOf es + 1) $ foldr (:) [e] es
-    
     last es@(SArray# c _ _) = es !^ (c - 1)
     
-    -- | O(1) 'init', O(1) memory.
+    tail (SArray# c o arr#) = SArray# (c - 1) (o + 1) arr#
     init (SArray# c o arr#) = SArray# (c - 1) o arr#
     
     fromList = fromFoldable
@@ -248,20 +257,30 @@ instance Linear (SArray# e) e
     fromListN  n es = runST $ newLinearN  n es >>= done
     fromFoldable es = runST $ fromFoldableM es >>= done
     
-    single e = runST $ filled 1 e >>= done
-    
-    -- | O (m + n) '++', O(n + m) memory.
-    xs ++ ys = fromListN (sizeOf xs + sizeOf ys) $ foldr (:) (listL ys) xs
-    
-    -- | O(n) 'replicate', O(n) memory.
-    replicate n e = runST $ filled n e >>= done
+    SArray# (I# n1#) (I# o1#) arr1# ++ SArray# (I# n2#) (I# o2#) arr2# =
+      runST $ ST $ \ s1# -> case newArray# n# (unreachEx "(++)") s1# of
+        (#s2#, marr# #) -> case copyArray# arr1# o1# marr# 0# n1# s2# of
+          s3# -> case copyArray# arr2# o2# marr# n1# n2# s3# of
+            s4# -> case unsafeFreezeArray# marr# s4# of
+              (# s5#, arr# #) -> (# s5#, SArray# (I# n#) 0 arr# #)
+      where
+        n# = n1# +# n2#
     
     listL = toList
     listR = flip (:) `foldl` []
     
-    concatMap f = fromList . foldr (\ a l -> foldr (:) l $ f a) []
+    reverse es = runST $ fromIndexed' es >>= reversed >>= done
     
-    concat = fromList . foldr (\ a l -> foldr (:) l a) []
+    concatMap f = fromList . foldr (flip (foldr (:)) . f) []
+    concat      = fromList . foldr (flip $ foldr (:)) []
+    
+    select  f = foldr (\ o -> case f o of {Just e -> (e :); _ -> id}) []
+    
+    extract f = second fromList . foldr g ([], [])
+      where
+        g = \ o -> case f o of {Just e -> first (e :); _ -> second (o :)}
+    
+    selects fs = second fromList . selects fs . listL
 
 instance Split (SArray# e) e
   where
@@ -289,13 +308,29 @@ instance Split (SArray# e) e
       | n >= c = Z
       |  True  = SArray# (c - n) o arr#
     
-    isPrefixOf xs@(SArray# c1 _ _) ys@(SArray# c2 _ _) = c1 <= c2 && eq 0
-      where
-        eq i = i == c1 || (xs !^ i) == (ys !^ i) && eq (i + 1)
+    prefix p xs@(SArray# c _ _) =
+      let go i = i < c && p (xs !^ i) ? go (i + 1) $ i
+      in  go 0
     
-    isSuffixOf xs@(SArray# c1 _ _) ys@(SArray# c2 _ _) = c1 <= c2 && eq 0 (c2 - c1)
-      where
-        eq i j = i == c1 || (xs !^ i) == (ys !^ j) && eq (i + 1) (j + 1)
+    suffix p xs@(SArray# c _ _) =
+      let go i = i > 0 && p (xs !^ i) ? go (i - 1) $ i
+      in  c - go (c - 1) - 1
+    
+    isPrefixOf xs@(SArray# c1 _ _) ys@(SArray# c2 _ _) =
+      let eq i = i == c1 || (xs !^ i) == (ys !^ i) && eq (i + 1)
+      in  c1 <= c2 && eq 0
+    
+    isSuffixOf xs@(SArray# c1 _ _) ys@(SArray# c2 _ _) =
+      let eq i j = i == c1 || (xs !^ i) == (ys !^ j) && eq (i + 1) (j + 1)
+      in  c1 <= c2 && eq 0 (c2 - c1)
+    
+    selectWhile =
+      let go i f es = i ==. es ? [] $ maybe [] (: go (i + 1) f es) $ f (es !^ i)
+      in  go 0
+    
+    selectEnd g xs =
+      let go i f es = i == 0 ? [] $ maybe [] (: go (i - 1) f es) $ f (es !^ i)
+      in  reverse (go (sizeOf xs - 1) g xs)
 
 instance Bordered (SArray# e) Int e
   where
@@ -304,7 +339,6 @@ instance Bordered (SArray# e) Int e
     sizeOf   (SArray# c _ _) = c
     upper    (SArray# c _ _) = c - 1
     bounds   (SArray# c _ _) = (0, c - 1)
-    
     indices  (SArray# c _ _) = [0 .. c - 1]
     indexOf  (SArray# c _ _) = index (0, c - 1)
     indexIn  (SArray# c _ _) = \ i -> i >= 0 && i < c
@@ -319,15 +353,11 @@ instance Set (SArray# e) e
   where
     setWith f = nubSorted f . sortBy f
     
-    insertWith _ e Z  = single e
-    insertWith f e es = isContainedIn f e es ? es $ res
-      where
-        res = fromList . insertWith f e $ listL es
+    insertWith f e es = case (\ x -> x `f` e /= LT) .$ es of
+      Nothing -> es :< e
+      Just  i -> e `f` (es!^i) == EQ ? es $ before i e es
     
-    deleteWith _ _ Z  = Z
-    deleteWith f e es = isContainedIn f e es ? es $ res
-      where
-        res = fromList . deleteWith f e $ listL es
+    deleteWith f e es = isContainedIn f e es ? except (\ x -> f e x == EQ) es $ es
     
     {-# INLINE intersectionWith #-}
     intersectionWith f xs ys = fromList $ intersection' 0 0
@@ -412,7 +442,7 @@ instance Set (SArray# e) e
         last' = es .! u'
         u' = upper es
         
-        look' r l u = if l > u then Just r else case o `f` e of
+        look' r l u = l > u ? Just r $ case o `f` e of
             LT -> look' r l (j - 1)
             _  -> look' e (j + 1) u
           where
@@ -429,7 +459,7 @@ instance Set (SArray# e) e
         last' = es .! u'
         u' = upper es
         
-        look' r l u = if l > u then Just r else case o `f` e of
+        look' r l u = l > u ? Just r $ case o `f` e of
             LT -> look' e l (j - 1)
             EQ -> j >= u' ? Nothing $ Just (es !^ (j + 1))
             GT -> look' r (j + 1) u
@@ -447,7 +477,7 @@ instance Set (SArray# e) e
         last' = es .! u'
         u' = upper es
         
-        look' r l u = if l > u then Just r else case o `f` e of
+        look' r l u = l > u ? Just r $ case o `f` e of
             LT -> look' e l (j - 1)
             EQ -> Just e
             GT -> look' r (j + 1) u
@@ -713,13 +743,23 @@ nubSorted f es = fromList $ foldr fun [last es] ((es !^) <$> [0 .. sizeOf es - 2
   where
     fun = \ e ls -> e `f` head ls == EQ ? ls $ e : ls
 
+before :: Int -> e -> SArray# e -> SArray# e
+before n@(I# n#) e es@(SArray# c@(I# c#) (I# o#) arr#)
+  | n >= c = es :< e
+  | n <= 0 = e :> es
+  |  True  = runST $ ST $ \ s1# -> case newArray# (c# +# 1#) e s1# of
+    (# s2#, marr# #) -> case copyArray# arr# o# marr# 0# n# s2# of
+      s3# -> case copyArray# arr# (o# +# n#) marr# (n# +# 1#) (c# -# n#) s3# of
+        s4# -> case unsafeFreezeArray# marr# s4# of
+          (# s5#, res# #) -> (# s5#, SArray# (c + 1) 0 res# #)
+
 undEx :: String -> a
-undEx msg = throw . UndefinedValue $ "in SDP.Internal.SArray." ++ msg
+undEx =  throw . UndefinedValue . showString "in SDP.Internal.SArray."
 
 pfailEx :: String -> a
-pfailEx msg = throw . PatternMatchFail $ "in SDP.Internal.SArray." ++ msg
+pfailEx =  throw . PatternMatchFail . showString "in SDP.Internal.SArray."
 
 unreachEx :: String -> a
-unreachEx msg = throw . UnreachableException $ "in SDP.Internal.SArray." ++ msg
+unreachEx =  throw . UnreachableException . showString "in SDP.Internal.SArray."
 
 

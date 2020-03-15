@@ -54,7 +54,7 @@ default ()
   > read "ident (0,1) [(0,0),(1,1)]" == read "(0,1) [(0,0),(1,1)]" == assoc (0,1) [(0,0),(1,1)]
 -}
 indexedPrec :: (Indexed v i e, Read i, Read e) => String -> ReadPrec v
-indexedPrec name = namedPrec name readAssocsPrec
+indexedPrec =  namedPrec readAssocsPrec
 
 {- |
   @linearPrec ident@ is common parser of 'Linear' structure with name
@@ -65,11 +65,11 @@ indexedPrec name = namedPrec name readAssocsPrec
   > read "4 [1,5,-1,45,12,6,0,0,12]" == fromListN 4 [1,5,-1,45,12,6,0,0,12]
 -}
 linearPrec :: (Linear l e, Read e) => String -> ReadPrec l
-linearPrec name = namedPrec name (readZeroPrec +++ readAsList +++ readAsListN)
+linearPrec =  namedPrec (readZeroPrec +++ readAsList +++ readAsListN)
 
 -- | Common 'Linear' and 'Indexed' parser.
 linearIndexedPrec :: (Indexed v i e, Read i, Read e) => String -> ReadPrec v
-linearIndexedPrec name = namedPrec name (readZeroPrec +++ readAsList +++ readAsListN +++ readAssocsPrec)
+linearIndexedPrec =  namedPrec (readZeroPrec +++ readAsList +++ readAsListN +++ readAssocsPrec)
 
 --------------------------------------------------------------------------------
 
@@ -139,11 +139,7 @@ enumFromThenToPrec =  fromList <$> parens' fromThenToPrec_
 expectPrec :: Lexeme -> ReadPrec ()
 expectPrec = lift . expect
 
-{- |
-  manyPrec is just
-  
-  > allPrecWith readPrec
--}
+-- | @allPrec@ is just @'allPrecWith' 'readPrec'@
 allPrec :: (Read e) => ReadPrec [e]
 allPrec =  allPrecWith readPrec
 
@@ -158,9 +154,9 @@ allPrecWith parser = lift (manyTill reader eof)
   where
     reader = readPrec_to_P parser 0
 
--- | @namedPrec name readprec@ is readPrec with optional @name@ prefix.
-namedPrec :: String -> ReadPrec e -> ReadPrec e
-namedPrec name parser = named +++ parser
+-- | @namedPrec readprec name@ is readPrec with optional @name@ prefix.
+namedPrec :: ReadPrec e -> String -> ReadPrec e
+namedPrec parser name = named +++ parser
   where
     named = prec appPrec (expectPrec $ Ident name) >> parser
 
@@ -221,5 +217,4 @@ parens' parser = do
   value <- parser
   expectPrec (Punc "]")
   return value
-
 

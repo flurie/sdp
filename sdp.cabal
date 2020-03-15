@@ -574,6 +574,8 @@ benchmark bench-sort
     SDP.Internal.Commons
     SDP.Internal.SArray
     SDP.Internal.SBytes
+    SDP.Internal.Read
+    SDP.Internal.Show
     
     SDP.Tuple
   

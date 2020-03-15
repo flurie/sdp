@@ -41,6 +41,8 @@ import GHC.Base     ( Int (..) )
 import qualified GHC.Exts as E
 import Data.String ( IsString (..) )
 
+import Data.Bifunctor
+
 import SDP.Array.ST
 
 import SDP.Internal.Commons
@@ -135,7 +137,7 @@ instance (Index i, Read i, Read e) => Read (Array i e)
 
 instance (Index i) => Functor (Array i)
   where
-    fmap f (Array l u arr#) = Array l u $ f <$> arr#
+    fmap f (Array l u arr#) = Array l u (f <$> arr#)
 
 instance (Index i) => Zip (Array i)
   where
@@ -199,36 +201,24 @@ instance (Index i) => Linear (Array i e) e
   where
     isNull = null
     
-    lzero = withBounds Z
-    
-    toHead e es = withBounds (e :> unpack es)
-    
-    head es = isNull es ? pfailEx "(:>)" $ es !^ 0
-    
-    -- | O(1) 'tail', O(1) memory.
-    tail Z  = pfailEx "(:>)"
-    tail es = withBounds . tail $ unpack es
-    
-    toLast es e = withBounds (unpack es :< e)
-    
-    last es = isNull es ? pfailEx "(:<)" $ es !^ (sizeOf es - 1)
-    
-    -- | O(1) 'init', O(1) memory.
-    init Z  = pfailEx "(:<)"
-    init es = withBounds . init $ unpack es
-    
-    fromList = fromFoldable
-    
-    fromListN  n = withBounds . fromListN  n
-    fromFoldable = withBounds . fromFoldable
-    
+    lzero  = withBounds Z
     single = withBounds . single
     
-    -- | O(n + m) '++', O(n + m) memory.
-    (Array _ _ xs) ++ (Array _ _ ys) = withBounds $ xs ++ ys
+    toHead e es = withBounds (e :> unpack es)
+    toLast es e = withBounds (unpack es :< e)
     
-    -- | O(n) 'replicate', O(n) memory.
-    replicate n = withBounds . replicate n
+    head es = isNull es ? pfailEx "(:>)" $ es !^ 0
+    last es = isNull es ? pfailEx "(:<)" $ es !^ (sizeOf es - 1)
+    tail es = isNull es ? pfailEx "(:>)" $ (withBounds . tail $ unpack es)
+    init es = isNull es ? pfailEx "(:<)" $ (withBounds . init $ unpack es)
+    
+    fromList  = fromFoldable
+    fromListN = withBounds ... fromListN
+    replicate = withBounds ... replicate
+    
+    fromFoldable = withBounds . fromFoldable
+    
+    (++) = withBounds ... on (++) unpack
     
     listL = listL . unpack
     listR = listR . unpack
@@ -237,6 +227,10 @@ instance (Index i) => Linear (Array i e) e
     concat      = fromList . foldr (flip $ foldr (:)) []
     
     partitions f = fmap fromList . partitions f . listL
+    
+    select   f = select f . unpack
+    extract  f = second withBounds . extract  f . unpack
+    selects fs = second withBounds . selects fs . unpack
 
 instance (Index i) => Split (Array i e) e
   where
@@ -251,6 +245,9 @@ instance (Index i) => Split (Array i e) e
     
     isPrefixOf xs ys = xs .<=. ys && on isPrefixOf unpack xs ys
     isSuffixOf xs ys = xs .<=. ys && on isSuffixOf unpack xs ys
+    
+    prefix p = prefix p . unpack
+    suffix p = suffix p . unpack
 
 instance (Index i) => Bordered (Array i e) i e
   where
@@ -274,10 +271,10 @@ instance (Index i) => Set (Array i e) e
     insertWith f e = withBounds . insertWith f e . unpack
     deleteWith f e = withBounds . deleteWith f e . unpack
     
-    intersectionWith f xs ys = withBounds $ on (intersectionWith f) unpack xs ys
-    unionWith        f xs ys = withBounds $ on (unionWith        f) unpack xs ys
-    differenceWith   f xs ys = withBounds $ on (differenceWith   f) unpack xs ys
-    symdiffWith      f xs ys = withBounds $ on (symdiffWith      f) unpack xs ys
+    intersectionWith f = withBounds ... on (intersectionWith f) unpack
+    unionWith        f = withBounds ... on (unionWith        f) unpack
+    differenceWith   f = withBounds ... on (differenceWith   f) unpack
+    symdiffWith      f = withBounds ... on (symdiffWith      f) unpack
     
     isContainedIn f e = isContainedIn f e . unpack
     lookupLTWith  f o = lookupLTWith  f o . unpack
@@ -361,5 +358,8 @@ done :: STArray s i e -> ST s (Array i e)
 done (STArray l u marr#) = Array l u <$> unsafeFreeze marr#
 
 pfailEx :: String -> a
-pfailEx msg = throw . PatternMatchFail $ "in SDP.Array." ++ msg
+pfailEx =  throw . PatternMatchFail . showString "in SDP.Array."
+
+
+
 

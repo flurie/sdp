@@ -1,11 +1,12 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
+{-# LANGUAGE DefaultSignatures #-}
 
 {- |
     Module      :  SDP.Map
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (imports SDP.Set)
+    Portability :  non-portable (GHC extensions)
   
   @SDP.Map@ provides 'Map' - class for dictionaries.
 -}
@@ -39,23 +40,26 @@ default ()
 -- | Map is class of dictionaries. It's unstable, provisional implementation.
 class (Ord k) => Map m k e | m -> k, m -> e
   where
-    {-# MINIMAL mapAssocs, listMap, unionWith', intersectionWith', differenceWith', unionsWith' #-}
+    {-# MINIMAL (fromSet|mapAssocs), unionWith', intersectionWith', differenceWith' #-}
     
     {-# INLINE fromSet #-}
     -- | fromSet creates map using elements of (correct) 'set' as keys.
     fromSet :: (Set s k) => (k -> e) -> s -> m
-    fromSet f = mapAssocs . fromSet f
+    fromSet =  mapAssocs ... fromSet
     
     -- | mapAssocs creates map from list of 'assocs' @(key, element)@.
     mapAssocs :: [(k, e)] -> m
+    mapAssocs =  both fromSet (flip lookup_) fsts
     
     {-# INLINE toMap #-}
-    -- | toMap creates correct map from any data.
+    -- | toMap creates correct map from arbitrary data.
     toMap :: m -> m
     toMap =  mapAssocs . listMap
     
     -- | listMap is just 'assocs'.
+    default listMap :: (Bordered m k e) => m -> [(k, e)]
     listMap :: m -> [(k, e)]
+    listMap =  assocs
     
     {-# INLINE filterMap #-}
     -- | @filterMap f@ is same as @'mapAssocs' . 'filter' ('uncurry' f) . 'listMap'@
@@ -96,15 +100,15 @@ class (Ord k) => Map m k e | m -> k, m -> e
     {-# INLINE lookup' #-}
     -- | lookup' is lookup with default value.
     lookup' :: e -> k -> m -> e
-    lookup' e k = fromMaybe e . lookup k
+    lookup' e = fromMaybe e ... lookup
     
     {-# INLINE lookup_ #-}
     -- | lookup_ is unsafe lookup, may fail.
     lookup_ :: k -> m -> e
-    lookup_ k = fromJust . lookup k
+    lookup_ =  fromJust ... lookup
     
     {-# INLINE keySet #-}
-    -- | @keySet@ is generic 'keys' (just uses fromList).
+    -- | @keySet@ is generic 'keys'.
     keySet :: (Set s k) => m -> s
     keySet =  fromList . keys
     
@@ -131,12 +135,12 @@ class (Ord k) => Map m k e | m -> k, m -> e
     {-# INLINE lookupLE' #-}
     -- | lookupLE' is just 'lookupLE' for maps.
     lookupLE' :: k -> m -> Maybe (k, e)
-    lookupLE' k me = case lookup k me of {Just e -> Just (k, e); _ -> lookupLT' k me}
+    lookupLE' k me = (,) k <$> lookup k me <|> lookupLT' k me
     
     {-# INLINE lookupGE' #-}
     -- | lookupGE' is just 'lookupGE' for maps.
     lookupGE' :: k -> m -> Maybe (k, e)
-    lookupGE' k me = case lookup k me of {Just e -> Just (k, e); _ -> lookupGT' k me}
+    lookupGE' k me = (,) k <$> lookup k me <|> lookupGT' k me
     
     {- |
       unionWith' is 'groupSetWith' for maps but works with real groups of
@@ -151,8 +155,7 @@ class (Ord k) => Map m k e | m -> k, m -> e
       If @comp x y@ (where @(k1, x) <- mx@, @(k2, y) <- my@, @k1 == k2@) is
       'Nothing', element isn't included to result map.
       
-      Note that diffenenceWith is poorer than a similar function from
-      Data.[Int]Map[.Lazy] (containers), .
+      Note that diffenenceWith is poorer than a similar functions in containers.
     -}
     differenceWith' :: (e -> e -> Maybe e) -> m -> m -> m
     
@@ -163,23 +166,24 @@ class (Ord k) => Map m k e | m -> k, m -> e
     -}
     intersectionWith' :: (e -> e -> e) -> m -> m -> m
     
-    -- | unionsWith' is left fold by unionWith'.
+    -- | unionsWith' is right fold by unionWith'.
     unionsWith' :: (Foldable f) => (e -> e -> e) -> f m -> m
+    unionsWith' =  foldr1 . unionWith'
 
 --------------------------------------------------------------------------------
 
-{-# INLINE union' #-}
 -- | union' is just @unionWith' const@.
+{-# INLINE union' #-}
 union' :: (Map m k e) => m -> m -> m
 union' =  unionWith' const
 
-{-# INLINE intersection' #-}
 -- | intersection' is just @intersectionWith' const@.
+{-# INLINE intersection' #-}
 intersection' :: (Map m k e) => m -> m -> m
 intersection' =  intersectionWith' const
 
-{-# INLINE unions' #-}
 -- | unions is just @unionsWith' const@.
+{-# INLINE unions' #-}
 unions' :: (Map m k e, Foldable f) => f m -> m
 unions' =  unionsWith' const
 
@@ -194,7 +198,7 @@ instance (Ord k) => Map [(k, e)] k e
     
     filterMap f = filter (uncurry f)
     fromSet   f = map (\ e -> (e, f e)) . listL
-    isMapElem k = isContainedIn cmpfst (k, unreachEx  "isMapElem"  )
+    isMapElem k = isContainedIn cmpfst (k, unreachEx    "isMapElem")
     lookupLT' k = lookupLTWith  cmpfst (k, unreachEx "lookupLTWith")
     lookupGT' k = lookupGTWith  cmpfst (k, unreachEx "lookupGTWith")
     lookupLE' k = lookupLEWith  cmpfst (k, unreachEx "lookupLEWith")
@@ -204,29 +208,29 @@ instance (Ord k) => Map [(k, e)] k e
     
     update' upd k e = go
       where
-        go [] = []
         go es@(m@(k', x) : ms) = case k <=> k' of
           EQ -> (k', upd x e) : ms
           LT -> m : go ms
           GT -> es
+        go _ = []
     
-    insert' k e [] = [(k, e)]
     insert' k e es@(m : ms) = case k <=> fst m of
       LT -> m : insert' k e ms
       GT -> (fst m, e) : es
       EQ -> es
+    insert' k e _ = [(k, e)]
     
-    delete' _ [] = []
     delete' k (m : ms) = case k <=> fst m of
       LT -> m : delete' k ms
       GT -> m : ms
       EQ -> ms
+    delete' _ _ = []
     
-    adjust _ _ [] = []
     adjust f k (m@(k', x) : ms) = case k <=> k' of
       LT -> m : adjust f k ms
       EQ -> (k', f x) : ms
       GT -> m : ms
+    adjust _ _ _ = []
     
     unionWith' f xs@((kx, x) : mx) ys@((ky, y) : my) = case kx <=> ky of
       LT -> (kx, x) : unionWith' f mx ys
@@ -246,10 +250,11 @@ instance (Ord k) => Map [(k, e)] k e
       GT -> intersectionWith' f xs my
     intersectionWith' _ _ _ = []
     
-    unionsWith' f = unionWith' f `foldl` Z
+    unionsWith' = (`foldl` Z) . unionWith'
 
 --------------------------------------------------------------------------------
 
 unreachEx :: String -> a
-unreachEx msg = throw . UnreachableException $ "in SDP.Map." ++ msg ++ " (List)"
+unreachEx msg = throw . UnreachableException $ "in SDP.Map." ++ msg ++ " {[(k, e)]}"
+
 

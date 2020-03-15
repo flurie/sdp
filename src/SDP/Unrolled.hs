@@ -44,6 +44,8 @@ import GHC.ST   ( ST  (..) )
 import qualified GHC.Exts as E
 import Data.String ( IsString (..) )
 
+import Data.Bifunctor
+
 import SDP.Unrolled.STUnlist
 import SDP.Unrolled.Unlist
 import SDP.Unrolled.ST
@@ -139,7 +141,7 @@ instance (Index i) => Zip (Unrolled i)
 instance (Index i) => Applicative (Unrolled i)
   where
     pure = single
-    fs <*> es = (<$> es) `concatMap` fs
+    fs <*> es = concatMap (<$> es) fs
 
 --------------------------------------------------------------------------------
 
@@ -170,87 +172,75 @@ instance (Index i) => Traversable (Unrolled i)
 
 instance (Index i) => Linear (Unrolled i e) e
   where
-    lzero = def
-    
     isNull (Unrolled l u es) = isEmpty (l, u) || isNull es
     
+    lzero = def
+    
     toHead e es = withSize (sizeOf es + 1) (e :> unpack es)
-    
-    uncons Z = pfailEx "(:>)"
-    uncons (Unrolled l u es) = (x, sizeOf es < 2 ? Z $ Unrolled l1 u xs)
-      where
-        (x, xs) = uncons es
-        l1 = next (l, u) l
-    
-    head Z  = pfailEx "(:>)"
-    head es = head (unpack es)
-    
-    tail Z = pfailEx "(:>)"
-    tail (Unrolled l u es) = Unrolled l' u $ tail es where l' = next (l, u) l
-    
     toLast es e = withSize (sizeOf es + 1) (unpack es :< e)
     
-    unsnoc Z = pfailEx "(:<)"
-    unsnoc (Unrolled l u es) = (sizeOf es < 2 ? Z $ Unrolled l u1 xs, x)
-      where
-        (xs, x) = unsnoc es
-        u1 = prev (l, u) u
+    head es@(Unrolled _ _ xs) = isNull es ? pfailEx "(:>)" $ head xs
+    last es@(Unrolled _ _ xs) = isNull es ? pfailEx "(:<)" $ last xs
     
-    last Z  = pfailEx "(:<)"
-    last es = last (unpack es)
+    tail Z = pfailEx "(:>)"
+    tail (Unrolled l u es) = Unrolled (next (l, u) l) u (tail es)
     
     init Z = pfailEx "(:<)"
-    init (Unrolled l u es) = Unrolled l u' $ init es where u' = prev (l, u) u
+    init (Unrolled l u es) = Unrolled l (prev (l, u) u) (init es)
+    
+    uncons Z = pfailEx "(:>)"
+    uncons (Unrolled l u es) = (x, es .<= 1 ? Z $ Unrolled (next (l, u) l) u xs)
+      where
+        (x, xs) = uncons es
+    
+    unsnoc Z = pfailEx "(:<)"
+    unsnoc (Unrolled l u es) = (es .<= 1 ? Z $ Unrolled l (prev (l, u) u) xs, x)
+      where
+        (xs, x) = unsnoc es
     
     fromList = withBounds . fromList
     
-    replicate n = withSize n . replicate n
+    replicate n = withSize (max 0 n) . replicate n
+    
+    concat es = foldr' ((+) . sizeOf) 0 es `withSize` foldMap unpack es
+    
+    intersperse _  Z = Z
+    intersperse e es = (2 * sizeOf es - 1) `withSize` intersperse e (unpack es)
     
     Z  ++ ys = ys
     xs ++  Z = xs
-    xs ++ ys = withSize (on (+) sizeOf xs ys) $ on (++) unpack xs ys
-    
-    concat es = withSize n $ foldr ((++) . unpack) Z es
-      where
-        n = foldr' ((+) . sizeOf) 0 es
-    
-    intersperse _  Z = Z
-    intersperse e es = withSize (2 * sizeOf es - 1) $ intersperse e (unpack es)
+    xs ++ ys = on (+) sizeOf xs ys `withSize` on (++) unpack xs ys
     
     listL = listL . unpack
     listR = listR . unpack
     
-    partitions ps = fmap fromList . partitions ps . toList
+    partitions ps = fmap fromList . partitions ps . listL
+    
+    select   f = select f . unpack
+    extract  f = second withBounds . extract  f . unpack
+    selects fs = second withBounds . selects fs . unpack
 
 instance (Index i) => Split (Unrolled i e) e
   where
     take n xs@(Unrolled l _ es)
-      |   n < 1  = Z
+      |  n <= 0  = Z
       | n >=. xs = xs
-      |   True   = Unrolled l u' (take n es)
-        where
-          u' = indexOf xs (n - 1)
+      |   True   = Unrolled l (indexOf xs (n - 1)) (take n es)
     
     drop n xs@(Unrolled _ u es)
-      |   n < 1  = xs
+      |  n <= 0  = xs
       | n >=. xs = Z
-      |   True   = Unrolled l' u (drop n es)
-        where
-          l' = indexOf xs n
+      |   True   = Unrolled (indexOf xs n) u (drop n es)
     
     keep n xs@(Unrolled _ u es)
       |  n <= 0  = Z
       | n >=. xs = xs
-      |   True   = Unrolled l' u (keep n es)
-        where
-          l' = indexOf xs (n - 1)
+      |   True   = Unrolled (indexOf xs (n - 1)) u (keep n es)
     
     sans n xs@(Unrolled l _ es)
       |  n <= 0  = xs
       | n >=. xs = Z
-      |   True   = Unrolled l u' (sans n es)
-        where
-          u' = indexOf xs (sizeOf xs - n - 1)
+      |   True   = Unrolled l (indexOf xs (sizeOf xs - n - 1)) (sans n es)
     
     isPrefixOf = on isPrefixOf unpack
     isSuffixOf = on isSuffixOf unpack
@@ -261,14 +251,13 @@ instance (Index i) => Split (Unrolled i e) e
 
 instance (Index i) => Bordered (Unrolled i e) i e
   where
-    indexIn (Unrolled l u _) = inRange (l, u)
-    indexOf (Unrolled l u _) = index (l, u)
-    sizeOf  (Unrolled l u _) = size (l, u)
-    bounds  (Unrolled l u _) = (l, u)
-    lower   (Unrolled l _ _) = l
-    upper   (Unrolled _ u _) = u
-    
+    indexIn  (Unrolled l u _) = inRange (l, u)
     offsetOf (Unrolled l u _) = offset (l, u)
+    indexOf  (Unrolled l u _) = index (l, u)
+    sizeOf   (Unrolled l u _) = size (l, u)
+    bounds   (Unrolled l u _) = (l, u)
+    lower    (Unrolled l _ _) = l
+    upper    (Unrolled _ u _) = u
 
 --------------------------------------------------------------------------------
 
@@ -278,11 +267,10 @@ instance (Index i) => Set (Unrolled i e) e
   where
     setWith f = withBounds . setWith f . unpack
     
-    intersectionWith f xs ys = withBounds $ on (intersectionWith f) unpack xs ys
-    unionWith        f xs ys = withBounds $ on (unionWith        f) unpack xs ys
-    
-    differenceWith f xs ys = withBounds $ on (differenceWith f) unpack xs ys
-    symdiffWith    f xs ys = withBounds $ on (symdiffWith    f) unpack xs ys
+    intersectionWith f = withBounds ... on (intersectionWith f) unpack
+    unionWith        f = withBounds ... on (unionWith        f) unpack
+    differenceWith   f = withBounds ... on (differenceWith   f) unpack
+    symdiffWith      f = withBounds ... on (symdiffWith      f) unpack
     
     insertWith f e = withBounds . insertWith f e . unpack
     deleteWith f e = withBounds . deleteWith f e . unpack
@@ -376,5 +364,7 @@ withSize :: (Index i) => Int -> Unlist e -> Unrolled i e
 withSize =  uncurry Unrolled . defaultBounds
 
 pfailEx :: String -> a
-pfailEx msg = throw . PatternMatchFail $ "in SDP.Unrolled." ++ msg
+pfailEx =  throw . PatternMatchFail . showString "in SDP.Unrolled."
+
+
 

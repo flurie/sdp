@@ -65,7 +65,7 @@ class (Monad m, Index i) => BorderedM m b i e | b -> m, b -> i, b -> e
     -- | getIndxeOf is 'indexOf' version for mutable data structures.
     {-# INLINE getIndexOf #-}
     getIndexOf :: b -> i -> m Bool
-    getIndexOf =  flip $ \ i -> fmap (`inRange` i) . getBounds
+    getIndexOf =  \ bs i -> (`inRange` i) <$> getBounds bs
     
     -- | getIndices returns 'indices' of mutable data structure.
     {-# INLINE getIndices #-}
@@ -104,12 +104,12 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     -- | Create new mutable line from list.
     {-# INLINE newLinear #-}
     newLinear :: [e] -> m l
-    newLinear es = newLinearN (length es) es
+    newLinear =  both newLinearN length id
     
     -- | Create new mutable line from limited list.
     {-# INLINE newLinearN #-}
     newLinearN :: Int -> [e] -> m l
-    newLinearN n = newLinear . take n
+    newLinearN =  newLinear ... take
     
     -- | Create new mutable line from foldable structure.
     {-# INLINE fromFoldableM #-}
@@ -128,7 +128,7 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     
     -- | Create copy of structure.
     copied :: l -> m l
-    copied es = getLeft es >>= newLinear
+    copied =  getLeft >=> newLinear
     
     -- | @copied' es begin count@ return the slice of line.
     copied' :: l -> Int -> Int -> m l
@@ -155,10 +155,6 @@ type BorderedM2 m l i e = BorderedM m (l i e) i e
 
 -- | sortedM is a procedure that checks for sorting.
 sortedM :: (LinearM m l e, Ord e) => l -> m Bool
-sortedM =  fmap f . getLeft
-  where
-    f Z  = True
-    f es = and $ zipWith (<=) es (tail es)
-
+sortedM =  fmap (\ es -> null es || and (zipWith (<=) es (tail es))) . getLeft
 
 

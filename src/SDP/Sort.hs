@@ -24,8 +24,6 @@ import SDP.SafePrelude
 
 import qualified Data.List as L
 
-import Data.Function ( on )
-
 default ()
 
 --------------------------------------------------------------------------------
@@ -50,26 +48,18 @@ sort :: (Sort s e, Ord e) => s -> s
 sort =  sortBy compare
 
 -- | Sort by comparing the results of a key function applied to each element.
-sortOn   :: (Sort s e, Ord o) => (e -> o) -> s -> s
-sortOn f =  sortBy (compare `on` f)
+sortOn :: (Sort s e, Ord o) => (e -> o) -> s -> s
+sortOn =  sortBy . comparing
 
 -- | mathsort is just synonym for @mathsortBy compare@
 mathsort :: (Sort s e, Ord e) => s -> s
 mathsort =  mathsortBy compare
 
 -- | Math sort by comparing the results of a key function applied to each element.
-mathsortOn   :: (Sort s e, Ord o) => (e -> o) -> s -> s
-mathsortOn f =  mathsortBy (compare `on` f)
+mathsortOn :: (Sort s e, Ord o) => (e -> o) -> s -> s
+mathsortOn =  mathsortBy . comparing
 
 --------------------------------------------------------------------------------
 
-instance Sort [a] a
-  where
-    sortBy = L.sortBy
-    
-    mathsortBy f = L.concat . sortBy (on f L.head) . split
-      where
-        split xs = null xs ? [] $ (\ (y, ys) -> y : split ys) res
-          where
-            res = L.partition ((== EQ) . (L.head xs `f`)) xs
+instance Sort [a] a where sortBy = L.sortBy
 

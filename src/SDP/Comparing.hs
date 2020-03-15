@@ -49,19 +49,19 @@ type Compare e = e -> e -> Ordering
 
 -- | Compare tuples by first elements.
 eqfst :: (Eq e) => Equal (e, s)
-eqfst = on (==) fst
+eqfst =  (==) `on` fst
 
 -- | Compare tuples by second elements.
 eqsnd :: (Eq e) => Equal (f, e)
-eqsnd = on (==) snd
+eqsnd =  (==) `on` snd
 
 -- | Compare tuples by first elements.
 cmpfst :: (Ord o) => Compare (o, s)
-cmpfst = (compare `on` fst)
+cmpfst =  comparing fst
 
 -- | Compare tuples by second elements.
 cmpsnd :: (Ord o) => Compare (f, o)
-cmpsnd = (compare `on` snd)
+cmpsnd =  comparing snd
 
 -- | Common compare combinator
 invertcmp :: Compare e -> Compare e

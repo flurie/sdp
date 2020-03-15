@@ -40,6 +40,8 @@ import GHC.Base ( Int (..) )
 
 import Data.String ( IsString (..) )
 
+import Data.Bifunctor
+
 import SDP.Unrolled.STUnlist
 import SDP.SortM.Tim
 
@@ -158,7 +160,7 @@ instance Zip Unlist
 instance Applicative Unlist
   where
     pure = single
-    fs <*> es = (<$> es) `concatMap` fs
+    fs <*> es = concatMap (<$> es) fs
 
 --------------------------------------------------------------------------------
 
@@ -222,6 +224,11 @@ instance Linear (Unlist e) e
     reverse = fromList . i_foldl (flip (:)) []
     
     partition p = uncurry ((,) `on` fromList) . partition p . listL
+    
+    select  f (Unlist es) = concatMap (select f) es
+    extract f (Unlist es) = bimap concat Unlist . unzip $ extract f <$> es
+    
+    selects fs = second fromList . selects fs . listL
 
 instance Split (Unlist e) e
   where
@@ -241,9 +248,9 @@ instance Split (Unlist e) e
           EQ -> xs
         drop' _ _ = Z
     
-    isInfixOf  xs ys = listL xs `isInfixOf` listL ys
-    isPrefixOf xs ys = sizeOf xs `take` ys == xs
-    isSuffixOf xs ys = sizeOf xs `keep` ys == xs
+    isPrefixOf xs ys = xs == take (sizeOf xs) ys
+    isSuffixOf xs ys = xs == keep (sizeOf xs) ys
+    isInfixOf = on isInfixOf listL
     
     prefix p = i_foldr (\ e c -> p e ? c + 1 $ 0) 0
     suffix p = i_foldl (\ c e -> p e ? c + 1 $ 0) 0
@@ -282,76 +289,15 @@ instance Set (Unlist e) e
         go f e (x : xs) = isContainedIn f e x ? deleteWith f e x : xs $ x : go f e xs
         go _ _ _ = []
     
-    intersectionWith f xs ys = fromList $ on (intersectionWith f) listL xs ys
+    intersectionWith f = fromList ... on (intersectionWith f) listL
+    unionWith        f = fromList ... on (unionWith        f) listL
+    differenceWith   f = fromList ... on (differenceWith   f) listL
+    symdiffWith      f = fromList ... on (symdiffWith      f) listL
     
-    unionWith f xs ys = fromList $ on (unionWith f) listL xs ys
-    
-    differenceWith f xs ys = fromList $ on (differenceWith f) listL xs ys
-    
-    symdiffWith f xs ys = fromList $ on (symdiffWith f) listL xs ys
-    
-    lookupLTWith _ _ Z  = Nothing
-    lookupLTWith f o es
-        | GT <- o `f` last' = Just last'
-        | GT <- o `f` head' = look' head' 0 (upper es)
-        |       True        = Nothing
-      where
-        head' = es !^ 0
-        last' = es !^ upper es
-        
-        look' r l u = if l > u then Just r else case o `f` e of
-            LT -> look' r l (j - 1)
-            EQ -> Just (j < 1 ? r $ es !^ (j - 1))
-            GT -> look' e (j + 1) u
-          where
-            j = center l u; e = es !^ j
-    
-    lookupLEWith _ _ Z  = Nothing
-    lookupLEWith f o es
-        | GT <- o `f` last' = Just last'
-        | LT <- o `f` head' = Nothing
-        |       True        = look' head' 0 (upper es)
-      where
-        head' = es !^ 0
-        last' = es !^ upper es
-        
-        look' r l u = if l > u then Just r else case o `f` e of
-            LT -> look' r l (j - 1)
-            _  -> look' e (j + 1) u
-          where
-            j = center l u; e = es !^ j
-    
-    lookupGTWith _ _ Z  = Nothing
-    lookupGTWith f o es
-        | LT <- o `f` head' = Just head'
-        | LT <- o `f` last' = look' last' 0 (upper es)
-        |       True        = Nothing
-      where
-        head' = es !^ 0
-        last' = es !^ upper es
-        
-        look' r l u = if l > u then Just r else case o `f` e of
-            LT -> look' e l (j - 1)
-            EQ -> (j + 1) >=. es ? Nothing $ Just (es !^ (j + 1))
-            GT -> look' r (j + 1) u
-          where
-            j = center l u; e = es !^ j
-    
-    lookupGEWith _ _ Z  = Nothing
-    lookupGEWith f o es
-        | GT <- o `f` last' = Nothing
-        | GT <- o `f` head' = look' last' 0 (upper es)
-        |       True        = Just head'
-      where
-        head' = es !^ 0
-        last' = es !^ upper es
-        
-        look' r l u = if l > u then Just r else case o `f` e of
-            LT -> look' e l (j - 1)
-            EQ -> Just e
-            GT -> look' r (j + 1) u
-          where
-            j = center l u; e = es !^ j
+    lookupLTWith f o = foldr ((<|>) . lookupLTWith f o) Nothing . unpack'
+    lookupLEWith f o = foldr ((<|>) . lookupLEWith f o) Nothing . unpack'
+    lookupGTWith f o = foldr ((<|>) . lookupGTWith f o) Nothing . unpack'
+    lookupGEWith f o = foldr ((<|>) . lookupGEWith f o) Nothing . unpack'
     
     isContainedIn = binaryContain
     
@@ -434,11 +380,7 @@ done :: STUnlist s e -> ST s (Unlist e)
 done =  freeze
 
 unpack' :: Unlist e -> [SArray# e]
-unpack' =  \ (Unlist es) -> filter (not . isNull) es
-
-{-# INLINE center #-}
-center :: Int -> Int -> Int
-center l u = l + (u - l) `div` 2
+unpack' =  \ (Unlist es) -> except isNull es
 
 {-# INLINE nubSorted #-}
 nubSorted :: Compare e -> Unlist e -> Unlist e
@@ -446,10 +388,8 @@ nubSorted f (xs :< x) = fromList $ i_foldr (\ e ls@(l : _) -> e `f` l == EQ ? ls
 nubSorted _ _ = Z
 
 pfailEx :: String -> a
-pfailEx msg = throw . PatternMatchFail $ "in SDP.Unrolled.Unlist." ++ msg
+pfailEx =  throw . PatternMatchFail . showString "in SDP.Unrolled.Unlist."
 
 lim :: Int
 lim =  1024
-
-
 

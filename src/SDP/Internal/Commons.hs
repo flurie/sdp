@@ -15,15 +15,17 @@ module SDP.Internal.Commons
   
   Bounded (..), Enum (..),
   
-  (...), fst, snd, fsts, snds,
+  fst, snd, fsts, snds, both,
   
-  (?>), bindM2, bindM3, bindM4
+  (?>), bindM2, bindM3, bindM4, (>>=>), (<=<<)
 )
 
 where
 
+import Prelude ()
+import SDP.SafePrelude
+
 import Control.Exception.SDP
-import Control.Monad
 
 import Data.Function
 import Data.Default
@@ -32,14 +34,7 @@ import Data.Bool
 import Data.Ord
 import Data.Eq
 
-infixr 9 ...
-
 default ()
-
---------------------------------------------------------------------------------
-
-(...) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
-f ... g = \ a b -> f (g a b)
 
 --------------------------------------------------------------------------------
 
@@ -48,6 +43,9 @@ fsts =  fmap fst
 
 snds :: (Functor f) => f (a, b) -> f b
 snds =  fmap snd
+
+both :: (b -> c -> d) -> (a -> b) -> (a -> c) -> a -> d
+both =  \ f g h a -> g a `f` h a
 
 --------------------------------------------------------------------------------
 
@@ -66,5 +64,12 @@ bindM3 ma mb mc kl3 = join $ liftM3 kl3 ma mb mc
 -- Composition of liftM4 and (>>=).
 bindM4 :: (Monad m) => m a -> m b -> m c -> m d -> (a -> b -> c -> d -> m e) -> m e
 bindM4 ma mb mc md kl4 = join $ liftM4 kl4 ma mb mc md
+
+(>>=>) :: (Monad m) => (a -> b -> m c) -> (c -> m d) -> a -> b -> m d
+k1 >>=> k2 = (>=> k2) . k1
+
+(<=<<) :: (Monad m) => (c -> m d) -> (a -> b -> m c) -> a -> b -> m d
+k2 <=<< k1 = (>>= k2) ... k1
+
 
 

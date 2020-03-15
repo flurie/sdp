@@ -33,6 +33,7 @@ import GHC.ST   ( ST  (..) )
 import SDP.SortM
 import SDP.SortM.Tim
 
+import SDP.Internal.Commons
 import SDP.Internal.SBytes
 
 default ()
@@ -67,21 +68,21 @@ instance (Index i, Unboxed e) => BorderedM (ST s) (STBytes s i e) i e
 
 instance (Index i, Unboxed e) => LinearM (ST s) (STBytes s i e) e
   where
-    prepend e (STBytes _ _ mbytes#) = withBounds =<< prepend e mbytes#
-    append  (STBytes _ _ mbytes#) e = withBounds =<< append  mbytes# e
+    prepend e = withBounds <=< prepend e . unpack
+    append    = (withBounds <=<< append) . unpack
     
-    newLinear  = fromFoldableM
-    filled n e = filled n e >>= withBounds
+    newLinear     = fromFoldableM
+    newLinearN    = newLinearN   >>=> withBounds
+    fromFoldableM = fromFoldableM >=> withBounds
     
-    newLinearN  n es = newLinearN  n es >>= withBounds
-    fromFoldableM es = fromFoldableM es >>= withBounds
+    getLeft  = getLeft  . unpack
+    getRight = getRight . unpack
     
-    getLeft  (STBytes _ _ mbytes#) = getLeft  mbytes#
-    getRight (STBytes _ _ mbytes#) = getRight mbytes#
     reversed (STBytes l u mbytes#) = STBytes l u <$> reversed mbytes#
+    copied   (STBytes l u mbytes#) = STBytes l u <$> copied mbytes#
+    copied'  (STBytes _ _ mbytes#) = copied' mbytes# >>=> withBounds
     
-    copied  (STBytes l u mbytes#) = STBytes l u <$> copied mbytes#
-    copied' (STBytes _ _ mbytes#) = \ o c -> copied' mbytes# o c >>= withBounds
+    filled = filled >>=> withBounds
 
 --------------------------------------------------------------------------------
 
@@ -100,13 +101,13 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STBytes s i e) i e
         ies     = [ (offset bs i, e) | (i, e) <- ascs, inRange bs i ]
     
     {-# INLINE (!#>) #-}
-    (!#>) (STBytes _ _ mbytes#) = (mbytes# !#>)
+    (!#>) = (!#>) . unpack
     
     {-# INLINE (>!) #-}
     (>!) (STBytes l u mbytes#) = (mbytes# !#>) . offset (l, u)
     
     {-# INLINE writeM_ #-}
-    writeM_ (STBytes _ _ mbytes#) = writeM_ mbytes#
+    writeM_ = writeM_ . unpack
     
     {-# INLINE writeM #-}
     writeM (STBytes l u mbytes#) = writeM mbytes# . offset (l, u)
@@ -115,16 +116,16 @@ instance (Index i, Unboxed e) => IndexedM (ST s) (STBytes s i e) i e
       where
         ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
     
-    fromIndexed' es = fromIndexed' es >>= withBounds
-    fromIndexedM es = fromIndexedM es >>= withBounds
+    fromIndexed' = fromIndexed' >=> withBounds
+    fromIndexedM = fromIndexedM >=> withBounds
 
 instance (Index i, Unboxed e) => IFoldM (ST s) (STBytes s i e) i e
   where
     ifoldrM f base = \ (STBytes l u mbytes#) -> ifoldrM (f . index (l, u)) base mbytes#
     ifoldlM f base = \ (STBytes l u mbytes#) -> ifoldlM (f . index (l, u)) base mbytes#
     
-    i_foldrM f base = \ (STBytes _ _ mbytes#) -> i_foldrM f base mbytes#
-    i_foldlM f base = \ (STBytes _ _ mbytes#) -> i_foldlM f base mbytes#
+    i_foldrM f base = i_foldrM f base . unpack
+    i_foldlM f base = i_foldlM f base . unpack
 
 instance (Index i, Unboxed e) => SortM (ST s) (STBytes s i e) e where sortMBy = timSortBy
 
@@ -135,6 +136,10 @@ withBounds :: (Index i, Unboxed e) => STBytes# s e -> ST s (STBytes s i e)
 withBounds marr# = do
   (l, u) <- defaultBounds <$> getSizeOf marr#
   return (STBytes l u marr#)
+
+unpack :: STBytes s i e -> STBytes# s e
+unpack =  \ (STBytes _ _ bytes#) -> bytes#
+
 
 
 

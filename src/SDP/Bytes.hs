@@ -43,6 +43,8 @@ import GHC.Base ( Int (..) )
 import qualified GHC.Exts as E
 import Data.String ( IsString (..) )
 
+import Data.Bifunctor
+
 import SDP.Bytes.ST
 
 import SDP.Internal.Commons
@@ -65,7 +67,7 @@ type role Bytes nominal representational
 
 instance (Index i, Unboxed e) => Eq (Bytes i e)
   where
-    xs == ys = on (==) unpack xs ys
+    (==) = on (==) unpack
 
 instance (Index i, Unboxed e, Ord e) => Ord (Bytes i e)
   where
@@ -79,7 +81,7 @@ instance (Index i, Unboxed e) => Semigroup (Bytes i e) where (<>) = (++)
 instance (Index i, Unboxed e) => Monoid    (Bytes i e) where mempty = Z
 instance (Index i, Unboxed e) => Default   (Bytes i e)
   where
-    def = let (l, u) = defaultBounds 0 in Bytes l u def
+    def = Bytes l u def where (l, u) = defaultBounds 0
 
 instance (Index i, Unboxed e, Arbitrary e) => Arbitrary (Bytes i e)
   where
@@ -132,36 +134,24 @@ instance (Index i, Unboxed e) => Linear (Bytes i e) e
   where
     isNull = isNull . unpack
     
-    lzero = withBounds Z
-    
-    toHead e es = withBounds $ e :> unpack es
-    
-    head es = isNull es ? pfailEx "(:>)" $ es !^ 0
-    
-    -- | O(1) 'tail', O(1) memory.
-    tail Z = pfailEx "(:>)"
-    tail (Bytes _ _ es) = withBounds (tail es)
-    
-    toLast es e = withBounds (unpack es :< e)
-    
-    last es = isNull es ? pfailEx "(:<)" $ es !^ (sizeOf es - 1)
-    
-    -- | O(1) 'init', O(1) memory.
-    init Z = pfailEx "(:<)"
-    init (Bytes _ _ es) = withBounds (init es)
-    
-    fromList = fromFoldable
-    
-    fromListN  n = withBounds . fromListN  n
-    fromFoldable = withBounds . fromFoldable
-    
+    lzero  = withBounds Z
     single = withBounds . single
     
-    -- | O(n + m) '++', O(n + m) memory.
-    xs ++ ys = withBounds $ on (++) unpack xs ys
+    toHead e es = withBounds (e :> unpack es)
+    toLast es e = withBounds (unpack es :< e)
     
-    -- | O(n) 'replicate', O(n) memory.
-    replicate n = withBounds . replicate n
+    head es = isNull es ? pfailEx "(:>)" $ es !^ 0
+    last es = isNull es ? pfailEx "(:<)" $ es !^ (sizeOf es - 1)
+    tail es = isNull es ? pfailEx "(:>)" $ (withBounds . tail $ unpack es)
+    init es = isNull es ? pfailEx "(:<)" $ (withBounds . init $ unpack es)
+    
+    fromList  = fromFoldable
+    fromListN = withBounds ... fromListN
+    replicate = withBounds ... replicate
+    
+    fromFoldable = withBounds . fromFoldable
+    
+    (++) = withBounds ... on (++) unpack
     
     listL = listL . unpack
     listR = listR . unpack
@@ -170,6 +160,10 @@ instance (Index i, Unboxed e) => Linear (Bytes i e) e
     concat      = fromList . foldr (flip $ i_foldr (:)) []
     
     partitions f = fmap fromList . partitions f . listL
+    
+    select   f = select f . unpack
+    extract  f = second withBounds . extract  f . unpack
+    selects fs = second withBounds . selects fs . unpack
 
 instance (Index i, Unboxed e) => Split (Bytes i e) e
   where
@@ -183,11 +177,10 @@ instance (Index i, Unboxed e) => Split (Bytes i e) e
     parts  ns = fmap withBounds . parts  ns . unpack
     
     isPrefixOf xs ys = xs .<=. ys && on isPrefixOf unpack xs ys
-    
     isSuffixOf xs ys = xs .<=. ys && on isSuffixOf unpack xs ys
     
-    prefix p = i_foldr (\ e c -> p e ? c + 1 $ 0) 0
-    suffix p = i_foldl (\ c e -> p e ? c + 1 $ 0) 0
+    prefix p = prefix p . unpack
+    suffix p = suffix p . unpack
 
 instance (Index i, Unboxed e) => Bordered (Bytes i e) i e
   where
@@ -211,11 +204,10 @@ instance (Index i, Unboxed e) => Set (Bytes i e) e
     insertWith f e = withBounds . insertWith f e . unpack
     deleteWith f e = withBounds . deleteWith f e . unpack
     
-    intersectionWith f xs ys = withBounds $ on (intersectionWith f) unpack xs ys
-    unionWith        f xs ys = withBounds $ on (unionWith        f) unpack xs ys
-    
-    differenceWith f xs ys = withBounds $ on (differenceWith f) unpack xs ys
-    symdiffWith    f xs ys = withBounds $ on (differenceWith f) unpack xs ys
+    intersectionWith f = withBounds ... on (intersectionWith f) unpack
+    unionWith        f = withBounds ... on (unionWith        f) unpack
+    differenceWith   f = withBounds ... on (differenceWith   f) unpack
+    symdiffWith      f = withBounds ... on (symdiffWith      f) unpack
     
     isContainedIn f e = isContainedIn f e . unpack
     lookupLTWith  f o = lookupLTWith  f o . unpack
@@ -305,6 +297,9 @@ done :: (Unboxed e) => STBytes s i e -> ST s (Bytes i e)
 done (STBytes l u es) = Bytes l u <$> unsafeFreeze es
 
 pfailEx :: String -> a
-pfailEx msg = throw . PatternMatchFail $ "in SDP.Bytes." ++ msg
+pfailEx =  throw . PatternMatchFail . showString "in SDP.Bytes."
+
+
+
 
 

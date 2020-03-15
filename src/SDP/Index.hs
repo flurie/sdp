@@ -159,12 +159,12 @@ class (Ord i) => Index i
     -- | Returns bounds of nonempty range.
     {-# INLINE ordBounds #-}
     ordBounds :: (i, i) -> (i, i)
-    ordBounds = \ bnds -> isEmpty bnds ? swap bnds $ bnds
+    ordBounds = \ bs -> isEmpty bs ? swap bs $ bs
     
     -- | Size of biggest range, that may be created by 'defaultBounds'.
     default defLimit :: (Bounded (DimLast i), Integral i, Bounded i) => i -> Integer
     defLimit :: i -> Integer
-    defLimit i = (toInteger $ maxBound `asTypeOf` i) + 1
+    defLimit i = toInteger (maxBound `asTypeOf` i) + 1
     
     -- | Returns default range by size.
     {-# INLINE defaultBounds #-}
@@ -346,14 +346,13 @@ instance (Index i, Enum i, Bounded i) => Index (E :& i)
     fromGIndex = id
     toGIndex   = id
     
-    defLimit = f undefined
+    defLimit = lim undefined
       where
-        f :: (Index i) => i -> (E :& i) -> Integer
-        f =  const . defLimit
+        lim = const . defLimit :: (Index i) => i -> (E :& i) -> Integer
     
     rank = const 1
     
-    size  = \ ([l], [u]) -> size  (l, u)
+    size  = \ ([l], [u]) ->  size (l, u)
     sizes = \ ([l], [u]) -> [size (l, u)]
     range = \ ([l], [u]) -> [ [i] | i <- range (l, u) ]
     
@@ -384,15 +383,14 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
     fromGIndex = id
     toGIndex   = id
     
-    defLimit i = f (error "in defLimit") (rank i) i
+    defLimit i = lim (error "in defLimit") (rank i) i
       where
-        f :: (Index i) => i -> Int -> (i' :& i) -> Integer
-        f u = const . (^) (defLimit u)
+        lim :: (Index i) => i -> Int -> (i' :& i) -> Integer
+        lim =  const ... (^) . defLimit
     
-    rank = f undefined
+    rank = rnk undefined
       where
-        f :: (Index i') => i' -> (i' :& i) -> Int
-        f =  const . succ . rank
+        rnk = const . succ . rank :: (Index i') => i' -> (i' :& i) -> Int
     
     size  (ls :& l, us :& u) = size (l, u) * size (ls, us)
     sizes (ls :& l, us :& u) = sizes (ls, us) ++ sizes (l, u)
@@ -429,12 +427,12 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
     ordBounds (ls :& l, us :& u) = (ls' :& l', us' :& u')
       where
         (ls', us') = ordBounds (ls, us)
-        (l', u')   = ordBounds (l, u)
+        (l',   u') = ordBounds (l,   u)
     
     index bnds@(ls :& l, us :& u) c = checkBounds (0, size bnds - 1) c res err
       where
-        (cs, i) = divMod c $ size (l, u)
-        res = index (ls, us) cs :& (unsafeIndex i)
+        (cs, i) = c `divMod` size (l, u)
+        res = index (ls, us) cs :& unsafeIndex i
         err = "index (n-dimensional)"
     
     offset bnds ix@(is :& i) = checkBounds bnds ix res "offset (n-dimensional)"
@@ -552,12 +550,12 @@ toGIndex       (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o) =  [a,b,c,d,e,f,g,h,i,j,k,l,m,n,o
 -- | Convert any index type bounds to generalized index bounds.
 {-# INLINE toGBounds #-}
 toGBounds :: (Index i) => (i, i) -> (GIndex i, GIndex i)
-toGBounds =  uncurry (on (,) toGIndex)
+toGBounds =  uncurry $ on (,) toGIndex
 
 -- | Convert generalized index bounds to any index type bounds.
 {-# INLINE fromGBounds #-}
 fromGBounds :: (Index i) => (GIndex i, GIndex i) -> (i, i)
-fromGBounds =  uncurry (on (,) fromGIndex)
+fromGBounds =  uncurry $ on (,) fromGIndex
 
 --------------------------------------------------------------------------------
 
@@ -572,7 +570,7 @@ intOffset bnds@(l, _) i = checkBounds bnds i (fromEnum i - fromEnum l) "offset (
 -- | Default 'defaultBounds' for unsigned types.
 {-# INLINE defUB #-}
 defUB :: (Index i, Bounded i) => Int -> (i, i)
-defUB n = n < 1 ? (unsafeIndex 1, unsafeIndex 0) $ (unsafeIndex 0, unsafeIndex $ n - 1)
+defUB n = n < 1 ? ub 1 0 $ ub 0 (n - 1) where ub = on (,) unsafeIndex
 
 -- | Check bounds and 'throw' 'IndexException' if needed.
 checkBounds :: (Index i) => (i, i) -> i -> res -> String -> res
@@ -583,8 +581,5 @@ checkBounds bnds i res msg = case inBounds bnds i of
   IN -> res
 
 emptyEx :: String -> a
-emptyEx =  throw . EmptyRange . ("in SDP.Index." ++)
-
-
-
+emptyEx =  throw . EmptyRange . showString "in SDP.Index."
 

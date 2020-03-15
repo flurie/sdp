@@ -71,10 +71,10 @@ class Estimate e
 
 instance Estimate [a]
   where
-    []       <==>       [] = EQ
-    _        <==>       [] = GT
-    []       <==>        _ = LT
-    (_ : xs) <==> (_ : ys) = xs <==> ys
+    [] <==> [] = EQ
+    [] <==>  _ = LT
+    _  <==> [] = GT
+    xs <==> ys = tail xs <==> tail ys
     
     [] <.=> n = 0 <=> n
     es <.=> n = if n < 0 then LT else go es n

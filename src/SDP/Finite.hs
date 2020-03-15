@@ -35,6 +35,7 @@ where
 import Prelude ( (++) )
 import SDP.SafePrelude
 
+import Data.Bifunctor
 import Data.Default
 
 import Test.QuickCheck
@@ -76,8 +77,8 @@ instance (Arbitrary i, Arbitrary i') => Arbitrary (i' :& i)
 
 instance (Enum i) => Enum (E :& i)
   where
-    succ = \ [e] -> [e]
-    pred = \ [e] -> [e]
+    succ = \ [e] -> [succ e]
+    pred = \ [e] -> [pred e]
     
     toEnum   = \  n  -> [toEnum n]
     fromEnum = \ [e] -> fromEnum e
@@ -198,8 +199,7 @@ ind15 a b c d e f g h i j k l m n o = [a,b,c,d,e,f,g,h,i,j,k,l,m,n,o]
 --------------------------------------------------------------------------------
 
 unsnoc :: [i] -> ([i], i)
-unsnoc    [ ]   = throw $ UnexpectedRank "in SDP.Finite.fromList"
 unsnoc    [i]   = ([], i)
-unsnoc (i : is) = (\ (is', i') -> (i : is', i')) $ unsnoc is
-
+unsnoc (i : is) = (i :) `first` unsnoc is
+unsnoc     _    = throw $ UnexpectedRank "in SDP.Finite.fromList"
 
