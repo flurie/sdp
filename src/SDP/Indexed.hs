@@ -104,7 +104,7 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
     -- | (!^) is completely unsafe reader. Must work as fast, as possible.
     default (!^) :: (Bordered v i e) => v -> Int -> e
     (!^) :: v -> Int -> e
-    (!^) =  both (.) (.!) indexOf
+    (!^) es = (es .!) . indexOf es
     
     -- | (.!) is unsafe reader, but on bit faster of ('!').
     {-# INLINE (.!) #-}
@@ -217,7 +217,7 @@ instance Indexed [e] Int e
     (x : xs) !? n = case n <=> 0 of {LT -> Nothing; EQ -> Just x; GT -> xs !? (n - 1)}
     _        !? _ = Nothing
     
-    fromIndexed = both fmap (!) indices
+    fromIndexed es = (es !) <$> indices es
     
     xs // es = snds $ unionWith cmpfst (assocs xs) (setWith cmpfst es)
     

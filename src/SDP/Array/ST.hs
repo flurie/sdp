@@ -67,8 +67,8 @@ instance (Index i) => BorderedM (ST s) (STArray s i e) i e
 
 instance (Index i) => LinearM (ST s) (STArray s i e) e
   where
-    prepend e = withBounds <=< prepend e . unpack
-    append    = (withBounds <=<< append) . unpack
+    prepend e es = withBounds =<< prepend e (unpack es)
+    append  es e = withBounds =<< append  (unpack es) e
     
     newLinear     = fromFoldableM
     newLinearN    = newLinearN   >>=> withBounds

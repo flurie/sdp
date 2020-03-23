@@ -130,7 +130,7 @@ class (LinearM m v e, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
     
     -- | reshape creates new indexed structure from old with reshaping function.
     reshape :: (IndexedM m v' j e) => (i, i) -> v' -> (i -> j) -> m v
-    reshape bnds es f = fromAssocs bnds =<< range bnds `forM` both fmap (,) ((!>) es . f)
+    reshape bnds es f = fromAssocs bnds =<< range bnds `forM` \ i -> (,) i <$> es !> f i
     
     {- |
       @'fromAccum' f es ies@ create a new structure from @es@ elements
@@ -240,6 +240,6 @@ swapM es i j = do ei <- es !#> i; writeM_ es i =<< es !#> j; writeM_ es j ei
 --------------------------------------------------------------------------------
 
 undEx :: String -> a
-undEx =  throw . UndefinedValue . showString "in SDP.IndexedM"
+undEx =  throw . UndefinedValue . showString "in SDP.IndexedM."
 
 

@@ -49,7 +49,7 @@ class (Ord k) => Map m k e | m -> k, m -> e
     
     -- | mapAssocs creates map from list of 'assocs' @(key, element)@.
     mapAssocs :: [(k, e)] -> m
-    mapAssocs =  both fromSet (flip lookup_) fsts
+    mapAssocs ies = (`lookup_` ies) `fromSet` fsts ies
     
     {-# INLINE toMap #-}
     -- | toMap creates correct map from arbitrary data.
