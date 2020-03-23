@@ -122,9 +122,13 @@ instance (Index i) => IsString (Array i Char) where fromString = fromList
 
 {- Show and Read instances. -}
 
-instance (Index i, Show i, Show e) => Show (Array i e)
+instance {-# OVERLAPPABLE #-} (Index i, Show i, Show e) => Show (Array i e)
   where
     showsPrec = assocsPrec "array "
+
+instance (Index i, Show i) => Show (Array i Char)
+  where
+    showsPrec = shows ... const listL
 
 instance (Index i, Read i, Read e) => Read (Array i e)
   where
@@ -359,6 +363,7 @@ done (STArray l u marr#) = Array l u <$> unsafeFreeze marr#
 
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.Array."
+
 
 
 

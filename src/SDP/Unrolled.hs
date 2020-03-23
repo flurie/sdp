@@ -87,9 +87,13 @@ instance (Index i) => Ord1 (Unrolled i)
 
 {- Show and Read instances -}
 
-instance (Index i, Show i, Show e) => Show (Unrolled i e)
+instance {-# OVERLAPPABLE #-} (Index i, Show i, Show e) => Show (Unrolled i e)
   where
     showsPrec = assocsPrec "unrolled "
+
+instance (Index i, Show i) => Show (Unrolled i Char)
+  where
+    showsPrec = shows ... const listL
 
 instance (Index i, Read i, Read e) => Read (Unrolled i e)
   where
@@ -365,6 +369,7 @@ withSize =  uncurry Unrolled . defaultBounds
 
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.Unrolled."
+
 
 
 

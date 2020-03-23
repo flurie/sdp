@@ -6,7 +6,7 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (requires non-portable modules)
+    Portability :  non-portable (GHC extensions)
   
   @SDP.LinearM@ is a module that provides 'BorderedM' and 'LinearM' classes.
 -}
@@ -62,10 +62,10 @@ class (Monad m, Index i) => BorderedM m b i e | b -> m, b -> i, b -> e
     getSizeOf :: b -> m Int
     getSizeOf =  fmap size . getBounds
     
-    -- | getIndxeOf is 'indexOf' version for mutable data structures.
+    -- | getIndexOf is 'indexOf' version for mutable data structures.
     {-# INLINE getIndexOf #-}
     getIndexOf :: b -> i -> m Bool
-    getIndexOf =  \ bs i -> (`inRange` i) <$> getBounds bs
+    getIndexOf =  \ es i -> (`inRange` i) <$> getBounds es
     
     -- | getIndices returns 'indices' of mutable data structure.
     {-# INLINE getIndices #-}
@@ -83,10 +83,10 @@ class (Monad m, Index i) => BorderedM m b i e | b -> m, b -> i, b -> e
 -- | LinearM is 'Linear' version for mutable data structures.
 class (Monad m) => LinearM m l e | l -> m, l -> e
   where
-    {-# MINIMAL (newLinear|newLinearN), (getLeft|getRight), reversed, filled #-}
+    {-# MINIMAL (newLinear|fromFoldableM), (getLeft|getRight), reversed, filled #-}
     
     {- |
-      Prepend new element to the start of the structure (monadic 'toHead').
+      Prepends new element to the start of the structure (monadic 'toHead').
       Like most size-changing operations, @prepend@ doesn't guarantee the
       correctness of the original structure after conversion.
     -}
@@ -94,29 +94,29 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     prepend e es = newLinear . (e :) =<< getLeft es
     
     {- |
-      Append new element to the end of the structure (monadic 'toLast').
+      Appends new element to the end of the structure (monadic 'toLast').
       Like most size-changing operations, @append@ doesn't guarantee the
       correctness of the original structure after conversion.
     -}
     append  :: l -> e -> m l
     append es e = newLinear . (:< e) =<< getLeft es
     
-    -- | Create new mutable line from list.
+    -- | Creates new mutable line from list.
     {-# INLINE newLinear #-}
     newLinear :: [e] -> m l
-    newLinear =  both newLinearN length id
+    newLinear =  fromFoldableM
     
-    -- | Create new mutable line from limited list.
+    -- | Creates new mutable line from limited list.
     {-# INLINE newLinearN #-}
     newLinearN :: Int -> [e] -> m l
     newLinearN =  newLinear ... take
     
-    -- | Create new mutable line from foldable structure.
+    -- | Creates new mutable line from foldable structure.
     {-# INLINE fromFoldableM #-}
     fromFoldableM :: (Foldable f) => f e -> m l
     fromFoldableM =  newLinear . toList
     
-    -- | Return left view of line.
+    -- | Returns left view of line.
     {-# INLINE getLeft #-}
     getLeft :: l -> m [e]
     getLeft =  fmap reverse . getRight
@@ -126,18 +126,18 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     getRight :: l -> m [e]
     getRight =  fmap reverse . getLeft
     
-    -- | Create copy of structure.
+    -- | Creates copy of structure.
     copied :: l -> m l
     copied =  getLeft >=> newLinear
     
-    -- | @copied' es begin count@ return the slice of line.
+    -- | @copied' es l n@ returns the slice of @es@ from @l@ of length @n@.
     copied' :: l -> Int -> Int -> m l
     copied' es l n = getLeft es >>= newLinearN n . drop l
     
-    -- | In-place reverse of line.
+    -- | Mutable version of 'reverse' (ideally, in-place).
     reversed :: l -> m l
     
-    -- | Monadic version of replicate.
+    -- | Monadic version of 'replicate'.
     filled :: Int -> e -> m l
 
 --------------------------------------------------------------------------------

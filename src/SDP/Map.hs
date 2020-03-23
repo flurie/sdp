@@ -255,6 +255,6 @@ instance (Ord k) => Map [(k, e)] k e
 --------------------------------------------------------------------------------
 
 unreachEx :: String -> a
-unreachEx msg = throw . UnreachableException $ "in SDP.Map." ++ msg ++ " {[(k, e)]}"
+unreachEx = throw . UnreachableException . showString "in SDP.Map."
 
 

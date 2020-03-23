@@ -47,6 +47,7 @@ import SDP.SortM.Tim
 
 import SDP.Internal.Commons
 import SDP.Internal.SArray
+import SDP.Internal.Read
 import SDP.Internal.Show
 
 default ()
@@ -114,9 +115,18 @@ instance Ord1 Unlist
 
 {- Show instance. -}
 
-instance (Show e) => Show (Unlist e)
+instance {-# OVERLAPPABLE #-} (Show e) => Show (Unlist e)
   where
     showsPrec = assocsPrec "unlist "
+
+instance Show (Unlist Char)
+  where
+    showsPrec = shows ... const listL
+
+instance (Read e) => Read (Unlist e)
+  where
+    readPrec = linearIndexedPrec "ublist"
+    readList = readListDefault
 
 --------------------------------------------------------------------------------
 

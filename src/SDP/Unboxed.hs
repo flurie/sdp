@@ -459,7 +459,7 @@ cloneUnboxed# e bytes# o# c# = unwrap $ runST $ ST $
   @[o1\# .. o1\# +\# n\#]@ range to @mbytes\#@'s @[o2\# .. o2\# +\# n\#]@ range.
 -}
 copyUnboxed# :: (Unboxed e) => e -> ByteArray# -> Int# -> MutableByteArray# s -> Int# -> Int# -> State# s -> State# s
-copyUnboxed# _  _    _    _    _  0# = \ sn# -> sn#
+copyUnboxed# _   _     _     _     _  0# = \ sn# -> sn#
 copyUnboxed# e bytes# o1# mbytes# o2# c# = \ s1# ->
   case writeByteArray# mbytes# o2# ((bytes# !# o1#) `asTypeOf` e) s1# of
     s2# -> copyUnboxed# e bytes# (o1# +# 1#) mbytes# (o2# +# 1#) (c# -# 1#) s2#
@@ -469,7 +469,7 @@ copyUnboxed# e bytes# o1# mbytes# o2# c# = \ s1# ->
   @[o1\# .. o1\# +\# n\#]@ range to @mbytes\#@'s @[02\# .. o2\# +\# n\#]@ range.
 -}
 copyUnboxedM# :: (Unboxed e) => e -> MutableByteArray# s -> Int# -> MutableByteArray# s -> Int# -> Int# -> State# s -> State# s
-copyUnboxedM# _  _    _    _    _  0# = \ sn# -> sn#
+copyUnboxedM# _  _    _     _     _  0# = \ sn# -> sn#
 copyUnboxedM# e src# o1# mbytes# o2# n# = \ s1# -> case (!>#) src# o1# s1# of
   (# s2#, x #) -> case writeByteArray# mbytes# o2# (x `asTypeOf` e) s2# of
     s3# -> copyUnboxedM# e src# (o1# +# 1#) mbytes# (o2# +# 1#) (n# -# 1#) s3#

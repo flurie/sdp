@@ -55,7 +55,7 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
       the result bounds (not always possible).
     -}
     assoc :: (i, i) -> [(i, e)] -> v
-    assoc =  (`assoc'` undEx "assoc (default)")
+    assoc =  (`assoc'` undEx "assoc {default}")
     
     {- |
       @assoc' bnds defvalue ascs@ creates new structure from list of
@@ -66,7 +66,7 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
     
     -- | 'assocMap' is 'assoc' where @ascs@ represented by 'Map'.
     assocMap :: (Map map i e) => (i, i) -> map -> v
-    assocMap =  (`assocMap'` undEx "assocMap (default)")
+    assocMap =  (`assocMap'` undEx "assocMap {default}")
     
     -- | 'assocMap'' is 'assoc'' where @ascs@ represented by 'Map'.
     assocMap' :: (Map map i e) => (i, i) -> e -> map -> v

@@ -77,7 +77,7 @@ instance (Index i, Unboxed e) => LinearM (ST s) (STByteList s i e) e
     getRight  = getRight . unpack
     
     copied   (STByteList l u es) = STByteList l u <$> copied  es
-    copied'  (STByteList l u es) = \ o n -> STByteList l u <$> copied' es o n
+    copied'  (STByteList l u es) = (STByteList l u <$>) ... copied' es
     reversed (STByteList l u es) = STByteList l u <$> reversed es
 
 --------------------------------------------------------------------------------

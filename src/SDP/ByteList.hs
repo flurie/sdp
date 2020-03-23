@@ -82,9 +82,13 @@ instance (Ord e, Unboxed e, Index i) => Ord (ByteList i e)
 
 {- Show and Read instances. -}
 
-instance (Index i, Show i, Unboxed e, Show e) => Show (ByteList i e)
+instance {-# OVERLAPPABLE #-} (Index i, Show i, Unboxed e, Show e) => Show (ByteList i e)
   where
     showsPrec = assocsPrec "bytelist "
+
+instance (Index i, Show i) => Show (ByteList i Char)
+  where
+    showsPrec = shows ... const listL
 
 instance (Index i, Read i, Unboxed e, Read e) => Read (ByteList i e)
   where
@@ -322,4 +326,5 @@ withBounds =  \ es -> let (l, u) = defaultBounds (sizeOf es) in ByteList l u es
 
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.ByteList."
+
 

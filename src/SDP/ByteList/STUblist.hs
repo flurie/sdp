@@ -89,13 +89,10 @@ instance (Unboxed e) => LinearM (ST s) (STUblist s e) e
 instance (Unboxed e) => IndexedM (ST s) (STUblist s e) Int e
   where
     fromAssocs bnds@(l, _) ascs = do
-        ubl <- filled' (size bnds)
+        ubl <- liftA2 (:<) (replicateM c (filled_ lim)) (filled_ d)
         STUblist ubl `overwrite` [ (i - l, e) | (i, e) <- ascs ]
       where
-        filled' n = n < 1 ? return [] $ liftA2 (:) ch' rs'
-          where
-            ch' = filled_ (min n lim)
-            rs' = filled' (n - lim)
+        (c, d) = size bnds `divMod` lim
     
     fromAssocs' bnds@(l, _) defvalue ascs = do
       arr <- size bnds `filled` defvalue
@@ -175,6 +172,4 @@ unpack' (STUblist es) = go es
 
 lim :: Int
 lim =  1024
-
-
 

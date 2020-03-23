@@ -107,7 +107,7 @@ instance IsList (E :& i)
     type Item (E :& i) = i
     
     fromList [i] = E :& i
-    fromList  _  = throw $ UnexpectedRank " in SDP.Finite.fromList"
+    fromList  _  = throw $ UnexpectedRank "in SDP.Finite.fromList"
     
     toList (E :& i) = [i]
 

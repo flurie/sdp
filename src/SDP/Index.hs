@@ -42,7 +42,7 @@ module SDP.Index
   Index (..),
   
   -- * Helpers
-  toGBounds, fromGBounds, intOffset, defUB, checkBounds
+  toGBounds, fromGBounds, offsetIntegral, defaultBoundsUnsign, checkBounds
 )
 where
 
@@ -314,24 +314,24 @@ instance Index Integer
     sizes = pure . size
     
     defLimit = const (error "no upper bound for defLimit")
-    offset   = intOffset
+    offset   = offsetIntegral
 
 instance Index Char
   where
-    defaultBounds = defUB
+    defaultBounds = defaultBoundsUnsign
     defLimit      = const $ toInteger (ord maxBound)
 
-instance Index Int     where offset = intOffset
-instance Index Int8    where offset = intOffset
-instance Index Int16   where offset = intOffset
-instance Index Int32   where offset = intOffset
-instance Index Int64   where offset = intOffset
+instance Index Int     where offset = offsetIntegral
+instance Index Int8    where offset = offsetIntegral
+instance Index Int16   where offset = offsetIntegral
+instance Index Int32   where offset = offsetIntegral
+instance Index Int64   where offset = offsetIntegral
 
-instance Index Word    where offset = intOffset; defaultBounds = defUB
-instance Index Word8   where offset = intOffset; defaultBounds = defUB
-instance Index Word16  where offset = intOffset; defaultBounds = defUB
-instance Index Word32  where offset = intOffset; defaultBounds = defUB
-instance Index Word64  where offset = intOffset; defaultBounds = defUB
+instance Index Word    where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+instance Index Word8   where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+instance Index Word16  where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+instance Index Word32  where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+instance Index Word64  where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
 
 --------------------------------------------------------------------------------
 
@@ -562,15 +562,15 @@ fromGBounds =  uncurry $ on (,) fromGIndex
 (-.) :: (Enum i) => i -> i -> Int
 (-.) =  on (-) fromEnum
 
--- | intOffset is default offset for 'Integral' types.
-{-# INLINE intOffset #-}
-intOffset :: (Index i, Integral i) => (i, i) -> i -> Int
-intOffset bnds@(l, _) i = checkBounds bnds i (fromEnum i - fromEnum l) "offset (default)"
+-- | offsetIntegral is default offset for 'Integral' types.
+{-# INLINE offsetIntegral #-}
+offsetIntegral :: (Index i, Integral i) => (i, i) -> i -> Int
+offsetIntegral bnds@(l, _) i = checkBounds bnds i (fromEnum i - fromEnum l) "offset {default}"
 
 -- | Default 'defaultBounds' for unsigned types.
-{-# INLINE defUB #-}
-defUB :: (Index i, Bounded i) => Int -> (i, i)
-defUB n = n < 1 ? ub 1 0 $ ub 0 (n - 1) where ub = on (,) unsafeIndex
+{-# INLINE defaultBoundsUnsign #-}
+defaultBoundsUnsign :: (Index i, Bounded i) => Int -> (i, i)
+defaultBoundsUnsign n = n < 1 ? ub 1 0 $ ub 0 (n - 1) where ub = on (,) unsafeIndex
 
 -- | Check bounds and 'throw' 'IndexException' if needed.
 checkBounds :: (Index i) => (i, i) -> i -> res -> String -> res

@@ -117,9 +117,13 @@ instance (Index i) => IsString (Bytes i Char) where fromString = fromList
 
 {- Show and Read instances. -}
 
-instance (Index i, Unboxed e, Show i, Show e) => Show (Bytes i e)
+instance {-# OVERLAPPABLE #-} (Index i, Unboxed e, Show i, Show e) => Show (Bytes i e)
   where
     showsPrec = assocsPrec "bytes "
+
+instance (Index i, Show i) => Show (Bytes i Char)
+  where
+    showsPrec = shows ... const listL
 
 instance (Index i, Unboxed e, Read i, Read e) => Read (Bytes i e)
   where
@@ -298,8 +302,4 @@ done (STBytes l u es) = Bytes l u <$> unsafeFreeze es
 
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.Bytes."
-
-
-
-
 

@@ -49,6 +49,7 @@ import SDP.SortM.Tim
 
 import SDP.Internal.Commons
 import SDP.Internal.SBytes
+import SDP.Internal.Read
 import SDP.Internal.Show
 
 default ()
@@ -89,9 +90,18 @@ instance (Unboxed e, Ord e) => Ord (Ublist e)
 
 {- Show instance. -}
 
-instance (Show e, Unboxed e) => Show (Ublist e)
+instance {-# OVERLAPPABLE #-} (Show e, Unboxed e) => Show (Ublist e)
   where
     showsPrec = assocsPrec "ublist "
+
+instance Show (Ublist Char)
+  where
+    showsPrec = shows ... const listL
+
+instance (Read e, Unboxed e) => Read (Ublist e)
+  where
+    readPrec = linearIndexedPrec "ublist"
+    readList = readListDefault
 
 --------------------------------------------------------------------------------
 

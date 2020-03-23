@@ -3,73 +3,107 @@ version 0.2:
     * assoc and assoc'
     * copied' implementation for Array and Bytes and related segfault in timSort
     * test suite for Sort: the probability that a structure longer than 64
-    elements will be generated during the test is too small and insertionSort
-    is tested instead of timSort.
-    * Freeze instances for Array, Ublist and ByteList.
-    * some stupid bugs
+      elements will be generated during the test is too small and insertionSort
+      is tested instead of timSort
+    * Some Ord instances, now guaranteed lexicographical order
+    * tails and inits: now returns [Z] if structure is empty
+    * Freeze instances for Array, Ublist and ByteList
+    * prevTest and nextTest memory leak
+    * a lot of stupid bugs
   
   DEPRECATED:
-    * SDP.Index.unsafeBounds (in favour of defaultBounds)
-    * SDP.SortM.Stuff (in favour of SDP.SortM.Tim, SDP.Linear and SDP.LinearM)
+    * Bounds type, in favour tuple type synonyms
   
   ADDED:
-    * SDP.Tuple  module for tuple type synonyms
-    * SDP.Finite module for finite-dimension index
+    * SDP.Comparing: common comparators, exported by SDP.SafePrelude
+    * SDP.Finite: common n-dimensional index, exported by SDP.Index
+    * SDP.Tuple: tiple synonyms, exported by SDP.Index
+    * SDP.Map: Map, class of dictionaries
     
-    * SDP.SortM.Tim (replaces SDP.SortM.Stuff)
-    * SDP.SortM.Insertion (reexport of insertionSort from SDP.SortM.Tim)
-    * SDP.Map (preliminary realisation of dictionary)
+    * SDP.Internal.SArray: SArray# and STArray# pseudo-primitives
+    * SDP.Internal.SBytes module: SBytes# and STBytes# pseudo-primitives
     
-    * Typeable, Data and Generic instances for all structures
+    * SDP.SortM.Insertion: InsertionSort for mutable structures
+    * SDP.SortM.Tim: TimSort for mutable structures
     
-    * OverloadedIndices (see SDP.Index docs)
+    * Test.SDP.Gen: Short, Medium and Long newtypes for Arbitrary
+    * Test.SDP: short import of basic test suite
     
-    * [internal] SArray#, SBytes#, STArray# and STBytes# primitives
+    * SDP.Index functions: toGBounds, fromGBounds, offsetIntegral, checkBounds
+      and defaultBoundsUnsign
+    * SDP.Unboxed functions: cloneUnboxed#, copyUnboxed# and copyUnboxedM#
+    * SDP.Estimate: left-side Estimate comparators
+    * SDP.SafePrelude combinators: (?+), (?-) and (...)
     
-    * RopeM service structure for efficient splitting in TimSort
+    * SDP.Linear:   sorted and ascending functions
+    * SDP.Indexed:  binaryContain function
+    * SDP.LinearM:  sortedM function
+    * SDP.IndexedM: swapM function
     
-    * sizeof#, bsizeof# and psizeof functions (Unboxed)
+    * OverloadedIndices syntactic sugar
     
-    * Test.SDP.Eq and Test.SDP.Ord default tests
+    * Index type families: GIndex, DimInit and DimLast
     
-    * Test.SDP module for short import of basic test suite.
-    * Test.SDP.Gen module with Short, Medium and Long newtypes for Arbitrary
+    * Index class functions: defLimit, defaultBounds, toGIndex and fromGIndex
     
-    * binaryContain, new (/>), assocMap and assocMap' functions (Indexed)
-    * offsetOf and new indexOf functions (Bordered)
-    * chunks, each, keep, sans, divide, divides functions (Split)
-    * groupSetWith function (Set)
+    * Bordered functions: offsetOf and indexIn
     
-    * defaultBounds toGIndex, fromGIndex, fromGBounds and toGBounds functions
-    (Index)
-    * DimInit, DimLast and GIndex type families (Index)
+    * Linear class functions: except, select, extract, selects,
+      select', extract', selects'
     
-    * test suites for estimate and indices
+    * Split class functions:
+      keep, sans, divide, divides, save, skip, chunks, each,
+      
+      selectWhile,  extractWhile,  selectEnd,  extractEnd,
+      selectWhile', extractWhile', selectEnd', extractEnd'
     
-    * UnexpectedRank exception
+    * Set class function: groupSetWith
     
-    * benchmark for timsort
+    * Indexed class functions: assocMap, assocMap' and update
+    * Unboxed class functions: bsizeof#, sizeof#, psizeof
+    
+    * Freeze class function: unsafeFreeze
+    * Thaw   class function: unsafeThaw
+    
+    * Test suite for Eq, Ord and Estimate
+    
+    * Control.Exception.SDP exception: UnexpectedRank for OverloadedIndices
+    
+    * bench-sort benchmark: TimSort for immutable structures (also see
+    sdp-ioarrays benchmark for mutable TimSort)
+    
+    * Tests: test-array, test-bytelist, test-bytes, test-ndices, test-ublist,
+    test-unlist, test-unrolled
   
-  MOVED:
-    Old indexOf (to indexIn)
-    Old (/>) (to update)
+  CHANGED:
+    * Estimate class: removed superclasses Ord1 and Foldable, type variable now
+    has kind * (instead * -> *)
+    
+    * Scan class: new superclass Linear (instead Foldable), signature changes
+    
+    * unsafeIndex definition for unsigned numeric types
+    
+    * indexOf renamed, see indexIn
+    
+    * (/>): removed second argument, now updates all elements in structure, see
+    update function
+    
+    * Read and Show instances for (:&), now list-like and require IsList
   
   REMOVED:
-    unsafeBounds and toBounds function
-    IndexEQ class. Now toIndex and fromIndex is toGIndex and fromGIndex.
+    * SDP.Index: IndexEQ class, unsafeBounds and toBounds helpers
+    
+    * SDP.Estimate: EL type
+    
+    * SDP.SortM.Stuff: moved to SDP.SortM.Tim
+    
+    * SDP.Tree.BinTree: see sdp-tree
   
   IMPROVED:
-    * Scan class rewrited
-    * Estimate class rewrited
-    * Ord instances - now lexicographic, like lists
-    * Foldable and IFold rewrited for inline with 2 arguments
-    * All structures representation: O(1) splits, trustworthy size
-    property and just code deduplication.
-    * sortTest suite rewrited for Medium-sized structures generator (see fixes)
-    * prevTest and nextTest now work fast (fixed memory leak in where expr.)
-    * Read and Show instances for (:&)
-    * Index instances
-    * Split default definitions
+    * Structures implementation: now the actual size and the offset of the
+    arrays are encapsulated in pseudo-primitive types
+    
+    * sortTest suite rewrited for Medium-sized structures generator, see fixes
 
 --------------------------------------------------------------------------------
 
@@ -214,5 +248,4 @@ version 0.0.0.1:
     * Zip class
     
     * IndexException type
-
 

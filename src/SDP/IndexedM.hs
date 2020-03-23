@@ -6,7 +6,7 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (requires non-portable-modules)
+    Portability :  non-portable (GHC extensions)
   
   @SDP.IndexedM@ provides 'IndexedM', 'IFoldM', 'Freeze' and 'Thaw' classes.
 -}
@@ -45,7 +45,7 @@ infixl 5 !#>, >!, !>, !?>
 --------------------------------------------------------------------------------
 
 -- | Class for work with mutable indexed structures.
-class (Monad m, Index i, LinearM m v e) => IndexedM m v i e | v -> m, v -> i, v -> e
+class (LinearM m v e, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
   where
     {-# MINIMAL fromAssocs', fromIndexed', fromIndexedM, overwrite, ((>!)|(!?>)) #-}
     
@@ -144,7 +144,7 @@ class (Monad m, Index i, LinearM m v e) => IndexedM m v i e | v -> m, v -> i, v 
     
     -- | updateM updates elements with specified indices by function.
     updateM :: v -> [i] -> (i -> e -> e) -> m v
-    updateM es is f = forM is (\ i -> do e <- es !> i; return (i, f i e)) >>= overwrite es
+    updateM es is f = sequence [ do e <- es !> i; return (i, f i e) | i <- is ] >>= overwrite es
     
     -- | (.?) is monadic version of (.$).
     (.?) :: (e -> Bool) -> v -> m (Maybe i)

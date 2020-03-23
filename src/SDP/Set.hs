@@ -161,97 +161,97 @@ class (Linear s o) => Set s o | s -> o
 
 {- Useful functions. -}
 
--- | The same as sort . nub for list.
+-- | The same as @setWith compare@.
 {-# INLINE set #-}
 set :: (Set s o, Ord o) => s -> s
 set =  setWith compare
 
--- | Same as insert compare.
+-- | Same as @insert compare@.
 {-# INLINE insert #-}
 insert :: (Set s o, Ord o) => o -> s -> s
 insert =  insertWith compare
 
--- | Same as deleteWith compare.
+-- | Same as @deleteWith compare@.
 {-# INLINE delete #-}
 delete :: (Set s o, Ord o) => o -> s -> s
 delete =  deleteWith compare
 
--- | Intersection of two sets.
+-- | Same as @intersectionWith compare@.
 {-# INLINE (/\) #-}
 (/\) :: (Set s o, Ord o) => s -> s -> s
 (/\) =  intersectionWith compare
 
--- | Union of two sets.
+-- | Same as @unionWith compare@.
 {-# INLINE (\/) #-}
 (\/) :: (Set s o, Ord o) => s -> s -> s
 (\/) =  unionWith compare
 
--- | Difference (relative complement, aka A/B) of two sets.
+-- | Same as @differenceWith compare@.
 {-# INLINE (\\) #-}
 (\\) :: (Set s o, Ord o) => s -> s -> s
 (\\) =  differenceWith compare
 
--- | Symetric difference (disjunctive union).
+-- | Same as @symdiffWith compare@.
 {-# INLINE (\^/) #-}
 (\^/) :: (Set s o, Ord o) => s -> s -> s
 (\^/) =  symdiffWith compare
 
--- | Synonym for 'isDisjointWith'.
+-- | Same as @isDisjointWith compare@.
 {-# INLINE (/?\) #-}
 (/?\) :: (Set s o, Ord o) => s -> s -> Bool
 (/?\) =  isDisjointWith compare
 
--- | Same as isIntersectsWith compare.
+-- | Same as i@sIntersectsWith compare@.
 {-# INLINE (\?/) #-}
 (\?/) :: (Set s o, Ord o) => s -> s -> Bool
 (\?/) =  isIntersectsWith compare
 
--- | Same as isSubsetWith compare.
+-- | Same as @isSubsetWith compare@.
 {-# INLINE (\+/) #-}
 (\+/) :: (Set s o, Ord o) => s -> s -> Bool
 (\+/) =  isSubsetWith compare
 
--- | Intersection of some sets.
+-- | Same as @intersectionsWith compare@.
 {-# INLINE intersections #-}
 intersections :: (Foldable f, Set s o, Ord o) => f s -> s
 intersections =  intersectionsWith compare
 
--- | Union of some sets.
+-- | Same as @unionsWith compare@.
 {-# INLINE unions #-}
 unions :: (Foldable f, Set s o, Ord o) => f s -> s
 unions =  unionsWith compare
 
--- | Diference of some sets.
+-- | Same as @differencesWith compare@.
 {-# INLINE differences #-}
 differences :: (Foldable f, Set s o, Ord o) => f s -> s
 differences =  differencesWith compare
 
--- | Symmetric difference of some sets.
+-- | Same as @symdiffsWith compare@.
 {-# INLINE symdiffs #-}
 symdiffs :: (Foldable f, Set s o, Ord o) => f s -> s
 symdiffs =  symdiffsWith compare
 
--- | isSetElem is 'elem', but faster.
+-- | Same as @isContainedIn compare@.
 {-# INLINE isSetElem #-}
 isSetElem :: (Set s o, Ord o) => o -> s -> Bool
 isSetElem =  isContainedIn compare
 
--- | lookupLT tries to search lesser element in set.
+-- | Same as @lookupLTWith compare@.
 {-# INLINE lookupLT #-}
 lookupLT :: (Set s o, Ord o) => o -> s -> Maybe o
 lookupLT =  lookupLTWith compare
 
--- | lookupGT tries to search greater element in set.
+-- | Same as @lookupGTWith compare@.
 {-# INLINE lookupGT #-}
 lookupGT :: (Set s o, Ord o) => o -> s -> Maybe o
 lookupGT =  lookupGTWith compare
 
--- | lookupLE tries to search lesser of equal element in set.
+-- | Same as @lookupLEWith compare@.
 {-# INLINE lookupLE #-}
 lookupLE :: (Set s o, Ord o) => o -> s -> Maybe o
 lookupLE =  lookupLEWith compare
 
--- | lookupGE tries to search greater or equal element in set.
+-- | Same as @lookupGEWith compare@.
 {-# INLINE lookupGE #-}
 lookupGE :: (Set s o, Ord o) => o -> s -> Maybe o
 lookupGE =  lookupGEWith compare
