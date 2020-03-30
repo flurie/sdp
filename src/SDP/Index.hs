@@ -114,7 +114,7 @@ data InBounds = ER {- ^ Empty Range     -}
 -}
 class (Ord i) => Index i
   where
-    {- Type familes -}
+    {- Subspaces -}
     
     -- | Type of top dimension index.
     type DimLast i :: *
@@ -127,9 +127,23 @@ class (Ord i) => Index i
     type DimInit i :: *
     type DimInit i =  E
     
+    {- Generalized index -}
+    
     -- | Generalized index type (':&') of same rank.
     type GIndex i :: *
     type GIndex i =  E :& i
+    
+    -- | Create index from generalized index.
+    {-# INLINE fromGIndex #-}
+    default fromGIndex :: (GIndex i ~~ (E :& i)) => GIndex i -> i
+    fromGIndex :: GIndex i -> i
+    fromGIndex =  \ [i] -> i
+    
+    -- | Create generalized index from index.
+    {-# INLINE toGIndex #-}
+    default toGIndex :: (GIndex i ~~ (E :& i)) => i -> GIndex i
+    toGIndex :: i -> GIndex i
+    toGIndex =  \ i -> [i]
     
     {- Basic functions. -}
     
@@ -171,7 +185,7 @@ class (Ord i) => Index i
     defaultBounds :: Int -> (i, i)
     defaultBounds n = (unsafeIndex 0, unsafeIndex $ max 0 n - 1)
     
-    -- | Returns index by this offset default range.
+    -- | Returns index by offset in default range.
     {-# INLINE unsafeIndex #-}
     default unsafeIndex :: (Enum i) => Int -> i
     unsafeIndex :: Int -> i
@@ -238,20 +252,6 @@ class (Ord i) => Index i
     default range :: (Enum i) => (i, i) -> [i]
     range :: (i, i) -> [i]
     range =  uncurry enumFromTo
-    
-    {- Generic operations. -}
-    
-    -- | Create index from generalized index.
-    {-# INLINE fromGIndex #-}
-    default fromGIndex :: (GIndex i ~~ (E :& i)) => GIndex i -> i
-    fromGIndex :: GIndex i -> i
-    fromGIndex =  \ [i] -> i
-    
-    -- | Create generalized index from index.
-    {-# INLINE toGIndex #-}
-    default toGIndex :: (GIndex i ~~ (E :& i)) => i -> GIndex i
-    toGIndex :: i -> GIndex i
-    toGIndex =  \ i -> [i]
 
 --------------------------------------------------------------------------------
 
@@ -261,9 +261,9 @@ instance Index E
   where
     type GIndex E = E
     
-    unsafeIndex = const (emptyEx "unsafeIndex (E)")
-    fromGIndex  = id
-    toGIndex    = id
+    unsafeIndex  = const (emptyEx "unsafeIndex (E)")
+    fromGIndex   = id
+    toGIndex     = id
     
     defLimit = const 0
     
@@ -305,8 +305,8 @@ instance Index ()
     index         = const unsafeIndex
     offset  _  _  = 0
     
-    unsafeIndex 0 = ()
-    unsafeIndex _ = emptyEx "unsafeIndex ()"
+    unsafeIndex  0 = ()
+    unsafeIndex  _ = emptyEx "unsafeIndex ()"
 
 instance Index Integer
   where
@@ -371,7 +371,8 @@ instance (Index i, Enum i, Bounded i) => Index (E :& i)
     index  = \ ([l], [u])  n  -> [index (l, u) n]
     
     defaultBounds = uncurry (on (,) (E :&)) . defaultBounds
-    unsafeIndex n = [unsafeIndex n]
+    
+    unsafeIndex   = \ n -> [unsafeIndex n]
 
 -- [internal]: undecidable
 instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
@@ -455,19 +456,19 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
 type DimLast (TYPE) = i;\
 type DimInit (TYPE) = LAST;\
 type GIndex  (TYPE) = GTYPE;\
-size        = size . toGBounds;\
-sizes       = sizes . toGBounds;\
-isEmpty     = isEmpty . toGBounds;\
-defLimit    = defLimit . toGIndex;\
-range       = fmap fromGIndex . range . toGBounds;\
-inRange  bs = inRange (toGBounds bs) . toGIndex;\
-next     bs = fromGIndex . next (toGBounds bs) . toGIndex;\
-prev     bs = fromGIndex . prev (toGBounds bs) . toGIndex;\
-safeElem bs = fromGIndex . safeElem (toGBounds bs) . toGIndex;\
-offset   bs = offset (toGBounds bs) . toGIndex;\
-index    bs = fromGIndex . index (toGBounds bs);\
-ordBounds   = fromGBounds . ordBounds . toGBounds;\
-unsafeIndex = fromGIndex . unsafeIndex;\
+size           = size . toGBounds;\
+sizes          = sizes . toGBounds;\
+isEmpty        = isEmpty . toGBounds;\
+defLimit       = defLimit . toGIndex;\
+unsafeIndex    = fromGIndex . unsafeIndex;\
+inRange     bs = inRange (toGBounds bs) . toGIndex;\
+ordBounds      = fromGBounds . ordBounds . toGBounds;\
+range          = fmap fromGIndex . range . toGBounds;\
+next        bs = fromGIndex . next (toGBounds bs) . toGIndex;\
+prev        bs = fromGIndex . prev (toGBounds bs) . toGIndex;\
+safeElem    bs = fromGIndex . safeElem (toGBounds bs) . toGIndex;\
+offset      bs = offset (toGBounds bs) . toGIndex;\
+index       bs = fromGIndex . index (toGBounds bs);\
 isOverflow  bs = isOverflow  (toGBounds bs) . toGIndex;\
 isUnderflow bs = isUnderflow (toGBounds bs) . toGIndex;\
 inBounds    bs i | isEmpty bs = ER | isUnderflow bs i = UR | isOverflow bs i = OR | True = IN;
@@ -565,7 +566,7 @@ fromGBounds =  uncurry $ on (,) fromGIndex
 -- | offsetIntegral is default offset for 'Integral' types.
 {-# INLINE offsetIntegral #-}
 offsetIntegral :: (Index i, Integral i) => (i, i) -> i -> Int
-offsetIntegral bnds@(l, _) i = checkBounds bnds i (fromEnum i - fromEnum l) "offset {default}"
+offsetIntegral bnds@(l, _) i = checkBounds bnds i (i -. l) "offset {default}"
 
 -- | Default 'defaultBounds' for unsigned types.
 {-# INLINE defaultBoundsUnsign #-}
@@ -582,4 +583,8 @@ checkBounds bnds i res msg = case inBounds bnds i of
 
 emptyEx :: String -> a
 emptyEx =  throw . EmptyRange . showString "in SDP.Index."
+
+
+
+
 

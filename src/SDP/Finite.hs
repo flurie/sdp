@@ -61,6 +61,15 @@ instance Arbitrary E where arbitrary = return E
 
 instance Default E where def = E
 
+instance IsList E
+  where
+    type Item E = E
+    
+    fromList [] = E
+    fromList _  = throw $ UnexpectedRank "in SDP.Finite.fromList"
+    
+    toList E = []
+
 --------------------------------------------------------------------------------
 
 {- N-dimensional index type. -}
@@ -202,4 +211,5 @@ unsnoc :: [i] -> ([i], i)
 unsnoc    [i]   = ([], i)
 unsnoc (i : is) = (i :) `first` unsnoc is
 unsnoc     _    = throw $ UnexpectedRank "in SDP.Finite.fromList"
+
 
