@@ -36,6 +36,8 @@ import GHC.ST   ( ST  (..) )
 import SDP.ByteList.STUblist
 import SDP.SortM.Tim
 
+import Control.Exception.SDP
+
 default ()
 
 --------------------------------------------------------------------------------
@@ -67,6 +69,11 @@ instance (Index i, Unboxed e) => BorderedM (ST s) (STByteList s i e) i e
 
 instance (Index i, Unboxed e) => LinearM (ST s) (STByteList s i e) e
   where
+    nowNull (STByteList l u es) = isEmpty (l, u) ? return True $ nowNull es
+    
+    getHead (STByteList l u es) = isEmpty (l, u) ? empEx "getHead" $ getHead es
+    getLast (STByteList l u es) = isEmpty (l, u) ? empEx "getLast" $ getLast es
+    
     prepend e = withBounds <=< prepend e . unpack
     append es = withBounds <=< append (unpack es)
     
@@ -139,6 +146,9 @@ withBounds es = do
   n <- getSizeOf es
   let (l, u) = defaultBounds n
   return (STByteList l u es)
+
+empEx :: String -> a
+empEx =  throw . EmptyRange . showString "in SDP.ByteList.ST."
 
 unpack :: STByteList s i e -> STUblist s e
 unpack =  \ (STByteList _ _ es) -> es

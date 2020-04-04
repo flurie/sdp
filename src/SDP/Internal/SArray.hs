@@ -586,6 +586,11 @@ instance BorderedM (ST s) (STArray# s e) Int e
 
 instance LinearM (ST s) (STArray# s e) e
   where
+    nowNull (STArray# c _ _) = return (c < 1)
+    
+    getHead es = do s <- getSizeOf es; s < 1 ? empEx "getHead" $ es !#> 0
+    getLast es = do s <- getSizeOf es; s < 1 ? empEx "getLast" $ es !#> (s - 1)
+    
     newLinear = fromFoldableM
     
     newLinearN c es = ST $ \ s1# -> case newArray# n# err s1# of
@@ -756,10 +761,15 @@ before n@(I# n#) e es@(SArray# c@(I# c#) (I# o#) arr#)
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.Internal.SArray."
 
+empEx :: String -> a
+empEx =  throw . EmptyRange . showString "in SDP.Internal.SArray."
+
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.Internal.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Internal.SArray."
+
+
 
 

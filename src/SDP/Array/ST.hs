@@ -67,6 +67,11 @@ instance (Index i) => BorderedM (ST s) (STArray s i e) i e
 
 instance (Index i) => LinearM (ST s) (STArray s i e) e
   where
+    nowNull (STArray l u _) = return $ isEmpty (l, u)
+    
+    getHead es = do s <- getSizeOf es; s < 1 ? empEx "getHead" $ es !#> 0
+    getLast es = do s <- getSizeOf es; s < 1 ? empEx "getLast" $ es !#> (s - 1)
+    
     prepend e es = withBounds =<< prepend e (unpack es)
     append  es e = withBounds =<< append  (unpack es) e
     
@@ -134,7 +139,7 @@ withBounds marr# = do
 unpack :: (STArray s i e) -> STArray# s e
 unpack =  \ (STArray _ _ arr#) -> arr#
 
-
-
+empEx :: String -> a
+empEx =  throw . EmptyRange . showString "in SDP.Array.ST."
 
 

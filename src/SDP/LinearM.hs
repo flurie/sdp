@@ -83,7 +83,24 @@ class (Monad m, Index i) => BorderedM m b i e | b -> m, b -> i, b -> e
 -- | LinearM is 'Linear' version for mutable data structures.
 class (Monad m) => LinearM m l e | l -> m, l -> e
   where
-    {-# MINIMAL (newLinear|fromFoldableM), (getLeft|getRight), reversed, filled #-}
+    {-# MINIMAL nowNull, getHead, getLast, (newLinear|fromFoldableM), (getLeft|getRight) #-}
+    
+    -- | 'nowNull' is monadic version of 'isNull'.
+    nowNull :: l -> m Bool
+    
+    {- |
+      'getHead' is monadic version of 'head'. This procedure mustn't modify the
+      source structure or return references to its mutable fields.
+    -}
+    getHead :: l -> m e
+    getHead =  fmap head . getLeft
+    
+    {- |
+      'getLast' is monadic version of 'last'. This procedure mustn't modify the
+      source structure or return references to its mutable fields.
+    -}
+    getLast :: l -> m e
+    getLast =  fmap head . getRight
     
     {- |
       Prepends new element to the start of the structure (monadic 'toHead').
@@ -127,18 +144,24 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     getRight =  fmap reverse . getLeft
     
     -- | Creates copy of structure.
+    {-# INLINE copied #-}
     copied :: l -> m l
     copied =  getLeft >=> newLinear
     
     -- | @copied' es l n@ returns the slice of @es@ from @l@ of length @n@.
+    {-# INLINE copied' #-}
     copied' :: l -> Int -> Int -> m l
     copied' es l n = getLeft es >>= newLinearN n . drop l
     
     -- | Mutable version of 'reverse' (ideally, in-place).
+    {-# INLINE reversed #-}
     reversed :: l -> m l
+    reversed =  newLinear <=< getRight
     
     -- | Monadic version of 'replicate'.
+    {-# INLINE filled #-}
     filled :: Int -> e -> m l
+    filled n = newLinearN n . replicate n
 
 --------------------------------------------------------------------------------
 
@@ -156,5 +179,7 @@ type BorderedM2 m l i e = BorderedM m (l i e) i e
 -- | sortedM is a procedure that checks for sorting.
 sortedM :: (LinearM m l e, Ord e) => l -> m Bool
 sortedM =  fmap (\ es -> null es || and (zipWith (<=) es (tail es))) . getLeft
+
+
 
 

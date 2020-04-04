@@ -61,6 +61,10 @@ instance BorderedM (ST s) (STUnlist s e) Int e
 
 instance LinearM (ST s) (STUnlist s e) e
   where
+    nowNull = fmap null . unpack'
+    getHead = getHead . head <=< unpack'
+    getLast = getLast . last <=< unpack'
+    
     prepend e' es' = fmap STUnlist . go e' =<< unpack' es'
       where
         go e es@(x : xs) = do n <- getSizeOf x; n < lim ? (: xs) <$> prepend e x $ (: es) <$> newLinear [e]
@@ -165,6 +169,7 @@ unpack' (STUnlist es) = go es
 
 lim :: Int
 lim =  1024
+
 
 
 

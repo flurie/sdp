@@ -513,6 +513,11 @@ instance (Unboxed e) => BorderedM (ST s) (STBytes# s e) Int e
 
 instance (Unboxed e) => LinearM (ST s) (STBytes# s e) e
   where
+    nowNull (STBytes# c _ _) = return (c < 1)
+    
+    getHead es = do s <- getSizeOf es; s < 1 ? empEx "getHead" $ es !#> 0
+    getLast es = do s <- getSizeOf es; s < 1 ? empEx "getLast" $ es !#> (s - 1)
+    
     newLinear = fromFoldableM
     
     newLinearN c es = newLinearN' (undEx "newLinearN")
@@ -731,10 +736,15 @@ nubSorted f es = fromList $ foldr fun [last es] ((es !^) <$> [0 .. sizeOf es - 2
   where
     fun = \ e ls -> e `f` head ls == EQ ? ls $ e : ls
 
+empEx :: String -> a
+empEx =  throw . EmptyRange . showString "in SDP.Internal.SBytes."
+
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.Internal.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Internal.SBytes."
+
+
 
 

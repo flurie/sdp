@@ -62,6 +62,10 @@ instance (Unboxed e) => BorderedM (ST s) (STUblist s e) Int e
 
 instance (Unboxed e) => LinearM (ST s) (STUblist s e) e
   where
+    nowNull = fmap null . unpack'
+    getHead = getHead . head <=< unpack'
+    getLast = getLast . last <=< unpack'
+    
     prepend e' es' = fmap STUblist . go e' =<< unpack' es'
       where
         go e es@(x : xs) = do n <- getSizeOf x; n < lim ? (: xs) <$> prepend e x $ (: es) <$> newLinear [e]
@@ -172,4 +176,5 @@ unpack' (STUblist es) = go es
 
 lim :: Int
 lim =  1024
+
 

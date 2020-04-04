@@ -35,6 +35,8 @@ import GHC.ST   ( ST  (..) )
 import SDP.Unrolled.STUnlist
 import SDP.SortM.Tim
 
+import Control.Exception.SDP
+
 default ()
 
 --------------------------------------------------------------------------------
@@ -66,6 +68,11 @@ instance (Index i) => BorderedM (ST s) (STUnrolled s i e) i e
 
 instance (Index i) => LinearM (ST s) (STUnrolled s i e) e
   where
+    nowNull (STUnrolled l u es) = isEmpty (l, u) ? return True $ nowNull es
+    
+    getHead (STUnrolled l u es) = isEmpty (l, u) ? empEx "getHead" $ getHead es
+    getLast (STUnrolled l u es) = isEmpty (l, u) ? empEx "getLast" $ getLast es
+    
     prepend e = withBounds <=< prepend e . unpack
     append es = withBounds <=< append (unpack es)
     
@@ -76,7 +83,7 @@ instance (Index i) => LinearM (ST s) (STUnrolled s i e) e
     getRight  = getRight . unpack
     
     copied   (STUnrolled l u es) = STUnrolled l u <$> copied es
-    copied'  (STUnrolled l u es) = \ o n -> STUnrolled l u <$> copied' es o n
+    copied'  (STUnrolled l u es) = (STUnrolled l u <$>) ... copied' es
     reversed (STUnrolled l u es) = STUnrolled l u <$> reversed es
 
 --------------------------------------------------------------------------------
@@ -133,6 +140,9 @@ withBounds es = do
   n <- getSizeOf es
   let (l, u) = defaultBounds n
   return (STUnrolled l u es)
+
+empEx :: String -> a
+empEx =  throw . EmptyRange . showString "in SDP.Unrolled.ST."
 
 unpack :: STUnrolled s i e -> STUnlist s e
 unpack =  \ (STUnrolled _ _ es) -> es
