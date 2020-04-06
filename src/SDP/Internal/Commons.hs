@@ -15,7 +15,7 @@ module SDP.Internal.Commons
   
   Bounded (..), Enum (..),
   
-  fst, snd, fsts, snds,
+  fst, snd, fsts, snds, both,
   
   (?>), bindM2, (>>=>)
 )
@@ -44,6 +44,9 @@ fsts =  fmap fst
 snds :: (Functor f) => f (a, b) -> f b
 snds =  fmap snd
 
+both :: (a -> b) -> (a, a) -> (b, b)
+both =  uncurry . on (,)
+
 --------------------------------------------------------------------------------
 
 -- Monadic conditional toMaybe.
@@ -56,5 +59,7 @@ bindM2 ma mb kl2 = join $ liftM2 kl2 ma mb
 
 (>>=>) :: (Monad m) => (a -> b -> m c) -> (c -> m d) -> a -> b -> m d
 k1 >>=> k2 = (>=> k2) . k1
+
+
 
 

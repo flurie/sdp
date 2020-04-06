@@ -11,20 +11,8 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (a lot of GHC extensions)
   
-  @SDP.Index@ provides 'Index' - service class of types that may represent
-  indices, based on "Data.Ix" and @Data.Array.Repa.Shape@ (see repa). I refused
-  to create a Ix-based class, because in this case I still need one new class.
-  
-  SDP.Index provides a generic n-dimensional index (type ':&').
-  
-  Also (since sdp-0.2) are available @OverloadedIndices@ - syntactic sugar based
-  on the @OverloadedLists@ language extension. For example, instead of the
-  inconvenient @es!(ind4 0 1 2 3)@ and just the awful @es!(E:&0:&1:&2:&3)@ you
-  can write shorter and more understandable indices: @es![0, 1, 2, 3]@.
-  
-  OverloadedIndices works only for (':&') and requires a strictly defined number
-  of subindexes. But (I hope) no one will use list comprehensions (e.g.
-  @es![2..4]@ instead @es![2, 3, 4]@) to specify indexes...
+  The 'Index' class is a fork of @Ix@ with a richer interface, more convenient
+  function names and generalized indexes.
 -}
 module SDP.Index
 (
@@ -39,7 +27,7 @@ module SDP.Index
   InBounds (..), Bounds,
   
   -- * Index class
-  Index (..),
+  Index (..), GIndex,
   
   -- * Helpers
   toGBounds, fromGBounds, offsetIntegral, defaultBoundsUnsign, checkBounds
@@ -126,12 +114,6 @@ class (Ord i) => Index i
     -}
     type DimInit i :: *
     type DimInit i =  E
-    
-    {- Generalized index -}
-    
-    -- | Generalized index type (':&') of same rank.
-    type GIndex i :: *
-    type GIndex i =  E :& i
     
     -- | Create index from generalized index.
     {-# INLINE fromGIndex #-}
@@ -253,14 +235,19 @@ class (Ord i) => Index i
     range :: (i, i) -> [i]
     range =  uncurry enumFromTo
 
+-- | Type operator 'GIndex' returns generalized equivalent of index.
+type family GIndex i
+  where
+    GIndex     E     = E
+    GIndex (i' :& i) = i' :& i
+    GIndex     i     = GIndex (DimInit i) :& DimLast i
+
 --------------------------------------------------------------------------------
 
 {- Basic instances -}
 
 instance Index E
   where
-    type GIndex E = E
-    
     unsafeIndex  = const (emptyEx "unsafeIndex (E)")
     fromGIndex   = id
     toGIndex     = id
@@ -339,7 +326,6 @@ instance Index Word64  where offset = offsetIntegral; defaultBounds = defaultBou
 
 instance (Index i, Enum i, Bounded i) => Index (E :& i)
   where
-    type GIndex  (E :& i) = E :& i
     type DimInit (E :& i) = E
     type DimLast (E :& i) = i
     
@@ -370,14 +356,13 @@ instance (Index i, Enum i, Bounded i) => Index (E :& i)
     offset = \ ([l], [u]) [i] -> offset (l, u) i
     index  = \ ([l], [u])  n  -> [index (l, u) n]
     
-    defaultBounds = uncurry (on (,) (E :&)) . defaultBounds
+    defaultBounds = both (E :&) . defaultBounds
     
     unsafeIndex   = \ n -> [unsafeIndex n]
 
 -- [internal]: undecidable
 instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
   where
-    type GIndex  (i' :& i :& i) = i' :& i :& i
     type DimInit (i' :& i :& i) = i' :& i
     type DimLast (i' :& i :& i) = i
     
@@ -455,7 +440,6 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
 {\
 type DimLast (TYPE) = i;\
 type DimInit (TYPE) = LAST;\
-type GIndex  (TYPE) = GTYPE;\
 size           = size . toGBounds;\
 sizes          = sizes . toGBounds;\
 isEmpty        = isEmpty . toGBounds;\
@@ -474,7 +458,7 @@ isUnderflow bs = isUnderflow (toGBounds bs) . toGIndex;\
 inBounds    bs i | isEmpty bs = ER | isUnderflow bs i = UR | isOverflow bs i = OR | True = IN;
 -- incomplete definition, toGIndex and fromGIndex needed.
 
-INDEX_INSTANCE(T2 i, i, I2 i)
+INDEX_INSTANCE(T2 i, E :& i, I2 i)
 fromGIndex = \ [a,b] -> (a,b);
 toGIndex       (a,b) =  [a,b];
 }
@@ -551,12 +535,12 @@ toGIndex       (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o) =  [a,b,c,d,e,f,g,h,i,j,k,l,m,n,o
 -- | Convert any index type bounds to generalized index bounds.
 {-# INLINE toGBounds #-}
 toGBounds :: (Index i) => (i, i) -> (GIndex i, GIndex i)
-toGBounds =  uncurry $ on (,) toGIndex
+toGBounds =  both toGIndex
 
 -- | Convert generalized index bounds to any index type bounds.
 {-# INLINE fromGBounds #-}
 fromGBounds :: (Index i) => (GIndex i, GIndex i) -> (i, i)
-fromGBounds =  uncurry $ on (,) fromGIndex
+fromGBounds =  both fromGIndex
 
 --------------------------------------------------------------------------------
 
@@ -583,8 +567,4 @@ checkBounds bnds i res msg = case inBounds bnds i of
 
 emptyEx :: String -> a
 emptyEx =  throw . EmptyRange . showString "in SDP.Index."
-
-
-
-
 
