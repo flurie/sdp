@@ -20,7 +20,7 @@ module SDP.ByteList.Ublist
   module SDP.Set,
   
   -- * Ublist
-  Ublist (..), unpack'
+  Ublist (..)
 )
 where
 
