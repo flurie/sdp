@@ -31,13 +31,16 @@ default ()
   'IndexException' replaces the less informative 'ArrayException' and has more
   neutral names in relation to other structures.
   
-  If the founded error may depend on the check order, then it should be
-  indicated in the documentation. For example: first it checks overflow, and
-  then underflow. But if an overflow is detected, the underflow may not be
-  noticed. Recommended check order is: empty bounds, overflow and underflow.
+  If the error type may depend on the check order, then it should be indicated
+  in the documentation.
+  
+  For example: overflow is checked first, and then underflow. But if an overflow
+  is detected, underflow may not be noticed.
+  
+  Recommended check order: empty range, undefined value, overflow and underflow.
 -}
-data IndexException = UndefinedValue String
-                    | EmptyRange     String
+data IndexException = EmptyRange     String
+                    | UndefinedValue String
                     | IndexOverflow  String
                     | IndexUnderflow String
   deriving (Eq, Typeable)
@@ -73,7 +76,7 @@ instance Exception UnexpectedRank
    A 'UnreachableException' is used as an exception that should never be thrown.
   Unlike 'ErrorCall' and 'AssertionFailed', which signal an incorrect use of a
   function or an error in its behavior, 'UnreachableException' indicates that
-  expression is unreachable.
+  expression is unreachable by definition.
 -}
 data UnreachableException = UnreachableException String deriving (Eq, Typeable)
 
@@ -82,4 +85,6 @@ instance Show UnreachableException
     show (UnreachableException s) = "unreachable exception " ++ s
 
 instance Exception UnreachableException
+
+
 
