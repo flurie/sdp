@@ -446,6 +446,7 @@ test-suite test-ublist
     SDP.Internal.Commons
     SDP.Internal.SBytes
     SDP.Internal.Show
+    SDP.Internal.Read
     
     SDP.Tuple
   
@@ -504,6 +505,7 @@ test-suite test-unlist
     SDP.Internal.Commons
     SDP.Internal.SArray
     SDP.Internal.Show
+    SDP.Internal.Read
     
     SDP.Tuple
   

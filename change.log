@@ -13,6 +13,7 @@ version 0.2:
   
   DEPRECATED:
     * Bounds type, in favour tuple type synonyms
+    * newUnboxedByteArray and safe_scale functions
   
   ADDED:
     * SDP.Comparing: common comparators, exported by SDP.SafePrelude
@@ -31,7 +32,7 @@ version 0.2:
     
     * SDP.Index functions: toGBounds, fromGBounds, offsetIntegral, checkBounds
       and defaultBoundsUnsign
-    * SDP.Unboxed functions: cloneUnboxed#, copyUnboxed# and copyUnboxedM#
+    * SDP.Unboxed functions: sizeof#, psizeof and cloneUnboxed#
     * SDP.Estimate: left-side Estimate comparators
     * SDP.SafePrelude combinators: (?+), (?-) and (...)
     
@@ -60,7 +61,7 @@ version 0.2:
     * Set class function: groupSetWith
     
     * Indexed class functions: assocMap, assocMap' and update
-    * Unboxed class functions: bsizeof#, sizeof#, psizeof
+    * Unboxed class functions: sizeof, copyUnboxed#, copyUnboxedM#
     
     * Freeze class function: unsafeFreeze
     * Thaw   class function: unsafeThaw
