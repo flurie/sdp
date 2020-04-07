@@ -30,8 +30,7 @@ import SDP.IndexedM
 import SDP.Unboxed
 import SDP.SortM
 
-import GHC.Base ( Int (..) )
-import GHC.ST   ( ST  (..) )
+import GHC.ST ( ST (..) )
 
 import SDP.ByteList.STUblist
 import SDP.SortM.Tim
@@ -152,4 +151,5 @@ empEx =  throw . EmptyRange . showString "in SDP.ByteList.ST."
 
 unpack :: STByteList s i e -> STUblist s e
 unpack =  \ (STByteList _ _ es) -> es
+
 

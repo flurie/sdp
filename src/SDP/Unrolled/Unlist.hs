@@ -25,30 +25,25 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
+import SDP.Unrolled.STUnlist
 
 import SDP.Indexed
 import SDP.Sort
 import SDP.Scan
 import SDP.Set
 
-import Test.QuickCheck
-
-import GHC.Generics ( Generic (..) )
-
-import GHC.ST   ( ST  (..), runST )
-import GHC.Base ( Int (..) )
-
-import Data.String ( IsString (..) )
-
-import Data.Bifunctor
-
-import SDP.Unrolled.STUnlist
 import SDP.SortM.Tim
 
 import SDP.Internal.Commons
 import SDP.Internal.SArray
 import SDP.Internal.Read
 import SDP.Internal.Show
+
+import GHC.Generics
+
+import Test.QuickCheck
+
+import Control.Monad.ST
 
 default ()
 

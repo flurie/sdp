@@ -29,8 +29,7 @@ import SDP.SafePrelude
 import SDP.IndexedM
 import SDP.SortM
 
-import GHC.Base ( Int (..) )
-import GHC.ST   ( ST  (..) )
+import GHC.ST ( ST (..) )
 
 import SDP.Unrolled.STUnlist
 import SDP.SortM.Tim
@@ -146,5 +145,6 @@ empEx =  throw . EmptyRange . showString "in SDP.Unrolled.ST."
 
 unpack :: STUnrolled s i e -> STUnlist s e
 unpack =  \ (STUnrolled _ _ es) -> es
+
 
 

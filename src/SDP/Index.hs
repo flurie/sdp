@@ -42,11 +42,9 @@ import SDP.Tuple
 
 import GHC.Types
 
-import Data.Word ( Word, Word8, Word16, Word32, Word64 )
-import Data.Int  ( Int,  Int8,  Int16,  Int32,  Int64  )
-
 import Data.Tuple
-import Data.Char  ( ord )
+import Data.Word
+import Data.Int
 
 import SDP.Internal.Commons
 
@@ -567,4 +565,6 @@ checkBounds bnds i res msg = case inBounds bnds i of
 
 emptyEx :: String -> a
 emptyEx =  throw . EmptyRange . showString "in SDP.Index."
+
+
 

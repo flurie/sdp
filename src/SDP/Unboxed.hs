@@ -23,14 +23,12 @@ where
 import Prelude ()
 import SDP.SafePrelude
 
-import GHC.Stable ( StablePtr (..) )
-import GHC.Base   ( divInt# )
-import GHC.Exts
-import GHC.ST     ( runST, ST (..), STRep )
-
-import GHC.Int  ( Int  (..), Int8  (..), Int16  (..), Int32  (..), Int64  (..) )
-import GHC.Word ( Word (..), Word8 (..), Word16 (..), Word32 (..), Word64 (..) )
-import GHC.Ptr  ( nullPtr, nullFunPtr )
+import GHC.Stable
+import GHC.Base
+import GHC.Word
+import GHC.Int
+import GHC.Ptr
+import GHC.ST
 
 import Data.Proxy
 
@@ -61,7 +59,7 @@ class (Eq e) => Unboxed e
     (!#) :: ByteArray# -> Int# -> e
     
     -- | Unsafe MutableByteArray\# reader with overloaded result type.
-    (!>#) :: MutableByteArray# s -> Int# -> STRep s e
+    (!>#) :: MutableByteArray# s -> Int# -> State# s -> (# State# s, e #)
     
     -- | Unsafe MutableByteArray\# writer.
     writeByteArray# :: MutableByteArray# s -> Int# -> e -> State# s -> State# s
@@ -546,5 +544,7 @@ psizeof e = sizeof (undefined `asProxyTypeOf` e) 1
 {-# INLINE sizeof# #-}
 sizeof# :: (Unboxed e) => e -> Int# -> Int#
 sizeof# =  \ e c# -> case sizeof e (I# c#) of I# n# -> n#
+
+
 
 

@@ -25,11 +25,9 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-
 import SDP.Set
 
 import qualified Data.List as L
-import Data.Maybe
 
 import SDP.Internal.Commons
 
@@ -256,5 +254,7 @@ instance (Ord k) => Map [(k, e)] k e
 
 unreachEx :: String -> a
 unreachEx = throw . UnreachableException . showString "in SDP.Map."
+
+
 
 

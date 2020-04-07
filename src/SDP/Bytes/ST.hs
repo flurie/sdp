@@ -27,8 +27,7 @@ import SDP.SafePrelude
 import SDP.IndexedM
 import SDP.Unboxed
 
-import GHC.Base ( Int (..) )
-import GHC.ST   ( ST  (..) )
+import GHC.ST ( ST (..) )
 
 import SDP.SortM
 import SDP.SortM.Tim
@@ -147,4 +146,5 @@ unpack =  \ (STBytes _ _ bytes#) -> bytes#
 
 empEx :: String -> a
 empEx =  throw . EmptyRange . showString "in SDP.Bytes.ST."
+
 

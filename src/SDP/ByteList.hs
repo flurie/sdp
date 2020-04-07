@@ -29,33 +29,26 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
+import SDP.ByteList.Ublist
+import SDP.ByteList.ST
 
-import SDP.IndexedM
 import SDP.Indexed
 import SDP.Unboxed
 import SDP.Sort
 import SDP.Scan
 import SDP.Set
 
-import Test.QuickCheck
-
-import GHC.Generics ( Generic (..) )
-
-import GHC.Base ( Int (..) )
-import GHC.ST   ( ST  (..) )
-
 import qualified GHC.Exts as E
-
-import Data.String ( IsString (..) )
-
-import Data.Bifunctor
-
-import SDP.ByteList.Ublist
-import SDP.ByteList.ST
 
 import SDP.Internal.Commons
 import SDP.Internal.Read
 import SDP.Internal.Show
+
+import GHC.Generics
+
+import Test.QuickCheck
+
+import Control.Monad.ST
 
 default ()
 
@@ -326,5 +319,7 @@ withBounds =  \ es -> let (l, u) = defaultBounds (sizeOf es) in ByteList l u es
 
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.ByteList."
+
+
 
 

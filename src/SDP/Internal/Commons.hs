@@ -6,9 +6,13 @@ module SDP.Internal.Commons
 (
   module Control.Exception.SDP,
   
+  module Data.Bifunctor,
   module Data.Function,
   module Data.Default,
+  module Data.Coerce,
+  module Data.String,
   module Data.Maybe,
+  module Data.Char,
   module Data.Bool,
   module Data.Ord,
   module Data.Eq,
@@ -27,9 +31,13 @@ import SDP.SafePrelude
 
 import Control.Exception.SDP
 
+import Data.Bifunctor
 import Data.Function
 import Data.Default
+import Data.String
+import Data.Coerce
 import Data.Maybe
+import Data.Char
 import Data.Bool
 import Data.Ord
 import Data.Eq
@@ -59,7 +67,4 @@ bindM2 ma mb kl2 = join $ liftM2 kl2 ma mb
 
 (>>=>) :: (Monad m) => (a -> b -> m c) -> (c -> m d) -> a -> b -> m d
 k1 >>=> k2 = (>=> k2) . k1
-
-
-
 

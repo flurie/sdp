@@ -26,8 +26,7 @@ import SDP.SafePrelude
 
 import SDP.IndexedM
 
-import GHC.Base ( Int (..) )
-import GHC.ST   ( ST  (..) )
+import GHC.ST ( ST (..) )
 
 import SDP.SortM
 import SDP.SortM.Tim
@@ -141,5 +140,6 @@ unpack =  \ (STArray _ _ arr#) -> arr#
 
 empEx :: String -> a
 empEx =  throw . EmptyRange . showString "in SDP.Array.ST."
+
 
 

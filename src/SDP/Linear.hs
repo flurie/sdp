@@ -48,8 +48,6 @@ import SDP.Zip
 
 import GHC.Types
 
-import Data.Bifunctor
-
 import SDP.Internal.Commons
 
 default ()
@@ -647,4 +645,6 @@ sorted es = and $ zipWith (<=) (listL es) (tail $ listL es)
 -- | @ascending line seqs@ checks if the @(start, count) <- seqs@ are sorted.
 ascending :: (Split s e, Ord e) => s -> [Int] -> Bool
 ascending =  all sorted ... flip splits
+
+
 

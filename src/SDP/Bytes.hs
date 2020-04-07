@@ -26,10 +26,7 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-
-import Test.QuickCheck
-
-import GHC.Generics ( Generic (..) )
+import SDP.Bytes.ST
 
 import SDP.Indexed
 import SDP.Unboxed
@@ -37,20 +34,18 @@ import SDP.Sort
 import SDP.Scan
 import SDP.Set
 
-import GHC.ST   ( ST  (..), runST )
-import GHC.Base ( Int (..) )
-
 import qualified GHC.Exts as E
-import Data.String ( IsString (..) )
-
-import Data.Bifunctor
-
-import SDP.Bytes.ST
 
 import SDP.Internal.Commons
 import SDP.Internal.SBytes
 import SDP.Internal.Read
 import SDP.Internal.Show
+
+import GHC.Generics
+
+import Test.QuickCheck
+
+import Control.Monad.ST
 
 default ()
 

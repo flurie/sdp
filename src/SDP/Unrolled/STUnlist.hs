@@ -32,8 +32,7 @@ import SDP.SortM
 
 import Data.Coerce
 
-import GHC.Base ( Int (..) )
-import GHC.ST   ( ST  (..) )
+import GHC.ST ( ST (..) )
 
 import SDP.Internal.Commons
 import SDP.Internal.SArray
@@ -169,6 +168,7 @@ unpack' (STUnlist es) = go es
 
 lim :: Int
 lim =  1024
+
 
 
 

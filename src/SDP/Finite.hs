@@ -38,13 +38,13 @@ import SDP.SafePrelude
 import Data.Bifunctor
 import Data.Default
 
-import Test.QuickCheck
-
 import qualified GHC.Exts as E
 import GHC.Exts ( IsList )
 
 import GHC.Types
 import GHC.Read
+
+import Test.QuickCheck
 
 import Control.Exception.SDP
 
