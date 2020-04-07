@@ -73,9 +73,8 @@ class (Monad m, Index i) => BorderedM m b i e | b -> m, b -> i, b -> e
     getIndices =  fmap range . getBounds
     
     -- | getAssocs returns 'assocs' of mutable data structure.
-    getAssocs :: b -> m [(i, e)]
-    
     default getAssocs :: (LinearM m b e) => b -> m [(i, e)]
+    getAssocs :: b -> m [(i, e)]
     getAssocs es = liftA2 zip (getIndices es) (getLeft es)
 
 --------------------------------------------------------------------------------
@@ -87,6 +86,10 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     
     -- | 'nowNull' is monadic version of 'isNull'.
     nowNull :: l -> m Bool
+    
+    -- | 'singleM' is monadic version of 'single'.
+    singleM :: e -> m l
+    singleM =  newLinear . single
     
     {- |
       'getHead' is monadic version of 'head'. This procedure mustn't modify the
@@ -179,7 +182,4 @@ type BorderedM2 m l i e = BorderedM m (l i e) i e
 -- | sortedM is a procedure that checks for sorting.
 sortedM :: (LinearM m l e, Ord e) => l -> m Bool
 sortedM =  fmap (\ es -> null es || and (zipWith (<=) es (tail es))) . getLeft
-
-
-
 

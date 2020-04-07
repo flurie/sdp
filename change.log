@@ -52,6 +52,9 @@ version 0.2:
     * Linear class functions: except, select, extract, selects,
       select', extract', selects'
     
+    * LinearM class functions: nowNull, newSIngle, getHead, getLast, prepend and
+      append
+    
     * Split class functions:
       keep, sans, divide, divides, save, skip, chunks, each,
       
