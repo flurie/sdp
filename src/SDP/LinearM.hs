@@ -28,7 +28,6 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-
 import SDP.Linear
 
 import SDP.Internal.Commons
@@ -82,7 +81,7 @@ class (Monad m, Index i) => BorderedM m b i e | b -> m, b -> i, b -> e
 -- | LinearM is 'Linear' version for mutable data structures.
 class (Monad m) => LinearM m l e | l -> m, l -> e
   where
-    {-# MINIMAL nowNull, getHead, getLast, (newLinear|fromFoldableM), (getLeft|getRight) #-}
+    {-# MINIMAL nowNull, getHead, getLast, (newLinear|fromFoldableM), (getLeft|getRight), copyTo #-}
     
     -- | 'nowNull' is monadic version of 'isNull'.
     nowNull :: l -> m Bool
@@ -165,6 +164,12 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     {-# INLINE filled #-}
     filled :: Int -> e -> m l
     filled n = newLinearN n . replicate n
+    
+    {- |
+      @copyTo source soff target toff count@ writes @count@ elements of @source@
+      from @soff@ to @target@ starting with @toff@.
+    -}
+    copyTo :: l -> Int -> l -> Int -> Int -> m ()
 
 --------------------------------------------------------------------------------
 

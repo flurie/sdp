@@ -54,7 +54,7 @@ import GHC.Exts
     
     thawArray#, unsafeThawArray#, freezeArray#, unsafeFreezeArray#,
     
-    copyArray#, cloneArray#, cloneMutableArray#,
+    copyArray#, copyMutableArray#, cloneArray#, cloneMutableArray#,
     
     isTrue#, sameMutableArray#, (+#), (-#), (==#)
   )
@@ -631,6 +631,15 @@ instance LinearM (ST s) (STArray# s e) e
     filled n e = let !n'@(I# n#) = max 0 n in ST $
       \ s1# -> case newArray# n# e s1# of
         (# s2#, marr# #) -> (# s2#, STArray# n' 0 marr# #)
+    
+    copyTo src sc trg tc n@(I# n#) = when (n > 0) $ do
+        when (sc < 0 || tc < 0) $ underEx "copyTo"
+        when (so + n > n1 || to + n > n2) $ overEx "copyTo"
+        ST $ \ s1# -> case copyMutableArray# src# so# trg# to# n# s1# of
+          s2# -> (# s2#, () #)
+      where
+        !(STArray# n1 o1 src#) = src; !so@(I# so#) = o1 + sc
+        !(STArray# n2 o2 trg#) = trg; !to@(I# to#) = o2 + tc
 
 --------------------------------------------------------------------------------
 
@@ -644,8 +653,6 @@ instance IndexedM (ST s) (STArray# s e) Int e
     (!#>) (STArray# _ (I# o#) marr#) = \ (I# i#) -> ST $ readArray# marr# (o# +# i#)
     
     (>!) = (!#>)
-    
-    -- | (!>) is unsafe.
     (!>) = (!#>)
     
     writeM_ = writeM
@@ -764,12 +771,15 @@ undEx =  throw . UndefinedValue . showString "in SDP.Internal.SArray."
 empEx :: String -> a
 empEx =  throw . EmptyRange . showString "in SDP.Internal.SArray."
 
+underEx :: String -> a
+underEx =  throw . IndexUnderflow . showString "in SDP.Internal.SArray."
+
+overEx :: String -> a
+overEx =  throw . IndexOverflow . showString "in SDP.Internal.SArray."
+
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.Internal.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Internal.SArray."
-
-
-
 

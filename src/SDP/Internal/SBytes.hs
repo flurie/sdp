@@ -561,6 +561,18 @@ instance (Unboxed e) => LinearM (ST s) (STBytes# s e) e
         (# s2#, marr# #) -> (# s2#, STBytes# n' 0 marr# #)
       where
         !n'@(I# n#) = max 0 n
+    
+    copyTo src sc trg tc n@(I# n#) = when (n > 0) $ do
+        when (sc < 0 || tc < 0) $ underEx "copyTo"
+        when (so + n > n1 || to + n > n2) $ overEx "copyTo"
+        
+        ST $ \ s1# -> case copyUnboxedM# (elem' src) src# so# trg# to# n# s1# of
+          s2# -> (# s2#, () #)
+      where
+        elem' = const undefined :: STBytes# s e -> e
+        
+        !(STBytes# n1 o1 src#) = src; !so@(I# so#) = o1 + sc
+        !(STBytes# n2 o2 trg#) = trg; !to@(I# to#) = o2 + tc
 
 --------------------------------------------------------------------------------
 
@@ -742,9 +754,12 @@ empEx =  throw . EmptyRange . showString "in SDP.Internal.SBytes."
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.Internal.SBytes."
 
+underEx :: String -> a
+underEx =  throw . IndexUnderflow . showString "in SDP.Internal.SBytes."
+
+overEx :: String -> a
+overEx =  throw . IndexOverflow . showString "in SDP.Internal.SBytes."
+
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Internal.SBytes."
-
-
-
 

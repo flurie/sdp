@@ -25,17 +25,16 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
+import SDP.ByteList.STUblist
 
 import SDP.IndexedM
 import SDP.Unboxed
+
 import SDP.SortM
-
-import GHC.ST ( ST (..) )
-
-import SDP.ByteList.STUblist
 import SDP.SortM.Tim
 
 import Control.Exception.SDP
+import Control.Monad.ST
 
 default ()
 
@@ -85,6 +84,8 @@ instance (Index i, Unboxed e) => LinearM (ST s) (STByteList s i e) e
     copied   (STByteList l u es) = STByteList l u <$> copied  es
     copied'  (STByteList l u es) = (STByteList l u <$>) ... copied' es
     reversed (STByteList l u es) = STByteList l u <$> reversed es
+    
+    copyTo src os trg ot n = copyTo (unpack src) os (unpack trg) ot n
 
 --------------------------------------------------------------------------------
 
@@ -151,5 +152,4 @@ empEx =  throw . EmptyRange . showString "in SDP.ByteList.ST."
 
 unpack :: STByteList s i e -> STUblist s e
 unpack =  \ (STByteList _ _ es) -> es
-
 

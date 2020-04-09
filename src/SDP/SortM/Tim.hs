@@ -119,7 +119,7 @@ timSortBy cmp es = getSizeOf es >>= timSort'
           \ e0 e1 -> e0 `gt` e1 ? desc e1 (o + 2) $ asc e1 (o + 2)
           where
             asc  p i = do c <- es !#> i; p `gt` c ? return i $ i /= n - 1 ? asc  c (i + 1) $ return (i + 1)
-            desc p i = do c <- es !#> i; p `lt` c ? rev' o i $ i /= n - 1 ? desc c (i + 1) $ rev' o (i + 1)
+            desc p i = do c <- es !#> i; p `le` c ? rev' o i $ i /= n - 1 ? desc c (i + 1) $ rev' o (i + 1)
             rev  f l = when (f < l) $ do swapM es f l; rev (f + 1) (l - 1)
             rev' f l = do rev f (l - 1); return l
         
@@ -140,15 +140,15 @@ timSortBy cmp es = getSizeOf es >>= timSort'
       where
         mergeGo ic il ir left
           | il >= lb = return () -- at least left is empty, merge is completed.
-          | ir >= rb = arrcopy left es il ic (lb - il)
+          | ir >= rb = copyTo left il es ic (lb - il)
           |   True   = bindM2 (left !#> il) (es !#> ir) $
-            \ l r -> if l `lt` r
+            \ l r -> if l `le` r
               then writeM_ es ic l >> mergeGo (ic + 1) (il + 1) ir left
               else writeM_ es ic r >> mergeGo (ic + 1) il (ir + 1) left
         rb = by + sy; lb = sx
     
     gt x y = case x `cmp` y of {GT -> True; _ -> False}
-    lt x y = case x `cmp` y of {LT -> True; _ -> False}
+    le x y = case x `cmp` y of {GT -> False; _ -> True}
 
 --------------------------------------------------------------------------------
 
@@ -156,20 +156,5 @@ timSortBy cmp es = getSizeOf es >>= timSort'
 -- | minrunTS returns Timsort chunk size.
 minrunTS :: Int -> Int
 minrunTS i = mr i 0 where mr n r = n >= 64 ? mr (shiftR n 1) (n .&. 1) $ n + r
-
-{-
-  @arrcopy xs ys ix iy count@ copies a fragment of the @xs@ to the @ys@, where
-  @ix@ and @iy@ - offsets in @xs@ and @ys@, @count@ - count of elements to be
-  copied.
-  
-  This function isn't intended for copying to an adjacent memory area.
--}
-arrcopy :: (IndexedM m v i e) => v -> v -> Int -> Int -> Int -> m ()
-arrcopy xs ys ix iy count = copy ix iy (max 0 count)
-  where
-    copy _  _  0 = return ()
-    copy ox oy c = xs !#> ox >>= writeM_ ys oy >> copy (ox + 1) (oy + 1) (c - 1)
-
-
 
 

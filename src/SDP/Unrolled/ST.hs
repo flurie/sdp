@@ -25,16 +25,15 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
+import SDP.Unrolled.STUnlist
 
 import SDP.IndexedM
+
 import SDP.SortM
-
-import GHC.ST ( ST (..) )
-
-import SDP.Unrolled.STUnlist
 import SDP.SortM.Tim
 
 import Control.Exception.SDP
+import Control.Monad.ST
 
 default ()
 
@@ -84,6 +83,8 @@ instance (Index i) => LinearM (ST s) (STUnrolled s i e) e
     copied   (STUnrolled l u es) = STUnrolled l u <$> copied es
     copied'  (STUnrolled l u es) = (STUnrolled l u <$>) ... copied' es
     reversed (STUnrolled l u es) = STUnrolled l u <$> reversed es
+    
+    copyTo src os trg ot n = copyTo (unpack src) os (unpack trg) ot n
 
 --------------------------------------------------------------------------------
 
@@ -145,6 +146,5 @@ empEx =  throw . EmptyRange . showString "in SDP.Unrolled.ST."
 
 unpack :: STUnrolled s i e -> STUnlist s e
 unpack =  \ (STUnrolled _ _ es) -> es
-
 
 

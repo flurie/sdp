@@ -30,11 +30,11 @@ version 0.2:
     * Test.SDP.Gen: Short, Medium and Long newtypes for Arbitrary
     * Test.SDP: short import of basic test suite
     
-    * SDP.Index functions: toGBounds, fromGBounds, offsetIntegral, checkBounds
-      and defaultBoundsUnsign
     * SDP.Unboxed functions: sizeof#, psizeof and cloneUnboxed#
     * SDP.Estimate: left-side Estimate comparators
-    * SDP.SafePrelude combinators: (?+), (?-) and (...)
+    * SDP.SafePrelude: (?+), (?-) and (...) combinators
+    * SDP.Index functions: toGBounds, fromGBounds, offsetIntegral, checkBounds
+      and defaultBoundsUnsign
     
     * SDP.Linear:   sorted and ascending functions
     * SDP.Indexed:  binaryContain function
@@ -52,8 +52,8 @@ version 0.2:
     * Linear class functions: except, select, extract, selects,
       select', extract', selects'
     
-    * LinearM class functions: nowNull, newSIngle, getHead, getLast, prepend and
-      append
+    * LinearM class functions: nowNull, newSIngle, getHead, getLast, prepend,
+      append and copyTo
     
     * Split class functions:
       keep, sans, divide, divides, save, skip, chunks, each,

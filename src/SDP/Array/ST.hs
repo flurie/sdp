@@ -86,6 +86,8 @@ instance (Index i) => LinearM (ST s) (STArray s i e) e
     copied'  (STArray _ _ marr#) = copied' marr# >>=> withBounds
     
     filled = filled >>=> withBounds
+    
+    copyTo src os trg ot n = copyTo (unpack src) os (unpack trg) ot n
 
 --------------------------------------------------------------------------------
 
@@ -140,6 +142,4 @@ unpack =  \ (STArray _ _ arr#) -> arr#
 
 empEx :: String -> a
 empEx =  throw . EmptyRange . showString "in SDP.Array.ST."
-
-
 

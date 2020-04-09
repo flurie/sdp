@@ -24,6 +24,7 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
+import SDP.Internal.SBytes
 
 import SDP.IndexedM
 import SDP.Unboxed
@@ -31,12 +32,9 @@ import SDP.Unboxed
 import SDP.SortM.Tim
 import SDP.SortM
 
-import Data.Coerce
-
-import GHC.ST ( ST (..) )
-
 import SDP.Internal.Commons
-import SDP.Internal.SBytes
+
+import Control.Monad.ST
 
 default ()
 
@@ -84,6 +82,31 @@ instance (Unboxed e) => LinearM (ST s) (STUblist s e) e
     filled c e = STUblist <$> sequence (replicate d (filled lim e) :< filled n e)
       where
         (d, n) = c `divMod` lim
+    
+    copyTo (STUblist source) os (STUblist target) ot c = do
+        when (os < 0 || ot < 0) $ underEx "copyTo"
+        src <- skip' (os, source)
+        trg <- skip' (ot, target)
+        go c src trg
+      where
+        go n (ox, xs@(x : xs'')) (oy, ys@(y : ys'')) = when (n > 0) $ do
+          n1 <- getSizeOf x
+          n2 <- getSizeOf y
+          
+          let
+            c1 = n1 - ox
+            c2 = n2 - oy
+            n' = minimum [c1, c2, n]
+          
+          copyTo x ox y oy n'
+          
+          go (n - n') (c1 == n' ? (0, xs'') $ (ox + n', xs)) (c2 == n' ? (0, ys'') $ (oy + n', ys))
+        
+        go n _ _ = when (n > 0) $ overEx "copyTo"
+        
+        skip'    (0, es)    = return (0, es)
+        skip'    (_, [])    = overEx "copyTo"
+        skip' (o, (e : es)) = do n <- getSizeOf e; o >= n ? skip' (o - n, es) $ return (o, (e : es))
 
 --------------------------------------------------------------------------------
 
@@ -173,8 +196,15 @@ unpack' (STUblist es) = go es
     go (x : xs) = do n <- getSizeOf x; n < 1 ? go xs $ (x :) <$> go xs
     go _ = return []
 
+overEx :: String -> a
+overEx =  throw . IndexOverflow . showString "in SDP.ByteList.STUblist."
+
+underEx :: String -> a
+underEx =  throw . IndexUnderflow . showString "in SDP.ByteList.STUblist."
+
 lim :: Int
 lim =  1024
+
 
 
 

@@ -24,18 +24,16 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
+import SDP.Internal.SArray
 
 import SDP.IndexedM
 
 import SDP.SortM.Tim
 import SDP.SortM
 
-import Data.Coerce
-
-import GHC.ST ( ST (..) )
-
 import SDP.Internal.Commons
-import SDP.Internal.SArray
+
+import Control.Monad.ST
 
 default ()
 
@@ -83,6 +81,31 @@ instance LinearM (ST s) (STUnlist s e) e
     filled c e = STUnlist <$> sequence (replicate d (filled lim e) :< filled n e)
       where
         (d, n) = c `divMod` lim
+    
+    copyTo (STUnlist source) os (STUnlist target) ot c = do
+        when (os < 0 || ot < 0) $ underEx "copyTo"
+        src <- skip' (os, source)
+        trg <- skip' (ot, target)
+        go c src trg
+      where
+        go n (ox, xs@(x : xs'')) (oy, ys@(y : ys'')) = when (n > 0) $ do
+          n1 <- getSizeOf x
+          n2 <- getSizeOf y
+          
+          let
+            c1 = n1 - ox
+            c2 = n2 - oy
+            n' = minimum [c1, c2, n]
+          
+          copyTo x ox y oy n'
+          
+          go (n - n') (c1 == n' ? (0, xs'') $ (ox + n', xs)) (c2 == n' ? (0, ys'') $ (oy + n', ys))
+        
+        go n _ _ = when (n > 0) $ overEx "copyTo"
+        
+        skip'    (0, es)    = return (0, es)
+        skip'    (_, [])    = overEx "copyTo"
+        skip' (o, (e : es)) = do n <- getSizeOf e; o >= n ? skip' (o - n, es) $ return (o, (e : es))
 
 --------------------------------------------------------------------------------
 
@@ -97,12 +120,12 @@ instance IndexedM (ST s) (STUnlist s e) Int e
     (!#>) (STUnlist es) = go es
       where
         go (x : xs) i = do n <- getSizeOf x; i < n ? x !#> i $ go xs (i - n)
-        go _ _ = throw $ IndexOverflow "in SDP.ByteList.STUnlist.(>!)"
+        go _ _ = overEx "(>!)"
     
     {-# INLINE (>!) #-}
     (>!) es i = i < 0 ? err $ es !#> i
       where
-        err = throw $ IndexUnderflow "in SDP.ByteList.STUnlist.(>!)"
+        err = overEx "(>!)"
     
     {-# INLINE writeM_ #-}
     writeM_ (STUnlist es) = go es
@@ -166,10 +189,12 @@ unpack' (STUnlist es) = go es
     go (x : xs) = do n <- getSizeOf x; n < 1 ? go xs $ (x :) <$> go xs
     go _ = return []
 
+overEx :: String -> a
+overEx =  throw . IndexOverflow . showString "in SDP.Unrolled.STUnlist."
+
+underEx :: String -> a
+underEx =  throw . IndexUnderflow . showString "in SDP.Unrolled.STUnlist."
+
 lim :: Int
 lim =  1024
-
-
-
-
 

@@ -23,17 +23,17 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
+import SDP.Internal.SBytes
 
 import SDP.IndexedM
 import SDP.Unboxed
-
-import GHC.ST ( ST (..) )
 
 import SDP.SortM
 import SDP.SortM.Tim
 
 import SDP.Internal.Commons
-import SDP.Internal.SBytes
+
+import Control.Monad.ST
 
 default ()
 
@@ -63,7 +63,7 @@ instance (Index i, Unboxed e) => BorderedM (ST s) (STBytes s i e) i e
     getIndices (STBytes l u _) = return $ range (l, u)
     getIndexOf (STBytes l u _) = return . inRange (l, u)
     
-    getSizeOf  (STBytes _ _ mbytes#) = getSizeOf mbytes#
+    getSizeOf = getSizeOf . unpack
 
 instance (Index i, Unboxed e) => LinearM (ST s) (STBytes s i e) e
   where
@@ -81,12 +81,13 @@ instance (Index i, Unboxed e) => LinearM (ST s) (STBytes s i e) e
     
     getLeft  = getLeft  . unpack
     getRight = getRight . unpack
+    filled   = filled >>=> withBounds
     
     reversed (STBytes l u mbytes#) = STBytes l u <$> reversed mbytes#
     copied   (STBytes l u mbytes#) = STBytes l u <$> copied mbytes#
     copied'  (STBytes _ _ mbytes#) = copied' mbytes# >>=> withBounds
     
-    filled = filled >>=> withBounds
+    copyTo src os trg ot n = copyTo (unpack src) os (unpack trg) ot n
 
 --------------------------------------------------------------------------------
 
@@ -146,5 +147,4 @@ unpack =  \ (STBytes _ _ bytes#) -> bytes#
 
 empEx :: String -> a
 empEx =  throw . EmptyRange . showString "in SDP.Bytes.ST."
-
 
