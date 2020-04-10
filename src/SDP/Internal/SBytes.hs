@@ -513,6 +513,9 @@ instance (Unboxed e) => BorderedM (ST s) (STBytes# s e) Int e
 
 instance (Unboxed e) => LinearM (ST s) (STBytes# s e) e
   where
+    newNull = ST $ \ s1# -> case newByteArray# 0# s1# of
+      (# s2#, marr# #) -> (# s2#, STBytes# 0 0 marr# #)
+    
     nowNull (STBytes# c _ _) = return (c < 1)
     
     getHead es = do s <- getSizeOf es; s < 1 ? empEx "getHead" $ es !#> 0
@@ -762,4 +765,6 @@ overEx =  throw . IndexOverflow . showString "in SDP.Internal.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Internal.SBytes."
+
+
 

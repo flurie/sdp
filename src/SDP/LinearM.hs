@@ -83,6 +83,10 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
   where
     {-# MINIMAL nowNull, getHead, getLast, (newLinear|fromFoldableM), (getLeft|getRight), copyTo #-}
     
+    -- | 'newNull' creates new empty structure.
+    newNull :: m l
+    newNull =  newLinear []
+    
     -- | 'nowNull' is monadic version of 'isNull'.
     nowNull :: l -> m Bool
     
@@ -187,4 +191,5 @@ type BorderedM2 m l i e = BorderedM m (l i e) i e
 -- | sortedM is a procedure that checks for sorting.
 sortedM :: (LinearM m l e, Ord e) => l -> m Bool
 sortedM =  fmap (\ es -> null es || and (zipWith (<=) es (tail es))) . getLeft
+
 

@@ -59,6 +59,7 @@ instance (Unboxed e) => BorderedM (ST s) (STUblist s e) Int e
 
 instance (Unboxed e) => LinearM (ST s) (STUblist s e) e
   where
+    newNull = return (STUblist [])
     nowNull = fmap null . unpack'
     getHead = getHead . head <=< unpack'
     getLast = getLast . last <=< unpack'
@@ -204,7 +205,6 @@ underEx =  throw . IndexUnderflow . showString "in SDP.ByteList.STUblist."
 
 lim :: Int
 lim =  1024
-
 
 
 

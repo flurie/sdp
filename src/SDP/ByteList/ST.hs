@@ -67,14 +67,14 @@ instance (Index i, Unboxed e) => BorderedM (ST s) (STByteList s i e) i e
 
 instance (Index i, Unboxed e) => LinearM (ST s) (STByteList s i e) e
   where
-    nowNull (STByteList l u es) = isEmpty (l, u) ? return True $ nowNull es
+    newNull = let (l, u) = defaultBounds 0 in STByteList l u <$> newNull
     
+    nowNull (STByteList l u es) = isEmpty (l, u) ? return True $ nowNull es
     getHead (STByteList l u es) = isEmpty (l, u) ? empEx "getHead" $ getHead es
     getLast (STByteList l u es) = isEmpty (l, u) ? empEx "getLast" $ getLast es
     
     prepend e = withBounds <=< prepend e . unpack
     append es = withBounds <=< append (unpack es)
-    
     newLinear = withBounds <=< newLinear
     filled  n = withBounds <=< filled n
     

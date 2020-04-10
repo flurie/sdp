@@ -66,14 +66,14 @@ instance (Index i) => BorderedM (ST s) (STUnrolled s i e) i e
 
 instance (Index i) => LinearM (ST s) (STUnrolled s i e) e
   where
-    nowNull (STUnrolled l u es) = isEmpty (l, u) ? return True $ nowNull es
+    newNull = let (l, u) = defaultBounds 0 in STUnrolled l u <$> newNull
     
+    nowNull (STUnrolled l u es) = isEmpty (l, u) ? return True $ nowNull es
     getHead (STUnrolled l u es) = isEmpty (l, u) ? empEx "getHead" $ getHead es
     getLast (STUnrolled l u es) = isEmpty (l, u) ? empEx "getLast" $ getLast es
     
     prepend e = withBounds <=< prepend e . unpack
     append es = withBounds <=< append (unpack es)
-    
     newLinear = withBounds <=< newLinear
     filled  n = withBounds <=< filled n
     

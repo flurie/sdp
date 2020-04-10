@@ -67,6 +67,8 @@ instance (Index i, Unboxed e) => BorderedM (ST s) (STBytes s i e) i e
 
 instance (Index i, Unboxed e) => LinearM (ST s) (STBytes s i e) e
   where
+    newNull = let (l, u) = defaultBounds 0 in STBytes l u <$> newNull
+    
     nowNull (STBytes l u _) = return $ isEmpty (l, u)
     
     getHead es = do s <- getSizeOf es; s < 1 ? empEx "getHead" $ es !#> 0
@@ -147,4 +149,7 @@ unpack =  \ (STBytes _ _ bytes#) -> bytes#
 
 empEx :: String -> a
 empEx =  throw . EmptyRange . showString "in SDP.Bytes.ST."
+
+
+
 

@@ -586,6 +586,9 @@ instance BorderedM (ST s) (STArray# s e) Int e
 
 instance LinearM (ST s) (STArray# s e) e
   where
+    newNull = ST $ \ s1# -> case newArray# 0# (unreachEx "newNull") s1# of
+      (# s2#, marr# #) -> (# s2#, STArray# 0 0 marr# #)
+    
     nowNull (STArray# c _ _) = return (c < 1)
     
     getHead es = do s <- getSizeOf es; s < 1 ? empEx "getHead" $ es !#> 0
@@ -782,4 +785,6 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Internal.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Internal.SArray."
+
+
 

@@ -58,6 +58,7 @@ instance BorderedM (ST s) (STUnlist s e) Int e
 
 instance LinearM (ST s) (STUnlist s e) e
   where
+    newNull = return (STUnlist [])
     nowNull = fmap null . unpack'
     getHead = getHead . head <=< unpack'
     getLast = getLast . last <=< unpack'
@@ -146,7 +147,6 @@ instance IndexedM (ST s) (STUnlist s e) Int e
         go xs ies = do
           fs <- mapM (fmap (flip $ (<) . fst) . getSizeOf) xs
           sequence $ zipWith overwrite xs (partitions fs ies)
-        
         ies' = filter ((>= 0) . fst) ascs
     
     fromIndexed' = newLinear . listL

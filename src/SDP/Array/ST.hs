@@ -66,6 +66,8 @@ instance (Index i) => BorderedM (ST s) (STArray s i e) i e
 
 instance (Index i) => LinearM (ST s) (STArray s i e) e
   where
+    newNull = let (l, u) = defaultBounds 0 in STArray l u <$> newNull
+    
     nowNull (STArray l u _) = return $ isEmpty (l, u)
     
     getHead es = do s <- getSizeOf es; s < 1 ? empEx "getHead" $ es !#> 0
@@ -142,4 +144,7 @@ unpack =  \ (STArray _ _ arr#) -> arr#
 
 empEx :: String -> a
 empEx =  throw . EmptyRange . showString "in SDP.Array.ST."
+
+
+
 
