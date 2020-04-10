@@ -45,7 +45,7 @@ newtype STUblist s e = STUblist [STBytes# s e] deriving ( Eq )
 
 --------------------------------------------------------------------------------
 
-{- BorderedM and LinearM instances. -}
+{- BorderedM, LinearM and SplitM instances. -}
 
 instance (Unboxed e) => BorderedM (ST s) (STUblist s e) Int e
   where
@@ -108,6 +108,27 @@ instance (Unboxed e) => LinearM (ST s) (STUblist s e) e
         skip'    (0, es)    = return (0, es)
         skip'    (_, [])    = overEx "copyTo"
         skip' (o, (e : es)) = do n <- getSizeOf e; o >= n ? skip' (o - n, es) $ return (o, (e : es))
+
+instance (Unboxed e) => SplitM (ST s) (STUblist s e) e
+  where
+    takeM n (STUblist (e : es)) = n < 1 ? newNull $ do
+      c <- getSizeOf e
+      if c > n
+        then do t <- takeM n e; return (STUblist [t])
+        else do (STUblist ts) <- takeM (n - c) (STUblist es); return $ STUblist (e : ts)
+    takeM _ es = return es
+    
+    dropM n (STUblist (e : es)) = n < 1 ? newNull $ do
+      c <- getSizeOf e
+      if n > c
+        then dropM (n - c) (STUblist es)
+        else do d <- dropM n e; return (STUblist (d : es))
+    dropM _ es = return es
+    
+    prefixM f (STUblist es) = foldr (\ e p -> do n <- getSizeOf e; c <- prefixM f e; c == n ? (+ c) <$> p $ return c) (return 0) es
+    suffixM f (STUblist es) = foldl (\ p e -> do n <- getSizeOf e; c <- suffixM f e; c == n ? (+ c) <$> p $ return c) (return 0) es
+    mprefix f (STUblist es) = foldr (\ e p -> do n <- getSizeOf e; c <- mprefix f e; c == n ? (+ c) <$> p $ return c) (return 0) es
+    msuffix f (STUblist es) = foldl (\ p e -> do n <- getSizeOf e; c <- msuffix f e; c == n ? (+ c) <$> p $ return c) (return 0) es
 
 --------------------------------------------------------------------------------
 
@@ -205,6 +226,5 @@ underEx =  throw . IndexUnderflow . showString "in SDP.ByteList.STUblist."
 
 lim :: Int
 lim =  1024
-
 
 

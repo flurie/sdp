@@ -56,7 +56,7 @@ instance (Index i) => Eq (STByteList s i e)
 
 --------------------------------------------------------------------------------
 
-{- BorderedM and LinearM instances. -}
+{- BorderedM, LinearM ans SplitM instances. -}
 
 instance (Index i, Unboxed e) => BorderedM (ST s) (STByteList s i e) i e
   where
@@ -77,7 +77,6 @@ instance (Index i, Unboxed e) => LinearM (ST s) (STByteList s i e) e
     append es = withBounds <=< append (unpack es)
     newLinear = withBounds <=< newLinear
     filled  n = withBounds <=< filled n
-    
     getLeft   = getLeft  . unpack
     getRight  = getRight . unpack
     
@@ -86,6 +85,57 @@ instance (Index i, Unboxed e) => LinearM (ST s) (STByteList s i e) e
     reversed (STByteList l u es) = STByteList l u <$> reversed es
     
     copyTo src os trg ot n = copyTo (unpack src) os (unpack trg) ot n
+
+instance (Index i, Unboxed e) => SplitM (ST s) (STByteList s i e) e
+  where
+    takeM n es@(STByteList l u marr#)
+        | n <= 0 = newNull
+        | n >= c = return es
+        |  True  = STByteList l (index (l, u) n) <$> takeM n marr#
+      where
+        c = size (l, u)
+    
+    dropM n es@(STByteList l u marr#)
+        | n >= c = newNull
+        | n <= 0 = return es
+        |  True  = STByteList (index (l, u) n) u <$> dropM n marr#
+      where
+        c = size (l, u)
+    
+    keepM n es@(STByteList l u marr#)
+        | n <= 0 = newNull
+        | n >= c = return es
+        |  True  = STByteList (index (l, u) (c - n)) u <$> keepM n marr#
+      where
+        c = size (l, u)
+    
+    sansM n es@(STByteList l u marr#)
+        | n >= c = newNull
+        | n <= 0 = return es
+        |  True  = STByteList (index (l, u) (c - n)) u <$> sansM n marr#
+      where
+        c = size (l, u)
+    
+    splitM n es@(STByteList l u marr#)
+        | n <= 0 = do e' <- newNull; return (e', es)
+        | n >= c = do e' <- newNull; return (es, e')
+        |  True  = do (take#, drop#) <- splitM n marr#; return (STByteList l i take#, STByteList i u drop#)
+      where
+        i = index (l, u) n
+        c = size  (l, u)
+    
+    divideM n es@(STByteList l u marr#)
+        | n <= 0 = do e' <- newNull; return (es, e')
+        | n >= c = do e' <- newNull; return (e', es)
+        |  True  = do (sans#, keep#) <- divideM n marr#; return (STByteList l i sans#, STByteList i u keep#)
+      where
+        i = index (l, u) (c - n)
+        c = size  (l, u)
+    
+    prefixM p (STByteList _ _ es) = prefixM p es
+    suffixM p (STByteList _ _ es) = suffixM p es
+    mprefix p (STByteList _ _ es) = mprefix p es
+    msuffix p (STByteList _ _ es) = msuffix p es
 
 --------------------------------------------------------------------------------
 

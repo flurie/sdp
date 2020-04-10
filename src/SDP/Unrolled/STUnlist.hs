@@ -44,7 +44,7 @@ newtype STUnlist s e = STUnlist [STArray# s e] deriving ( Eq )
 
 --------------------------------------------------------------------------------
 
-{- BorderedM and LinearM instances. -}
+{- BorderedM, LinearM and SplitM instances. -}
 
 instance BorderedM (ST s) (STUnlist s e) Int e
   where
@@ -101,12 +101,32 @@ instance LinearM (ST s) (STUnlist s e) e
           copyTo x ox y oy n'
           
           go (n - n') (c1 == n' ? (0, xs'') $ (ox + n', xs)) (c2 == n' ? (0, ys'') $ (oy + n', ys))
-        
         go n _ _ = when (n > 0) $ overEx "copyTo"
         
         skip'    (0, es)    = return (0, es)
         skip'    (_, [])    = overEx "copyTo"
         skip' (o, (e : es)) = do n <- getSizeOf e; o >= n ? skip' (o - n, es) $ return (o, (e : es))
+
+instance SplitM (ST s) (STUnlist s e) e
+  where
+    takeM n (STUnlist (e : es)) = n < 1 ? newNull $ do
+      c <- getSizeOf e
+      if c > n
+        then do t <- takeM n e; return (STUnlist [t])
+        else do (STUnlist ts) <- takeM (n - c) (STUnlist es); return $ STUnlist (e : ts)
+    takeM _ es = return es
+    
+    dropM n (STUnlist (e : es)) = n < 1 ? newNull $ do
+      c <- getSizeOf e
+      if n > c
+        then dropM (n - c) (STUnlist es)
+        else do d <- dropM n e; return (STUnlist (d : es))
+    dropM _ es = return es
+    
+    prefixM f (STUnlist es) = foldr (\ e p -> do n <- getSizeOf e; c <- prefixM f e; c == n ? (+ c) <$> p $ return c) (return 0) es
+    suffixM f (STUnlist es) = foldl (\ p e -> do n <- getSizeOf e; c <- suffixM f e; c == n ? (+ c) <$> p $ return c) (return 0) es
+    mprefix f (STUnlist es) = foldr (\ e p -> do n <- getSizeOf e; c <- mprefix f e; c == n ? (+ c) <$> p $ return c) (return 0) es
+    msuffix f (STUnlist es) = foldl (\ p e -> do n <- getSizeOf e; c <- msuffix f e; c == n ? (+ c) <$> p $ return c) (return 0) es
 
 --------------------------------------------------------------------------------
 

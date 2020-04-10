@@ -52,7 +52,7 @@ instance (Index i) => Eq (STArray s i e)
 
 --------------------------------------------------------------------------------
 
-{- BorderedM and LinearM instances. -}
+{- BorderedM, LinearM and SplitM instances. -}
 
 instance (Index i) => BorderedM (ST s) (STArray s i e) i e
   where
@@ -90,6 +90,57 @@ instance (Index i) => LinearM (ST s) (STArray s i e) e
     filled = filled >>=> withBounds
     
     copyTo src os trg ot n = copyTo (unpack src) os (unpack trg) ot n
+
+instance (Index i) => SplitM (ST s) (STArray s i e) e
+  where
+    takeM n es@(STArray l u marr#)
+        | n <= 0 = newNull
+        | n >= c = return es
+        |  True  = STArray l (index (l, u) n) <$> takeM n marr#
+      where
+        c = size (l, u)
+    
+    dropM n es@(STArray l u marr#)
+        | n >= c = newNull
+        | n <= 0 = return es
+        |  True  = STArray (index (l, u) n) u <$> dropM n marr#
+      where
+        c = size (l, u)
+    
+    keepM n es@(STArray l u marr#)
+        | n <= 0 = newNull
+        | n >= c = return es
+        |  True  = STArray (index (l, u) (c - n)) u <$> keepM n marr#
+      where
+        c = size (l, u)
+    
+    sansM n es@(STArray l u marr#)
+        | n >= c = newNull
+        | n <= 0 = return es
+        |  True  = STArray (index (l, u) (c - n)) u <$> sansM n marr#
+      where
+        c = size (l, u)
+    
+    splitM n es@(STArray l u marr#)
+        | n <= 0 = do e' <- newNull; return (e', es)
+        | n >= c = do e' <- newNull; return (es, e')
+        |  True  = do (take#, drop#) <- splitM n marr#; return (STArray l i take#, STArray i u drop#)
+      where
+        i = index (l, u) n
+        c = size  (l, u)
+    
+    divideM n es@(STArray l u marr#)
+        | n <= 0 = do e' <- newNull; return (es, e')
+        | n >= c = do e' <- newNull; return (e', es)
+        |  True  = do (sans#, keep#) <- divideM n marr#; return (STArray l i sans#, STArray i u keep#)
+      where
+        i = index (l, u) (c - n)
+        c = size  (l, u)
+    
+    prefixM p (STArray _ _ es) = prefixM p es
+    suffixM p (STArray _ _ es) = suffixM p es
+    mprefix p (STArray _ _ es) = mprefix p es
+    msuffix p (STArray _ _ es) = msuffix p es
 
 --------------------------------------------------------------------------------
 
@@ -144,7 +195,6 @@ unpack =  \ (STArray _ _ arr#) -> arr#
 
 empEx :: String -> a
 empEx =  throw . EmptyRange . showString "in SDP.Array.ST."
-
 
 
 

@@ -53,7 +53,7 @@ instance (Index i) => Eq (STBytes s i e)
 
 --------------------------------------------------------------------------------
 
-{- BorderedM and LinearM instances. -}
+{- BorderedM, LinearM and SplitM instances. -}
 
 instance (Index i, Unboxed e) => BorderedM (ST s) (STBytes s i e) i e
   where
@@ -90,6 +90,57 @@ instance (Index i, Unboxed e) => LinearM (ST s) (STBytes s i e) e
     copied'  (STBytes _ _ mbytes#) = copied' mbytes# >>=> withBounds
     
     copyTo src os trg ot n = copyTo (unpack src) os (unpack trg) ot n
+
+instance (Index i, Unboxed e) => SplitM (ST s) (STBytes s i e) e
+  where
+    takeM n es@(STBytes l u marr#)
+        | n <= 0 = newNull
+        | n >= c = return es
+        |  True  = STBytes l (index (l, u) n) <$> takeM n marr#
+      where
+        c = size (l, u)
+    
+    dropM n es@(STBytes l u marr#)
+        | n >= c = newNull
+        | n <= 0 = return es
+        |  True  = STBytes (index (l, u) n) u <$> dropM n marr#
+      where
+        c = size (l, u)
+    
+    keepM n es@(STBytes l u marr#)
+        | n <= 0 = newNull
+        | n >= c = return es
+        |  True  = STBytes (index (l, u) (c - n)) u <$> keepM n marr#
+      where
+        c = size (l, u)
+    
+    sansM n es@(STBytes l u marr#)
+        | n >= c = newNull
+        | n <= 0 = return es
+        |  True  = STBytes (index (l, u) (c - n)) u <$> sansM n marr#
+      where
+        c = size (l, u)
+    
+    splitM n es@(STBytes l u marr#)
+        | n <= 0 = do e' <- newNull; return (e', es)
+        | n >= c = do e' <- newNull; return (es, e')
+        |  True  = do (take#, drop#) <- splitM n marr#; return (STBytes l i take#, STBytes i u drop#)
+      where
+        i = index (l, u) n
+        c = size  (l, u)
+    
+    divideM n es@(STBytes l u marr#)
+        | n <= 0 = do e' <- newNull; return (es, e')
+        | n >= c = do e' <- newNull; return (e', es)
+        |  True  = do (sans#, keep#) <- divideM n marr#; return (STBytes l i sans#, STBytes i u keep#)
+      where
+        i = index (l, u) (c - n)
+        c = size  (l, u)
+    
+    prefixM p (STBytes _ _ es) = prefixM p es
+    suffixM p (STBytes _ _ es) = suffixM p es
+    mprefix p (STBytes _ _ es) = mprefix p es
+    msuffix p (STBytes _ _ es) = msuffix p es
 
 --------------------------------------------------------------------------------
 
@@ -149,7 +200,6 @@ unpack =  \ (STBytes _ _ bytes#) -> bytes#
 
 empEx :: String -> a
 empEx =  throw . EmptyRange . showString "in SDP.Bytes.ST."
-
 
 
 

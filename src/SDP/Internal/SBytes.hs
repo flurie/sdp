@@ -499,7 +499,7 @@ instance Eq (STBytes# s e)
 
 --------------------------------------------------------------------------------
 
-{- BorderedM and LinearM instances. -}
+{- BorderedM, LinearM and SplitM instances. -}
 
 instance (Unboxed e) => BorderedM (ST s) (STBytes# s e) Int e
   where
@@ -576,6 +576,54 @@ instance (Unboxed e) => LinearM (ST s) (STBytes# s e) e
         
         !(STBytes# n1 o1 src#) = src; !so@(I# so#) = o1 + sc
         !(STBytes# n2 o2 trg#) = trg; !to@(I# to#) = o2 + tc
+
+instance (Unboxed e) => SplitM (ST s) (STBytes# s e) e
+  where
+    takeM n es@(STBytes# c o marr#)
+      | n <= 0 = newNull
+      | n >= c = return es
+      |  True  = return (STBytes# n o marr#)
+    
+    dropM n es@(STBytes# c o marr#)
+      | n >= c = newNull
+      | n <= 0 = return es
+      |  True  = return (STBytes# (c - n) (o + n) marr#)
+    
+    keepM n es@(STBytes# c o marr#)
+      | n <= 0 = newNull
+      | n >= c = return es
+      |  True  = return (STBytes# n (c - n + o) marr#)
+    
+    sansM n es@(STBytes# c o marr#)
+      | n >= c = newNull
+      | n <= 0 = return es
+      |  True  = return (STBytes# (c - n) o marr#)
+    
+    splitM n es@(STBytes# c o marr#)
+      | n <= 0 = do e' <- newNull; return (e', es)
+      | n >= c = do e' <- newNull; return (es, e')
+      |  True  = return (STBytes# n o marr#, STBytes# (c - n) (o + n) marr#)
+    
+    divideM n es@(STBytes# c o marr#)
+      | n <= 0 = do e' <- newNull; return (es, e')
+      | n >= c = do e' <- newNull; return (e', es)
+      |  True  = return (STBytes# n (c - n + o) marr#, STBytes# (c - n) o marr#)
+    
+    prefixM p es@(STBytes# c _ _) =
+      let go i = i >= c ? return i $ do e <- es !#> i; p e ? go (i + 1) $ return i
+      in  go 0
+    
+    suffixM p es@(STBytes# c _ _) =
+      let go i = i == 0 ? return c $ do e <- es !#> i; p e ? go (i - 1) $ return (c - i - 1)
+      in  go (max 0 (c - 1))
+    
+    mprefix p es@(STBytes# c _ _) =
+      let go i = i >= c ? return i $ do e <- es !#> i; p e ?: go (i + 1) $ return i
+      in  go 0
+    
+    msuffix p es@(STBytes# c _ _) =
+      let go i = i == 0 ? return c $ do e <- es !#> i; p e ?: go (i - 1) $ return (c - i - 1)
+      in  go (max 0 (c - 1))
 
 --------------------------------------------------------------------------------
 
@@ -765,6 +813,8 @@ overEx =  throw . IndexOverflow . showString "in SDP.Internal.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Internal.SBytes."
+
+
 
 
 

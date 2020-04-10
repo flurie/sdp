@@ -342,7 +342,6 @@ instance Bordered (SArray# e) Int e
     indices  (SArray# c _ _) = [0 .. c - 1]
     indexOf  (SArray# c _ _) = index (0, c - 1)
     indexIn  (SArray# c _ _) = \ i -> i >= 0 && i < c
-    
     offsetOf (SArray# c _ _) = offset (0, c - 1)
 
 --------------------------------------------------------------------------------
@@ -572,7 +571,7 @@ instance Eq (STArray# s e)
 
 --------------------------------------------------------------------------------
 
-{- BorderedM and LinearM instances. -}
+{- BorderedM, LinearM and SplitM instances. -}
 
 instance BorderedM (ST s) (STArray# s e) Int e
   where
@@ -643,6 +642,54 @@ instance LinearM (ST s) (STArray# s e) e
       where
         !(STArray# n1 o1 src#) = src; !so@(I# so#) = o1 + sc
         !(STArray# n2 o2 trg#) = trg; !to@(I# to#) = o2 + tc
+
+instance SplitM (ST s) (STArray# s e) e
+  where
+    takeM n es@(STArray# c o marr#)
+      | n <= 0 = newNull
+      | n >= c = return es
+      |  True  = return (STArray# n o marr#)
+    
+    dropM n es@(STArray# c o marr#)
+      | n >= c = newNull
+      | n <= 0 = return es
+      |  True  = return (STArray# (c - n) (o + n) marr#)
+    
+    keepM n es@(STArray# c o marr#)
+      | n <= 0 = newNull
+      | n >= c = return es
+      |  True  = return (STArray# n (c - n + o) marr#)
+    
+    sansM n es@(STArray# c o marr#)
+      | n >= c = newNull
+      | n <= 0 = return es
+      |  True  = return (STArray# (c - n) o marr#)
+    
+    splitM n es@(STArray# c o marr#)
+      | n <= 0 = do e' <- newNull; return (e', es)
+      | n >= c = do e' <- newNull; return (es, e')
+      |  True  = return (STArray# n o marr#, STArray# (c - n) (o + n) marr#)
+    
+    divideM n es@(STArray# c o marr#)
+      | n <= 0 = do e' <- newNull; return (es, e')
+      | n >= c = do e' <- newNull; return (e', es)
+      |  True  = return (STArray# n (c - n + o) marr#, STArray# (c - n) o marr#)
+    
+    prefixM p es@(STArray# c _ _) =
+      let go i = i >= c ? return i $ do e <- es !#> i; p e ? go (i + 1) $ return i
+      in  go 0
+    
+    suffixM p es@(STArray# c _ _) =
+      let go i = i == 0 ? return c $ do e <- es !#> i; p e ? go (i - 1) $ return (c - i - 1)
+      in  go (max 0 (c - 1))
+    
+    mprefix p es@(STArray# c _ _) =
+      let go i = i >= c ? return i $ do e <- es !#> i; p e ?: go (i + 1) $ return i
+      in  go 0
+    
+    msuffix p es@(STArray# c _ _) =
+      let go i = i == 0 ? return c $ do e <- es !#> i; p e ?: go (i - 1) $ return (c - i - 1)
+      in  go (max 0 (c - 1))
 
 --------------------------------------------------------------------------------
 
@@ -785,6 +832,4 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Internal.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Internal.SArray."
-
-
 

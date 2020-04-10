@@ -55,7 +55,7 @@ instance (Index i) => Eq (STUnrolled s i e)
 
 --------------------------------------------------------------------------------
 
-{- BorderedM and LinearM instances. -}
+{- BorderedM, LinearM and SplitM instances. -}
 
 instance (Index i) => BorderedM (ST s) (STUnrolled s i e) i e
   where
@@ -85,6 +85,57 @@ instance (Index i) => LinearM (ST s) (STUnrolled s i e) e
     reversed (STUnrolled l u es) = STUnrolled l u <$> reversed es
     
     copyTo src os trg ot n = copyTo (unpack src) os (unpack trg) ot n
+
+instance (Index i) => SplitM (ST s) (STUnrolled s i e) e
+  where
+    takeM n es@(STUnrolled l u marr#)
+        | n <= 0 = newNull
+        | n >= c = return es
+        |  True  = STUnrolled l (index (l, u) n) <$> takeM n marr#
+      where
+        c = size (l, u)
+    
+    dropM n es@(STUnrolled l u marr#)
+        | n >= c = newNull
+        | n <= 0 = return es
+        |  True  = STUnrolled (index (l, u) n) u <$> dropM n marr#
+      where
+        c = size (l, u)
+    
+    keepM n es@(STUnrolled l u marr#)
+        | n <= 0 = newNull
+        | n >= c = return es
+        |  True  = STUnrolled (index (l, u) (c - n)) u <$> keepM n marr#
+      where
+        c = size (l, u)
+    
+    sansM n es@(STUnrolled l u marr#)
+        | n >= c = newNull
+        | n <= 0 = return es
+        |  True  = STUnrolled (index (l, u) (c - n)) u <$> sansM n marr#
+      where
+        c = size (l, u)
+    
+    splitM n es@(STUnrolled l u marr#)
+        | n <= 0 = do e' <- newNull; return (e', es)
+        | n >= c = do e' <- newNull; return (es, e')
+        |  True  = do (take#, drop#) <- splitM n marr#; return (STUnrolled l i take#, STUnrolled i u drop#)
+      where
+        i = index (l, u) n
+        c = size  (l, u)
+    
+    divideM n es@(STUnrolled l u marr#)
+        | n <= 0 = do e' <- newNull; return (es, e')
+        | n >= c = do e' <- newNull; return (e', es)
+        |  True  = do (sans#, keep#) <- divideM n marr#; return (STUnrolled l i sans#, STUnrolled i u keep#)
+      where
+        i = index (l, u) (c - n)
+        c = size  (l, u)
+    
+    prefixM p (STUnrolled _ _ es) = prefixM p es
+    suffixM p (STUnrolled _ _ es) = suffixM p es
+    mprefix p (STUnrolled _ _ es) = mprefix p es
+    msuffix p (STUnrolled _ _ es) = msuffix p es
 
 --------------------------------------------------------------------------------
 
@@ -146,5 +197,4 @@ empEx =  throw . EmptyRange . showString "in SDP.Unrolled.ST."
 
 unpack :: STUnrolled s i e -> STUnlist s e
 unpack =  \ (STUnrolled _ _ es) -> es
-
 
