@@ -84,45 +84,39 @@ instance (Unboxed e) => LinearM (ST s) (STUblist s e) e
       where
         (d, n) = c `divMod` lim
     
-    copyTo (STUblist source) os (STUblist target) ot c = do
+    copyTo src os trg ot c = when (c > 0) $ do
         when (os < 0 || ot < 0) $ underEx "copyTo"
-        src <- skip' (os, source)
-        trg <- skip' (ot, target)
-        go c src trg
+        src' <- dropM os src
+        trg' <- dropM ot trg
+        go c src' trg'
       where
-        go n (ox, xs@(x : xs'')) (oy, ys@(y : ys'')) = when (n > 0) $ do
+        go n xs@(STUblist (x : _)) ys@(STUblist (y : _)) = do
           n1 <- getSizeOf x
           n2 <- getSizeOf y
+          let n' = minimum [n1, n2, n]
           
-          let
-            c1 = n1 - ox
-            c2 = n2 - oy
-            n' = minimum [c1, c2, n]
-          
-          copyTo x ox y oy n'
-          
-          go (n - n') (c1 == n' ? (0, xs'') $ (ox + n', xs)) (c2 == n' ? (0, ys'') $ (oy + n', ys))
-        
+          copyTo x 0 y 0 n'
+          xs' <- dropM n' xs
+          ys' <- dropM n' ys
+          go (n - n') xs' ys'
         go n _ _ = when (n > 0) $ overEx "copyTo"
-        
-        skip'    (0, es)    = return (0, es)
-        skip'    (_, [])    = overEx "copyTo"
-        skip' (o, (e : es)) = do n <- getSizeOf e; o >= n ? skip' (o - n, es) $ return (o, (e : es))
 
 instance (Unboxed e) => SplitM (ST s) (STUblist s e) e
   where
     takeM n (STUblist (e : es)) = n < 1 ? newNull $ do
       c <- getSizeOf e
-      if c > n
-        then do t <- takeM n e; return (STUblist [t])
-        else do (STUblist ts) <- takeM (n - c) (STUblist es); return $ STUblist (e : ts)
+      case n <=> c of
+        EQ -> return (STUblist [e])
+        LT -> do t <- takeM n e; return (STUblist [t])
+        GT -> do (STUblist ts) <- takeM (n - c) (STUblist es); return $ STUblist (e : ts)
     takeM _ es = return es
     
-    dropM n (STUblist (e : es)) = n < 1 ? newNull $ do
+    dropM n es'@(STUblist (e : es)) = n < 1 ? return es' $ do
       c <- getSizeOf e
-      if n > c
-        then dropM (n - c) (STUblist es)
-        else do d <- dropM n e; return (STUblist (d : es))
+      case n <=> c of
+        EQ -> return (STUblist es)
+        GT -> dropM (n - c) (STUblist es)
+        LT -> do d <- dropM n e; return $ STUblist (d : es)
     dropM _ es = return es
     
     prefixM f (STUblist es) = foldr (\ e p -> do n <- getSizeOf e; c <- prefixM f e; c == n ? (+ c) <$> p $ return c) (return 0) es
@@ -194,7 +188,9 @@ instance (Unboxed e) => IFoldM (ST s) (STUblist s e) Int e
       where
         g = flip $ \ e -> (flip (i_foldlM f) e =<<)
 
-instance (Unboxed e) => SortM (ST s) (STUblist s e) e where sortMBy = timSortBy
+instance (Unboxed e) => SortM (ST s) (STUblist s e) e
+  where
+    sortMBy = timSortBy
 
 --------------------------------------------------------------------------------
 
@@ -226,5 +222,4 @@ underEx =  throw . IndexUnderflow . showString "in SDP.ByteList.STUblist."
 
 lim :: Int
 lim =  1024
-
 

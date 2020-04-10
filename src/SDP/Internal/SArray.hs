@@ -43,9 +43,6 @@ import SDP.Set
 import SDP.SortM.Tim
 import SDP.SortM
 
-import Data.Bifunctor
-import Data.Coerce
-
 import GHC.Exts
   (
     Array#, MutableArray#, Int (..), State#,
@@ -635,13 +632,13 @@ instance LinearM (ST s) (STArray# s e) e
         (# s2#, marr# #) -> (# s2#, STArray# n' 0 marr# #)
     
     copyTo src sc trg tc n@(I# n#) = when (n > 0) $ do
-        when (sc < 0 || tc < 0) $ underEx "copyTo"
-        when (so + n > n1 || to + n > n2) $ overEx "copyTo"
+        when      (sc < 0 || tc < 0)      $ underEx "copyTo"
+        when (sc + n > n1 || tc + n > n2) $ overEx  "copyTo"
         ST $ \ s1# -> case copyMutableArray# src# so# trg# to# n# s1# of
           s2# -> (# s2#, () #)
       where
-        !(STArray# n1 o1 src#) = src; !so@(I# so#) = o1 + sc
-        !(STArray# n2 o2 trg#) = trg; !to@(I# to#) = o2 + tc
+        !(STArray# n1 o1 src#) = src; !(I# so#) = o1 + sc
+        !(STArray# n2 o2 trg#) = trg; !(I# to#) = o2 + tc
 
 instance SplitM (ST s) (STArray# s e) e
   where
@@ -832,4 +829,7 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Internal.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Internal.SArray."
+
+
+
 

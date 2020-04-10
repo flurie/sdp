@@ -83,44 +83,39 @@ instance LinearM (ST s) (STUnlist s e) e
       where
         (d, n) = c `divMod` lim
     
-    copyTo (STUnlist source) os (STUnlist target) ot c = do
+    copyTo src os trg ot c = when (c > 0) $ do
         when (os < 0 || ot < 0) $ underEx "copyTo"
-        src <- skip' (os, source)
-        trg <- skip' (ot, target)
-        go c src trg
+        src' <- dropM os src
+        trg' <- dropM ot trg
+        go c src' trg'
       where
-        go n (ox, xs@(x : xs'')) (oy, ys@(y : ys'')) = when (n > 0) $ do
+        go n xs@(STUnlist (x : _)) ys@(STUnlist (y : _)) = do
           n1 <- getSizeOf x
           n2 <- getSizeOf y
+          let n' = minimum [n1, n2, n]
           
-          let
-            c1 = n1 - ox
-            c2 = n2 - oy
-            n' = minimum [c1, c2, n]
-          
-          copyTo x ox y oy n'
-          
-          go (n - n') (c1 == n' ? (0, xs'') $ (ox + n', xs)) (c2 == n' ? (0, ys'') $ (oy + n', ys))
+          copyTo x 0 y 0 n'
+          xs' <- dropM n' xs
+          ys' <- dropM n' ys
+          go (n - n') xs' ys'
         go n _ _ = when (n > 0) $ overEx "copyTo"
-        
-        skip'    (0, es)    = return (0, es)
-        skip'    (_, [])    = overEx "copyTo"
-        skip' (o, (e : es)) = do n <- getSizeOf e; o >= n ? skip' (o - n, es) $ return (o, (e : es))
 
 instance SplitM (ST s) (STUnlist s e) e
   where
     takeM n (STUnlist (e : es)) = n < 1 ? newNull $ do
       c <- getSizeOf e
-      if c > n
-        then do t <- takeM n e; return (STUnlist [t])
-        else do (STUnlist ts) <- takeM (n - c) (STUnlist es); return $ STUnlist (e : ts)
+      case n <=> c of
+        EQ -> return (STUnlist [e])
+        LT -> do t <- takeM n e; return (STUnlist [t])
+        GT -> do (STUnlist ts) <- takeM (n - c) (STUnlist es); return $ STUnlist (e : ts)
     takeM _ es = return es
     
-    dropM n (STUnlist (e : es)) = n < 1 ? newNull $ do
+    dropM n es'@(STUnlist (e : es)) = n < 1 ? return es' $ do
       c <- getSizeOf e
-      if n > c
-        then dropM (n - c) (STUnlist es)
-        else do d <- dropM n e; return (STUnlist (d : es))
+      case n <=> c of
+        EQ -> return (STUnlist es)
+        GT -> dropM (n - c) (STUnlist es)
+        LT -> do d <- dropM n e; return $ STUnlist (d : es)
     dropM _ es = return es
     
     prefixM f (STUnlist es) = foldr (\ e p -> do n <- getSizeOf e; c <- prefixM f e; c == n ? (+ c) <$> p $ return c) (return 0) es
@@ -144,9 +139,7 @@ instance IndexedM (ST s) (STUnlist s e) Int e
         go _ _ = overEx "(>!)"
     
     {-# INLINE (>!) #-}
-    (>!) es i = i < 0 ? err $ es !#> i
-      where
-        err = overEx "(>!)"
+    (>!) es i = i < 0 ? overEx "(>!)" $ es !#> i
     
     {-# INLINE writeM_ #-}
     writeM_ (STUnlist es) = go es
@@ -217,4 +210,6 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Unrolled.STUnlist."
 
 lim :: Int
 lim =  1024
+
+
 

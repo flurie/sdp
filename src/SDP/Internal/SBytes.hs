@@ -57,7 +57,6 @@ import GHC.Exts
   )
 import GHC.ST ( runST, ST (..), STRep )
 
-import Data.Bifunctor
 import Data.Proxy
 
 import SDP.Internal.Commons
@@ -566,16 +565,16 @@ instance (Unboxed e) => LinearM (ST s) (STBytes# s e) e
         !n'@(I# n#) = max 0 n
     
     copyTo src sc trg tc n@(I# n#) = when (n > 0) $ do
-        when (sc < 0 || tc < 0) $ underEx "copyTo"
-        when (so + n > n1 || to + n > n2) $ overEx "copyTo"
+        when      (sc < 0 || tc < 0)      $ underEx "copyTo"
+        when (sc + n > n1 || tc + n > n2) $ overEx  "copyTo"
         
         ST $ \ s1# -> case copyUnboxedM# (elem' src) src# so# trg# to# n# s1# of
           s2# -> (# s2#, () #)
       where
         elem' = const undefined :: STBytes# s e -> e
         
-        !(STBytes# n1 o1 src#) = src; !so@(I# so#) = o1 + sc
-        !(STBytes# n2 o2 trg#) = trg; !to@(I# to#) = o2 + tc
+        !(STBytes# n1 o1 src#) = src; !(I# so#) = o1 + sc
+        !(STBytes# n2 o2 trg#) = trg; !(I# to#) = o2 + tc
 
 instance (Unboxed e) => SplitM (ST s) (STBytes# s e) e
   where
@@ -813,8 +812,4 @@ overEx =  throw . IndexOverflow . showString "in SDP.Internal.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Internal.SBytes."
-
-
-
-
 
