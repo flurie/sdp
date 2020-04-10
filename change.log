@@ -38,7 +38,7 @@ version 0.2:
     
     * SDP.Linear:   sorted and ascending functions
     * SDP.Indexed:  binaryContain function
-    * SDP.LinearM:  sortedM function
+    * SDP.LinearM:  new class SplitM and sortedM function
     * SDP.IndexedM: swapM function
     
     * OverloadedIndices syntactic sugar

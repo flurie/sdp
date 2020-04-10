@@ -21,6 +21,9 @@ module SDP.LinearM
     -- * LinearM class
     LinearM (..), LinearM1,
     
+    -- * SplitM class
+    SplitM (..), SplitM1,
+    
     -- * Related section
     sortedM
   )
@@ -177,6 +180,110 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
 
 --------------------------------------------------------------------------------
 
+class (LinearM m s e) => SplitM m s e
+  where
+    {-# MINIMAL (takeM|sansM), (dropM|keepM), prefixM, suffixM, mprefix, msuffix #-}
+    
+    {- |
+      @takeM n es@ returns a reference to the @es@, keeping first @n@ elements.
+      Changes in the source and result must be synchronous.
+    -}
+    takeM :: Int -> s -> m s
+    default takeM :: (BorderedM m s i e) => Int -> s -> m s
+    takeM n es = do s <- getSizeOf es; sansM (s - n) es
+    
+    {- |
+      @dropM n es@ returns a reference to the @es@, discarding first @n@ elements.
+      Changes in the source and result must be synchronous.
+    -}
+    dropM :: Int -> s -> m s
+    default dropM :: (BorderedM m s i e) => Int -> s -> m s
+    dropM n es = do s <- getSizeOf es; keepM (s - n) es
+    
+    {- |
+      @keepM n es@ returns a reference to the @es@, keeping last @n@ elements.
+      Changes in the source and result must be synchronous.
+    -}
+    keepM :: Int -> s -> m s
+    default keepM :: (BorderedM m s i e) => Int -> s -> m s
+    keepM n es = do s <- getSizeOf es; dropM (s - n) es
+    
+    {- |
+      @sansM n es@ returns a reference to the @es@, discarding last @n@ elements.
+      Changes in the source and result must be synchronous.
+    -}
+    sansM :: Int -> s -> m s
+    default sansM :: (BorderedM m s i e) => Int -> s -> m s
+    sansM n es = do s <- getSizeOf es; takeM (s - n) es
+    
+    {- |
+      @splitM n es@ returns pair of references to the @es@: keeping and
+      discarding first @n@ elements. Changes in the source and result must be
+      synchronous.
+    -}
+    splitM  :: Int -> s -> m (s, s)
+    splitM n es = liftA2 (,) (takeM n es) (dropM n es)
+    
+    {- |
+      @divideM n es@ returns pair of references to the @es@: discarding and
+      keeping last @n@ elements. Changes in the source and results must be
+      synchronous.
+    -}
+    divideM :: Int -> s -> m (s, s)
+    divideM n es = liftA2 (,) (sansM n es) (keepM n es)
+    
+    {- |
+      @splitM ns es@ returns the sequence of @es@ prefix references of length
+      @n <- ns@. Changes in the source and results must be synchronous.
+    -}
+    splitsM :: (Foldable f) => f Int -> s -> m [s]
+    splitsM ns es = reverse <$> foldl (\ ds' n -> do ds <- ds'; (d, d') <- splitM n (head ds); return (d' : d : ds)) (return [es]) ns
+    
+    {- |
+      @dividesM ns es@ returns the sequence of @es@ suffix references of length
+      @n <- ns@. Changes in the source and results must be synchronous.
+    -}
+    dividesM :: (Foldable f) => f Int -> s -> m [s]
+    dividesM ns es = foldr (\ n ds' -> do ds <- ds'; (d, d') <- divideM n (head ds); return (d' : d : ds)) (return [es]) ns
+    
+    {- |
+      @partsM n es@ returns the sequence of @es@ prefix references, splitted by
+      offsets in @es@. Changes in the source and results must be synchronous.
+    -}
+    partsM :: (Foldable f) => f Int -> s -> m [s]
+    partsM =  splitsM . go . toList where go is = zipWith (-) is (0 : is)
+    
+    {- |
+      @chunksM n es@ returns the sequence of @es@ prefix references of length
+      @n@. Changes in the source and results must be synchronous.
+    -}
+    chunksM :: Int -> s -> m [s]
+    chunksM n es = do (t, d) <- splitM n es; nowNull d ?: return [t] $ (t :) <$> chunksM n d
+    
+    {- |
+      @eachM n es@ returns new sequence of @es@ elements with step @n@. eachM
+      shouldn't return references to @es@.
+    -}
+    eachM :: Int -> s -> m s
+    eachM n = newLinearN n . each n <=< getLeft
+    
+    -- | @prefixM p es@ returns the longest @es@ prefix size, satisfying @p@.
+    prefixM :: (e -> Bool) -> s -> m Int
+    
+    -- | @suffixM p es@ returns the longest @es@ suffix size, satisfying @p@.
+    suffixM :: (e -> Bool) -> s -> m Int
+    
+    -- | @mprefix p es@ returns the longest @es@ prefix size, satisfying @p@.
+    mprefix :: (e -> m Bool) -> s -> m Int
+    
+    -- | @msuffix p es@ returns the longest @es@ suffix size, satisfying @p@.
+    msuffix :: (e -> m Bool) -> s -> m Int
+
+--------------------------------------------------------------------------------
+
+-- | Rank (* -> *) 'SplitM' structure.
+type SplitM1 m l e = SplitM m (l e) e
+
 -- | Rank (* -> *) 'LinearM' structure.
 type LinearM1 m l e = LinearM m (l e) e
 
@@ -191,5 +298,8 @@ type BorderedM2 m l i e = BorderedM m (l i e) i e
 -- | sortedM is a procedure that checks for sorting.
 sortedM :: (LinearM m l e, Ord e) => l -> m Bool
 sortedM =  fmap (\ es -> null es || and (zipWith (<=) es (tail es))) . getLeft
+
+
+
 
 
