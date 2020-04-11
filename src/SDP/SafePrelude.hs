@@ -21,7 +21,7 @@ module SDP.SafePrelude
   
   module Prelude,
   
-  (?), (?+), (?-), (...)
+  (?), (?+), (?-), (...), (>>=<<)
 )
 where
 
@@ -77,4 +77,9 @@ p ?- f = \ a -> p a ? Nothing $ Just (f a)
 {-# INLINE (...) #-}
 (...) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
 f ... g = \ a b -> f (g a b)
+
+-- | @ma >>=<< mb@ is composition of 'join' and 'liftM2'.
+{-# INLINE (>>=<<) #-}
+(>>=<<) :: (Monad m) => m a -> m b -> (a -> b -> m c) -> m c
+ma >>=<< mb = \ f -> join $ liftM2 f ma mb
 

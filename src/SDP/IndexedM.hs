@@ -138,7 +138,7 @@ class (LinearM m v e, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
     -}
     default fromAccum :: (BorderedM m v i e) => (e -> e' -> e) -> v -> [(i, e')] -> m v
     fromAccum :: (e -> e' -> e) -> v -> [(i, e')] -> m v
-    fromAccum f es ascs = bindM2 (getBounds es) ies fromAssocs
+    fromAccum f es ascs = getBounds es >>=<< ies $ fromAssocs
       where
         ies = sequence [ do e <- es !> i; return (i, f e e') | (i, e') <- ascs ]
     

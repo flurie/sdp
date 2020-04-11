@@ -69,7 +69,7 @@ insertionSort_ cmp es b s e' = mapM_ insert [s + 1 .. e']
   where
     insert u = do j <- snext (b, u - 1) u; mapM_ (swapM es u) [j .. u - 1]
     
-    snext (l, u) i = l > u ? return i $ bindM2 (es !#> l) (es !#> i) $
+    snext (l, u) i = l > u ? return i $ (es !#> l) >>=<< (es !#> i) $
       \ c e -> case cmp e c of {GT -> snext (l + 1, u) i; _ -> return l}
 
 --------------------------------------------------------------------------------
@@ -115,7 +115,7 @@ timSortBy cmp es = getSizeOf es >>= timSort'
             end <- normalized =<< actual
             return ((o, end - o), ascSubs end n)
       where
-        actual = bindM2 (es !#> o) (es !#> o + 1) $
+        actual = (es !#> o) >>=<< (es !#> o + 1) $
           \ e0 e1 -> e0 `gt` e1 ? desc e1 (o + 2) $ asc e1 (o + 2)
           where
             asc  p i = do c <- es !#> i; p `gt` c ? return i $ i /= n - 1 ? asc  c (i + 1) $ return (i + 1)
@@ -141,7 +141,7 @@ timSortBy cmp es = getSizeOf es >>= timSort'
         mergeGo ic il ir left
           | il >= lb = return () -- at least left is empty, merge is completed.
           | ir >= rb = copyTo left il es ic (lb - il)
-          |   True   = bindM2 (left !#> il) (es !#> ir) $
+          |   True   = (left !#> il) >>=<< (es !#> ir) $
             \ l r -> if l `le` r
               then writeM_ es ic l >> mergeGo (ic + 1) (il + 1) ir left
               else writeM_ es ic r >> mergeGo (ic + 1) il (ir + 1) left

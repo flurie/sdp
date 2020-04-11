@@ -727,19 +727,19 @@ instance IndexedM (ST s) (STArray# s e) Int e
 instance IFoldM (ST s) (STArray# s e) Int e
   where
     ifoldrM  f base = \ arr@(STArray# n _ _) ->
-      let go i =  n == i ? return base $ bindM2 (arr !#> i) (go $ i + 1) (f i)
+      let go i =  n == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f i
       in  go 0
     
     ifoldlM  f base = \ arr@(STArray# n _ _) ->
-      let go i = -1 == i ? return base $ bindM2 (go $ i - 1) (arr !#> i) (f i)
+      let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f i
       in  go (n - 1)
     
     i_foldrM f base = \ arr@(STArray# n _ _) ->
-      let go i = n == i ? return base $ bindM2 (arr !#> i) (go $ i + 1) f
+      let go i = n == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f
       in  go 0
     
     i_foldlM f base = \ arr@(STArray# n _ _) ->
-      let go i = -1 == i ? return base $ bindM2 (go $ i - 1) (arr !#> i) f
+      let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f
       in  go (n - 1)
 
 instance SortM (ST s) (STArray# s e) e where sortMBy = timSortBy

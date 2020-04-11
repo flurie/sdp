@@ -665,19 +665,19 @@ instance (Unboxed e) => IndexedM (ST s) (STBytes# s e) Int e
 instance (Unboxed e) => IFoldM (ST s) (STBytes# s e) Int e
   where
     ifoldrM  f base = \ arr@(STBytes# n _ _) ->
-      let go i =  n == i ? return base $ bindM2 (arr !#> i) (go $ i + 1) (f i)
+      let go i =  n == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f i
       in  go 0
     
     ifoldlM  f base = \ arr@(STBytes# n _ _) ->
-      let go i = -1 == i ? return base $ bindM2 (go $ i - 1) (arr !#> i) (f i)
+      let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ (f i)
       in  go (n - 1)
     
     i_foldrM f base = \ arr@(STBytes# n _ _) ->
-      let go i = n == i ? return base $ bindM2 (arr !#> i) (go $ i + 1) f
+      let go i = n == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f
       in  go 0
     
     i_foldlM f base = \ arr@(STBytes# n _ _) ->
-      let go i = -1 == i ? return base $ bindM2 (go $ i - 1) (arr !#> i) f
+      let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f
       in  go (n - 1)
 
 instance (Unboxed e) => SortM (ST s) (STBytes# s e) e where sortMBy = timSortBy

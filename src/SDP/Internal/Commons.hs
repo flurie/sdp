@@ -21,7 +21,7 @@ module SDP.Internal.Commons
   
   fst, snd, fsts, snds, both,
   
-  (?>), (?:), bindM2, (>>=>)
+  (?>), (?:), (>>=>)
 )
 
 where
@@ -65,11 +65,6 @@ p ?> f = \ a -> do b <- p a; if b then Just <$> f a else return Nothing
 (?:) :: (Monad m) => m Bool -> m a -> m a -> m a
 (?:) mb t e = mb >>= \ b -> if b then t else e
 
--- Composition of liftM2 and join.
-bindM2 :: (Monad m) => m a -> m b -> (a -> b -> m c) -> m c
-bindM2 ma mb kl2 = join $ liftM2 kl2 ma mb
-
 (>>=>) :: (Monad m) => (a -> b -> m c) -> (c -> m d) -> a -> b -> m d
 k1 >>=> k2 = (>=> k2) . k1
-
 
