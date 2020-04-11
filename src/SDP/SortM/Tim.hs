@@ -30,8 +30,6 @@ import Control.Monad.Rope
 
 import Data.Bits
 
-import SDP.Internal.Commons
-
 default ()
 
 --------------------------------------------------------------------------------
@@ -156,5 +154,7 @@ timSortBy cmp es = getSizeOf es >>= timSort'
 -- | minrunTS returns Timsort chunk size.
 minrunTS :: Int -> Int
 minrunTS i = mr i 0 where mr n r = n >= 64 ? mr (shiftR n 1) (n .&. 1) $ n + r
+
+
 
 
