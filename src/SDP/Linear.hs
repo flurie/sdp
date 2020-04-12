@@ -585,7 +585,7 @@ instance Linear [e] e
     intersperse = L.intersperse
     isSubseqOf  = L.isSubsequenceOf
     
-    iterate n f e = n == 0 ? [] $ e : iterate (n - 1) f (f e)
+    iterate n f e = n < 1 ? [] $ e : iterate (n - 1) f (f e)
 
 instance Bordered [e] Int e
   where
