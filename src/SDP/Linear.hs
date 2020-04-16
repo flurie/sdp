@@ -314,7 +314,7 @@ class Linear l e | l -> e
     {- |
       @iterate n f x@ returns an list of repeated applications of @f@ to @x@.
       
-      Note that @iterate@ returns finite list, instead 'Prelude' prototype.
+      Note that @iterate@ returns finite list, instead "Prelude" prototype.
     -}
     iterate :: Int -> (e -> e) -> e -> l
     iterate n = fromListN n ... iterate n

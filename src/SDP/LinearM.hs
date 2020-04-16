@@ -39,7 +39,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | BorderedM is 'Bordered' version for mutable data structures.
+-- | 'BorderedM' is 'Bordered' version for mutable data structures.
 class (Monad m, Index i) => BorderedM m b i e | b -> m, b -> i, b -> e
   where
     {-# MINIMAL (getBounds|getLower, getUpper) #-}
@@ -81,7 +81,7 @@ class (Monad m, Index i) => BorderedM m b i e | b -> m, b -> i, b -> e
 
 --------------------------------------------------------------------------------
 
--- | LinearM is 'Linear' version for mutable data structures.
+-- | 'LinearM' is 'Linear' version for mutable data structures.
 class (Monad m) => LinearM m l e | l -> m, l -> e
   where
     {-# MINIMAL nowNull, getHead, getLast, (newLinear|fromFoldableM), (getLeft|getRight), copyTo #-}
@@ -180,6 +180,7 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
 
 --------------------------------------------------------------------------------
 
+-- | 'SplitM' is 'SplitM' version for mutable data structures.
 class (LinearM m s e) => SplitM m s e
   where
     {-# MINIMAL (takeM|sansM), (dropM|keepM), prefixM, suffixM, mprefix, msuffix #-}
@@ -298,7 +299,6 @@ type BorderedM2 m l i e = BorderedM m (l i e) i e
 -- | sortedM is a procedure that checks for sorting.
 sortedM :: (LinearM m l e, Ord e) => l -> m Bool
 sortedM =  fmap (\ es -> null es || and (zipWith (<=) es (tail es))) . getLeft
-
 
 
 

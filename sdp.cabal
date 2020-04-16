@@ -146,6 +146,7 @@ test-suite test-indices
     SDP.Estimate
     SDP.Finite
     SDP.Index
+    SDP.Shape
     SDP.Tuple
   
   build-depends:
@@ -183,6 +184,7 @@ test-suite test-array
     SDP.Linear
     SDP.Finite
     SDP.Index
+    SDP.Shape
     SDP.SortM
     SDP.Sort
     SDP.Scan
@@ -242,6 +244,7 @@ test-suite test-bytes
     SDP.Linear
     SDP.Finite
     SDP.Index
+    SDP.Shape
     SDP.SortM
     SDP.Sort
     SDP.Scan
@@ -303,6 +306,7 @@ test-suite test-unrolled
     SDP.Linear
     SDP.Finite
     SDP.Index
+    SDP.Shape
     SDP.SortM
     SDP.Sort
     SDP.Scan
@@ -366,6 +370,7 @@ test-suite test-bytelist
     SDP.Linear
     SDP.Finite
     SDP.Index
+    SDP.Shape
     SDP.SortM
     SDP.Sort
     SDP.Scan
@@ -426,6 +431,7 @@ test-suite test-ublist
     SDP.Linear
     SDP.Finite
     SDP.Index
+    SDP.Shape
     SDP.SortM
     SDP.Sort
     SDP.Scan
@@ -485,6 +491,7 @@ test-suite test-unlist
     SDP.Linear
     SDP.Finite
     SDP.Index
+    SDP.Shape
     SDP.SortM
     SDP.Sort
     SDP.Scan
@@ -565,6 +572,7 @@ benchmark bench-sort
     SDP.Linear
     SDP.Finite
     SDP.Index
+    SDP.Shape
     SDP.SortM
     SDP.Sort
     SDP.Scan

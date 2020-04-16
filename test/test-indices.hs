@@ -3,9 +3,6 @@ module Main where
 import Test.Framework
 import Test.Framework.Providers.QuickCheck2
 
-import Data.Int  ( Int8,  Int16,  Int32  )
-import Data.Word ( Word8, Word16, Word32 )
-
 import SDP.Index
 
 import Test.SDP.Index
@@ -129,7 +126,5 @@ testIndexI15 =  indexTest
 
 testIndexChar :: TestIndex Char
 testIndexChar =  indexTest
-
-
 
 
