@@ -1,15 +1,13 @@
-{-# LANGUAGE FlexibleInstances, UndecidableInstances, FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies, TypeOperators, DefaultSignatures #-}
+{-# LANGUAGE FlexibleInstances, FlexibleContexts #-}
 {-# LANGUAGE CPP, OverloadedLists #-}
-
-{-# OPTIONS_HADDOCK ignore-exports #-}
 
 {- |
     Module      :  SDP.Index
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (a lot of GHC extensions)
+    Portability :  non-portable (GHC extensions)
   
   The 'Index' class is a fork of @Ix@ with a richer interface, more convenient
   function names and generalized indexes.
@@ -19,6 +17,7 @@ module SDP.Index
   -- * Exports
   module SDP.Finite,
   module SDP.Tuple,
+  module SDP.Shape,
   
   module Data.Word,
   module Data.Int,
@@ -26,8 +25,8 @@ module SDP.Index
   -- * Service types
   InBounds (..), Bounds,
   
-  -- * Index class
-  Index (..), GIndex,
+  -- * Indices
+  Index (..),
   
   -- * Helpers
   toGBounds, fromGBounds, offsetIntegral, defaultBoundsUnsign, checkBounds
@@ -39,8 +38,7 @@ import SDP.SafePrelude
 
 import SDP.Finite
 import SDP.Tuple
-
-import GHC.Types
+import SDP.Shape
 
 import Data.Tuple
 import Data.Word
@@ -73,13 +71,7 @@ data InBounds = ER {- ^ Empty Range     -}
 {- |
   Index is service class based on @base@ Ix and @repa@ Shape.
   
-  This Index implementation is unstable and may be extended.
-  
-  Rules:
-  
-  > Index i => Index (DimLast i)
-  > Index i => Index (DimInit i)
-  > Index i => Index (GIndex  i)
+  Basic rules:
   
   > rank i == rank   (j `asTypeOf` i)
   > rank i == length (sizes (i, i))
@@ -97,41 +89,18 @@ data InBounds = ER {- ^ Empty Range     -}
   > inRange bnds i /= isOverflow  bnds i
   > inRange bnds i /= isUnderflow bnds i
   > inRange bnds i == (safeElem bnds i == i)
+  
+  Note:
+  * E is (and should remain) the one and only one index of rank 0.
+  * Index is a generalization of Enum, so all rank 1 indices must satisfy Enum
+  laws.
+  * The cardinality of the set of permissible values for indices mustn't
+  exceed 1 (cardinality of a series of natural numbers). This is a purely
+  practical limitation.
 -}
-class (Ord i) => Index i
+class (Ord i, Shape i, Shape (DimLast i), Shape (DimInit i), Shape (GIndex i)) => Index i
   where
-    {- Subspaces -}
-    
-    -- | Type of top dimension index.
-    type DimLast i :: *
-    type DimLast i =  i
-    
-    {- |
-      The type of subspace of 'rank' @n - 1@, where @n@ is the 'rank' of the
-      space specified by this 'Index' type.
-    -}
-    type DimInit i :: *
-    type DimInit i =  E
-    
-    -- | Create index from generalized index.
-    {-# INLINE fromGIndex #-}
-    default fromGIndex :: (GIndex i ~~ (E :& i)) => GIndex i -> i
-    fromGIndex :: GIndex i -> i
-    fromGIndex =  \ [i] -> i
-    
-    -- | Create generalized index from index.
-    {-# INLINE toGIndex #-}
-    default toGIndex :: (GIndex i ~~ (E :& i)) => i -> GIndex i
-    toGIndex :: i -> GIndex i
-    toGIndex =  \ i -> [i]
-    
     {- Basic functions. -}
-    
-    -- | Count of dimensions in represented space (must be finite and constant).
-    {-# INLINE rank #-}
-    default rank :: (Index (GIndex i)) => i -> Int
-    rank :: i -> Int
-    rank =  rank . toGIndex
     
     -- | Returns the size of range.
     {-# INLINE size #-}
@@ -155,8 +124,8 @@ class (Ord i) => Index i
     ordBounds :: (i, i) -> (i, i)
     ordBounds = \ bs -> isEmpty bs ? swap bs $ bs
     
-    -- | Size of biggest range, that may be created by 'defaultBounds'.
-    default defLimit :: (Bounded (DimLast i), Integral i, Bounded i) => i -> Integer
+    -- | Size of biggest range, that may be represented by this type of index.
+    default defLimit :: (Integral i, Bounded i) => i -> Integer
     defLimit :: i -> Integer
     defLimit i = toInteger (maxBound `asTypeOf` i) + 1
     
@@ -233,13 +202,6 @@ class (Ord i) => Index i
     range :: (i, i) -> [i]
     range =  uncurry enumFromTo
 
--- | Type operator 'GIndex' returns generalized equivalent of index.
-type family GIndex i
-  where
-    GIndex     E     = E
-    GIndex (i' :& i) = i' :& i
-    GIndex     i     = GIndex (DimInit i) :& DimLast i
-
 --------------------------------------------------------------------------------
 
 {- Basic instances -}
@@ -247,12 +209,9 @@ type family GIndex i
 instance Index E
   where
     unsafeIndex  = const (emptyEx "unsafeIndex (E)")
-    fromGIndex   = id
-    toGIndex     = id
     
     defLimit = const 0
     
-    rank  = const 0
     size  = const 0
     sizes = const []
     range = const []
@@ -270,13 +229,11 @@ instance Index E
 
 instance Index ()
   where
-    rank  = const 1
     size  = const 1
     sizes = const [1]
     range = const [()]
     
     defLimit = const 0
-    
     next _ _ = ()
     prev _ _ = ()
     
@@ -292,14 +249,6 @@ instance Index ()
     
     unsafeIndex  0 = ()
     unsafeIndex  _ = emptyEx "unsafeIndex ()"
-
-instance Index Integer
-  where
-    rank  = const 1
-    sizes = pure . size
-    
-    defLimit = const (error "no upper bound for defLimit")
-    offset   = offsetIntegral
 
 instance Index Char
   where
@@ -324,17 +273,9 @@ instance Index Word64  where offset = offsetIntegral; defaultBounds = defaultBou
 
 instance (Index i, Enum i, Bounded i) => Index (E :& i)
   where
-    type DimInit (E :& i) = E
-    type DimLast (E :& i) = i
-    
-    fromGIndex = id
-    toGIndex   = id
-    
     defLimit = lim undefined
       where
         lim = const . defLimit :: (Index i) => i -> (E :& i) -> Integer
-    
-    rank = const 1
     
     size  = \ ([l], [u]) ->  size (l, u)
     sizes = \ ([l], [u]) -> [size (l, u)]
@@ -361,20 +302,10 @@ instance (Index i, Enum i, Bounded i) => Index (E :& i)
 -- [internal]: undecidable
 instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
   where
-    type DimInit (i' :& i :& i) = i' :& i
-    type DimLast (i' :& i :& i) = i
-    
-    fromGIndex = id
-    toGIndex   = id
-    
     defLimit i = lim (error "in defLimit") (rank i) i
       where
         lim :: (Index i) => i -> Int -> (i' :& i) -> Integer
         lim =  const ... (^) . defLimit
-    
-    rank = rnk undefined
-      where
-        rnk = const . succ . rank :: (Index i') => i' -> (i' :& i) -> Int
     
     size  (ls :& l, us :& u) = size (l, u) * size (ls, us)
     sizes (ls :& l, us :& u) = sizes (ls, us) ++ sizes (l, u)
@@ -434,10 +365,8 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
 
 {- Tuple instances. -}
 
-#define INDEX_INSTANCE(TYPE,LAST,GTYPE) instance (Index i, Enum i, Bounded i) => Index (TYPE) where\
+#define INDEX_INSTANCE(Type) instance (Ord i, Index i, Enum i, Bounded i) => Index (Type i) where\
 {\
-type DimLast (TYPE) = i;\
-type DimInit (TYPE) = LAST;\
 size           = size . toGBounds;\
 sizes          = sizes . toGBounds;\
 isEmpty        = isEmpty . toGBounds;\
@@ -453,78 +382,23 @@ offset      bs = offset (toGBounds bs) . toGIndex;\
 index       bs = fromGIndex . index (toGBounds bs);\
 isOverflow  bs = isOverflow  (toGBounds bs) . toGIndex;\
 isUnderflow bs = isUnderflow (toGBounds bs) . toGIndex;\
-inBounds    bs i | isEmpty bs = ER | isUnderflow bs i = UR | isOverflow bs i = OR | True = IN;
--- incomplete definition, toGIndex and fromGIndex needed.
-
-INDEX_INSTANCE(T2 i, E :& i, I2 i)
-fromGIndex = \ [a,b] -> (a,b);
-toGIndex       (a,b) =  [a,b];
+inBounds    bs i | isEmpty bs = ER | isUnderflow bs i = UR | isOverflow bs i = OR | True = IN;\
 }
 
-INDEX_INSTANCE(T3 i, T2 i, I3 i)
-fromGIndex = \ [a,b,c] -> (a,b,c);
-toGIndex       (a,b,c) =  [a,b,c];
-}
-
-INDEX_INSTANCE(T4 i, T3 i, I4 i)
-fromGIndex = \ [a,b,c,d] -> (a,b,c,d);
-toGIndex       (a,b,c,d) =  [a,b,c,d];
-}
-
-INDEX_INSTANCE(T5 i, T4 i, I5 i)
-fromGIndex = \ [a,b,c,d,e] -> (a,b,c,d,e);
-toGIndex       (a,b,c,d,e) =  [a,b,c,d,e];
-}
-
-INDEX_INSTANCE(T6 i, T5 i, I6 i)
-fromGIndex = \ [a,b,c,d,e,f] -> (a,b,c,d,e,f);
-toGIndex       (a,b,c,d,e,f) =  [a,b,c,d,e,f];
-}
-
-INDEX_INSTANCE(T7 i, T6 i, I7 i)
-fromGIndex = \ [a,b,c,d,e,f,g] -> (a,b,c,d,e,f,g);
-toGIndex       (a,b,c,d,e,f,g) =  [a,b,c,d,e,f,g];
-}
-
-INDEX_INSTANCE(T8 i, T7 i, I8 i)
-fromGIndex = \ [a,b,c,d,e,f,g,h] -> (a,b,c,d,e,f,g,h);
-toGIndex       (a,b,c,d,e,f,g,h) =  [a,b,c,d,e,f,g,h];
-}
-
-INDEX_INSTANCE(T9 i, T8 i, I9 i)
-fromGIndex = \ [a,b,c,d,e,f,g,h,i] -> (a,b,c,d,e,f,g,h,i);
-toGIndex       (a,b,c,d,e,f,g,h,i) =  [a,b,c,d,e,f,g,h,i];
-}
-
-INDEX_INSTANCE(T10 i, T9 i, I10 i)
-fromGIndex = \ [a,b,c,d,e,f,g,h,i,j] -> (a,b,c,d,e,f,g,h,i,j);
-toGIndex       (a,b,c,d,e,f,g,h,i,j) =  [a,b,c,d,e,f,g,h,i,j];
-}
-
-INDEX_INSTANCE(T11 i, T10 i, I11 i)
-fromGIndex = \ [a,b,c,d,e,f,g,h,i,j,k] -> (a,b,c,d,e,f,g,h,i,j,k);
-toGIndex       (a,b,c,d,e,f,g,h,i,j,k) =  [a,b,c,d,e,f,g,h,i,j,k];
-}
-
-INDEX_INSTANCE(T12 i, T11 i, I12 i)
-fromGIndex = \ [a,b,c,d,e,f,g,h,i,j,k,l] -> (a,b,c,d,e,f,g,h,i,j,k,l);
-toGIndex       (a,b,c,d,e,f,g,h,i,j,k,l) =  [a,b,c,d,e,f,g,h,i,j,k,l];
-}
-
-INDEX_INSTANCE(T13 i, T12 i, I13 i)
-fromGIndex = \ [a,b,c,d,e,f,g,h,i,j,k,l,m] -> (a,b,c,d,e,f,g,h,i,j,k,l,m);
-toGIndex       (a,b,c,d,e,f,g,h,i,j,k,l,m) =  [a,b,c,d,e,f,g,h,i,j,k,l,m];
-}
-
-INDEX_INSTANCE(T14 i, T13 i, I14 i)
-fromGIndex = \ [a,b,c,d,e,f,g,h,i,j,k,l,m,n] -> (a,b,c,d,e,f,g,h,i,j,k,l,m,n);
-toGIndex       (a,b,c,d,e,f,g,h,i,j,k,l,m,n) =  [a,b,c,d,e,f,g,h,i,j,k,l,m,n];
-}
-
-INDEX_INSTANCE(T15 i, T14 i, I15 i)
-fromGIndex = \ [a,b,c,d,e,f,g,h,i,j,k,l,m,n,o] -> (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o);
-toGIndex       (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o) =  [a,b,c,d,e,f,g,h,i,j,k,l,m,n,o];
-}
+INDEX_INSTANCE(T2)
+INDEX_INSTANCE(T3)
+INDEX_INSTANCE(T4)
+INDEX_INSTANCE(T5)
+INDEX_INSTANCE(T6)
+INDEX_INSTANCE(T7)
+INDEX_INSTANCE(T8)
+INDEX_INSTANCE(T9)
+INDEX_INSTANCE(T10)
+INDEX_INSTANCE(T11)
+INDEX_INSTANCE(T12)
+INDEX_INSTANCE(T13)
+INDEX_INSTANCE(T14)
+INDEX_INSTANCE(T15)
 
 #undef INDEX_INSTANCE
 
@@ -532,12 +406,12 @@ toGIndex       (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o) =  [a,b,c,d,e,f,g,h,i,j,k,l,m,n,o
 
 -- | Convert any index type bounds to generalized index bounds.
 {-# INLINE toGBounds #-}
-toGBounds :: (Index i) => (i, i) -> (GIndex i, GIndex i)
+toGBounds :: (Shape i) => (i, i) -> (GIndex i, GIndex i)
 toGBounds =  both toGIndex
 
 -- | Convert generalized index bounds to any index type bounds.
 {-# INLINE fromGBounds #-}
-fromGBounds :: (Index i) => (GIndex i, GIndex i) -> (i, i)
+fromGBounds :: (Shape i) => (GIndex i, GIndex i) -> (i, i)
 fromGBounds =  both fromGIndex
 
 --------------------------------------------------------------------------------
@@ -545,7 +419,7 @@ fromGBounds =  both fromGIndex
 (-.) :: (Enum i) => i -> i -> Int
 (-.) =  on (-) fromEnum
 
--- | offsetIntegral is default offset for 'Integral' types.
+-- | Default 'offset' for 'Integral' types.
 {-# INLINE offsetIntegral #-}
 offsetIntegral :: (Index i, Integral i) => (i, i) -> i -> Int
 offsetIntegral bnds@(l, _) i = checkBounds bnds i (i -. l) "offset {default}"
@@ -565,6 +439,7 @@ checkBounds bnds i res msg = case inBounds bnds i of
 
 emptyEx :: String -> a
 emptyEx =  throw . EmptyRange . showString "in SDP.Index."
+
 
 
 

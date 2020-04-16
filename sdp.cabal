@@ -53,6 +53,7 @@ Library
     SDP.Unboxed
     SDP.Finite
     SDP.Tuple
+    SDP.Shape
     SDP.Index
     
     SDP.SortM.Insertion
