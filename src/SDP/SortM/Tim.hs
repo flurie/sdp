@@ -38,7 +38,7 @@ default ()
 
 -- | insertionSort is just synonym for insertionSortBy compare.
 {-# INLINE insertionSort #-}
-insertionSort :: (BorderedM m v i e, IndexedM m v i e, Ord e) => v -> m ()
+insertionSort :: (IndexedM m v i e, Ord e) => v -> m ()
 insertionSort =  insertionSortBy compare
 
 {- |
@@ -46,7 +46,7 @@ insertionSort =  insertionSortBy compare
   compare elements.
 -}
 {-# INLINE insertionSortOn #-}
-insertionSortOn :: (BorderedM m v i e, IndexedM m v i e, Ord o) => (e -> o) -> v -> m ()
+insertionSortOn :: (IndexedM m v i e, Ord o) => (e -> o) -> v -> m ()
 insertionSortOn =  insertionSortBy . comparing
 
 {- |
@@ -54,7 +54,7 @@ insertionSortOn =  insertionSortBy . comparing
   complexity in all cases.
 -}
 {-# INLINE insertionSortBy #-}
-insertionSortBy :: (BorderedM m v i e, IndexedM m v i e) => Compare e -> v -> m ()
+insertionSortBy :: (IndexedM m v i e) => Compare e -> v -> m ()
 insertionSortBy cmp es = do n <- getSizeOf es; insertionSort_ cmp es 0 0 (n - 1)
 
 {-
@@ -76,7 +76,7 @@ insertionSort_ cmp es b s e' = mapM_ insert [s + 1 .. e']
 
 -- | timsort is just synonym for timSortBy compare.
 {-# INLINE timSort #-}
-timSort :: (BorderedM m v i e, IndexedM m v i e, Ord e) => v -> m ()
+timSort :: (IndexedM m v i e, Ord e) => v -> m ()
 timSort =  timSortBy compare
 
 {- |
@@ -84,7 +84,7 @@ timSort =  timSortBy compare
   elements.
 -}
 {-# INLINE timSortOn #-}
-timSortOn :: (BorderedM m v i e, IndexedM m v i e, Ord o) => (e -> o) -> v -> m ()
+timSortOn :: (IndexedM m v i e, Ord o) => (e -> o) -> v -> m ()
 timSortOn =  timSortBy . comparing
 
 {- |
@@ -93,7 +93,7 @@ timSortOn =  timSortBy . comparing
   case.
 -}
 {-# INLINE timSortBy #-}
-timSortBy :: (BorderedM m v i e, IndexedM m v i e) => Compare e -> v -> m ()
+timSortBy :: (IndexedM m v i e) => Compare e -> v -> m ()
 timSortBy cmp es = getSizeOf es >>= timSort'
   where
     timSort' n

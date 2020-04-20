@@ -1,5 +1,5 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE BangPatterns, DefaultSignatures, ConstraintKinds #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
+{-# LANGUAGE BangPatterns, ConstraintKinds #-}
 
 {- |
     Module      :  SDP.Indexed
@@ -43,7 +43,7 @@ infixl 9 !^, .!, !, !?
 --------------------------------------------------------------------------------
 
 -- | Class of indexed data structures.
-class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
+class (Linear v e, Bordered v i e) => Indexed v i e
   where
     {-# MINIMAL assoc', fromIndexed, (//), ((.!)|(!?)) #-}
     
@@ -73,7 +73,7 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
     assocMap' bnds defvalue = assoc' bnds defvalue . listMap
     
     -- | 'fromIndexed' converts this indexed structure to another one.
-    fromIndexed :: (Bordered v' j e, Indexed v' j e) => v' -> v
+    fromIndexed :: (Indexed v' j e) => v' -> v
     
     -- | 'imap' creates new indexed structure from old with reshaping function.
     imap :: (Indexed v' j e) => (i, i) -> v' -> (i -> j) -> v
@@ -83,7 +83,6 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
       @'accum' f es ies@ create a new structure from @es@ elements selectively
       updated by function @f@ and @ies@ associations list.
     -}
-    default accum :: (Bordered v i e) => (e -> e' -> e) -> v -> [(i, e')] -> v
     accum :: (e -> e' -> e) -> v -> [(i, e')] -> v
     accum f es ies = bounds es `assoc` [ (i, es ! i `f` e') | (i, e') <- ies ]
     
@@ -95,14 +94,12 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
     update es is f = es // [ (i, f i (es ! i)) | i <- is ]
     
     -- | Create new structure from old by indexed mapping.
-    default (/>) :: (Bordered v i e) => v -> (i -> e -> e) -> v
     (/>) :: v -> (i -> e -> e) -> v
     (/>) es f = assoc (bounds es) [ (i, f i (es ! i)) | i <- indices es ]
     
     {- Elementwise operations. -}
     
     -- | (!^) is completely unsafe reader. Must work as fast, as possible.
-    default (!^) :: (Bordered v i e) => v -> Int -> e
     (!^) :: v -> Int -> e
     (!^) es = (es .!) . indexOf es
     
@@ -112,7 +109,6 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
     (.!) =  fromMaybe (undEx "(.!)") ... (!?)
     
     -- | (!) is well-safe reader. Must 'throw' 'IndexException'.
-    default (!) :: (Bordered v i e) => v -> i -> e
     (!) :: v -> i -> e
     (!) es i = case inBounds (bounds es) i of
         IN -> es .! i
@@ -123,12 +119,10 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
         msg = "in SDP.Indexed.(!) {default}"
     
     -- | (!?) is completely safe, but very boring function.
-    default (!?) :: (Bordered v i e) => v -> i -> Maybe e
     (!?) :: v -> i -> Maybe e
     (!?) es = not . indexIn es ?- (es .!)
     
     -- |  Write one element to structure.
-    default write_ :: (Bordered v i e) => v -> Int -> e -> v
     write_ :: v -> Int -> e -> v
     write_ es i e = es // [ (indexOf es i, e) ]
     
@@ -141,7 +135,6 @@ class (Linear v e, Index i) => Indexed v i e | v -> i, v -> e
     (.$) =  null ?- head ... (*$)
     
     -- | Searches the indices of all matching elements.
-    default (*$) :: (Bordered v i e) => (e -> Bool) -> v -> [i]
     (*$) :: (e -> Bool) -> v -> [i]
     (*$) f = select (f . snd ?+ fst) . assocs
 
@@ -251,7 +244,7 @@ type IFold2 v i e = IFold (v i e) i e
 --------------------------------------------------------------------------------
 
 -- | binaryContain checks that sorted structure has equal element.
-binaryContain :: (Bordered v i e, Indexed v i e) => Compare e -> e -> v -> Bool
+binaryContain :: (Indexed v i e) => Compare e -> e -> v -> Bool
 binaryContain f e es = and [ s /= 0, f e (es !^ 0) /= LT, f e (es !^ u') /= GT, contain 0 u' ]
   where
     contain l u = l > u ? False $ case f e (es !^ j) of
@@ -270,6 +263,8 @@ binaryContain f e es = and [ s /= 0, f e (es !^ 0) /= LT, f e (es !^ u') /= GT, 
 
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.Indexed."
+
+
 
 
 

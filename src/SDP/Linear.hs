@@ -58,7 +58,7 @@ infixl 5 :<
 --------------------------------------------------------------------------------
 
 -- | Class of bordered data structures.
-class (Index i) => Bordered (b) i e | b -> i, b -> e
+class (Index i) => Bordered b i e | b -> i, b -> e
   where
     {-# MINIMAL (bounds|(lower, upper)) #-}
     

@@ -1,5 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
-{-# LANGUAGE ConstraintKinds, DefaultSignatures #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, ConstraintKinds #-}
 
 {- |
     Module      :  SDP.IndexedM
@@ -45,7 +44,7 @@ infixl 5 !#>, >!, !>, !?>
 --------------------------------------------------------------------------------
 
 -- | Class for work with mutable indexed structures.
-class (LinearM m v e, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
+class (LinearM m v e, BorderedM m v i e) => IndexedM m v i e
   where
     {-# MINIMAL fromAssocs', fromIndexed', fromIndexedM, overwrite, ((>!)|(!?>)) #-}
     
@@ -67,7 +66,6 @@ class (LinearM m v e, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
     
     -- | (!#>) is unsafe monadic offset-based reader.
     {-# INLINE (!#>) #-}
-    default (!#>) :: (BorderedM m v i e) => v -> Int -> m e
     (!#>) :: v -> Int -> m e
     es !#> i = do bnds <- getBounds es; es >! index bnds i
     
@@ -79,7 +77,6 @@ class (LinearM m v e, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
     -- | (!>) is well-safe monadic reader.
     {-# INLINE (!>) #-}
     (!>) :: v -> i -> m e
-    default (!>) :: (BorderedM m v i e) => v -> i -> m e
     (!>) es i = getBounds es >>= \ bnds -> case inBounds bnds i of
         IN -> es >! i
         ER -> throw $ EmptyRange     msg
@@ -89,23 +86,20 @@ class (LinearM m v e, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
         msg = "in SDP.IndexedM.(!>) {default}"
     
     -- | (!?>) is completely safe monadic reader.
-    default (!?>) :: (BorderedM m v i e) => v -> i -> m (Maybe e)
     (!?>) :: v -> i -> m (Maybe e)
     (!?>) es = getIndexOf es ?> (es >!)
     
-    default writeM_ :: (BorderedM m v i e) => v -> Int -> e -> m ()
     writeM_ :: v -> Int -> e -> m ()
     writeM_ es i e = do bnds <- getBounds es; void $ overwrite es [(index bnds i, e)]
     
-    default writeM :: (BorderedM m v i e) => v -> i -> e -> m ()
     writeM :: v -> i -> e -> m ()
     writeM es i e = do b <- getIndexOf es i; when b . void $ overwrite es [(i, e)]
     
     -- | fromIndexed' is overloaded version of thaw.
-    fromIndexed' :: (Bordered v' j e, Indexed v' j e) => v' -> m v
+    fromIndexed' :: (Indexed v' j e) => v' -> m v
     
     -- | fromIndexed converts one mutable structure to other.
-    fromIndexedM :: (BorderedM m v' j e, IndexedM m v' j e) => v' -> m v
+    fromIndexedM :: (IndexedM m v' j e) => v' -> m v
     
     {- |
       This function designed to overwrite large enough fragments of the
@@ -136,7 +130,6 @@ class (LinearM m v e, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
       @'fromAccum' f es ies@ create a new structure from @es@ elements
       selectively updated by function @f@ and @ies@ associations list.
     -}
-    default fromAccum :: (BorderedM m v i e) => (e -> e' -> e) -> v -> [(i, e')] -> m v
     fromAccum :: (e -> e' -> e) -> v -> [(i, e')] -> m v
     fromAccum f es ascs = getBounds es >>=<< ies $ fromAssocs
       where
@@ -151,7 +144,6 @@ class (LinearM m v e, Index i) => IndexedM m v i e | v -> m, v -> i, v -> e
     (.?) =  fmap listToMaybe ... (*?)
     
     -- | (*?) is monadic version of (*$).
-    default (*?) :: (BorderedM m v i e) => (e -> Bool) -> v -> m [i]
     (*?) :: (e -> Bool) -> v -> m [i]
     (*?) p es = select (p . snd ?+ fst) <$> getAssocs es
 
@@ -241,5 +233,8 @@ swapM es i j = do ei <- es !#> i; writeM_ es i =<< es !#> j; writeM_ es j ei
 
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.IndexedM."
+
+
+
 
 
