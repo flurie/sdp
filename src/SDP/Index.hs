@@ -209,6 +209,12 @@ class (Ord i, Shape i, Shape (DimLast i), Shape (DimInit i), Shape (GIndex i)) =
       where
         (l', lj) = splitDim l
         (u', uj) = splitDim u
+    
+    slice :: (SubShape i j, Index (i :|: j)) => (i, i) -> i :|: j -> ((i :|: j, i :|: j), (j, j))
+    slice (l, u) ij = checkBounds (l', u') ij ((l', u'), (lj, uj)) "slice {default}"
+      where
+        (l', lj) = splitDim l
+        (u', uj) = splitDim u
 
 --------------------------------------------------------------------------------
 
@@ -446,5 +452,4 @@ checkBounds bnds i res = case inBounds bnds i of
 
 emptyEx :: String -> a
 emptyEx =  throw . EmptyRange . showString "in SDP.Index."
-
 
