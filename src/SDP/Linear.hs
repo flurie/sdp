@@ -439,6 +439,18 @@ class (Linear s e) => Split s e | s -> e
     default suffix :: (Foldable t, t e ~~ s) => (e -> Bool) -> s -> Int
     suffix p = foldl (\ c e -> p e ? c + 1 $ 0) 0
     
+    {- |
+      @combo f es@ returns the length of the @es@ subsequence (left to tight)
+      whose elements are in order @f@.
+      
+      > combo (<) [] = 0
+      > combo (<) [7, 4, 12] = 1
+      > combo (<) [1, 7, 3, 12] = 2
+    -}
+    default combo :: (Bordered s i e) => (e -> e -> Bool) -> s -> Int
+    combo :: (e -> e -> Bool) -> s -> Int
+    combo f = combo f . listL
+    
     -- | Takes the longest init by predicate.
     takeWhile :: (e -> Bool) -> s -> s
     takeWhile p es = take (prefix p es) es
@@ -606,6 +618,11 @@ instance Split [e] e
         go i (x : xs) = i == 1 ? x : go n xs $ go (i - 1) xs
         go _ _ = []
     
+    combo _    []    = 0
+    combo f (e : es) = p == 0 ? 1 $ p + 1
+      where
+        p = prefix id $ zipWith f (e : es) es
+    
     isPrefixOf = L.isPrefixOf
     isSuffixOf = L.isSuffixOf
     isInfixOf  = L.isInfixOf
@@ -645,6 +662,4 @@ sorted es = and $ zipWith (<=) (listL es) (tail $ listL es)
 -- | @ascending line seqs@ checks if the @(start, count) <- seqs@ are sorted.
 ascending :: (Split s e, Ord e) => s -> [Int] -> Bool
 ascending =  all sorted ... flip splits
-
-
 
