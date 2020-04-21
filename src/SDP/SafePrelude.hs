@@ -61,7 +61,7 @@ default ()
 -}
 {-# INLINE (?) #-}
 (?) :: Bool -> a -> a -> a
-(?) p t e = if p then t else e
+(?) p t = \ e -> if p then t else e
 
 -- | @p ?+ f $ a@ returns @'Just' (f a)@ if @(p a)@ and 'Nothing' otherwise.
 {-# INLINE (?+) #-}
