@@ -1,6 +1,6 @@
+{-# LANGUAGE CPP, OverloadedLists, ConstraintKinds, UndecidableInstances #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies, TypeOperators, DefaultSignatures #-}
-{-# LANGUAGE FlexibleInstances, UndecidableInstances #-}
-{-# LANGUAGE CPP, OverloadedLists, ConstraintKinds #-}
 
 {- |
     Module      :  SDP.Shape
@@ -13,8 +13,11 @@
 -}
 module SDP.Shape
 (
-  -- * Shape
+  -- * Shapes
   Shape (..), GIndex,
+  
+  -- ** Subshapes
+  (:|:), SubShape, takeDim, dropDim, splitDim,
   
   -- * Rank constraints
   RANK0, RANK1, RANK2,  RANK3,  RANK4,  RANK5,  RANK6,  RANK7,
@@ -47,8 +50,21 @@ type family GIndex i
 --------------------------------------------------------------------------------
 
 {- |
-  'Shape' is service class for "Index" that constraints "Index" without using
-  @UndecidableSuperClasses@.
+  'Shape' is service class that constraints "Index".
+  
+  Rules:
+  
+  > rank i == rank   (j `asTypeOf` i)
+  > rank i == length (sizes (i, i))
+  
+  > rank (lastDim E) = 0
+  > rank (lastDim i) = 1
+  
+  > rank (initDim E) = 0
+  > rank (lastDim i) = rank i - 1
+  
+  > fromGIndex . toGIndex = id
+  > toGIndex . fromGIndex = id
 -}
 class Shape i
   where
@@ -136,6 +152,9 @@ type RANK13 i = GIndex i ~~ I13 i
 type RANK14 i = GIndex i ~~ I14 i
 -- | The restriction corresponding to rank indices 15 (сhecks 'GIndex').
 type RANK15 i = GIndex i ~~ I15 i
+
+-- | @i@ is subshape of @j@.
+type SubShape = RD
 
 --------------------------------------------------------------------------------
 
@@ -306,5 +325,41 @@ unconsDim      (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o) =  ((a,b,c,d,e,f,g,h,i,j,k,l,m,n)
 
 #undef SHAPE_INSTANCE
 
+--------------------------------------------------------------------------------
 
+-- | (:|:) is closed type family of shape differences.
+type family i :|: j
+  where
+    i :|: E = i
+    i :|: j = DimInit i :|: DimInit j
+
+-- Internal class of shape differences.
+class (Shape i, Shape j, Shape (i :|: j)) => RD i j
+  where
+    _takeDim :: i -> j
+    _dropDim :: i -> j -> i :|: j
+
+instance {-# OVERLAPS #-} (Shape i, E ~~ (i :|: i)) => RD i i
+  where
+    _takeDim = id
+    _dropDim = \ _ _ -> E
+
+instance {-# OVERLAPPING #-} (RD (DimInit i) j, ij ~~ (i :|: j), Shape i, Shape j, Shape ij, DimInit ij ~~ (DimInit i :|: j), DimLast ij ~~ DimLast i) => RD i j
+  where
+    _takeDim = _takeDim . initDim
+    _dropDim i' j' = let (is, i) = unconsDim i' in consDim (_dropDim is j') i
+
+--------------------------------------------------------------------------------
+
+-- | takeDim returns subshape.
+takeDim :: (SubShape i j) => i -> j
+takeDim =  _takeDim
+
+-- | dropDim returns shape difference.
+dropDim :: (SubShape i j) => i -> j -> i :|: j
+dropDim =  _dropDim
+
+-- | splitDim returns pair of shape difference and subshape.
+splitDim :: (SubShape i j) => i -> (i :|: j, j)
+splitDim i = (_dropDim i j, j) where j = takeDim i
 

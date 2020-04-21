@@ -73,9 +73,6 @@ data InBounds = ER {- ^ Empty Range     -}
   
   Basic rules:
   
-  > rank i == rank   (j `asTypeOf` i)
-  > rank i == length (sizes (i, i))
-  
   > size bnds >= 0
   > size bnds == product (sizes bnds)
   
@@ -171,28 +168,28 @@ class (Ord i, Shape i, Shape (DimLast i), Shape (DimInit i), Shape (GIndex i)) =
     -- | Returns previous index in range.
     default prev  :: (Enum i) => (i, i) -> i -> i
     prev :: (i, i) -> i -> i
-    prev (l, u) i | isEmpty (l, u) = er | i <= l = l | i > u = u | True = pred i
+    prev (l, u) i | isEmpty (l, u) = e | i <= l = l | i > u = u | True = pred i
       where
-        er = emptyEx "prev (default)"
+        e = emptyEx "prev {default}"
     
     -- | Returns next index in range.
     default next  :: (Enum i) => (i, i) -> i -> i
     next :: (i, i) -> i -> i
-    next (l, u) i | isEmpty (l, u) = er | i >= u = u | i < l = l | True = succ i
+    next (l, u) i | isEmpty (l, u) = e | i >= u = u | i < l = l | True = succ i
       where
-        er = emptyEx "next (default)"
+        e = emptyEx "next {default}"
     
     -- | Returns offset (indent) of index in this bounds.
     {-# INLINE offset #-}
     default offset :: (Enum i) => (i, i) -> i -> Int
     offset :: (i, i) -> i -> Int
-    offset bnds@(l, _) i = checkBounds bnds i (i -. l) "offset (default)"
+    offset bnds@(l, _) i = checkBounds bnds i (i -. l) "offset {default}"
     
     -- | Returns index by this offset (indent) in range.
     {-# INLINE index #-}
     default index :: (Enum i) => (i, i) -> Int -> i
     index :: (i, i) -> Int -> i
-    index bnds@(l, _) n = checkBounds (0, size bnds - 1) n res "index (default)"
+    index bnds@(l, _) n = checkBounds (0, size bnds - 1) n res "index {default}"
       where
         res = toEnum $ n + fromEnum l
     
@@ -201,6 +198,17 @@ class (Ord i, Shape i, Shape (DimLast i), Shape (DimInit i), Shape (GIndex i)) =
     default range :: (Enum i) => (i, i) -> [i]
     range :: (i, i) -> [i]
     range =  uncurry enumFromTo
+    
+    {- |
+      @shape bnds ij@ returns subshape of @bnds@.
+      
+      Checks if @ij@ in @bnds@ subshape, may 'throw' 'IndexException'.
+    -}
+    shape :: (SubShape i j, Index (i :|: j)) => (i, i) -> i :|: j -> (j, j)
+    shape (l, u) ij = checkBounds (l', u') ij (lj, uj) "shape {default}"
+      where
+        (l', lj) = splitDim l
+        (u', uj) = splitDim u
 
 --------------------------------------------------------------------------------
 
@@ -302,7 +310,7 @@ instance (Index i, Enum i, Bounded i) => Index (E :& i)
 -- [internal]: undecidable
 instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
   where
-    defLimit i = lim (error "in defLimit") (rank i) i
+    defLimit i = lim (error "in defLimit {i' :& i :& i}") (rank i) i
       where
         lim :: (Index i) => i -> Int -> (i' :& i) -> Integer
         lim =  const ... (^) . defLimit
@@ -312,7 +320,7 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
     range (ls :& l, us :& u) = liftA2 (:&) (range (ls, us)) (range (l, u))
     
     prev bs@(ls :& l, us :& u) ix
-        | isEmpty bs = emptyEx "prev (n-dimensional)"
+        | isEmpty bs = emptyEx "prev {i' :& i :& i}"
         |   i /= l   = is :& pred i
         |  is /= ls  = prev (ls, us) is :& u
         |    True    = ls :& l
@@ -320,7 +328,7 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
         (is :& i) = safeElem bs ix
     
     next bs@(ls :& l, us :& u) ix
-        | isEmpty bs = emptyEx "next (n-dimensional)"
+        | isEmpty bs = emptyEx "next {i' :& i :& i}"
         |   i /= u   = is :& succ i
         |  is /= us  = prev (ls, us) is :& u
         |    True    = ls :& l
@@ -348,9 +356,9 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
       where
         (cs, i) = c `divMod` size (l, u)
         res = index (ls, us) cs :& unsafeIndex i
-        err = "index (n-dimensional)"
+        err = "index {i' :& i :& i}"
     
-    offset bnds ix@(is :& i) = checkBounds bnds ix res "offset (n-dimensional)"
+    offset bnds ix@(is :& i) = checkBounds bnds ix res "offset {i' :& i :& i}"
       where
         res = offset (ls, us) is * size (l, u) + offset (l, u) i
         (ls :& l, us :& u) = bnds
@@ -367,22 +375,21 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
 
 #define INDEX_INSTANCE(Type) instance (Ord i, Index i, Enum i, Bounded i) => Index (Type i) where\
 {\
-size           = size . toGBounds;\
-sizes          = sizes . toGBounds;\
-isEmpty        = isEmpty . toGBounds;\
-defLimit       = defLimit . toGIndex;\
-unsafeIndex    = fromGIndex . unsafeIndex;\
-inRange     bs = inRange (toGBounds bs) . toGIndex;\
-ordBounds      = fromGBounds . ordBounds . toGBounds;\
-range          = fmap fromGIndex . range . toGBounds;\
-next        bs = fromGIndex . next (toGBounds bs) . toGIndex;\
-prev        bs = fromGIndex . prev (toGBounds bs) . toGIndex;\
-safeElem    bs = fromGIndex . safeElem (toGBounds bs) . toGIndex;\
-offset      bs = offset (toGBounds bs) . toGIndex;\
-index       bs = fromGIndex . index (toGBounds bs);\
-isOverflow  bs = isOverflow  (toGBounds bs) . toGIndex;\
-isUnderflow bs = isUnderflow (toGBounds bs) . toGIndex;\
-inBounds    bs i | isEmpty bs = ER | isUnderflow bs i = UR | isOverflow bs i = OR | True = IN;\
+size        = size . toGBounds;\
+sizes       = sizes . toGBounds;\
+isEmpty     = isEmpty . toGBounds;\
+defLimit    = defLimit . toGIndex;\
+unsafeIndex = fromGIndex . unsafeIndex;\
+index       = fromGIndex ... index . toGBounds;\
+range       = fmap fromGIndex . range . toGBounds;\
+ordBounds   = fromGBounds . ordBounds . toGBounds;\
+offset      = \ bs -> offset (toGBounds bs) . toGIndex;\
+inRange     = \ bs -> inRange (toGBounds bs) . toGIndex;\
+isOverflow  = \ bs -> isOverflow  (toGBounds bs) . toGIndex;\
+isUnderflow = \ bs -> isUnderflow (toGBounds bs) . toGIndex;\
+next        = \ bs -> fromGIndex . next (toGBounds bs) . toGIndex;\
+prev        = \ bs -> fromGIndex . prev (toGBounds bs) . toGIndex;\
+safeElem    = \ bs -> fromGIndex . safeElem (toGBounds bs) . toGIndex;\
 }
 
 INDEX_INSTANCE(T2)
@@ -431,15 +438,13 @@ defaultBoundsUnsign n = n < 1 ? ub 1 0 $ ub 0 (n - 1) where ub = on (,) unsafeIn
 
 -- | Check bounds and 'throw' 'IndexException' if needed.
 checkBounds :: (Index i) => (i, i) -> i -> res -> String -> res
-checkBounds bnds i res msg = case inBounds bnds i of
-  ER -> throw . EmptyRange     $ "in SDP.Index." ++ msg
-  UR -> throw . IndexOverflow  $ "in SDP.Index." ++ msg
-  OR -> throw . IndexUnderflow $ "in SDP.Index." ++ msg
-  IN -> res
+checkBounds bnds i res = case inBounds bnds i of
+  ER -> throw . EmptyRange     . showString "in SDP.Index."
+  UR -> throw . IndexOverflow  . showString "in SDP.Index."
+  OR -> throw . IndexUnderflow . showString "in SDP.Index."
+  IN -> const res
 
 emptyEx :: String -> a
 emptyEx =  throw . EmptyRange . showString "in SDP.Index."
-
-
 
 
