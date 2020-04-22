@@ -259,7 +259,7 @@ binaryContain f e es = and [ s /= 0, f e (es !^ 0) /= LT, f e (es !^ u') /= GT, 
 -- | Update some elements in structure (without indices).
 {-# DEPRECATED (>/>) "use (/>) or update instead" #-}
 (>/>) :: (Indexed v i e) => v -> [i] -> (e -> e) -> v
-(>/>) es is = update es is . const
+es >/> is = update es is . const
 
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.Indexed."
