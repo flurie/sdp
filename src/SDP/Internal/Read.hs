@@ -24,7 +24,7 @@ module SDP.Internal.Read
   allPrec, allPrecWith, expectPrec, namedPrec,
   
   -- * Generalized readers
-  readBy, readMaybeBy, readEitherBy,
+  readDef, readBy, readMaybeBy, readEitherBy, readDefBy,
   
   -- * Enum parsers
   readAsEnum, enumFromPrec, enumFromToPrec, enumFromThenPrec, enumFromThenToPrec
@@ -40,6 +40,9 @@ import Text.Read
 import Text.Read.Lex ( expect )
 
 import GHC.Show ( appPrec )
+
+import Data.Default
+import Data.Maybe
 
 import Text.ParserCombinators.ReadP ( eof, manyTill, skipSpaces )
 
@@ -162,6 +165,12 @@ namedPrec parser name = named +++ parser
 
 --------------------------------------------------------------------------------
 
+readDef :: (Read e, Default e) => String -> e
+readDef =  fromMaybe def . readMaybe
+
+readDefBy :: (Default e) => ReadPrec e -> String -> e
+readDefBy =  fromMaybe def ... readMaybeBy
+
 -- | readBy is generalized 'read'.
 readBy :: ReadPrec e -> String -> e
 readBy parser string = case readEitherBy parser string of
@@ -217,4 +226,5 @@ parens' parser = do
   value <- parser
   expectPrec (Punc "]")
   return value
+
 
