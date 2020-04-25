@@ -1,6 +1,6 @@
-{-# LANGUAGE TypeFamilies, TypeOperators, DefaultSignatures #-}
-{-# LANGUAGE FlexibleInstances, FlexibleContexts #-}
-{-# LANGUAGE CPP, OverloadedLists #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts #-}
+{-# LANGUAGE TypeFamilies, UndecidableInstances, DefaultSignatures #-}
+{-# LANGUAGE CPP, OverloadedLists, ConstraintKinds, TypeOperators #-}
 
 {- |
     Module      :  SDP.Index
@@ -14,19 +14,16 @@
 -}
 module SDP.Index
 (
-  -- * Exports
-  module SDP.Finite,
-  module SDP.Tuple,
+  -- * Shapes
   module SDP.Shape,
   
-  module Data.Word,
-  module Data.Int,
-  
-  -- * Service types
-  InBounds (..), Bounds,
+  (:|:), SubIndex, takeDim, dropDim, splitDim,
   
   -- * Indices
   Index (..),
+  
+  -- * Service types
+  InBounds (..), Bounds,
   
   -- * Helpers
   toGBounds, fromGBounds, offsetIntegral, defaultBoundsUnsign, checkBounds
@@ -35,14 +32,11 @@ where
 
 import Prelude ( (++) )
 import SDP.SafePrelude
-
-import SDP.Finite
-import SDP.Tuple
 import SDP.Shape
 
+import GHC.Exts
+
 import Data.Tuple
-import Data.Word
-import Data.Int
 
 import SDP.Internal.Commons
 
@@ -65,6 +59,52 @@ data InBounds = ER {- ^ Empty Range     -}
               | IN {- ^ Index IN range  -}
               | OR {- ^ Overflow Range  -}
   deriving ( Eq, Show, Read, Enum )
+
+--------------------------------------------------------------------------------
+
+-- Note: SubIndex is constraint that hide 'Sub' class.
+
+{- |
+  The constraint @SubIndex i j@ matches if upper subspaces of @i@ and @j@ have
+  equivalent types, and rank @i@ isn't less than rank @j@.
+-}
+type SubIndex = Sub
+
+-- | (:|:) is closed type family of shape differences.
+type family i :|: j
+  where
+    i :|: E = i
+    i :|: j = DimInit i :|: DimInit j
+
+-- Internal class of shape differences.
+class (Index i, Index j, Index (i :|: j)) => Sub i j
+  where
+    _takeDim :: i -> j
+    
+    -- | dropDim returns shape difference.
+    _dropDim :: i -> j -> i :|: j
+
+instance {-# OVERLAPS #-} (Index i, E ~~ (i :|: i)) => Sub i i
+  where
+    _takeDim = id
+    _dropDim = \ _ _ -> E
+
+instance {-# OVERLAPPING #-} (Sub (DimInit i) j, ij ~~ (i :|: j), Index i, Index j, Index ij, DimInit ij ~~ (DimInit i :|: j), DimLast ij ~~ DimLast i) => Sub i j
+  where
+    _takeDim = _takeDim . initDim
+    _dropDim i' j' = let (is, i) = unconsDim i' in consDim (_dropDim is j') i
+
+-- | takeDim returns subshape.
+takeDim :: (SubIndex i j) => i -> j
+takeDim =  _takeDim
+
+-- | dropDim returns shape difference.
+dropDim :: (SubIndex i j) => i -> j -> i :|: j
+dropDim =  _dropDim
+
+-- | splitDim returns pair of shape difference and subshape.
+splitDim :: (SubIndex i j) => i -> (i :|: j, j)
+splitDim i = (dropDim i j, j) where j = takeDim i
 
 --------------------------------------------------------------------------------
 
@@ -204,13 +244,13 @@ class (Ord i, Shape i, Shape (DimLast i), Shape (DimInit i), Shape (GIndex i)) =
       
       Checks if @ij@ in @bnds@ subshape, may 'throw' 'IndexException'.
     -}
-    shape :: (SubShape i j, Index (i :|: j)) => (i, i) -> i :|: j -> (j, j)
+    shape :: (Sub i j, Index (i :|: j)) => (i, i) -> i :|: j -> (j, j)
     shape (l, u) ij = checkBounds (l', u') ij (lj, uj) "shape {default}"
       where
         (l', lj) = splitDim l
         (u', uj) = splitDim u
     
-    slice :: (SubShape i j, Index (i :|: j)) => (i, i) -> i :|: j -> ((i :|: j, i :|: j), (j, j))
+    slice :: (Sub i j, Index (i :|: j)) => (i, i) -> i :|: j -> ((i :|: j, i :|: j), (j, j))
     slice (l, u) ij = checkBounds (l', u') ij ((l', u'), (lj, uj)) "slice {default}"
       where
         (l', lj) = splitDim l
