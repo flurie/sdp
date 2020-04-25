@@ -90,11 +90,11 @@ instance Estimate (Bytes i e)
     (.>.)  = on (.>.)  unpack
     (.<.)  = on (.<.)  unpack
     
-    xs <.=> n2 = unpack xs <.=> n2
-    xs  .>  n2 = unpack xs  .>  n2
-    xs  .<  n2 = unpack xs  .<  n2
-    xs .>=  n2 = unpack xs .>=  n2
-    xs .<=  n2 = unpack xs .<=  n2
+    (<.=>) = (<.=>) . unpack
+    (.>)   = (.>)   . unpack
+    (.<)   = (.<)   . unpack
+    (.>=)  = (.>=)  . unpack
+    (.<=)  = (.<=)  . unpack
 
 --------------------------------------------------------------------------------
 

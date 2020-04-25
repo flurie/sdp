@@ -87,7 +87,7 @@ class (LinearM m v e, BorderedM m v i e) => IndexedM m v i e
     
     -- | (!?>) is completely safe monadic reader.
     (!?>) :: v -> i -> m (Maybe e)
-    (!?>) es = getIndexOf es ?> (es >!)
+    (!?>) es i = do b <- getIndexOf es i; b ? Just <$> (es >! i) $ return empty
     
     writeM_ :: v -> Int -> e -> m ()
     writeM_ es i e = do bnds <- getBounds es; void $ overwrite es [(index bnds i, e)]

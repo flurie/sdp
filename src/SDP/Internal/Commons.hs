@@ -21,7 +21,7 @@ module SDP.Internal.Commons
   
   fst, snd, fsts, snds, both,
   
-  (?>), (?:), (>>=>)
+  (?:), (>>=>)
 )
 
 where
@@ -57,11 +57,6 @@ both =  uncurry . on (,)
 
 --------------------------------------------------------------------------------
 
--- Monadic conditional toMaybe.
-(?>) :: (Monad m) => (a -> m Bool) -> (a -> m b) -> a -> m (Maybe b)
-p ?> f = \ a -> do b <- p a; if b then Just <$> f a else return Nothing
-
--- | Monadic (?).
 (?:) :: (Monad m) => m Bool -> m a -> m a -> m a
 (?:) mb t e = mb >>= \ b -> if b then t else e
 
