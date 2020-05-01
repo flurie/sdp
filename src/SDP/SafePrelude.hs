@@ -27,15 +27,18 @@ where
 
 import Prelude hiding
   (
-    -- defined in SDP.Zip and Data.List (originally in GHC.List)
+    -- defined in SDP.Zip and Data.List
     zip, zip3, zipWith, zipWith3,
     
-    -- defined in SDP.Scan and Data.List (originally in GHC.List)
+    -- defined in SDP.Scan and Data.List
     scanl, scanr, scanl1, scanr1,
     
-    -- defined in SDP.Linear and Data.List (originally in GHC.List)
+    -- defined in SDP.Linear and Data.List
     head, tail, init, last, take, drop, (!!), (++), reverse, filter, lookup,
-    concat, concatMap, replicate, takeWhile, dropWhile, iterate
+    concat, concatMap, replicate, takeWhile, dropWhile, iterate,
+    
+    -- defined in SDP.IO (sdp-io extension) and System.IO
+    readFile, writeFile, appendFile, getLine, putStr, putStrLn
   )
 
 import Control.Applicative
@@ -82,4 +85,6 @@ f ... g = \ a b -> f (g a b)
 {-# INLINE (>>=<<) #-}
 (>>=<<) :: (Monad m) => m a -> m b -> (a -> b -> m c) -> m c
 ma >>=<< mb = \ f -> join $ liftM2 f ma mb
+
+
 
