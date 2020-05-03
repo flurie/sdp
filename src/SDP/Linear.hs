@@ -406,6 +406,22 @@ class (Linear s e) => Split s e | s -> e
     chunks :: Int -> s -> [s]
     chunks n es = case split n es of {(x, Z) -> [x]; (x, xs) -> x : chunks n xs}
     
+    -- | Splits line by separation element.
+    splitBy :: (e -> Bool) -> s -> [s]
+    splitBy e = map fromList . splitBy e . listL
+    
+    {- |
+      @combo f es@ returns the length of the @es@ subsequence (left to tight)
+      whose elements are in order @f@.
+      
+      > combo (<) [] = 0
+      > combo (<) [7, 4, 12] = 1
+      > combo (<) [1, 7, 3, 12] = 2
+    -}
+    default combo :: (Bordered s i e) => Equal e -> s -> Int
+    combo :: (e -> e -> Bool) -> s -> Int
+    combo f = combo f . listL
+    
     {- |
       @each n es@ returns each nth element of structure.
       If @n == 1@, returns @es@.
@@ -438,18 +454,6 @@ class (Linear s e) => Split s e | s -> e
     suffix :: (e -> Bool) -> s -> Int
     default suffix :: (Foldable t, t e ~~ s) => (e -> Bool) -> s -> Int
     suffix p = foldl (\ c e -> p e ? c + 1 $ 0) 0
-    
-    {- |
-      @combo f es@ returns the length of the @es@ subsequence (left to tight)
-      whose elements are in order @f@.
-      
-      > combo (<) [] = 0
-      > combo (<) [7, 4, 12] = 1
-      > combo (<) [1, 7, 3, 12] = 2
-    -}
-    default combo :: (Bordered s i e) => (e -> e -> Bool) -> s -> Int
-    combo :: (e -> e -> Bool) -> s -> Int
-    combo f = combo f . listL
     
     -- | Takes the longest init by predicate.
     takeWhile :: (e -> Bool) -> s -> s
@@ -618,10 +622,10 @@ instance Split [e] e
         go i (x : xs) = i == 1 ? x : go n xs $ go (i - 1) xs
         go _ _ = []
     
-    combo _    []    = 0
-    combo f (e : es) = p == 0 ? 1 $ p + 1
-      where
-        p = prefix id $ zipWith f (e : es) es
+    combo _ [] = 0
+    combo f es = p == 0 ? 1 $ p + 1 where p = prefix id $ zipWith f es (tail es)
+    
+    splitBy f es = dropWhile f <$> L.findIndices f es `parts` es
     
     isPrefixOf = L.isPrefixOf
     isSuffixOf = L.isSuffixOf
@@ -662,4 +666,5 @@ sorted es = and $ zipWith (<=) (listL es) (tail $ listL es)
 -- | @ascending line seqs@ checks if the @(start, count) <- seqs@ are sorted.
 ascending :: (Split s e, Ord e) => s -> [Int] -> Bool
 ascending =  all sorted ... flip splits
+
 
