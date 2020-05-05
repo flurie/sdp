@@ -47,6 +47,10 @@ class (Linear v e, Bordered v i e) => Indexed v i e
   where
     {-# MINIMAL assoc', fromIndexed, (//), ((.!)|(!?)) #-}
     
+    -- | list of associations (index, element).
+    assocs :: v -> [(i, e)]
+    assocs es = indices es `zip` listL es
+    
     {- Global operations. -}
     
     {- |
@@ -185,11 +189,10 @@ class (Indexed v i e) => IFold v i e
 
 instance Indexed [e] Int e
   where
-    assoc' bnds e = toResultList . normalAssocs
+    assocs es = [0 ..] `zip` listL es
+    
+    assoc' bnds e = take (size bnds) . snds . fill . setWith cmpfst . filter (inRange bnds . fst)
       where
-        toResultList = fromListN (size bnds) . snds
-        normalAssocs = fill . setWith cmpfst . filter (inRange bnds . fst)
-        
         fill (ie1@(i1, _) : ie2@(i2, _) : xs) = ie1 : fill rest
           where
             rest = nx /= i2 ? (nx, e) : ie2 : xs $ ie2 : xs
@@ -263,8 +266,5 @@ es >/> is = update es is . const
 
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.Indexed."
-
-
-
 
 

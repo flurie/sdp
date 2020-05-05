@@ -73,11 +73,6 @@ class (Monad m, Index i) => BorderedM m b i e | b -> m, b -> i, b -> e
     {-# INLINE getIndices #-}
     getIndices :: b -> m [i]
     getIndices =  fmap range . getBounds
-    
-    -- | getAssocs returns 'assocs' of mutable data structure.
-    default getAssocs :: (LinearM m b e) => b -> m [(i, e)]
-    getAssocs :: b -> m [(i, e)]
-    getAssocs es = liftA2 zip (getIndices es) (getLeft es)
 
 --------------------------------------------------------------------------------
 

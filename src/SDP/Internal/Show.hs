@@ -26,7 +26,7 @@ default ()
 --------------------------------------------------------------------------------
 
 -- | 'assocsPrec' is 'showsPrec' template.
-assocsPrec :: (Bordered v i e, Show i, Show e) => String -> Int -> v -> ShowS
+assocsPrec :: (Indexed v i e, Show i, Show e) => String -> Int -> v -> ShowS
 assocsPrec name = \ p es -> showParen (p > appPrec) $ showString name
                                                     . shows (bounds es)
                                                     . showChar ' '

@@ -81,12 +81,6 @@ class (Index i) => Bordered b i e | b -> i, b -> e
     upper :: b -> i
     upper =  snd . bounds
     
-    {-# INLINE assocs #-}
-    -- | list of associations (index, element).
-    default assocs :: (Linear b e) => b -> [(i, e)]
-    assocs :: b -> [(i, e)]
-    assocs es = indices es `zip` listL es
-    
     {-# INLINE sizeOf #-}
     -- | actual size of structure.
     sizeOf :: b -> Int
@@ -605,7 +599,6 @@ instance Linear [e] e
 
 instance Bordered [e] Int e
   where
-    assocs = zip [0 .. ]
     sizeOf = length
     
     lower _  = 0
@@ -666,5 +659,7 @@ sorted es = and $ zipWith (<=) (listL es) (tail $ listL es)
 -- | @ascending line seqs@ checks if the @(start, count) <- seqs@ are sorted.
 ascending :: (Split s e, Ord e) => s -> [Int] -> Bool
 ascending =  all sorted ... flip splits
+
+
 
 

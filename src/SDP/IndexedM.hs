@@ -48,6 +48,10 @@ class (LinearM m v e, BorderedM m v i e) => IndexedM m v i e
   where
     {-# MINIMAL fromAssocs', fromIndexed', fromIndexedM, overwrite, ((>!)|(!?>)) #-}
     
+    -- | getAssocs returns 'assocs' of mutable data structure.
+    getAssocs :: v -> m [(i, e)]
+    getAssocs es = liftA2 zip (getIndices es) (getLeft es)
+    
     {-# INLINE fromAssocs #-}
     {- |
       @fromAssocs bnds ascs@ creates new structure from list of associations,
@@ -233,8 +237,4 @@ swapM es i j = do ei <- es !#> i; writeM_ es i =<< es !#> j; writeM_ es j ei
 
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.IndexedM."
-
-
-
-
 
