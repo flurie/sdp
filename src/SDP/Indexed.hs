@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 {-# LANGUAGE BangPatterns, ConstraintKinds #-}
 
 {- |
@@ -149,7 +149,7 @@ class (Linear v e, Bordered v i e) => Indexed v i e
   the Foldable extension to containers with a restriction on the type of
   elements - monomorphic, Storable, Unboxed, etc.
 -}
-class (Indexed v i e) => IFold v i e
+class IFold v i e | v -> i, v -> e
   where
     {-# MINIMAL ifoldr, ifoldl #-}
     
