@@ -45,7 +45,7 @@ class (Ord k) => Map m k e | m -> k, m -> e
     fromSet :: (Set s k) => (k -> e) -> s -> m
     fromSet =  mapAssocs ... fromSet
     
-    -- | mapAssocs creates map from list of 'assocs' @(key, element)@.
+    -- | mapAssocs creates map from list of assocs @(key, element)@.
     mapAssocs :: [(k, e)] -> m
     mapAssocs ies = (`lookup_` ies) `fromSet` fsts ies
     
@@ -54,7 +54,7 @@ class (Ord k) => Map m k e | m -> k, m -> e
     toMap :: m -> m
     toMap =  mapAssocs . listMap
     
-    -- | listMap is just 'assocs'.
+    -- | listMap is just assocs.
     default listMap :: (Bordered m k e, Linear m e) => m -> [(k, e)]
     listMap :: m -> [(k, e)]
     listMap es = indices es `zip` listL es

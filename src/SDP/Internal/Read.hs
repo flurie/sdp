@@ -165,19 +165,21 @@ namedPrec parser name = named +++ parser
 
 --------------------------------------------------------------------------------
 
+-- | 'read' with implicit default value.
 readDef :: (Read e, Default e) => String -> e
 readDef =  fromMaybe def . readMaybe
 
+-- | 'readBy' with implicit default value.
 readDefBy :: (Default e) => ReadPrec e -> String -> e
 readDefBy =  fromMaybe def ... readMaybeBy
 
--- | readBy is generalized 'read'.
+-- | 'readBy' is generalized 'read'.
 readBy :: ReadPrec e -> String -> e
 readBy parser string = case readEitherBy parser string of
   Left msg -> error msg
   Right  x -> x
 
--- | readMaybeBy is generalized 'readMaybe'.
+-- | 'readMaybeBy' is generalized 'readMaybe'.
 readMaybeBy :: ReadPrec e -> String -> Maybe e
 readMaybeBy parser string = case readPrec_to_S read' minPrec string of
     [(x, "")] -> Just x
@@ -185,7 +187,7 @@ readMaybeBy parser string = case readPrec_to_S read' minPrec string of
   where
     read' = do x <- parser; lift skipSpaces; return x
 
--- | readEitherBy is generalized 'readEither'.
+-- | 'readEitherBy' is generalized 'readEither'.
 readEitherBy :: ReadPrec e -> String -> Either String e
 readEitherBy parser string = case readPrec_to_S read' minPrec string of
     [(x, "")] -> Right x
@@ -226,5 +228,8 @@ parens' parser = do
   value <- parser
   expectPrec (Punc "]")
   return value
+
+
+
 
 
