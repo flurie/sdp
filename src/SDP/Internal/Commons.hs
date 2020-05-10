@@ -19,9 +19,7 @@ module SDP.Internal.Commons
   
   Bounded (..), Enum (..),
   
-  fst, snd, fsts, snds, both,
-  
-  (?:), (>>=>)
+  fst, snd, fsts, snds, both
 )
 
 where
@@ -54,12 +52,4 @@ snds =  fmap snd
 
 both :: (a -> b) -> (a, a) -> (b, b)
 both =  uncurry . on (,)
-
---------------------------------------------------------------------------------
-
-(?:) :: (Monad m) => m Bool -> m a -> m a -> m a
-(?:) mb t e = mb >>= \ b -> if b then t else e
-
-(>>=>) :: (Monad m) => (a -> b -> m c) -> (c -> m d) -> a -> b -> m d
-k1 >>=> k2 = (>=> k2) . k1
 

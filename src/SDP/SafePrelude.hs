@@ -21,7 +21,7 @@ module SDP.SafePrelude
   
   module Prelude,
   
-  (?), (?+), (?-), (...), (>>=<<)
+  (?), (?+), (?-), (...), (?^), (<=<<), (>>=>), (>>=<<)
 )
 where
 
@@ -81,10 +81,20 @@ p ?- f = \ a -> p a ? Nothing $ Just (f a)
 (...) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
 f ... g = \ a b -> f (g a b)
 
+--------------------------------------------------------------------------------
+
+{-# INLINE (?^) #-}
+(?^) :: (Monad m) => m Bool -> m a -> m a -> m a
+(?^) mb mt = \ me -> do b <- mb; if b then mt else me
+
+(>>=>) :: (Monad m) => (a -> b -> m c) -> (c -> m d) -> (a -> b -> m d)
+(>>=>) mf mg = \ a b -> mf a b >>= mg
+
+(<=<<) :: (Monad m) => (c -> m d) -> (a -> b -> m c) -> (a -> b -> m d)
+(<=<<) mg mf = \ a b -> mf a b >>= mg
+
 -- | @ma >>=<< mb@ is composition of 'join' and 'liftM2'.
 {-# INLINE (>>=<<) #-}
 (>>=<<) :: (Monad m) => m a -> m b -> (a -> b -> m c) -> m c
 ma >>=<< mb = \ f -> join $ liftM2 f ma mb
-
-
 

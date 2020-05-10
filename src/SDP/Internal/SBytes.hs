@@ -617,11 +617,11 @@ instance (Unboxed e) => SplitM (ST s) (STBytes# s e) e
       in  go (max 0 (c - 1))
     
     mprefix p es@(STBytes# c _ _) =
-      let go i = i >= c ? return i $ do e <- es !#> i; p e ?: go (i + 1) $ return i
+      let go i = i >= c ? return i $ do e <- es !#> i; p e ?^ go (i + 1) $ return i
       in  go 0
     
     msuffix p es@(STBytes# c _ _) =
-      let go i = i == 0 ? return c $ do e <- es !#> i; p e ?: go (i - 1) $ return (c - i - 1)
+      let go i = i == 0 ? return c $ do e <- es !#> i; p e ?^ go (i - 1) $ return (c - i - 1)
       in  go (max 0 (c - 1))
 
 --------------------------------------------------------------------------------

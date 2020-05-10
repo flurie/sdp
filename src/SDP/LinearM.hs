@@ -254,7 +254,7 @@ class (LinearM m s e) => SplitM m s e
       @n@. Changes in the source and results must be synchronous.
     -}
     chunksM :: Int -> s -> m [s]
-    chunksM n es = do (t, d) <- splitM n es; nowNull d ?: return [t] $ (t :) <$> chunksM n d
+    chunksM n es = do (t, d) <- splitM n es; nowNull d ?^ return [t] $ (t :) <$> chunksM n d
     
     {- |
       @eachM n es@ returns new sequence of @es@ elements with step @n@. eachM
