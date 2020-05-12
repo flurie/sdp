@@ -400,9 +400,13 @@ class (Linear s e) => Split s e | s -> e
     chunks :: Int -> s -> [s]
     chunks n es = case split n es of {(x, Z) -> [x]; (x, xs) -> x : chunks n xs}
     
-    -- | Splits line by separation element.
-    splitBy :: (e -> Bool) -> s -> [s]
-    splitBy e = map fromList . splitBy e . listL
+    -- | Split line by first (left) separation element.
+    splitBy :: (e -> Bool) -> s -> (s, s)
+    splitBy f = bimap fromList fromList . splitBy f . listL
+    
+    -- | Splits line by separation elements.
+    splitsBy :: (e -> Bool) -> s -> [s]
+    splitsBy e = map fromList . splitsBy e . listL
     
     {- |
       @combo f es@ returns the length of the @es@ subsequence (left to tight)
@@ -618,7 +622,9 @@ instance Split [e] e
     combo _ [] = 0
     combo f es = p == 0 ? 1 $ p + 1 where p = prefix id $ zipWith f es (tail es)
     
-    splitBy f es = dropWhile f <$> L.findIndices f es `parts` es
+    splitBy f es = let (as, bs) = breakl f es in isNull bs ? ([], es) $ (as, tail bs)
+    
+    splitsBy f es = dropWhile f <$> L.findIndices f es `parts` es
     
     isPrefixOf = L.isPrefixOf
     isSuffixOf = L.isSuffixOf
@@ -664,7 +670,6 @@ sorted es = and $ zipWith (<=) (listL es) (tail $ listL es)
 -- | @ascending line seqs@ checks if the @(start, count) <- seqs@ are sorted.
 ascending :: (Split s e, Ord e) => s -> [Int] -> Bool
 ascending =  all sorted ... flip splits
-
 
 
 
