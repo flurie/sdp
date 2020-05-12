@@ -507,7 +507,7 @@ class (Linear s e) => Split s e | s -> e
       untill first fail. Returns rest of line and selected results.
     -}
     extractEnd :: (e -> Maybe a) -> s -> (s, [a])
-    extractEnd f es = let as = selectEnd f es in (length as `drop` es, as)
+    extractEnd f es = let as = selectEnd f es in (length as `sans` es, as)
     
     -- | @selectWhile'@ is 'selectWhile' version for generalized structures.
     selectWhile' :: (t e ~ l, Split1 t a) => (e -> Maybe a) -> s -> t a
@@ -626,6 +626,11 @@ instance Split [e] e
     
     spanl  = L.span
     breakl = L.break
+    
+    selectWhile _    []    = []
+    selectWhile f (x : xs) = case f x of {(Just e) -> e : select f xs; _ -> []}
+    
+    selectEnd f = reverse . selectWhile f . reverse
 
 --------------------------------------------------------------------------------
 
