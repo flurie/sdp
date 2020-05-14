@@ -33,8 +33,10 @@ module SDP.Linear
   -- $patternDoc
   pattern (:>), pattern (:<), pattern Z,
   
-  -- * Other functions
-  stripPrefix, stripSuffix, intercalate, tails, inits, sorted, ascending
+  -- * Related functions
+  intercalate, tails, inits, sorted, ascending,
+  
+  stripPrefix, stripSuffix, stripPrefix', stripSuffix'
 )
 where
 
@@ -647,6 +649,14 @@ stripPrefix sub line = sub `isPrefixOf` line ? drop (sizeOf sub) line $ line
 -- | @stripSuffix sub line@ strips suffix @sub@ of @line@ (if any)
 stripSuffix :: (Split s e, Bordered s i e, Eq e) => s -> s -> s
 stripSuffix sub line = sub `isSuffixOf` line ? sans (sizeOf sub) line $ line
+
+-- | @stripPrefix' sub line@ strips prefix @sub@ of @line@ or returns 'Nothing'.
+stripPrefix' :: (Split s e, Bordered s i e, Eq e) => s -> s -> Maybe s
+stripPrefix' sub = isPrefixOf sub ?+ drop (sizeOf sub)
+
+-- | @stripSuffix sub line@ strips suffix @sub@ of @line@ or returns 'Nothing'.
+stripSuffix' :: (Split s e, Bordered s i e, Eq e) => s -> s -> Maybe s
+stripSuffix' sub = isSuffixOf sub ?+ sans (sizeOf sub)
 
 -- | intercalate is generalization of intercalate
 intercalate :: (Foldable f, Linear (f l) l, Linear l e) => l -> f l -> l
