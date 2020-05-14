@@ -663,13 +663,13 @@ inits Z  = [Z]
 inits es = es : inits (init es)
 
 -- | sorted is a function that checks for sorting.
-sorted :: (Linear l e, Ord e) => l -> Bool
-sorted Z  = True
-sorted es = and $ zipWith (<=) (listL es) (tail $ listL es)
+sorted :: (Split s e, Bordered s i e, Ord e) => s -> Bool
+sorted es = combo (<=) es == sizeOf es
 
--- | @ascending line seqs@ checks if the @(start, count) <- seqs@ are sorted.
-ascending :: (Split s e, Ord e) => s -> [Int] -> Bool
+{- |
+  @ascending es lens@ checks if the subsequences of @es@ of lengths @lens@ is
+  sorted.
+-}
+ascending :: (Split s e, Bordered s i e, Ord e) => s -> [Int] -> Bool
 ascending =  all sorted ... flip splits
-
-
 

@@ -35,6 +35,6 @@ default ()
   structures and this isn't enough for verification (if the length of the
   structure is less than 65, then TimSort uses InsertionSort).
 -}
-sortTest :: (Sort s e, Linear s e, Ord e) => Medium s -> Bool
-sortTest (Medium es) =  sorted $ sort es
+sortTest :: (Sort s e, Split s e, Bordered s i e, Ord e) => Medium s -> Bool
+sortTest (Medium es) =  sorted (sort es)
 
