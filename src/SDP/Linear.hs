@@ -402,13 +402,37 @@ class (Linear s e) => Split s e | s -> e
     chunks :: Int -> s -> [s]
     chunks n es = case split n es of {(x, Z) -> [x]; (x, xs) -> x : chunks n xs}
     
-    -- | Split line by first (left) separation element.
+    {- |
+      Split line by first (left) separation element. If there is no such
+      element, returns (es, Z).
+    -}
     splitBy :: (e -> Bool) -> s -> (s, s)
     splitBy f = bimap fromList fromList . splitBy f . listL
     
     -- | Splits line by separation elements.
     splitsBy :: (e -> Bool) -> s -> [s]
     splitsBy e = map fromList . splitsBy e . listL
+    
+    -- | @splitsOn sub line@ splits @line@ by @sub@.
+    default splitsOn :: (Eq e, Bordered s i e) => s -> s -> [s]
+    splitsOn :: (Eq e) => s -> s -> [s]
+    splitsOn sub line = drop (sizeOf sub) <$> parts (infixes sub line) line
+    
+    {- |
+      @replaceBy sub new line@ replace every non-overlapping occurrence of @sub@
+      in @line@ with @new@.
+    -}
+    replaceBy :: (Eq e) => s -> s -> s -> s
+    replaceBy sub new = intercalate new . splitsOn sub
+    
+    {- |
+      Removes every non-overlapping occurrence of @sub@ with 'Z'.
+      
+      > removeSubs = concat ... splitsOn
+      > (`replaceBy` Z) = removeSubs
+    -}
+    removeSubs :: (Eq e) => s -> s -> s
+    removeSubs =  concat ... splitsOn
     
     {- |
       @combo f es@ returns the length of the @es@ subsequence (left to tight)
@@ -429,6 +453,17 @@ class (Linear s e) => Split s e | s -> e
     -}
     each :: Int -> s -> s
     each n = fromList . each n . listL
+    
+    {- |
+      @each' o n es@ returns each nth element of structure, beginning from o.
+      
+      > each' o n = each n . drop o
+      
+      > each' 0 2 [1 .. 20] == [2, 4 .. 20]
+      > each' 1 2 [1 .. 20] == [3, 5 .. 19]
+    -}
+    each' :: Int -> Int -> s -> s
+    each' o n = each n . drop o
     
     -- | isPrefixOf checks whether the first line is the beginning of the second
     isPrefixOf :: (Eq e) => s -> s -> Bool
@@ -454,6 +489,18 @@ class (Linear s e) => Split s e | s -> e
     suffix :: (e -> Bool) -> s -> Int
     default suffix :: (Foldable t, t e ~~ s) => (e -> Bool) -> s -> Int
     suffix p = foldl (\ c e -> p e ? c + 1 $ 0) 0
+    
+    {- |
+      @infixes inf es@ returns a list of @inf@ positions in @es@, without
+      intersections.
+      
+      > "" `infixes` es = []
+      > "abba" `infixes` "baababba" == [4]
+      > "abab" `infixes` "baababab" == [2]
+      > "aaaa" `infixes` "aaaaaaaa" == [0, 4]
+    -}
+    infixes :: (Eq e) => s -> s -> [Int]
+    infixes =  on infixes listL
     
     -- | Takes the longest init by predicate.
     takeWhile :: (e -> Bool) -> s -> s
@@ -621,10 +668,18 @@ instance Split [e] e
         go i (x : xs) = i == 1 ? x : go n xs $ go (i - 1) xs
         go _ _ = []
     
+    infixes  Z  = const []
+    infixes sub = go 0
+      where
+        go _ [] = []
+        go i es = sub `isPrefixOf` es ? i : go (i + n) (drop n es) $ go (i + 1) (tail es)
+        
+        n = sizeOf sub
+    
     combo _ [] = 0
     combo f es = p == 0 ? 1 $ p + 1 where p = prefix id $ zipWith f es (tail es)
     
-    splitBy f es = let (as, bs) = breakl f es in isNull bs ? ([], es) $ (as, tail bs)
+    splitBy f es = let (as, bs) = breakl f es in isNull bs ? (es, []) $ (as, tail bs)
     
     splitsBy f es = dropWhile f <$> L.findIndices f es `parts` es
     
@@ -642,11 +697,11 @@ instance Split [e] e
 
 --------------------------------------------------------------------------------
 
--- | @stripPrefix sub line@ strips prefix @sub@ of @line@
+-- | @stripPrefix sub line@ strips prefix @sub@ of @line@ (if any).
 stripPrefix :: (Split s e, Bordered s i e, Eq e) => s -> s -> s
 stripPrefix sub line = sub `isPrefixOf` line ? drop (sizeOf sub) line $ line
 
--- | @stripSuffix sub line@ strips suffix @sub@ of @line@ (if any)
+-- | @stripSuffix sub line@ strips suffix @sub@ of @line@ (if any).
 stripSuffix :: (Split s e, Bordered s i e, Eq e) => s -> s -> s
 stripSuffix sub line = sub `isSuffixOf` line ? sans (sizeOf sub) line $ line
 
