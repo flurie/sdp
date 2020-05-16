@@ -79,16 +79,17 @@ class (Monad m, Index i) => BorderedM m b i e | b -> m, b -> i, b -> e
 -- | 'LinearM' is 'Linear' version for mutable data structures.
 class (Monad m) => LinearM m l e | l -> m, l -> e
   where
-    {-# MINIMAL nowNull, getHead, getLast, (newLinear|fromFoldableM), (getLeft|getRight), copyTo #-}
+    {-# MINIMAL (newLinear|fromFoldableM), (getLeft|getRight), copyTo #-}
     
-    -- | 'newNull' creates new empty structure.
+    -- | Monadic 'single'.
     newNull :: m l
     newNull =  newLinear []
     
-    -- | 'nowNull' is monadic version of 'isNull'.
+    -- | Monadic 'isNull'.
     nowNull :: l -> m Bool
+    nowNull =  fmap isNull . getLeft
     
-    -- | 'singleM' is monadic version of 'single'.
+    -- | Monadic 'single'.
     singleM :: e -> m l
     singleM =  newLinear . single
     
@@ -122,32 +123,32 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     append  :: l -> e -> m l
     append es e = newLinear . (:< e) =<< getLeft es
     
-    -- | Creates new mutable line from list.
+    -- | Monadic 'fromList'.
     {-# INLINE newLinear #-}
     newLinear :: [e] -> m l
     newLinear =  fromFoldableM
     
-    -- | Creates new mutable line from limited list.
+    -- | Monadic 'fromListN'.
     {-# INLINE newLinearN #-}
     newLinearN :: Int -> [e] -> m l
     newLinearN =  newLinear ... take
     
-    -- | Creates new mutable line from foldable structure.
+    -- | Monadic 'fromFoldable'.
     {-# INLINE fromFoldableM #-}
     fromFoldableM :: (Foldable f) => f e -> m l
     fromFoldableM =  newLinear . toList
     
-    -- | Returns left view of line.
+    -- | Left view of line.
     {-# INLINE getLeft #-}
     getLeft :: l -> m [e]
     getLeft =  fmap reverse . getRight
     
-    -- | Return right view of line.
+    -- | Right view of line.
     {-# INLINE getRight #-}
     getRight :: l -> m [e]
     getRight =  fmap reverse . getLeft
     
-    -- | Creates copy of structure.
+    -- | Create copy.
     {-# INLINE copied #-}
     copied :: l -> m l
     copied =  getLeft >=> newLinear
@@ -157,10 +158,14 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     copied' :: l -> Int -> Int -> m l
     copied' es l n = getLeft es >>= newLinearN n . drop l
     
-    -- | Mutable version of 'reverse' (ideally, in-place).
+    -- | Monadic 'reverse'.
     {-# INLINE reversed #-}
     reversed :: l -> m l
     reversed =  newLinear <=< getRight
+    
+    -- | Monadic 'concat'.
+    merged :: (Foldable f) => f l -> m l
+    merged =  newLinear . concat <=< sequence . foldr ((:) . getLeft) []
     
     -- | Monadic version of 'replicate'.
     {-# INLINE filled #-}
@@ -291,7 +296,7 @@ type BorderedM2 m l i e = BorderedM m (l i e) i e
 
 --------------------------------------------------------------------------------
 
--- | sortedM is a procedure that checks for sorting.
+-- | sortedM checks if structure is sorted.
 sortedM :: (LinearM m l e, Ord e) => l -> m Bool
 sortedM =  fmap (\ es -> null es || and (zipWith (<=) es (tail es))) . getLeft
 
