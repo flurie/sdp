@@ -101,8 +101,7 @@ instance Ord1 SArray#
   where
     liftCompare cmp xs@(SArray# c1 _ _) ys@(SArray# c2 _ _) = cmp' 0
       where
-        cmp' i = i == c ? c1 <=> c2 $ (xs!^i) `cmp` (ys!^i) <> cmp' (i + 1)
-        c = min c1 c2
+        cmp' i = i == (c1 `min` c2) ? c1 <=> c2 $ (xs!^i) `cmp` (ys!^i) <> cmp' (i + 1)
 
 --------------------------------------------------------------------------------
 
@@ -118,17 +117,18 @@ instance (Arbitrary e) => Arbitrary (SArray# e)
 
 instance Estimate (SArray# e)
   where
-    (SArray# c1 _ _) <==> (SArray# c2 _ _) = c1 <=> c2
-    (SArray# c1 _ _) .>.  (SArray# c2 _ _) = c1  >  c2
-    (SArray# c1 _ _) .<.  (SArray# c2 _ _) = c1  <  c2
-    (SArray# c1 _ _) .<=. (SArray# c2 _ _) = c1 <=  c2
-    (SArray# c1 _ _) .>=. (SArray# c2 _ _) = c1 >=  c2
+    (<==>) = on (<=>) getsize
     
-    (SArray# c1 _ _) <.=> c2 = c1 <=> c2
-    (SArray# c1 _ _)  .>  c2 = c1  >  c2
-    (SArray# c1 _ _)  .<  c2 = c1  <  c2
-    (SArray# c1 _ _) .>=  c2 = c1 >=  c2
-    (SArray# c1 _ _) .<=  c2 = c1 <=  c2
+    (.>.)  = on (>)  getsize
+    (.<.)  = on (<)  getsize
+    (.<=.) = on (<=) getsize
+    (.>=.) = on (>=) getsize
+    
+    (<.=>) = (<=>) . getsize
+    (.>)   = (>)   . getsize
+    (.<)   = (<)   . getsize
+    (.>=)  = (>=)  . getsize
+    (.<=)  = (<=)  . getsize
 
 --------------------------------------------------------------------------------
 
@@ -268,10 +268,20 @@ instance Linear (SArray# e) e
     
     reverse es = runST $ fromIndexed' es >>= reversed >>= done
     
-    concatMap f = fromList . foldr (flip (foldr (:)) . f) []
-    concat      = fromList . foldr (flip $ foldr (:)) []
+    concat ess = runST $ do
+        marr@(STArray# _ _ marr#) <- filled s (unreachEx "concat")
+        
+        let write# (SArray# c@(I# c#) (I# o#) arr#) i@(I# i#) = ST $
+              \ s2# -> case copyArray# arr# o# marr# i# c# s2# of
+                s3# -> (# s3#, i + c #)
+        
+        void $ foldr ((=<<) . write#) (return 0) ess
+        
+        done marr
+      where
+        s = foldr' ((+) . sizeOf) 0 ess
     
-    select  f = foldr (\ o -> case f o of {Just e -> (e :); _ -> id}) []
+    select  f = foldr (\ o es -> case f o of {Just e -> e : es; _ -> es}) []
     
     extract f = second fromList . foldr g ([], [])
       where
@@ -293,6 +303,12 @@ instance Split (SArray# e) e
       | n >= c = Z
       |  True  = SArray# (c - n) (o + n) arr#
     
+    -- | O(1) 'split', O(1) memory.
+    split n es@(SArray# c o arr#)
+      | n <= 0 = (Z, es)
+      | n >= c = (es, Z)
+      |  True  = (SArray# n o arr#, SArray# (c - n) (o + n) arr#)
+    
     -- | O(1) 'keep', O(1) memory.
     keep n es@(SArray# c o arr#)
       | n <= 0 = Z
@@ -304,6 +320,27 @@ instance Split (SArray# e) e
       | n <= 0 = es
       | n >= c = Z
       |  True  = SArray# (c - n) o arr#
+    
+    -- | O(1) 'divide', O(1) memory.
+    divide n es@(SArray# c o arr#)
+      | n <= 0 = (Z, es)
+      | n >= c = (es, Z)
+      |  True  = (SArray# n (o + c - n) arr#, SArray# (c - n) o arr#)
+    
+    splitsBy f es = dropWhile f <$> f *$ es `parts` es
+    
+    combo _  Z = 0
+    combo f es = go (head es) 1
+      where
+        go e i = let e' = es !^ i in i == n || not (f e e') ? i $ go e' (i + 1)
+        
+        n = sizeOf es
+    
+    each n es = case n <=> 1 of {LT -> Z; EQ -> es; GT -> fromList $ go (n - 1)}
+      where
+        go i = i < s ? es!^i : go (i + n) $ []
+        
+        s = sizeOf es
     
     prefix p xs@(SArray# c _ _) =
       let go i = i < c && p (xs !^ i) ? go (i + 1) $ i
@@ -321,13 +358,13 @@ instance Split (SArray# e) e
       let eq i j = i == c1 || (xs !^ i) == (ys !^ j) && eq (i + 1) (j + 1)
       in  c1 <= c2 && eq 0 (c2 - c1)
     
-    selectWhile =
-      let go i f es = i ==. es ? [] $ maybe [] (: go (i + 1) f es) $ f (es !^ i)
+    selectWhile f es@(SArray# c _ _) =
+      let go i = i == c ? [] $ maybe [] (: go (i + 1)) $ f (es !^ i)
       in  go 0
     
-    selectEnd g xs =
+    selectEnd g xs@(SArray# c _ _) =
       let go i f es = i == 0 ? [] $ maybe [] (: go (i - 1) f es) $ f (es !^ i)
-      in  reverse (go (sizeOf xs - 1) g xs)
+      in  reverse $ go (c - 1) g xs
 
 instance Bordered (SArray# e) Int e
   where
@@ -350,8 +387,8 @@ instance Set (SArray# e) e
     setWith f = nubSorted f . sortBy f
     
     insertWith f e es = case (\ x -> x `f` e /= LT) .$ es of
-      Nothing -> es :< e
       Just  i -> e `f` (es!^i) == EQ ? es $ before i e es
+      Nothing -> es :< e
     
     deleteWith f e es = isContainedIn f e es ? except (\ x -> f e x == EQ) es $ es
     
@@ -812,6 +849,10 @@ before n@(I# n#) e es@(SArray# c@(I# c#) (I# o#) arr#)
         s4# -> case unsafeFreezeArray# marr# s4# of
           (# s5#, res# #) -> (# s5#, SArray# (c + 1) 0 res# #)
 
+{-# INLINE getsize #-}
+getsize :: SArray# e -> Int
+getsize =  \ (SArray# c _ _) -> c
+
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.Internal.SArray."
 
@@ -829,7 +870,6 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Internal.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Internal.SArray."
-
 
 
 

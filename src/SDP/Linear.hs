@@ -224,7 +224,7 @@ class Linear l e | l -> e
     
     -- | Generalized concatMap.
     concatMap :: (Foldable f) => (a -> l) -> f a -> l
-    concatMap f = foldr ((++) . f) Z
+    concatMap f = concat . foldr ((:) . f) []
     
     -- | Generalized intersperse.
     intersperse :: e -> l -> l
@@ -398,9 +398,17 @@ class (Linear s e) => Split s e | s -> e
     parts :: (Foldable f) => f Int -> s -> [s]
     parts =  splits . go . toList where go is = zipWith (-) is (0 : is)
     
-    -- | Splits structures into chunks of a given size (and the rest).
+    {- |
+      Splits structures into chunks of size @n@ and the rest.
+      
+      > chunks x [] = [] -- forall x
+      > chunks 0 es = [] -- forall es
+      
+      > chunks 3 [1 .. 10] == [[1,2,3],[4,5,6],[7,8,9],[10]]
+    -}
     chunks :: Int -> s -> [s]
-    chunks n es = case split n es of {(x, Z) -> [x]; (x, xs) -> x : chunks n xs}
+    chunks _  Z = []
+    chunks n es = n < 1 ? [] $ let (x, xs) = split n es in x : chunks n xs
     
     {- |
       Split line by first (left) separation element. If there is no such
@@ -737,4 +745,6 @@ sorted es = combo (<=) es == sizeOf es
 -}
 ascending :: (Split s e, Bordered s i e, Ord e) => s -> [Int] -> Bool
 ascending =  all sorted ... flip splits
+
+
 

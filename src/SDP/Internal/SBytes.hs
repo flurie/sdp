@@ -124,17 +124,18 @@ instance (Unboxed e, Arbitrary e) => Arbitrary (SBytes# e)
 
 instance Estimate (SBytes# e)
   where
-    (SBytes# c1 _ _) <==> (SBytes# c2 _ _) = c1 <=> c2
-    (SBytes# c1 _ _) .>.  (SBytes# c2 _ _) = c1  >  c2
-    (SBytes# c1 _ _) .<.  (SBytes# c2 _ _) = c1  <  c2
-    (SBytes# c1 _ _) .<=. (SBytes# c2 _ _) = c1 <=  c2
-    (SBytes# c1 _ _) .>=. (SBytes# c2 _ _) = c1 >=  c2
+    (<==>) = on (<=>) getsize
     
-    (SBytes# c1 _ _) <.=> c2 = c1 <=> c2
-    (SBytes# c1 _ _)  .>  c2 = c1  >  c2
-    (SBytes# c1 _ _)  .<  c2 = c1  <  c2
-    (SBytes# c1 _ _) .>=  c2 = c1 >=  c2
-    (SBytes# c1 _ _) .<=  c2 = c1 <=  c2
+    (.>.)  = on (>)  getsize
+    (.<.)  = on (<)  getsize
+    (.<=.) = on (<=) getsize
+    (.>=.) = on (>=) getsize
+    
+    (<.=>) = (<=>) . getsize
+    (.>)   = (>)   . getsize
+    (.<)   = (<)   . getsize
+    (.>=)  = (>=)  . getsize
+    (.<=)  = (<=)  . getsize
 
 --------------------------------------------------------------------------------
 
@@ -191,12 +192,23 @@ instance (Unboxed e) => Linear (SBytes# e) e
     listL = i_foldr (:) []
     listR = flip (:) `i_foldl` []
     
-    concatMap f = fromList . foldr (flip (i_foldr (:)) . f) []
-    concat      = fromList . foldr (flip $ i_foldr (:)) []
+    concat ess = runST $ do
+        marr@(STBytes# _ _ marr#) <- filled_ s
+        
+        let write# (SBytes# c@(I# c#) (I# o#) arr#) i@(I# i#) = ST $
+              \ s2# -> case copyUnboxed# e arr# o# marr# i# c# s2# of
+                s3# -> (# s3#, i + c #)
+        
+        void $ foldr ((=<<) . write#) (return 0) ess
+        
+        done marr
+      where
+        s = foldr' ((+) . sizeOf) 0 ess
+        e = (const undefined :: f (SBytes# e) -> e) ess
     
     reverse es = runST $ fromIndexed' es >>= reversed >>= done
     
-    select  f = i_foldr (\ o -> case f o of {Just e -> (e :); _ -> id}) []
+    select  f = i_foldr (\ o es -> case f o of {Just e -> e : es; _ -> es}) []
     
     extract f = second fromList . i_foldr g ([], [])
       where
@@ -218,6 +230,12 @@ instance (Unboxed e) => Split (SBytes# e) e
       | n >= c = Z
       |  True  = SBytes# (c - n) (o + n) arr#
     
+    -- | O(1) 'split', O(1) memory.
+    split n es@(SBytes# c o arr#)
+      | n <= 0 = (Z, es)
+      | n >= c = (es, Z)
+      |  True  = (SBytes# n o arr#, SBytes# (c - n) (o + n) arr#)
+    
     -- | O(1) 'keep', O(1) memory.
     keep n es@(SBytes# c o arr#)
       | n <= 0 = Z
@@ -229,6 +247,27 @@ instance (Unboxed e) => Split (SBytes# e) e
       | n <= 0 = es
       | n >= c = Z
       |  True  = SBytes# (c - n) o arr#
+    
+    -- | O(1) 'divide', O(1) memory.
+    divide n es@(SBytes# c o arr#)
+      | n <= 0 = (Z, es)
+      | n >= c = (es, Z)
+      |  True  = (SBytes# n (o + c - n) arr#, SBytes# (c - n) o arr#)
+    
+    splitsBy f es = dropWhile f <$> f *$ es `parts` es
+    
+    combo _  Z = 0
+    combo f es = go (head es) 1
+      where
+        go e i = let e' = es !^ i in i == n || not (f e e') ? i $ go e' (i + 1)
+        
+        n = sizeOf es
+    
+    each n es = case n <=> 1 of {LT -> Z; EQ -> es; GT -> fromList $ go (n - 1)}
+      where
+        go i = i < s ? es!^i : go (i + n) $ []
+        
+        s = sizeOf es
     
     prefix p xs@(SBytes# c _ _) =
       let go i = i < c && p (xs !^ i) ? go (i + 1) $ i
@@ -246,13 +285,13 @@ instance (Unboxed e) => Split (SBytes# e) e
       let eq i j = i == c1 || (xs !^ i) == (ys !^ j) && eq (i + 1) (j + 1)
       in  c1 <= c2 && eq 0 (c2 - c1)
     
-    selectWhile =
-      let go i f es = i ==. es ? [] $ maybe [] (: go (i + 1) f es) $ f (es !^ i)
+    selectWhile f es@(SBytes# c _ _) =
+      let go i = i == c ? [] $ maybe [] (: go (i + 1)) $ f (es !^ i)
       in  go 0
     
-    selectEnd g xs =
+    selectEnd g xs@(SBytes# c _ _) =
       let go i f es = i == 0 ? [] $ maybe [] (: go (i - 1) f es) $ f (es !^ i)
-      in  reverse (go (sizeOf xs - 1) g xs)
+      in  reverse $ go (c - 1) g xs
 
 instance (Unboxed e) => Bordered (SBytes# e) Int e
   where
@@ -275,8 +314,8 @@ instance (Unboxed e) => Set (SBytes# e) e
     setWith f = nubSorted f . sortBy f
     
     insertWith f e es = case (\ x -> x `f` e /= LT) .$ es of
-      Nothing -> es :< e
       Just  i -> e `f` (es!^i) == EQ ? es $ before i e es
+      Nothing -> es :< e
     
     deleteWith f e es = isContainedIn f e es ? except (\ x -> f e x == EQ) es $ es
     
@@ -791,6 +830,10 @@ before n@(I# n#) e es@(SBytes# c@(I# c#) (I# o#) arr#)
         s4# -> case unsafeFreezeByteArray# marr# s4# of
           (# s5#, res# #) -> (# s5#, SBytes# (c + 1) 0 res# #)
 
+{-# INLINE getsize #-}
+getsize :: SBytes# e -> Int
+getsize =  \ (SBytes# c _ _) -> c
+
 {-# INLINE nubSorted #-}
 nubSorted :: (Unboxed e) => Compare e -> SBytes# e -> SBytes# e
 nubSorted _ Z  = Z
@@ -812,4 +855,6 @@ overEx =  throw . IndexOverflow . showString "in SDP.Internal.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Internal.SBytes."
+
+
 
