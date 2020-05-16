@@ -40,8 +40,8 @@ import SDP.Set
 import qualified GHC.Exts as E
 
 import SDP.Internal.Commons
-import SDP.Internal.Read
-import SDP.Internal.Show
+import Text.Show.SDP
+import Text.Read.SDP
 
 import GHC.Generics
 
@@ -93,7 +93,7 @@ instance (Index i, Show i) => Show (Unrolled i Char)
 instance (Index i, Read i, Read e) => Read (Unrolled i e)
   where
     readList = readListDefault
-    readPrec = linearIndexedPrec "unrolled"
+    readPrec = indexedPrec' "unrolled"
 
 --------------------------------------------------------------------------------
 

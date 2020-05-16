@@ -2,16 +2,16 @@
 {-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, RoleAnnotations #-}
 
 {- |
-    Module      :  SDP.Internal.SArray
+    Module      :  SDP.Prim.SArray
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
     
-    @SDP.Internal.SArray@ is internal module, that represent lazy boxed
+    @SDP.Prim.SArray@ is internal module, that represent lazy boxed
     array pseudo-primitive types 'SArray\#' and 'STArray\#'.
 -}
-module SDP.Internal.SArray
+module SDP.Prim.SArray
 (
   -- * Pseudo-primitive types
   SArray#, STArray#,
@@ -854,22 +854,22 @@ getsize :: SArray# e -> Int
 getsize =  \ (SArray# c _ _) -> c
 
 undEx :: String -> a
-undEx =  throw . UndefinedValue . showString "in SDP.Internal.SArray."
+undEx =  throw . UndefinedValue . showString "in SDP.Prim.SArray."
 
 empEx :: String -> a
-empEx =  throw . EmptyRange . showString "in SDP.Internal.SArray."
+empEx =  throw . EmptyRange . showString "in SDP.Prim.SArray."
 
 underEx :: String -> a
-underEx =  throw . IndexUnderflow . showString "in SDP.Internal.SArray."
+underEx =  throw . IndexUnderflow . showString "in SDP.Prim.SArray."
 
 overEx :: String -> a
-overEx =  throw . IndexOverflow . showString "in SDP.Internal.SArray."
+overEx =  throw . IndexOverflow . showString "in SDP.Prim.SArray."
 
 pfailEx :: String -> a
-pfailEx =  throw . PatternMatchFail . showString "in SDP.Internal.SArray."
+pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
 
 unreachEx :: String -> a
-unreachEx =  throw . UnreachableException . showString "in SDP.Internal.SArray."
+unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
 
 
 

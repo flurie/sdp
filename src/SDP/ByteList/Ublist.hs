@@ -26,6 +26,7 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
+import SDP.Prim.SBytes
 import SDP.ByteList.STUblist
 
 import SDP.Indexed
@@ -37,9 +38,8 @@ import SDP.Set
 import SDP.SortM.Tim
 
 import SDP.Internal.Commons
-import SDP.Internal.SBytes
-import SDP.Internal.Read
-import SDP.Internal.Show
+import Text.Show.SDP
+import Text.Read.SDP
 
 import GHC.Generics
 
@@ -95,7 +95,7 @@ instance Show (Ublist Char)
 
 instance (Read e, Unboxed e) => Read (Ublist e)
   where
-    readPrec = linearIndexedPrec "ublist"
+    readPrec = indexedPrec' "ublist"
     readList = readListDefault
 
 --------------------------------------------------------------------------------

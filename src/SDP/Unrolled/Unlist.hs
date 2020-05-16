@@ -25,6 +25,7 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
+import SDP.Prim.SArray
 import SDP.Unrolled.STUnlist
 
 import SDP.Indexed
@@ -32,16 +33,15 @@ import SDP.Sort
 import SDP.Scan
 import SDP.Set
 
-import SDP.SortM.Tim
-
-import SDP.Internal.Commons
-import SDP.Internal.SArray
-import SDP.Internal.Read
-import SDP.Internal.Show
+import Text.Show.SDP
+import Text.Read.SDP
 
 import GHC.Generics
 
 import Test.QuickCheck
+
+import SDP.Internal.Commons
+import SDP.SortM.Tim
 
 import Control.Monad.ST
 
@@ -120,7 +120,7 @@ instance Show (Unlist Char)
 
 instance (Read e) => Read (Unlist e)
   where
-    readPrec = linearIndexedPrec "ublist"
+    readPrec = indexedPrec' "ublist"
     readList = readListDefault
 
 --------------------------------------------------------------------------------

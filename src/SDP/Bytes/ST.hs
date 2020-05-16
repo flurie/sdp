@@ -23,7 +23,7 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-import SDP.Internal.SBytes
+import SDP.Prim.SBytes
 
 import SDP.IndexedM
 import SDP.Unboxed

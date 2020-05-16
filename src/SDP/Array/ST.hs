@@ -23,6 +23,7 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
+import SDP.Prim.SArray
 
 import SDP.IndexedM
 
@@ -32,7 +33,6 @@ import SDP.SortM
 import SDP.SortM.Tim
 
 import SDP.Internal.Commons
-import SDP.Internal.SArray
 
 default ()
 

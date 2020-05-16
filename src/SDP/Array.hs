@@ -25,6 +25,7 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
+import SDP.Prim.SArray
 import SDP.Array.ST
 
 import SDP.Indexed
@@ -35,9 +36,8 @@ import SDP.Set
 import qualified GHC.Exts as E
 
 import SDP.Internal.Commons
-import SDP.Internal.SArray
-import SDP.Internal.Read
-import SDP.Internal.Show
+import Text.Show.SDP
+import Text.Read.SDP
 
 import GHC.Generics
 
@@ -128,7 +128,7 @@ instance (Index i, Show i) => Show (Array i Char)
 instance (Index i, Read i, Read e) => Read (Array i e)
   where
     readList = readListDefault
-    readPrec = linearIndexedPrec "array"
+    readPrec = indexedPrec' "array"
 
 --------------------------------------------------------------------------------
 

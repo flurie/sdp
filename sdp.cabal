@@ -100,22 +100,21 @@ Library
     
     -- basic test suite
     
-    Test.SDP
-    Test.SDP.Gen
-    
     Test.SDP.Estimate
     Test.SDP.Indexed
     Test.SDP.Linear
     Test.SDP.Index
     Test.SDP.Sort
     Test.SDP.Set
+    Test.SDP.Gen
     Test.SDP.Ord
     Test.SDP.Eq
+    Test.SDP
     
-    SDP.Internal.SArray
-    SDP.Internal.SBytes
-    SDP.Internal.Read
-    SDP.Internal.Show
+    SDP.Prim.SArray
+    SDP.Prim.SBytes
+    Text.Show.SDP
+    Text.Read.SDP
   
   other-modules:
     SDP.Internal.Commons
@@ -203,9 +202,9 @@ test-suite test-array
     Test.SDP
     
     SDP.Internal.Commons
-    SDP.Internal.SArray
-    SDP.Internal.Show
-    SDP.Internal.Read
+    SDP.Prim.SArray
+    Text.Show.SDP
+    Text.Read.SDP
     
     SDP.Tuple
   
@@ -264,9 +263,9 @@ test-suite test-bytes
     Test.SDP.Eq
     
     SDP.Internal.Commons
-    SDP.Internal.SBytes
-    SDP.Internal.Read
-    SDP.Internal.Show
+    SDP.Prim.SBytes
+    Text.Show.SDP
+    Text.Read.SDP
     
     SDP.Tuple
   
@@ -326,9 +325,9 @@ test-suite test-unrolled
     Test.SDP.Eq
     
     SDP.Internal.Commons
-    SDP.Internal.SArray
-    SDP.Internal.Read
-    SDP.Internal.Show
+    SDP.Prim.SArray
+    Text.Show.SDP
+    Text.Read.SDP
     
     SDP.Tuple
   
@@ -390,9 +389,9 @@ test-suite test-bytelist
     Test.SDP.Eq
     
     SDP.Internal.Commons
-    SDP.Internal.SBytes
-    SDP.Internal.Read
-    SDP.Internal.Show
+    SDP.Prim.SBytes
+    Text.Show.SDP
+    Text.Read.SDP
     
     SDP.Tuple
   
@@ -451,9 +450,9 @@ test-suite test-ublist
     Test.SDP.Eq
     
     SDP.Internal.Commons
-    SDP.Internal.SBytes
-    SDP.Internal.Show
-    SDP.Internal.Read
+    SDP.Prim.SBytes
+    Text.Show.SDP
+    Text.Read.SDP
     
     SDP.Tuple
   
@@ -511,9 +510,9 @@ test-suite test-unlist
     Test.SDP.Eq
     
     SDP.Internal.Commons
-    SDP.Internal.SArray
-    SDP.Internal.Show
-    SDP.Internal.Read
+    SDP.Prim.SArray
+    Text.Show.SDP
+    Text.Read.SDP
     
     SDP.Tuple
   
@@ -583,10 +582,10 @@ benchmark bench-sort
     Test.SDP.Gen
     
     SDP.Internal.Commons
-    SDP.Internal.SArray
-    SDP.Internal.SBytes
-    SDP.Internal.Read
-    SDP.Internal.Show
+    SDP.Prim.SArray
+    SDP.Prim.SBytes
+    Text.Show.SDP
+    Text.Read.SDP
     
     SDP.Tuple
   

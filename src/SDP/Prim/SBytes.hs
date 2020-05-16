@@ -2,16 +2,16 @@
 {-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, RoleAnnotations #-}
 
 {- |
-    Module      :  SDP.Internal.SBytes
+    Module      :  SDP.Prim.SBytes
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
     
-    @SDP.Internal.SBytes@ is internal module, that represent lazy boxed
+    @SDP.Prim.SBytes@ is internal module, that represent lazy boxed
     array pseudo-primitive types 'SBytes\#' and 'STBytes\#'.
 -}
-module SDP.Internal.SBytes
+module SDP.Prim.SBytes
 (
   -- * Preudo-primitive types
   SBytes#, STBytes#,
@@ -842,19 +842,19 @@ nubSorted f es = fromList $ foldr fun [last es] ((es !^) <$> [0 .. sizeOf es - 2
     fun = \ e ls -> e `f` head ls == EQ ? ls $ e : ls
 
 empEx :: String -> a
-empEx =  throw . EmptyRange . showString "in SDP.Internal.SBytes."
+empEx =  throw . EmptyRange . showString "in SDP.Prim.SBytes."
 
 undEx :: String -> a
-undEx =  throw . UndefinedValue . showString "in SDP.Internal.SBytes."
+undEx =  throw . UndefinedValue . showString "in SDP.Prim.SBytes."
 
 underEx :: String -> a
-underEx =  throw . IndexUnderflow . showString "in SDP.Internal.SBytes."
+underEx =  throw . IndexUnderflow . showString "in SDP.Prim.SBytes."
 
 overEx :: String -> a
-overEx =  throw . IndexOverflow . showString "in SDP.Internal.SBytes."
+overEx =  throw . IndexOverflow . showString "in SDP.Prim.SBytes."
 
 unreachEx :: String -> a
-unreachEx =  throw . UnreachableException . showString "in SDP.Internal.SBytes."
+unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
 
 
 

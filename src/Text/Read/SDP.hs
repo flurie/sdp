@@ -1,13 +1,13 @@
 {- |
-    Module      :  SDP.Internal.Read
+    Module      :  Text.Read.SDP
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (requires non-portable modules)
     
-    @SDP.Internal.Read@ provides common 'ReadPrec' parsers and related stuff.
+    @Text.Read.SDP@ provides common 'ReadPrec' parsers and related stuff.
 -}
-module SDP.Internal.Read
+module Text.Read.SDP
 (
   -- * Exports
   module Text.Read,
@@ -16,7 +16,7 @@ module SDP.Internal.Read
   appPrec,
   
   -- * Common parsers
-  linearPrec, indexedPrec, linearIndexedPrec,
+  linearPrec, indexedPrec, indexedPrec',
   
   readZeroPrec, readAsList, readAsListN, readAssocsPrec,
   
@@ -70,9 +70,9 @@ indexedPrec =  namedPrec readAssocsPrec
 linearPrec :: (Linear l e, Read e) => String -> ReadPrec l
 linearPrec =  namedPrec (readZeroPrec +++ readAsList +++ readAsListN)
 
--- | Common 'Linear' and 'Indexed' parser.
-linearIndexedPrec :: (Indexed v i e, Read i, Read e) => String -> ReadPrec v
-linearIndexedPrec =  namedPrec (readZeroPrec +++ readAsList +++ readAsListN +++ readAssocsPrec)
+-- | Common 'Linear' and 'Indexed' parser (recommended).
+indexedPrec' :: (Indexed v i e, Read i, Read e) => String -> ReadPrec v
+indexedPrec' =  namedPrec (readZeroPrec +++ readAsList +++ readAsListN +++ readAssocsPrec)
 
 --------------------------------------------------------------------------------
 

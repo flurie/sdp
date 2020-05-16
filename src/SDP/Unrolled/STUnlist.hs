@@ -24,7 +24,7 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-import SDP.Internal.SArray
+import SDP.Prim.SArray
 
 import SDP.IndexedM
 

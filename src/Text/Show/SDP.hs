@@ -1,13 +1,13 @@
 {- |
-    Module      :  SDP.Internal.Show
+    Module      :  Text.Show.SDP
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (requires non-portable modules)
     
-    @SDP.Internal.Show@ provides common 'ShowS' stuff.
+    @Text.Show.SDP@ provides common 'ShowS' stuff.
 -}
-module SDP.Internal.Show
+module Text.Show.SDP
 (
   -- * Common show templates
   assocsPrec, showsRaw, showsRawLinear

@@ -26,6 +26,7 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
+import SDP.Prim.SBytes
 import SDP.Bytes.ST
 
 import SDP.Indexed
@@ -37,9 +38,8 @@ import SDP.Set
 import qualified GHC.Exts as E
 
 import SDP.Internal.Commons
-import SDP.Internal.SBytes
-import SDP.Internal.Read
-import SDP.Internal.Show
+import Text.Show.SDP
+import Text.Read.SDP
 
 import GHC.Generics
 
@@ -123,7 +123,7 @@ instance (Index i, Show i) => Show (Bytes i Char)
 instance (Index i, Unboxed e, Read i, Read e) => Read (Bytes i e)
   where
     readList = readListDefault
-    readPrec = linearIndexedPrec "bytes"
+    readPrec = indexedPrec' "bytes"
 
 --------------------------------------------------------------------------------
 

@@ -41,8 +41,8 @@ import SDP.Set
 import qualified GHC.Exts as E
 
 import SDP.Internal.Commons
-import SDP.Internal.Read
-import SDP.Internal.Show
+import Text.Show.SDP
+import Text.Read.SDP
 
 import GHC.Generics
 
@@ -86,7 +86,7 @@ instance (Index i, Show i) => Show (ByteList i Char)
 instance (Index i, Read i, Unboxed e, Read e) => Read (ByteList i e)
   where
     readList = readListDefault
-    readPrec = linearIndexedPrec "bytelist"
+    readPrec = indexedPrec' "bytelist"
 
 --------------------------------------------------------------------------------
 
