@@ -117,18 +117,18 @@ instance (Arbitrary e) => Arbitrary (SArray# e)
 
 instance Estimate (SArray# e)
   where
-    (<==>) = on (<=>) getsize
+    (<==>) = on (<=>) sizeOf
     
-    (.>.)  = on (>)  getsize
-    (.<.)  = on (<)  getsize
-    (.<=.) = on (<=) getsize
-    (.>=.) = on (>=) getsize
+    (.>.)  = on (>)  sizeOf
+    (.<.)  = on (<)  sizeOf
+    (.<=.) = on (<=) sizeOf
+    (.>=.) = on (>=) sizeOf
     
-    (<.=>) = (<=>) . getsize
-    (.>)   = (>)   . getsize
-    (.<)   = (<)   . getsize
-    (.>=)  = (>=)  . getsize
-    (.<=)  = (<=)  . getsize
+    (<.=>) = (<=>) . sizeOf
+    (.>)   = (>)   . sizeOf
+    (.<)   = (<)   . sizeOf
+    (.>=)  = (>=)  . sizeOf
+    (.<=)  = (<=)  . sizeOf
 
 --------------------------------------------------------------------------------
 
@@ -607,10 +607,15 @@ instance Eq (STArray# s e)
 
 {- BorderedM, LinearM and SplitM instances. -}
 
+instance Bordered (STArray# s e) Int e
+  where
+    bounds (STArray# c _ _) = (0, c - 1)
+    sizeOf (STArray# c _ _) = c
+
 instance BorderedM (ST s) (STArray# s e) Int e
   where
     getIndexOf (STArray# c _ _) = return . inRange (0, c - 1)
-    getIndices (STArray# c _ _) = return [ 0 .. c - 1 ]
+    getIndices (STArray# c _ _) = return [0 .. c - 1]
     getBounds  (STArray# c _ _) = return (0, c - 1)
     getUpper   (STArray# c _ _) = return (c - 1)
     getSizeOf  (STArray# c _ _) = return c
@@ -622,10 +627,10 @@ instance LinearM (ST s) (STArray# s e) e
     newNull = ST $ \ s1# -> case newArray# 0# (unreachEx "newNull") s1# of
       (# s2#, marr# #) -> (# s2#, STArray# 0 0 marr# #)
     
-    nowNull (STArray# c _ _) = return (c < 1)
+    nowNull es = return (sizeOf es < 1)
     
-    getHead es = do s <- getSizeOf es; s < 1 ? empEx "getHead" $ es !#> 0
-    getLast es = do s <- getSizeOf es; s < 1 ? empEx "getLast" $ es !#> (s - 1)
+    getHead es = es >! 0
+    getLast es = es >! upper es
     
     newLinear = fromFoldableM
     
@@ -660,9 +665,9 @@ instance LinearM (ST s) (STArray# s e) e
       forM_ [0 .. n - 1] $ \ i -> es !#> (l + i) >>= writeM_ copy i
       return copy
     
-    reversed es@(STArray# n _ _) =
+    reversed es =
       let go i j = when (i < j) $ go (i + 1) (j - 1) >> swapM es i j
-      in  go 0 (n - 1) >> return es
+      in  go 0 (sizeOf es - 1) >> return es
     
     filled n e = let !n'@(I# n#) = max 0 n in ST $
       \ s1# -> case newArray# n# e s1# of
@@ -676,6 +681,17 @@ instance LinearM (ST s) (STArray# s e) e
       where
         !(STArray# n1 o1 src#) = src; !(I# so#) = o1 + sc
         !(STArray# n2 o2 trg#) = trg; !(I# to#) = o2 + tc
+    
+    merged ess = do
+        marr <- filled n (unreachEx "merged")
+        
+        let writer arr@(STArray# c _ _) i = (i + c) <$ copyTo arr 0 marr i c
+        
+        void $ foldr ((=<<) . writer) (return 0) ess
+        
+        return marr
+      where
+        n = foldr' ((+) . sizeOf) 0 ess
 
 instance SplitM (ST s) (STArray# s e) e
   where
@@ -737,7 +753,6 @@ instance IndexedM (ST s) (STArray# s e) Int e
     (!#>) (STArray# _ (I# o#) marr#) = \ (I# i#) -> ST $ readArray# marr# (o# +# i#)
     
     (>!) = (!#>)
-    (!>) = (!#>)
     
     writeM_ = writeM
     
@@ -849,15 +864,8 @@ before n@(I# n#) e es@(SArray# c@(I# c#) (I# o#) arr#)
         s4# -> case unsafeFreezeArray# marr# s4# of
           (# s5#, res# #) -> (# s5#, SArray# (c + 1) 0 res# #)
 
-{-# INLINE getsize #-}
-getsize :: SArray# e -> Int
-getsize =  \ (SArray# c _ _) -> c
-
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.Prim.SArray."
-
-empEx :: String -> a
-empEx =  throw . EmptyRange . showString "in SDP.Prim.SArray."
 
 underEx :: String -> a
 underEx =  throw . IndexUnderflow . showString "in SDP.Prim.SArray."
@@ -870,6 +878,8 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
+
+
 
 
 

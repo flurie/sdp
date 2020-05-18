@@ -1,0 +1,426 @@
+# template
+# - version: 1.0
+#   # important
+#   crutches:     [] # post factum indication
+#   fixes:        []
+#   deprecations: []
+#   improvements: []
+#
+#   # news
+#   modules:         []
+#   definitions:     []
+#   classes:         []
+#   class-functions: []
+#   types:           []
+#   type-families:   []
+#   exceptions:      []
+#   syntax:          []
+#   tests:           []
+#   benchmarks:      []
+#
+#   # changes
+#   moved:        []
+#   changes:      []
+#   superclasses: []
+#   removed:      []
+
+---
+
+- version: 0.2
+  # important
+  dependencies:
+    - package: ghc-prim
+      since: 0.5.3
+      upto: 0.6
+
+    - package: data-default
+      since: 0.7
+      upto: 0.8
+
+    - package: QuickCheck
+      since: 2.12
+      upto: 3
+
+  fixes:
+    - assoc and assoc' for ranges starting not with 0
+    - copied' for Array and Bytes and related segfault in timSort
+    - test suite for Sort, new generate Medium structures
+    - some Ord instances, now guaranteed lexicographical order
+    - tails and inits, now returns [Z] if structure is empty
+    - unsafeIndex definition for unsigned numeric types
+    - Freeze instances for Array, Ublist and ByteList
+    - prevTest and nextTest memory leak
+    - a lot of stupid bugs
+
+  deprecations:
+    - Bounds in favour tuple type synonyms
+    - newUnboxedByteArray and safe_scale functions
+
+  improvements:
+    - structures: size and offset encapsulation, code reuse
+    - tests: sortTest rewrited for Medium structures, see fixes
+
+  # news
+  modules:
+    - SDP.Prim.SArray: SArray# and STArray# pseudo-primitives
+    - SDP.Prim.SBytes: SBytes# and STBytes# pseudo-primitives
+
+    - SDP.SortM.Insertion: InsertionSort for mutable structures
+    - SDP.SortM.Tim: TimSort for mutable structures
+
+    - SDP.Comparing: common comparators, exported by SDP.SafePrelude
+    - SDP.Finite: common n-dimensional index, exported by SDP.Index
+    - SDP.Shape: new Index superclass for rank operations.
+    - SDP.Tuple: tiple synonyms, exported by SDP.Index
+    - SDP.Map: dictionaries
+
+    - Text.Show.SDP: Show commons
+    - Text.Read.SDP: Read commons
+
+    - Test.SDP.Gen newtypes: Short, Medium and Long
+    - Test.SDP: short import of basic test suite
+
+  definitions:
+    - SDP.SafePrelude: (?+), (?-), (...), (?^), (<=<<), (>>=>) and (>>=<<)
+    - SDP.Estimate: left-side Estimate
+    - SDP.Unboxed: sizeof#, psizeof and cloneUnboxed#
+    - SDP.Index: |
+        offsetIntegral, defaultBoundsUnsign, takeDim, dropDim and splitDim
+
+    - SDP.Linear: sorted, ascending, stripPrefix' and stripSuffix'
+    - SDP.LinearM: new class SplitM and sortedM
+    - SDP.Indexed: binaryContain
+    - SDP.IndexedM: swapM
+
+  classes:
+    - SubIndex: constraint synonym for internal class
+    - SplitM: mutable version of Split
+    - Shape: new Index superclass
+    - Map: class of dictionaries
+
+  class-functions:
+    - Unboxed: sizeof, copyUnboxed#, copyUnboxedM#
+    - Index: defLimit, defaultBounds, shape and slice
+    - Freeze: unsafeFreeze
+    - Set: groupSetWith
+    - Thaw: unsafeThaw
+
+    - Bordered: offsetOf and indexIn
+    - Indexed: assocMap, assocMap' and update
+    - Linear: except, select, extract, selects, select', extract', selects'
+    - LinearM: nowNull, newSIngle, getHead, getLast, prepend, append and copyTo
+
+    - Split: |
+        keep, sans, divide, divides, save, skip, chunks, each, each',
+        combo, infixes, splitBy, splitsBy, splitsOn, replaceBy, removeSubs,
+        selectWhile,  extractWhile,  selectEnd,  extractEnd,
+        selectWhile', extractWhile', selectEnd', extractEnd'
+
+  type-families:
+    - Shape: GIndex, DimLast and DimInit
+    - Index: (:|:)
+
+  exceptions:
+    - UnexpectedRank
+
+  syntax:
+    - OverloadedIndices
+
+  tests:
+    - Suite: Eq, Ord and Estimate
+
+    - Index: test-indices
+
+    - Array: test-array
+    - Bytes: test-bytes
+    - Unlist: test-unlist
+    - Ublist: test-ublist
+    - Unrolled: test-unrolled
+    - ByteList: test-bytelist
+
+  benchmarks:
+    - bench-sort: for immutable timSort
+
+  # changes
+  moved:
+    - indexOf: indexIn
+    - reshape: reshaped
+    - Index.rank: Shape.rank
+    - SDP.SortM.Stuff: SDP.SortM.Tim
+    - Bordered.assocs: Indexed.assocs
+
+  changes:
+    - (/>): removed second argument, now updates all elements in structure
+    - instances: Read and Show for (:&), now list-like and require IsList
+
+  superclasses:
+    - Scan: (Linear s a)
+    - Estimate: removed
+
+    - IFold: removed
+    - IFold: (Monad m)
+
+    - Indexed: (Linear v e, Bordered v i e)
+    - IndexedM: (LinearM m v e, BorderedM m v i e)
+
+  removed:
+    - SDP.Index: IndexEQ class, unsafeBounds and toBounds helpers
+    - SDP.Estimate: EL type
+    - SDP.Tree.BinTree: see sdp-tree
+
+# ---------------------------------------------------------------------------- #
+# ############################################################################ #
+# ---------------------------------------------------------------------------- #
+
+- version: 0.1.1
+  # news
+  definitions:
+    - SDP.IndexedM: reshape and fromAccum
+    - SDP.Indexed: imap and accum
+
+  classes:
+    - IFold: folds with indices
+    - IFoldM: mutable folds
+
+# ---------------------------------------------------------------------------- #
+# ############################################################################ #
+# ---------------------------------------------------------------------------- #
+
+- version: 0.1
+  # important
+  deprecations:
+    - SDP.Tree.BinTree: too slow, inneificient and unuseful
+
+  # news
+  modules:
+    - Test.SDP.Sort: very short test suite
+
+  classes:
+    - Freeze: freeze mutable structure (to immutable)
+    - Thaw: thaw immutable structure (to mutable)
+
+  class-functions:
+    - IndexedM: (!#>), write_ fromIndexed' and fromIndexedM
+    - Indexed: (!^) and fromIndexed
+
+  # changes
+  moved:
+    - arrcopy: SDP.SortM.Stuff.arrcopy (internal)
+    - write: from SDP.Indexed module namespace to Indexed class
+    - estimates: internal comparators to SDP.Estimate module
+
+# ---------------------------------------------------------------------------- #
+# ############################################################################ #
+# ---------------------------------------------------------------------------- #
+
+- version: 0.0.2
+  # important
+  fixes:
+    - old bug in SDP.Index.inBounds ("wrong" Ord for default declaration)
+
+  # news
+  classes:
+    - IndexEQ: service class, provisional
+
+    - BorderedM: for bounds operations
+    - IndexedM: common indexed operations on mutable structures
+    - LinearM: common list-like operations on mutable structures
+    - SortM: mutable version of Sort class
+
+  types:
+    - STArray: mutable boxed array in monad ST
+    - STBytes: mutable unboxed array in monad ST
+    - STUnlist: mutable boxed unrolled linked list in monad ST
+    - STUblist: mutable unboxed unrolled linked list in monad ST
+    - STUnrolled: mutable boxed unrolled linked list in monad ST with bounds
+    - STByteList: mutable unboxed unrolled linked list in monad ST with bounds
+
+# ---------------------------------------------------------------------------- #
+# ############################################################################ #
+# ---------------------------------------------------------------------------- #
+
+- version: 0.0.1.2
+  # important
+  improvements:
+    - IsString and IsList instances
+
+# ---------------------------------------------------------------------------- #
+# ############################################################################ #
+# ---------------------------------------------------------------------------- #
+
+- version: 0.0.1.1
+  # important
+  improvements:
+    - Set instance for BinTree
+    - Semigroup and Monoid instances
+
+# ---------------------------------------------------------------------------- #
+# ############################################################################ #
+# ---------------------------------------------------------------------------- #
+
+- version: 0.0.1.0
+  # important
+  fixes:
+    - Some stupid bugs
+
+  # news
+  exceptions:
+    - UnreachableException
+
+# ---------------------------------------------------------------------------- #
+# ############################################################################ #
+# ---------------------------------------------------------------------------- #
+
+- version: 0.0.0.11
+  # news
+  types:
+    - BinTree: binary tree
+
+# ---------------------------------------------------------------------------- #
+# ############################################################################ #
+# ---------------------------------------------------------------------------- #
+
+- version: 0.0.0.10
+  # news
+  definitions:
+    - SDP.Linear: stripPrefix and stripSuffix
+
+  class-functions:
+    - Linear: partitions
+    - Split: arts
+
+  types:
+    - ByteList: immutable unboxed unrolled linked list with bounds
+
+# ---------------------------------------------------------------------------- #
+# ############################################################################ #
+# ---------------------------------------------------------------------------- #
+
+- version: 0.0.0.9
+  # important
+  fixes:
+    - implemented lost functions (prefix, suffix) for [a]
+
+  improvements:
+    - Test suite rewrited and documented
+
+  # news
+  types:
+    - Bytes: immutable unboxed array with bounds
+
+  removed:
+    - SDP.Unboxed: fillByteArray#
+
+# ---------------------------------------------------------------------------- #
+# ############################################################################ #
+# ---------------------------------------------------------------------------- #
+
+- version: 0.0.0.8
+  # news
+  classes:
+    - Unboxed: for generalized ByteArray# and MutableByteArray# operations
+
+# ---------------------------------------------------------------------------- #
+# ############################################################################ #
+# ---------------------------------------------------------------------------- #
+
+- version: 0.0.0.7
+  # important
+  improvements:
+    - Linear and LineS now completely (formally) independent of Foldable
+
+  # news
+  internal:
+    - Added STUArray (rewrited Data.Array.Base type)
+
+# ---------------------------------------------------------------------------- #
+# ############################################################################ #
+# ---------------------------------------------------------------------------- #
+
+- version: 0.0.0.6
+  # important
+  dependencies:
+    - package: ghc-prim
+      min: 0.5.3
+      max: 0.6
+
+  # news
+  classes:
+    Sort: for immutable structures sorting
+
+# ---------------------------------------------------------------------------- #
+# ############################################################################ #
+# ---------------------------------------------------------------------------- #
+
+- version: 0.0.0.5
+  # important
+  crutches:
+    - upto: 0.2
+      reasons: laziness and apathy
+      crutch: |
+        unsafeIndex for unsigned types fail on (-1). Structures with unsigned
+        indices now indexed from 1
+
+  improvements:
+    - Haddock markup
+
+# ---------------------------------------------------------------------------- #
+# ############################################################################ #
+# ---------------------------------------------------------------------------- #
+
+- version: 0.0.0.4
+  # important
+  improvements:
+    # This should be written in 'classes', but I'm too lazy to look at the old
+    # commits that are added there.
+    - Linear class extended
+    - Tuple instances for Index
+
+  # news
+  classes:
+    - Split: Linear extension for split functions
+    - LineS: ShowS generalization, provisional
+
+  types:
+    - Unrolled: immutable boxed unrolled linked list with bounds
+
+# ---------------------------------------------------------------------------- #
+# ############################################################################ #
+# ---------------------------------------------------------------------------- #
+
+- version: 0.0.0.3
+  # important
+  fixes:
+    - Many stupid bugs
+
+  # news
+  tests:
+    Suite: common tests for standard classes
+
+# ---------------------------------------------------------------------------- #
+# ############################################################################ #
+# ---------------------------------------------------------------------------- #
+
+- version: 0.0.0.2
+  # news
+  types:
+    - Array: rewrited GHC.Arr
+
+# ---------------------------------------------------------------------------- #
+# ############################################################################ #
+# ---------------------------------------------------------------------------- #
+
+- version: 0.0.0.1
+  # news
+  classes:
+    - Indexed: common indexed operations on immutable structures
+    - Linear: common list-like operations on immutable structures
+    - Set: set class
+
+    - Estimate: lazy comparing by length
+    - Index: Ix fork with pretty names and some Repa.Shape features
+    - Scan: generalization of scan* operations
+    - Zip: generalization of ZipWith, specific Applicative without pure
+
+  exceptions:
+    - IndexException

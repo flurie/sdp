@@ -26,7 +26,7 @@ module SDP.Index
   InBounds (..), Bounds,
   
   -- * Helpers
-  toGBounds, fromGBounds, offsetIntegral, defaultBoundsUnsign, checkBounds
+  offsetIntegral, defaultBoundsUnsign
 )
 where
 
@@ -457,18 +457,6 @@ INDEX_INSTANCE(T15)
 
 --------------------------------------------------------------------------------
 
--- | Convert any index type bounds to generalized index bounds.
-{-# INLINE toGBounds #-}
-toGBounds :: (Shape i) => (i, i) -> (GIndex i, GIndex i)
-toGBounds =  both toGIndex
-
--- | Convert generalized index bounds to any index type bounds.
-{-# INLINE fromGBounds #-}
-fromGBounds :: (Shape i) => (GIndex i, GIndex i) -> (i, i)
-fromGBounds =  both fromGIndex
-
---------------------------------------------------------------------------------
-
 (-.) :: (Enum i) => i -> i -> Int
 (-.) =  on (-) fromEnum
 
@@ -492,4 +480,6 @@ checkBounds bnds i res = case inBounds bnds i of
 
 emptyEx :: String -> a
 emptyEx =  throw . EmptyRange . showString "in SDP.Index."
+
+
 

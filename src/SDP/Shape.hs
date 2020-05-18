@@ -21,7 +21,7 @@ module SDP.Shape
   module Data.Int,
   
   -- * Shapes
-  Shape (..), GIndex,
+  Shape (..), GIndex, toGBounds, fromGBounds,
   
   -- * Rank constraints
   RANK0, RANK1, RANK2,  RANK3,  RANK4,  RANK5,  RANK6,  RANK7,
@@ -31,7 +31,6 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-
 import SDP.Finite
 import SDP.Tuple
 
@@ -39,6 +38,8 @@ import GHC.Types
 
 import Data.Word
 import Data.Int
+
+import SDP.Internal.Commons
 
 default ()
 
@@ -325,6 +326,15 @@ unconsDim      (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o) =  ((a,b,c,d,e,f,g,h,i,j,k,l,m,n)
 
 #undef SHAPE_INSTANCE
 
+--------------------------------------------------------------------------------
 
+-- | Convert any index type bounds to generalized index bounds.
+{-# INLINE toGBounds #-}
+toGBounds :: (Shape i) => (i, i) -> (GIndex i, GIndex i)
+toGBounds =  both toGIndex
 
+-- | Convert generalized index bounds to any index type bounds.
+{-# INLINE fromGBounds #-}
+fromGBounds :: (Shape i) => (GIndex i, GIndex i) -> (i, i)
+fromGBounds =  both fromGIndex
 

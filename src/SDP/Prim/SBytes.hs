@@ -124,18 +124,18 @@ instance (Unboxed e, Arbitrary e) => Arbitrary (SBytes# e)
 
 instance Estimate (SBytes# e)
   where
-    (<==>) = on (<=>) getsize
+    (<==>) = on (<=>) sizeOf
     
-    (.>.)  = on (>)  getsize
-    (.<.)  = on (<)  getsize
-    (.<=.) = on (<=) getsize
-    (.>=.) = on (>=) getsize
+    (.>.)  = on (>)  sizeOf
+    (.<.)  = on (<)  sizeOf
+    (.<=.) = on (<=) sizeOf
+    (.>=.) = on (>=) sizeOf
     
-    (<.=>) = (<=>) . getsize
-    (.>)   = (>)   . getsize
-    (.<)   = (<)   . getsize
-    (.>=)  = (>=)  . getsize
-    (.<=)  = (<=)  . getsize
+    (<.=>) = (<=>) . sizeOf
+    (.>)   = (>)   . sizeOf
+    (.<)   = (<)   . sizeOf
+    (.>=)  = (>=)  . sizeOf
+    (.<=)  = (<=)  . sizeOf
 
 --------------------------------------------------------------------------------
 
@@ -293,7 +293,7 @@ instance (Unboxed e) => Split (SBytes# e) e
       let go i f es = i == 0 ? [] $ maybe [] (: go (i - 1) f es) $ f (es !^ i)
       in  reverse $ go (c - 1) g xs
 
-instance (Unboxed e) => Bordered (SBytes# e) Int e
+instance Bordered (SBytes# e) Int e
   where
     lower _ = 0
     
@@ -539,6 +539,11 @@ instance Eq (STBytes# s e)
 
 {- BorderedM, LinearM and SplitM instances. -}
 
+instance Bordered (STBytes# s e) Int e
+  where
+    sizeOf (STBytes# c _ _) = c
+    bounds (STBytes# c _ _) = (0, c - 1)
+
 instance (Unboxed e) => BorderedM (ST s) (STBytes# s e) Int e
   where
     getLower _ = return 0
@@ -554,10 +559,10 @@ instance (Unboxed e) => LinearM (ST s) (STBytes# s e) e
     newNull = ST $ \ s1# -> case newByteArray# 0# s1# of
       (# s2#, marr# #) -> (# s2#, STBytes# 0 0 marr# #)
     
-    nowNull (STBytes# c _ _) = return (c < 1)
+    nowNull es = return (sizeOf es < 1)
     
-    getHead es = do s <- getSizeOf es; s < 1 ? empEx "getHead" $ es !#> 0
-    getLast es = do s <- getSizeOf es; s < 1 ? empEx "getLast" $ es !#> (s - 1)
+    getHead es = es >! 0
+    getLast es = es >! upper es
     
     newLinear = fromFoldableM
     
@@ -614,6 +619,17 @@ instance (Unboxed e) => LinearM (ST s) (STBytes# s e) e
         
         !(STBytes# n1 o1 src#) = src; !(I# so#) = o1 + sc
         !(STBytes# n2 o2 trg#) = trg; !(I# to#) = o2 + tc
+    
+    merged ess = do
+        marr <- filled n (unreachEx "merged")
+        
+        let writer arr@(STBytes# c _ _) i = (i + c) <$ copyTo arr 0 marr i c
+        
+        void $ foldr ((=<<) . writer) (return 0) ess
+        
+        return marr
+      where
+        n = foldr' ((+) . sizeOf) 0 ess
 
 instance (Unboxed e) => SplitM (ST s) (STBytes# s e) e
   where
@@ -676,7 +692,6 @@ instance (Unboxed e) => IndexedM (ST s) (STBytes# s e) Int e
     (!#>) (STBytes# _ (I# o#) marr#) = \ (I# i#) -> ST $ marr# !># (o# +# i#)
     
     (>!) = (!#>)
-    (!>) = (!#>)
     
     writeM_ = writeM
     
@@ -830,19 +845,12 @@ before n@(I# n#) e es@(SBytes# c@(I# c#) (I# o#) arr#)
         s4# -> case unsafeFreezeByteArray# marr# s4# of
           (# s5#, res# #) -> (# s5#, SBytes# (c + 1) 0 res# #)
 
-{-# INLINE getsize #-}
-getsize :: SBytes# e -> Int
-getsize =  \ (SBytes# c _ _) -> c
-
 {-# INLINE nubSorted #-}
 nubSorted :: (Unboxed e) => Compare e -> SBytes# e -> SBytes# e
 nubSorted _ Z  = Z
 nubSorted f es = fromList $ foldr fun [last es] ((es !^) <$> [0 .. sizeOf es - 2])
   where
     fun = \ e ls -> e `f` head ls == EQ ? ls $ e : ls
-
-empEx :: String -> a
-empEx =  throw . EmptyRange . showString "in SDP.Prim.SBytes."
 
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.Prim.SBytes."
@@ -855,6 +863,8 @@ overEx =  throw . IndexOverflow . showString "in SDP.Prim.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
+
+
 
 
 

@@ -154,7 +154,7 @@ class (LinearM m v e, BorderedM m v i e) => IndexedM m v i e
 --------------------------------------------------------------------------------
 
 -- | IFoldM is monadic version of IFold.
-class IFoldM m v i e | v -> m, v -> i, v -> e
+class (Monad m) => IFoldM m v i e | v -> m, v -> i, v -> e
   where
     {-# MINIMAL ifoldrM, ifoldlM #-}
     
