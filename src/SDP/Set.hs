@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE TypeOperators, TypeFamilies, DefaultSignatures #-}
+{-# LANGUAGE TypeOperators, TypeFamilies, ConstraintKinds, DefaultSignatures #-}
 {-# LANGUAGE Trustworthy #-}
 
 {- |
@@ -17,7 +17,7 @@ module SDP.Set
   module SDP.Linear,
   
   -- * Set
-  Set (..),
+  Set (..), Set1,
   
   -- * Related functions
   set, insert, delete, intersections, unions, differences, symdiffs, isSetElem,
@@ -37,7 +37,7 @@ import Data.List ( sortBy, groupBy )
 
 import GHC.Types
 
-import SDP.Internal.Commons
+import SDP.Internal
 
 default ()
 
@@ -158,6 +158,9 @@ class (Linear s o) => Set s o | s -> o
     lookupLEWith f e es = isContainedIn f e es ? Just e $ lookupLTWith f e es
 
 --------------------------------------------------------------------------------
+
+-- | Rank (* -> *) 'Set'.
+type Set1 s e = Set (s e) e
 
 {- Useful functions. -}
 
@@ -332,4 +335,6 @@ instance Set [e] e
     lookupGEWith _ _ _ = Nothing
     
     groupSetWith cmp f = map (foldr1 f) . groupBy ((== EQ) ... cmp) . sortBy cmp
+
+
 

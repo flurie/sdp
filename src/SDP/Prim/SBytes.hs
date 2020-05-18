@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, RoleAnnotations #-}
+{-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, TypeFamilies #-}
+{-# LANGUAGE RoleAnnotations #-}
 
 {- |
     Module      :  SDP.Prim.SBytes
@@ -57,9 +58,14 @@ import GHC.Exts
   )
 import GHC.ST ( runST, ST (..), STRep )
 
+import qualified GHC.Exts as E
+
+import Data.String
 import Data.Proxy
 
-import SDP.Internal.Commons
+import Text.Read
+
+import SDP.Internal
 
 default ()
 
@@ -81,8 +87,6 @@ data SBytes# e = SBytes#
 
 type role SBytes# representational
 
-instance (Unboxed e, Show e) => Show (SBytes# e) where showsPrec p = showsPrec p . listL
-
 --------------------------------------------------------------------------------
 
 {- Eq instance. -}
@@ -103,6 +107,28 @@ instance (Unboxed e, Ord e) => Ord (SBytes# e)
       where
         cmp' i = i == c ? c1 <=> c2 $ (xs!^i <=> ys!^i) <> cmp' (i + 1)
         c = min c1 c2
+
+--------------------------------------------------------------------------------
+
+{- Show and Read instances. -}
+
+instance (Unboxed e, Show e) => Show (SBytes# e) where showsPrec p = showsPrec p . listL
+
+instance (Unboxed e, Read e) => Read (SBytes# e) where readPrec = fromList <$> readPrec
+
+--------------------------------------------------------------------------------
+
+{- Overloaded Lists and Strings support. -}
+
+instance IsString (SBytes# Char) where fromString = fromList
+
+instance (Unboxed e) => E.IsList (SBytes# e)
+  where
+    type Item (SBytes# e) = e
+    
+    fromListN = fromListN
+    fromList  = fromList
+    toList    = listL
 
 --------------------------------------------------------------------------------
 
@@ -199,7 +225,7 @@ instance (Unboxed e) => Linear (SBytes# e) e
               \ s2# -> case copyUnboxed# e arr# o# marr# i# c# s2# of
                 s3# -> (# s3#, i + c #)
         
-        void $ foldr ((=<<) . write#) (return 0) ess
+        void $ foldl (\ b a -> write# a =<< b) (return 0) ess
         
         done marr
       where
@@ -863,7 +889,6 @@ overEx =  throw . IndexOverflow . showString "in SDP.Prim.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
-
 
 
 

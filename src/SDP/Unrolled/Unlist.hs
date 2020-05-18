@@ -33,6 +33,7 @@ import SDP.Sort
 import SDP.Scan
 import SDP.Set
 
+import SDP.Internal
 import Text.Show.SDP
 import Text.Read.SDP
 
@@ -40,7 +41,6 @@ import GHC.Generics
 
 import Test.QuickCheck
 
-import SDP.Internal.Commons
 import SDP.SortM.Tim
 
 import Control.Monad.ST

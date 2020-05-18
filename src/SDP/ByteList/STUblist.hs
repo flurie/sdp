@@ -32,7 +32,7 @@ import SDP.Unboxed
 import SDP.SortM.Tim
 import SDP.SortM
 
-import SDP.Internal.Commons
+import SDP.Internal
 
 import Control.Monad.ST
 

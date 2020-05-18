@@ -50,7 +50,7 @@ import SDP.Zip
 
 import GHC.Types
 
-import SDP.Internal.Commons
+import SDP.Internal
 
 default ()
 

@@ -66,6 +66,10 @@ Library
     SDP.Set
     SDP.Map
     
+    -- tepmlates
+    
+    SDP.Templates.AnyBorder
+    
     -- general structure implementations
     
     SDP.Unrolled
@@ -117,7 +121,7 @@ Library
     Text.Read.SDP
   
   other-modules:
-    SDP.Internal.Commons
+    SDP.Internal
 
 ---            _____  _____  _____  _____  _____  _   _  _____               ---
 ---           |_   _||  ___|/  ___||_   _||_   _|| \ | ||  __ \              ---
@@ -136,8 +140,9 @@ test-suite test-indices
   other-modules:
     Control.Exception.SDP
     
-    SDP.Internal.Commons
+    SDP.Templates.AnyBorder
     SDP.SafePrelude
+    SDP.Internal
     
     Test.SDP.Index
     
@@ -147,6 +152,16 @@ test-suite test-indices
     SDP.Index
     SDP.Shape
     SDP.Tuple
+    
+    SDP.IndexedM
+    SDP.Indexed
+    SDP.LinearM
+    SDP.Linear
+    SDP.Scan
+    SDP.Sort
+    SDP.Map
+    SDP.Set
+    SDP.Zip
   
   build-depends:
     base                       >= 4.8   && < 5,
@@ -170,6 +185,7 @@ test-suite test-array
     SDP.Array
     
     Control.Exception.SDP
+    SDP.Templates.AnyBorder
     Control.Monad.Rope
     
     SDP.SafePrelude
@@ -201,10 +217,10 @@ test-suite test-array
     Test.SDP.Eq
     Test.SDP
     
-    SDP.Internal.Commons
     SDP.Prim.SArray
     Text.Show.SDP
     Text.Read.SDP
+    SDP.Internal
     
     SDP.Tuple
   
@@ -230,6 +246,7 @@ test-suite test-bytes
     SDP.Bytes
     
     Control.Exception.SDP
+    SDP.Templates.AnyBorder
     Control.Monad.Rope
     SDP.SafePrelude
     SDP.SortM.Tim
@@ -262,10 +279,10 @@ test-suite test-bytes
     Test.SDP.Ord
     Test.SDP.Eq
     
-    SDP.Internal.Commons
     SDP.Prim.SBytes
     Text.Show.SDP
     Text.Read.SDP
+    SDP.Internal
     
     SDP.Tuple
   
@@ -293,6 +310,7 @@ test-suite test-unrolled
     SDP.Unrolled
     
     Control.Exception.SDP
+    SDP.Templates.AnyBorder
     Control.Monad.Rope
     SDP.SafePrelude
     SDP.SortM.Tim
@@ -324,10 +342,10 @@ test-suite test-unrolled
     Test.SDP.Ord
     Test.SDP.Eq
     
-    SDP.Internal.Commons
     SDP.Prim.SArray
     Text.Show.SDP
     Text.Read.SDP
+    SDP.Internal
     
     SDP.Tuple
   
@@ -355,6 +373,7 @@ test-suite test-bytelist
     SDP.ByteList
     
     Control.Exception.SDP
+    SDP.Templates.AnyBorder
     Control.Monad.Rope
     
     SDP.SafePrelude
@@ -388,10 +407,10 @@ test-suite test-bytelist
     Test.SDP.Ord
     Test.SDP.Eq
     
-    SDP.Internal.Commons
     SDP.Prim.SBytes
     Text.Show.SDP
     Text.Read.SDP
+    SDP.Internal
     
     SDP.Tuple
   
@@ -417,6 +436,7 @@ test-suite test-ublist
     SDP.ByteList.Ublist
     
     Control.Exception.SDP
+    SDP.Templates.AnyBorder
     Control.Monad.Rope
     SDP.SafePrelude
     SDP.SortM.Tim
@@ -449,10 +469,10 @@ test-suite test-ublist
     Test.SDP.Ord
     Test.SDP.Eq
     
-    SDP.Internal.Commons
     SDP.Prim.SBytes
     Text.Show.SDP
     Text.Read.SDP
+    SDP.Internal
     
     SDP.Tuple
   
@@ -478,6 +498,7 @@ test-suite test-unlist
     SDP.Unrolled.Unlist
     
     Control.Exception.SDP
+    SDP.Templates.AnyBorder
     Control.Monad.Rope
     SDP.SafePrelude
     SDP.SortM.Tim
@@ -509,10 +530,10 @@ test-suite test-unlist
     Test.SDP.Ord
     Test.SDP.Eq
     
-    SDP.Internal.Commons
     SDP.Prim.SArray
     Text.Show.SDP
     Text.Read.SDP
+    SDP.Internal
     
     SDP.Tuple
   
@@ -558,6 +579,7 @@ benchmark bench-sort
     SDP.Bytes
     
     Control.Exception.SDP
+    SDP.Templates.AnyBorder
     Control.Monad.Rope
     SDP.SafePrelude
     SDP.SortM.Tim
@@ -581,11 +603,11 @@ benchmark bench-sort
     
     Test.SDP.Gen
     
-    SDP.Internal.Commons
     SDP.Prim.SArray
     SDP.Prim.SBytes
     Text.Show.SDP
     Text.Read.SDP
+    SDP.Internal
     
     SDP.Tuple
   

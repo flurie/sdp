@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, RoleAnnotations #-}
+{-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, TypeFamilies #-}
+{-# LANGUAGE RoleAnnotations #-}
 
 {- |
     Module      :  SDP.Prim.SArray
@@ -57,7 +58,13 @@ import GHC.Exts
   )
 import GHC.ST ( runST, ST (..), STRep )
 
-import SDP.Internal.Commons
+import qualified GHC.Exts as E
+
+import Data.String
+
+import Text.Read
+
+import SDP.Internal
 
 default ()
 
@@ -102,6 +109,28 @@ instance Ord1 SArray#
     liftCompare cmp xs@(SArray# c1 _ _) ys@(SArray# c2 _ _) = cmp' 0
       where
         cmp' i = i == (c1 `min` c2) ? c1 <=> c2 $ (xs!^i) `cmp` (ys!^i) <> cmp' (i + 1)
+
+--------------------------------------------------------------------------------
+
+{- Show and Read instances. -}
+
+instance (Show e) => Show (SArray# e) where showsPrec p = showsPrec p . listL
+
+instance (Read e) => Read (SArray# e) where readPrec = fromList <$> readPrec
+
+--------------------------------------------------------------------------------
+
+{- Overloaded Lists and Strings support. -}
+
+instance IsString (SArray# Char) where fromString = fromList
+
+instance E.IsList (SArray# e)
+  where
+    type Item (SArray# e) = e
+    
+    fromListN = fromListN
+    fromList  = fromList
+    toList    = toList
 
 --------------------------------------------------------------------------------
 
@@ -275,7 +304,7 @@ instance Linear (SArray# e) e
               \ s2# -> case copyArray# arr# o# marr# i# c# s2# of
                 s3# -> (# s3#, i + c #)
         
-        void $ foldr ((=<<) . write#) (return 0) ess
+        void $ foldl (\ b a -> write# a =<< b) (return 0) ess
         
         done marr
       where
@@ -878,8 +907,4 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
-
-
-
-
 

@@ -33,7 +33,7 @@ import Prelude ()
 import SDP.SafePrelude
 import SDP.Linear
 
-import SDP.Internal.Commons
+import SDP.Internal
 
 default ()
 

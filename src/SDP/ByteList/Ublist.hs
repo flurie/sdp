@@ -37,7 +37,7 @@ import SDP.Set
 
 import SDP.SortM.Tim
 
-import SDP.Internal.Commons
+import SDP.Internal
 import Text.Show.SDP
 import Text.Read.SDP
 

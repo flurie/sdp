@@ -35,7 +35,7 @@ import SDP.SafePrelude
 import SDP.LinearM
 import SDP.Indexed
 
-import SDP.Internal.Commons
+import SDP.Internal
 
 default ()
 

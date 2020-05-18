@@ -29,7 +29,7 @@ import SDP.Set
 
 import qualified Data.List as L
 
-import SDP.Internal.Commons
+import SDP.Internal
 
 default ()
 

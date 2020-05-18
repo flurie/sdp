@@ -39,7 +39,7 @@ import GHC.Types
 import Data.Word
 import Data.Int
 
-import SDP.Internal.Commons
+import SDP.Internal
 
 default ()
 

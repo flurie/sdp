@@ -38,7 +38,7 @@ import GHC.Exts
 
 import Data.Tuple
 
-import SDP.Internal.Commons
+import SDP.Internal
 
 default ()
 

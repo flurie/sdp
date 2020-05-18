@@ -32,7 +32,7 @@ import GHC.ST ( ST (..) )
 import SDP.SortM
 import SDP.SortM.Tim
 
-import SDP.Internal.Commons
+import SDP.Internal
 
 default ()
 
