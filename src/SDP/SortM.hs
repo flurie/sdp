@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, ConstraintKinds #-}
 
 {- |
     Module      :  SDP.SortM
@@ -13,7 +13,7 @@
 module SDP.SortM
   (
     -- * SortM
-    SortM (..),
+    SortM (..), SortM1,
     
     -- * Related functions
     sortM, sortMOn, mathsortM, mathsortMOn
@@ -42,6 +42,10 @@ class SortM m s e | s -> m, s -> e
     mathsortMBy :: Compare e -> s -> m ()
     mathsortMBy =  sortMBy
 
+type SortM1 m s e = SortM m (s e) e
+
+--------------------------------------------------------------------------------
+
 -- | sortM is just synonym for @sortMBy compare@
 sortM :: (SortM m s e, Ord e) => s -> m ()
 sortM =  sortMBy compare
@@ -57,4 +61,5 @@ mathsortM =  mathsortMBy compare
 -- | Math sort by comparing the results of a key function applied to each element.
 mathsortMOn :: (SortM m s e, Ord o) => (e -> o) -> s -> m ()
 mathsortMOn =  mathsortMBy . comparing
+
 

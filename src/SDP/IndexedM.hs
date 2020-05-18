@@ -215,16 +215,16 @@ class (Monad m) => Freeze m v' v | v' -> m
 --------------------------------------------------------------------------------
 
 -- | Rank (* -> *) 'IndexedM' structure.
-type IndexedM1 v i e = IndexedM (v e) i e
+type IndexedM1 m v i e = IndexedM m (v e) i e
 
 -- | Rank (* -> * -> *) 'IndexedM' structure.
-type IndexedM2 v i e = IndexedM (v i e) i e
+type IndexedM2 m v i e = IndexedM m (v i e) i e
 
 -- | Rank (* -> *) 'IFoldM' structure.
-type IFoldM1 v i e = IFoldM (v e) i e
+type IFoldM1 m v i e = IFoldM m (v e) i e
 
 -- | Rank (* -> * -> *) 'IFoldM' structure.
-type IFoldM2 v i e = IFoldM (v i e) i e
+type IFoldM2 m v i e = IFoldM m (v i e) i e
 
 --------------------------------------------------------------------------------
 
