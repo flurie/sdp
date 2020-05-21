@@ -563,14 +563,14 @@ instance Eq (STBytes# s e)
 
 --------------------------------------------------------------------------------
 
-{- BorderedM, LinearM and SplitM instances. -}
+{- Bordered, BorderedM, LinearM and SplitM instances. -}
 
 instance Bordered (STBytes# s e) Int
   where
     sizeOf (STBytes# c _ _) = c
     bounds (STBytes# c _ _) = (0, c - 1)
 
-instance (Unboxed e) => BorderedM (ST s) (STBytes# s e) Int
+instance BorderedM (ST s) (STBytes# s e) Int
   where
     getLower _ = return 0
     

@@ -49,7 +49,14 @@ newtype STUnlist s e = STUnlist [STArray# s e]
 
 --------------------------------------------------------------------------------
 
-{- BorderedM, LinearM and SplitM instances. -}
+{- Bordered, BorderedM, LinearM and SplitM instances. -}
+
+instance Bordered (STUnlist s e) Int
+  where
+    lower  _ = 0
+    upper es = sizeOf es - 1
+    
+    sizeOf (STUnlist es) = foldr' ((+) . sizeOf) 0 es
 
 instance BorderedM (ST s) (STUnlist s e) Int
   where
@@ -215,6 +222,4 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Unrolled.STUnlist."
 
 lim :: Int
 lim =  1024
-
-
 

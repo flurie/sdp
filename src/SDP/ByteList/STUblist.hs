@@ -50,7 +50,14 @@ newtype STUblist s e = STUblist [STBytes# s e]
 
 --------------------------------------------------------------------------------
 
-{- BorderedM, LinearM and SplitM instances. -}
+{- Bordered, BorderedM, LinearM and SplitM instances. -}
+
+instance Bordered (STUblist s e) Int
+  where
+    lower  _ = 0
+    upper es = sizeOf es - 1
+    
+    sizeOf (STUblist es) = foldr' ((+) . sizeOf) 0 es
 
 instance (Unboxed e) => BorderedM (ST s) (STUblist s e) Int
   where
@@ -225,6 +232,4 @@ underEx =  throw . IndexUnderflow . showString "in SDP.ByteList.STUblist."
 
 lim :: Int
 lim =  1024
-
-
 
