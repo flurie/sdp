@@ -55,7 +55,7 @@ class (Ord k) => Map m k e | m -> k, m -> e
     toMap =  mapAssocs . listMap
     
     -- | listMap is just assocs.
-    default listMap :: (Bordered m k e, Linear m e) => m -> [(k, e)]
+    default listMap :: (Bordered m k, Linear m e) => m -> [(k, e)]
     listMap :: m -> [(k, e)]
     listMap es = indices es `zip` listL es
     

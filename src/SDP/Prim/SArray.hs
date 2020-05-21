@@ -395,7 +395,7 @@ instance Split (SArray# e) e
       let go i f es = i == 0 ? [] $ maybe [] (: go (i - 1) f es) $ f (es !^ i)
       in  reverse $ go (c - 1) g xs
 
-instance Bordered (SArray# e) Int e
+instance Bordered (SArray# e) Int
   where
     lower _ = 0
     
@@ -636,12 +636,12 @@ instance Eq (STArray# s e)
 
 {- BorderedM, LinearM and SplitM instances. -}
 
-instance Bordered (STArray# s e) Int e
+instance Bordered (STArray# s e) Int
   where
     bounds (STArray# c _ _) = (0, c - 1)
     sizeOf (STArray# c _ _) = c
 
-instance BorderedM (ST s) (STArray# s e) Int e
+instance BorderedM (ST s) (STArray# s e) Int
   where
     getIndexOf (STArray# c _ _) = return . inRange (0, c - 1)
     getIndices (STArray# c _ _) = return [0 .. c - 1]

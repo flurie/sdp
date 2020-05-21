@@ -204,7 +204,7 @@ instance (Unboxed e) => Split (Ublist e) e
       where
         f = \ acc x -> let n = suffix p x in n ==. x ? n + acc $ n
 
-instance (Unboxed e) => Bordered (Ublist e) Int e
+instance (Unboxed e) => Bordered (Ublist e) Int
   where
     sizeOf (Ublist es) = foldr' ((+) . sizeOf) 0 es
     

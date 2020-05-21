@@ -44,7 +44,7 @@ infixl 5 !#>, >!, !>, !?>
 --------------------------------------------------------------------------------
 
 -- | Class for work with mutable indexed structures.
-class (LinearM m v e, BorderedM m v i e) => IndexedM m v i e
+class (LinearM m v e, BorderedM m v i) => IndexedM m v i e
   where
     {-# MINIMAL fromAssocs', fromIndexed', fromIndexedM, overwrite, ((>!)|(!?>)) #-}
     

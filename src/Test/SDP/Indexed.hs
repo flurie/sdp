@@ -45,7 +45,7 @@ type TestIndexed1 l i e = i -> l e -> Bool
 type TestIndexed2 l i e = i -> l i e -> Bool
 
 -- | 'basicIndexedTest' checks relations of 'isNull', 'safeElem' and 'inRange'.
-basicIndexedTest :: (Bordered l i e, Indexed l i e) => i -> l -> Bool
+basicIndexedTest :: (Bordered l i, Indexed l i e) => i -> l -> Bool
 basicIndexedTest i es = isNull es || inRange bnds (safeElem bnds i)
   where
     bnds = bounds es
@@ -54,7 +54,7 @@ basicIndexedTest i es = isNull es || inRange bnds (safeElem bnds i)
   'assocIndexedTest' checks relations of 'assoc', 'assocs', ('.$'), ('*$') and
   ('//').
 -}
-assocIndexedTest :: (Bordered l i e, Indexed l i e, Eq e, Eq l) => i -> l -> Bool
+assocIndexedTest :: (Bordered l i, Indexed l i e, Eq e, Eq l) => i -> l -> Bool
 assocIndexedTest i es = and
   [
     assoc (bounds es) (assocs es) == es,
@@ -72,7 +72,7 @@ assocIndexedTest i es = and
     bnds = bounds es
 
 -- | 'readIndexedTest' checks relations of 'listL', ('.!'), ('!') and ('!?').
-readIndexedTest :: (Bordered l i e, Indexed l i e, Eq e) => i -> l -> Bool
+readIndexedTest :: (Bordered l i, Indexed l i e, Eq e) => i -> l -> Bool
 readIndexedTest i es = and
     [
       -- just check (.!) on all range
@@ -88,7 +88,7 @@ readIndexedTest i es = and
     bnds = bounds es
 
 -- | 'indexedTest' is complex test, that includes all other tests.
-indexedTest :: (Bordered l i e, Indexed l i e, Eq e, Eq l) => i -> l -> Bool
+indexedTest :: (Bordered l i, Indexed l i e, Eq e, Eq l) => i -> l -> Bool
 indexedTest i es = and
   [
     basicIndexedTest i es,

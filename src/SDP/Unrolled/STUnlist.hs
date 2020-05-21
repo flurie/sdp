@@ -46,7 +46,7 @@ newtype STUnlist s e = STUnlist [STArray# s e] deriving ( Eq )
 
 {- BorderedM, LinearM and SplitM instances. -}
 
-instance BorderedM (ST s) (STUnlist s e) Int e
+instance BorderedM (ST s) (STUnlist s e) Int
   where
     getLower _  = return 0
     getUpper es = do n <- getSizeOf es; return (n - 1)

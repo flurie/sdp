@@ -60,7 +60,7 @@ infixl 5 :<
 --------------------------------------------------------------------------------
 
 -- | Class of bordered data structures.
-class (Index i) => Bordered b i e | b -> i, b -> e
+class (Index i) => Bordered b i | b -> i
   where
     {-# MINIMAL (bounds|(lower, upper)) #-}
     
@@ -346,22 +346,22 @@ class (Linear s e) => Split s e | s -> e
     
     -- | @take n es@ takes first @n@ elements of @es@.
     take :: Int -> s -> s
-    default take :: (Bordered s i e) => Int -> s -> s
+    default take :: (Bordered s i) => Int -> s -> s
     take n es = sans (sizeOf es - n) es
     
     -- | @drop n es@ drops first @n@ elements of @es@.
     drop :: Int -> s -> s
-    default drop :: (Bordered s i e) => Int -> s -> s
+    default drop :: (Bordered s i) => Int -> s -> s
     drop n es = keep (sizeOf es - n) es
     
     -- | @keep n es@ takes last @n@ elements of @es@.
     keep :: Int -> s -> s
-    default keep :: (Bordered s i e) => Int -> s -> s
+    default keep :: (Bordered s i) => Int -> s -> s
     keep n es = drop (sizeOf es - n) es
     
     -- | @sans n es@ drops last @n@ elements of @es@.
     sans :: Int -> s -> s
-    default sans :: (Bordered s i e) => Int -> s -> s
+    default sans :: (Bordered s i) => Int -> s -> s
     sans n es = take (sizeOf es - n) es
     
     {- |
@@ -422,7 +422,7 @@ class (Linear s e) => Split s e | s -> e
     splitsBy e = map fromList . splitsBy e . listL
     
     -- | @splitsOn sub line@ splits @line@ by @sub@.
-    default splitsOn :: (Eq e, Bordered s i e) => s -> s -> [s]
+    default splitsOn :: (Eq e, Bordered s i) => s -> s -> [s]
     splitsOn :: (Eq e) => s -> s -> [s]
     splitsOn sub line = drop (sizeOf sub) <$> parts (infixes sub line) line
     
@@ -450,7 +450,7 @@ class (Linear s e) => Split s e | s -> e
       > combo (<) [7, 4, 12] = 1
       > combo (<) [1, 7, 3, 12] = 2
     -}
-    default combo :: (Bordered s i e) => Equal e -> s -> Int
+    default combo :: (Bordered s i) => Equal e -> s -> Int
     combo :: (e -> e -> Bool) -> s -> Int
     combo f = combo f . listL
     
@@ -613,10 +613,10 @@ type Linear1 l e = Linear (l e) e
 type Split1 s e = Split (s e) e
 
 -- | Rank (* -> *) 'Bordered' structure.
-type Bordered1 l i e = Bordered (l e) i e
+type Bordered1 l i e = Bordered (l e) i
 
 -- | Rank (* -> * -> *) 'Bordered' structure.
-type Bordered2 l i e = Bordered (l i e) i e
+type Bordered2 l i e = Bordered (l i e) i
 
 --------------------------------------------------------------------------------
 
@@ -658,7 +658,7 @@ instance Linear [e] e
     
     iterate n f e = n < 1 ? [] $ e : iterate (n - 1) f (f e)
 
-instance Bordered [e] Int e
+instance Bordered [e] Int
   where
     sizeOf = length
     
@@ -706,19 +706,19 @@ instance Split [e] e
 --------------------------------------------------------------------------------
 
 -- | @stripPrefix sub line@ strips prefix @sub@ of @line@ (if any).
-stripPrefix :: (Split s e, Bordered s i e, Eq e) => s -> s -> s
+stripPrefix :: (Split s e, Bordered s i, Eq e) => s -> s -> s
 stripPrefix sub line = sub `isPrefixOf` line ? drop (sizeOf sub) line $ line
 
 -- | @stripSuffix sub line@ strips suffix @sub@ of @line@ (if any).
-stripSuffix :: (Split s e, Bordered s i e, Eq e) => s -> s -> s
+stripSuffix :: (Split s e, Bordered s i, Eq e) => s -> s -> s
 stripSuffix sub line = sub `isSuffixOf` line ? sans (sizeOf sub) line $ line
 
 -- | @stripPrefix' sub line@ strips prefix @sub@ of @line@ or returns 'Nothing'.
-stripPrefix' :: (Split s e, Bordered s i e, Eq e) => s -> s -> Maybe s
+stripPrefix' :: (Split s e, Bordered s i, Eq e) => s -> s -> Maybe s
 stripPrefix' sub = isPrefixOf sub ?+ drop (sizeOf sub)
 
 -- | @stripSuffix sub line@ strips suffix @sub@ of @line@ or returns 'Nothing'.
-stripSuffix' :: (Split s e, Bordered s i e, Eq e) => s -> s -> Maybe s
+stripSuffix' :: (Split s e, Bordered s i, Eq e) => s -> s -> Maybe s
 stripSuffix' sub = isSuffixOf sub ?+ sans (sizeOf sub)
 
 -- | intercalate is generalization of intercalate
@@ -736,14 +736,14 @@ inits Z  = [Z]
 inits es = es : inits (init es)
 
 -- | sorted is a function that checks for sorting.
-sorted :: (Split s e, Bordered s i e, Ord e) => s -> Bool
+sorted :: (Split s e, Bordered s i, Ord e) => s -> Bool
 sorted es = combo (<=) es == sizeOf es
 
 {- |
   @ascending es lens@ checks if the subsequences of @es@ of lengths @lens@ is
   sorted.
 -}
-ascending :: (Split s e, Bordered s i e, Ord e) => s -> [Int] -> Bool
+ascending :: (Split s e, Bordered s i, Ord e) => s -> [Int] -> Bool
 ascending =  all sorted ... flip splits
 
 

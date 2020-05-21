@@ -40,7 +40,7 @@ default ()
 --------------------------------------------------------------------------------
 
 -- | 'BorderedM' is 'Bordered' version for mutable data structures.
-class (Monad m, Index i) => BorderedM m b i e | b -> m, b -> i, b -> e
+class (Monad m, Index i) => BorderedM m b i | b -> m, b -> i
   where
     {-# MINIMAL (getBounds|getLower, getUpper) #-}
     
@@ -190,7 +190,7 @@ class (LinearM m s e) => SplitM m s e
       Changes in the source and result must be synchronous.
     -}
     takeM :: Int -> s -> m s
-    default takeM :: (BorderedM m s i e) => Int -> s -> m s
+    default takeM :: (BorderedM m s i) => Int -> s -> m s
     takeM n es = do s <- getSizeOf es; sansM (s - n) es
     
     {- |
@@ -198,7 +198,7 @@ class (LinearM m s e) => SplitM m s e
       Changes in the source and result must be synchronous.
     -}
     dropM :: Int -> s -> m s
-    default dropM :: (BorderedM m s i e) => Int -> s -> m s
+    default dropM :: (BorderedM m s i) => Int -> s -> m s
     dropM n es = do s <- getSizeOf es; keepM (s - n) es
     
     {- |
@@ -206,7 +206,7 @@ class (LinearM m s e) => SplitM m s e
       Changes in the source and result must be synchronous.
     -}
     keepM :: Int -> s -> m s
-    default keepM :: (BorderedM m s i e) => Int -> s -> m s
+    default keepM :: (BorderedM m s i) => Int -> s -> m s
     keepM n es = do s <- getSizeOf es; dropM (s - n) es
     
     {- |
@@ -214,7 +214,7 @@ class (LinearM m s e) => SplitM m s e
       Changes in the source and result must be synchronous.
     -}
     sansM :: Int -> s -> m s
-    default sansM :: (BorderedM m s i e) => Int -> s -> m s
+    default sansM :: (BorderedM m s i) => Int -> s -> m s
     sansM n es = do s <- getSizeOf es; takeM (s - n) es
     
     {- |
@@ -289,10 +289,10 @@ type SplitM1 m l e = SplitM m (l e) e
 type LinearM1 m l e = LinearM m (l e) e
 
 -- | Rank (* -> *) 'BorderedM' structure.
-type BorderedM1 m l i e = BorderedM m (l e) i e
+type BorderedM1 m l i e = BorderedM m (l e) i
 
 -- | Rank (* -> * -> *) 'BorderedM' structure.
-type BorderedM2 m l i e = BorderedM m (l i e) i e
+type BorderedM2 m l i e = BorderedM m (l i e) i
 
 --------------------------------------------------------------------------------
 

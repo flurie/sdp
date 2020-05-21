@@ -43,7 +43,7 @@ infixl 9 !^, .!, !, !?
 --------------------------------------------------------------------------------
 
 -- | Class of indexed data structures.
-class (Linear v e, Bordered v i e) => Indexed v i e
+class (Linear v e, Bordered v i) => Indexed v i e
   where
     {-# MINIMAL assoc', fromIndexed, (//), ((.!)|(!?)) #-}
     

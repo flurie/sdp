@@ -30,13 +30,13 @@ default ()
 type TestEstimate e = Int -> e -> e -> Bool
 
 -- | estimateTest is basic test suite for 'Estimate' instances.
-estimateTest :: (Estimate b, Bordered b i e, Ord e) => Int -> b -> b -> Bool
+estimateTest :: (Estimate b, Bordered b i) => Int -> b -> b -> Bool
 estimateTest n xs ys = and
   [
     -- by definition
-    cmp' == (sx <=>  sy),
-    cmp' == (sx <=.> ys),
-    cmp' == (xs <.=> sy),
+    cmp == (sx <=>  sy),
+    cmp == (sx <=.> ys),
+    cmp == (xs <.=> sy),
     
     (xs <.=> n) == (sx <=> n),
     
@@ -46,7 +46,7 @@ estimateTest n xs ys = and
       GT -> xs .> n && n <. xs
     ,
     
-    case cmp' of
+    case cmp of
       LT -> lt1 && ys .>. xs
       EQ -> eq1 && not ne1
       GT -> gt1 && ys .<. xs
@@ -76,5 +76,5 @@ estimateTest n xs ys = and
     ge1 = xs .>=. ys; le1 = xs .<=. ys
     eq1 = xs .==. ys; ne1 = xs ./=. ys
     
-    cmp' = xs <==> ys; sx = sizeOf xs; sy = sizeOf ys
+    cmp = xs <==> ys; sx = sizeOf xs; sy = sizeOf ys
 

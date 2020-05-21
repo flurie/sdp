@@ -176,7 +176,7 @@ instance (Index i, Traversable rep) => Traversable (AnyBorder rep i)
 
 {- Bordered, Linear and Split instances. -}
 
-instance (Index i) => Bordered (AnyBorder rep i e) i e
+instance (Index i) => Bordered (AnyBorder rep i e) i
   where
     sizeOf (AnyBorder l u _) = size (l, u)
     bounds (AnyBorder l u _) = (l, u)
@@ -254,7 +254,7 @@ instance (Index i, Split1 rep e, Bordered1 rep Int e) => Split (AnyBorder rep i 
 
 {- BorderedM, LinearM and SplitM instances. -}
 
-instance (Index i, BorderedM1 m rep Int e) => BorderedM m (AnyBorder rep i e) i e
+instance (Index i, BorderedM1 m rep Int e) => BorderedM m (AnyBorder rep i e) i
   where
     getIndexOf (AnyBorder l u _) = return . inRange (l, u)
     getIndices (AnyBorder l u _) = return $ range (l, u)

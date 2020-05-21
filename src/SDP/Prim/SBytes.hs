@@ -319,7 +319,7 @@ instance (Unboxed e) => Split (SBytes# e) e
       let go i f es = i == 0 ? [] $ maybe [] (: go (i - 1) f es) $ f (es !^ i)
       in  reverse $ go (c - 1) g xs
 
-instance Bordered (SBytes# e) Int e
+instance Bordered (SBytes# e) Int
   where
     lower _ = 0
     
@@ -565,12 +565,12 @@ instance Eq (STBytes# s e)
 
 {- BorderedM, LinearM and SplitM instances. -}
 
-instance Bordered (STBytes# s e) Int e
+instance Bordered (STBytes# s e) Int
   where
     sizeOf (STBytes# c _ _) = c
     bounds (STBytes# c _ _) = (0, c - 1)
 
-instance (Unboxed e) => BorderedM (ST s) (STBytes# s e) Int e
+instance (Unboxed e) => BorderedM (ST s) (STBytes# s e) Int
   where
     getLower _ = return 0
     

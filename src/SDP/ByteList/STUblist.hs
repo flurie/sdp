@@ -47,7 +47,7 @@ newtype STUblist s e = STUblist [STBytes# s e] deriving ( Eq )
 
 {- BorderedM, LinearM and SplitM instances. -}
 
-instance (Unboxed e) => BorderedM (ST s) (STUblist s e) Int e
+instance (Unboxed e) => BorderedM (ST s) (STUblist s e) Int
   where
     getLower _  = return 0
     getUpper es = do n <- getSizeOf es; return (n - 1)

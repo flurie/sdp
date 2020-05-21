@@ -157,8 +157,9 @@ test-suite test-indices
     SDP.Indexed
     SDP.LinearM
     SDP.Linear
-    SDP.Scan
+    SDP.SortM
     SDP.Sort
+    SDP.Scan
     SDP.Map
     SDP.Set
     SDP.Zip

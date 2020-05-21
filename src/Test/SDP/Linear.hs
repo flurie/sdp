@@ -106,7 +106,7 @@ reverseTest line = and
   ]
 
 -- | 'replicateTest' checks rules of 'replicate'.
-replicateTest :: (Linear l e, Eq l, Bordered l i e) => Int -> e -> l -> Bool
+replicateTest :: (Linear l e, Eq l, Bordered l i) => Int -> e -> l -> Bool
 replicateTest n e line = and
   [
     line' == fromList (replicate n e),
@@ -130,7 +130,7 @@ concatTest line = and
   ]
 
 -- | 'linearTest' is complex test, that includes all ther tests.
-linearTest :: (Linear l e, Eq e, Eq l, Bordered l i e) => Int -> e -> l -> Bool
+linearTest :: (Linear l e, Eq e, Eq l, Bordered l i) => Int -> e -> l -> Bool
 linearTest n e line = and
   [
     basicLinearTest e line,
@@ -151,7 +151,7 @@ type TestSplit1 s e = Int -> s e -> Bool
 type TestSplit2 s i e = Int -> s i e -> Bool
 
 -- | 'splitTest' is pure, basic test of 'take', 'drop' and 'split' relations.
-splitTest :: (Split s e, Eq e, Eq s, Bordered s i e) => Int -> s -> Bool
+splitTest :: (Split s e, Eq e, Eq s, Bordered s i) => Int -> s -> Bool
 splitTest n line = and
   [
     isNull $ take (- max 0 n)   line,

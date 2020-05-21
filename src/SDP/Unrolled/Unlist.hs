@@ -260,7 +260,7 @@ instance Split (Unlist e) e
     prefix p = i_foldr (\ e c -> p e ? c + 1 $ 0) 0
     suffix p = i_foldl (\ c e -> p e ? c + 1 $ 0) 0
 
-instance Bordered (Unlist e) Int e
+instance Bordered (Unlist e) Int
   where
     sizeOf (Unlist es) = foldr' ((+) . sizeOf) 0 es
     
