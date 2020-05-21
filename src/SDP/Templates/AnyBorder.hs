@@ -477,25 +477,41 @@ instance (Index i, SortM1 m rep e) => SortM m (AnyBorder rep i e) e
 
 {- Freeze and Thaw instances. -}
 
-instance (Index i, Freeze m (rep e) imm) => Freeze m (AnyBorder rep i e) imm
-  where
-    unsafeFreeze = unsafeFreeze . unpack
-    freeze       = freeze . unpack
-
-instance (Index i, Thaw m (rep e) mut) => Thaw m (AnyBorder rep i e) mut
+-- Bordered (with any index) to prim.
+instance {-# OVERLAPPABLE #-} (Index i, Thaw m (rep e) mut) => Thaw m (AnyBorder rep i e) mut
   where
     unsafeThaw = unsafeThaw . unpack
     thaw       = thaw . unpack
 
-instance (Index i, Freeze m mut (rep e), Bordered1 rep Int e) => Freeze m mut (AnyBorder rep i e)
+-- Prim to bordered (with any index).
+instance {-# OVERLAPPABLE #-} (Index i, Thaw m imm (rep e), Bordered1 rep Int e) => Thaw m imm (AnyBorder rep i e)
+  where
+    unsafeThaw = fmap withBounds . unsafeThaw
+    thaw       = fmap withBounds . thaw
+
+-- Lift prim to prim on bordered on bordered (with same index).
+instance {-# OVERLAPS #-} (Index i, Thaw1 m imm mut e) => Thaw m (AnyBorder imm i e) (AnyBorder mut i e)
+  where
+    unsafeThaw (AnyBorder l u imm) = AnyBorder l u <$> unsafeThaw imm
+    thaw       (AnyBorder l u imm) = AnyBorder l u <$> thaw imm
+
+-- Bordered (with any index) to prim.
+instance {-# OVERLAPPABLE #-} (Index i, Freeze m (rep e) imm) => Freeze m (AnyBorder rep i e) imm
+  where
+    unsafeFreeze = unsafeFreeze . unpack
+    freeze       = freeze . unpack
+
+-- Prim to bordered (with any index).
+instance {-# OVERLAPPABLE #-} (Index i, Freeze m mut (rep e), Bordered1 rep Int e) => Freeze m mut (AnyBorder rep i e)
   where
     unsafeFreeze = fmap withBounds . unsafeFreeze
     freeze       = fmap withBounds . freeze
 
-instance (Index i, Thaw m imm (rep e), Bordered1 rep Int e) => Thaw m imm (AnyBorder rep i e)
+-- Lift prim to prim on bordered to bordered (with same index).
+instance {-# OVERLAPS #-} (Index i, Freeze1 m mut imm e) => Freeze m (AnyBorder mut i e) (AnyBorder imm i e)
   where
-    unsafeThaw = fmap withBounds . unsafeThaw
-    thaw       = fmap withBounds . thaw
+    unsafeFreeze (AnyBorder l u mut) = AnyBorder l u <$> unsafeFreeze mut
+    freeze       (AnyBorder l u mut) = AnyBorder l u <$> freeze mut
 
 --------------------------------------------------------------------------------
 
@@ -510,6 +526,5 @@ withBounds rep = uncurry AnyBorder (defaultBounds $ sizeOf rep) rep
 {-# INLINE withBounds' #-}
 withBounds' :: (Index i, BorderedM1 m rep Int e) => rep e -> m (AnyBorder rep i e)
 withBounds' rep = (\ n -> uncurry AnyBorder (defaultBounds n) rep) <$> getSizeOf rep
-
 
 

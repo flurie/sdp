@@ -21,8 +21,11 @@ module SDP.IndexedM
     -- * IFoldM
     IFoldM (..), IFoldM1, IFoldM2,
     
-    -- * Freeze and Thaw
-    Freeze (..), Thaw (..),
+    -- * Thaw
+    Thaw (..), Thaw1,
+    
+    -- * Freeze
+    Freeze (..), Freeze1,
     
     -- * Related functions
     swapM
@@ -214,17 +217,23 @@ class (Monad m) => Freeze m v' v | v' -> m
 
 --------------------------------------------------------------------------------
 
--- | Rank (* -> *) 'IndexedM' structure.
+-- | Rank (* -> *) 'IndexedM'.
 type IndexedM1 m v i e = IndexedM m (v e) i e
 
--- | Rank (* -> * -> *) 'IndexedM' structure.
+-- | Rank (* -> * -> *) 'IndexedM'.
 type IndexedM2 m v i e = IndexedM m (v i e) i e
 
--- | Rank (* -> *) 'IFoldM' structure.
+-- | Rank (* -> *) 'IFoldM'.
 type IFoldM1 m v i e = IFoldM m (v e) i e
 
--- | Rank (* -> * -> *) 'IFoldM' structure.
+-- | Rank (* -> * -> *) 'IFoldM'.
 type IFoldM2 m v i e = IFoldM m (v i e) i e
+
+-- Rank (* -> *) 'Thaw'.
+type Thaw1 m v v' e = Thaw m (v e) (v' e)
+
+-- Rank (* -> *) 'Freeze'.
+type Freeze1 m v' v e = Freeze m (v' e) (v e)
 
 --------------------------------------------------------------------------------
 
@@ -237,4 +246,5 @@ swapM es i j = do ei <- es !#> i; writeM_ es i =<< es !#> j; writeM_ es j ei
 
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.IndexedM."
+
 
