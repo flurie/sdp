@@ -1,5 +1,6 @@
-{-# LANGUAGE FlexibleInstances, FlexibleContexts, UndecidableInstances #-}
-{-# LANGUAGE MultiParamTypeClasses, TypeFamilies, Trustworthy #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts #-}
+{-# LANGUAGE TypeFamilies, DeriveDataTypeable, DeriveGeneric #-}
+{-# LANGUAGE Trustworthy, UndecidableInstances #-}
 
 {- |
     Module      :  SDP.Templates.AnyBorder
@@ -33,7 +34,12 @@ import SDP.Sort
 import SDP.Scan
 import SDP.Set
 
+import GHC.Generics
+
 import qualified GHC.Exts as E
+
+import Data.Typeable
+import Data.Data
 
 import Test.QuickCheck
 
@@ -45,6 +51,7 @@ default ()
 
 -- | AnyBorder is template, that appends arbitrary bounds to any structure.
 data AnyBorder rep i e = AnyBorder !i !i !(rep e)
+  deriving ( Typeable, Data, Generic )
 
 --------------------------------------------------------------------------------
 
@@ -503,8 +510,6 @@ withBounds rep = uncurry AnyBorder (defaultBounds $ sizeOf rep) rep
 {-# INLINE withBounds' #-}
 withBounds' :: (Index i, BorderedM1 m rep Int e) => rep e -> m (AnyBorder rep i e)
 withBounds' rep = (\ n -> uncurry AnyBorder (defaultBounds n) rep) <$> getSizeOf rep
-
-
 
 
 

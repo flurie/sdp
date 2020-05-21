@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
 {-# LANGUAGE Unsafe, MagicHash, DeriveGeneric #-}
 
 {- |
@@ -35,13 +35,15 @@ import SDP.Sort
 import SDP.Scan
 import SDP.Set
 
-import SDP.SortM.Tim
-
-import SDP.Internal
-import Text.Show.SDP
-import Text.Read.SDP
+import Data.Typeable
 
 import GHC.Generics
+
+import SDP.SortM.Tim
+import SDP.Internal
+
+import Text.Show.SDP
+import Text.Read.SDP
 
 import Test.QuickCheck
 
@@ -52,7 +54,7 @@ default ()
 --------------------------------------------------------------------------------
 
 -- | 'Ublist' is unrolled linked list of unboxed values.
-newtype Ublist e = Ublist [SBytes# e] deriving ( Generic )
+newtype Ublist e = Ublist [SBytes# e] deriving ( Typeable, Generic )
 
 --------------------------------------------------------------------------------
 
@@ -341,5 +343,8 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.ByteList.Ublist."
 
 lim :: Int
 lim =  1024
+
+
+
 
 

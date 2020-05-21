@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, DeriveGeneric #-}
 {-# LANGUAGE Unsafe, MagicHash, BangPatterns #-}
 
 {- |
@@ -31,6 +31,10 @@ import SDP.IndexedM
 import SDP.SortM.Tim
 import SDP.SortM
 
+import GHC.Generics
+
+import Data.Typeable
+
 import SDP.Internal
 
 import Control.Monad.ST
@@ -40,7 +44,8 @@ default ()
 --------------------------------------------------------------------------------
 
 -- | This STUnlist is mutable version of Unlist.
-newtype STUnlist s e = STUnlist [STArray# s e] deriving ( Eq )
+newtype STUnlist s e = STUnlist [STArray# s e]
+  deriving ( Eq, Typeable, Generic )
 
 --------------------------------------------------------------------------------
 

@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, DeriveGeneric #-}
 {-# LANGUAGE Unsafe, MagicHash, BangPatterns #-}
 
 {- |
@@ -32,6 +32,10 @@ import SDP.Unboxed
 import SDP.SortM.Tim
 import SDP.SortM
 
+import GHC.Generics
+
+import Data.Typeable
+
 import SDP.Internal
 
 import Control.Monad.ST
@@ -41,7 +45,8 @@ default ()
 --------------------------------------------------------------------------------
 
 -- | This STUblist is mutable version of Ublist.
-newtype STUblist s e = STUblist [STBytes# s e] deriving ( Eq )
+newtype STUblist s e = STUblist [STBytes# s e]
+  deriving ( Eq, Typeable, Generic )
 
 --------------------------------------------------------------------------------
 
@@ -188,9 +193,7 @@ instance (Unboxed e) => IFoldM (ST s) (STUblist s e) Int e
       where
         g = flip $ \ e -> (flip (i_foldlM f) e =<<)
 
-instance (Unboxed e) => SortM (ST s) (STUblist s e) e
-  where
-    sortMBy = timSortBy
+instance (Unboxed e) => SortM (ST s) (STUblist s e) e where sortMBy = timSortBy
 
 --------------------------------------------------------------------------------
 
@@ -222,4 +225,6 @@ underEx =  throw . IndexUnderflow . showString "in SDP.ByteList.STUblist."
 
 lim :: Int
 lim =  1024
+
+
 

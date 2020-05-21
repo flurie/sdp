@@ -1,6 +1,5 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 {-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, TypeFamilies #-}
-{-# LANGUAGE RoleAnnotations #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, RoleAnnotations #-}
 
 {- |
     Module      :  SDP.Prim.SBytes
@@ -60,8 +59,7 @@ import GHC.ST ( runST, ST (..), STRep )
 
 import qualified GHC.Exts as E
 
-import Data.String
-import Data.Proxy
+import Data.Typeable
 
 import Text.Read
 
@@ -84,6 +82,7 @@ data SBytes# e = SBytes#
                         {-# UNPACK #-} !Int -- ^ Element count (not a real size)
                         {-# UNPACK #-} !Int -- ^ Offset (in elements)
                         !(ByteArray#)       -- ^ Real primitive byte array
+  deriving ( Typeable )
 
 type role SBytes# representational
 
@@ -549,6 +548,7 @@ data STBytes# s e = STBytes#
                             {-# UNPACK #-} !Int    -- ^ Element count (not a real size)
                             {-# UNPACK #-} !Int    -- ^ Offset
                             !(MutableByteArray# s) -- ^ Real primitive byte array
+  deriving ( Typeable )
 
 type role STBytes# nominal representational
 

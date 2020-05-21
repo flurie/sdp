@@ -1,6 +1,5 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 {-# LANGUAGE Unsafe, MagicHash, UnboxedTuples, BangPatterns, TypeFamilies #-}
-{-# LANGUAGE RoleAnnotations #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, RoleAnnotations #-}
 
 {- |
     Module      :  SDP.Prim.SArray
@@ -60,7 +59,7 @@ import GHC.ST ( runST, ST (..), STRep )
 
 import qualified GHC.Exts as E
 
-import Data.String
+import Data.Typeable
 
 import Text.Read
 
@@ -83,6 +82,7 @@ data SArray# e = SArray#
                         {-# UNPACK #-} !Int -- ^ Element count (not a real size)
                         {-# UNPACK #-} !Int -- ^ Offset
                         !(Array# e)         -- ^ Real primitive array
+  deriving ( Typeable )
 
 type role SArray# representational
 
@@ -147,11 +147,10 @@ instance (Arbitrary e) => Arbitrary (SArray# e)
 instance Estimate (SArray# e)
   where
     (<==>) = on (<=>) sizeOf
-    
-    (.>.)  = on (>)  sizeOf
-    (.<.)  = on (<)  sizeOf
-    (.<=.) = on (<=) sizeOf
-    (.>=.) = on (>=) sizeOf
+    (.>.)  = on  (>)  sizeOf
+    (.<.)  = on  (<)  sizeOf
+    (.<=.) = on  (<=) sizeOf
+    (.>=.) = on  (>=) sizeOf
     
     (<.=>) = (<=>) . sizeOf
     (.>)   = (>)   . sizeOf
@@ -620,6 +619,7 @@ data STArray# s e = STArray#
                             {-# UNPACK #-} !Int  -- ^ Element count (not a real size)
                             {-# UNPACK #-} !Int  -- ^ Offset
                             !(MutableArray# s e) -- ^ Real primitive array
+  deriving ( Typeable )
 
 type role STArray# nominal representational
 

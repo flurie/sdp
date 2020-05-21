@@ -1,5 +1,5 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Unsafe, MagicHash, RoleAnnotations, DeriveGeneric #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
+{-# LANGUAGE Unsafe, MagicHash, DeriveGeneric #-}
 
 {- |
     Module      :  SDP.Unrolled.Unlist
@@ -33,15 +33,17 @@ import SDP.Sort
 import SDP.Scan
 import SDP.Set
 
+import GHC.Generics
+
+import Data.Typeable
+
+import SDP.SortM.Tim
 import SDP.Internal
+
 import Text.Show.SDP
 import Text.Read.SDP
 
-import GHC.Generics
-
 import Test.QuickCheck
-
-import SDP.SortM.Tim
 
 import Control.Monad.ST
 
@@ -50,7 +52,7 @@ default ()
 --------------------------------------------------------------------------------
 
 -- | 'Unlist' is unrolled linked list of boxed values.
-newtype Unlist e = Unlist [SArray# e] deriving ( Generic )
+newtype Unlist e = Unlist [SArray# e] deriving ( Typeable, Generic )
 
 --------------------------------------------------------------------------------
 
@@ -397,4 +399,7 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Unrolled.Unlist."
 
 lim :: Int
 lim =  1024
+
+
+
 
