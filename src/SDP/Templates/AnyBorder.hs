@@ -470,15 +470,25 @@ instance (Index i, SortM1 m rep e) => SortM m (AnyBorder rep i e) e
 
 {- Freeze and Thaw instances. -}
 
+instance (Index i, Freeze m (rep e) imm) => Freeze m (AnyBorder rep i e) imm
+  where
+    unsafeFreeze = unsafeFreeze . unpack
+    freeze       = freeze . unpack
+
+instance (Index i, Thaw m (rep e) mut) => Thaw m (AnyBorder rep i e) mut
+  where
+    unsafeThaw = unsafeThaw . unpack
+    thaw       = thaw . unpack
+
 instance (Index i, Freeze m mut (rep e), Bordered1 rep Int e) => Freeze m mut (AnyBorder rep i e)
   where
     unsafeFreeze = fmap withBounds . unsafeFreeze
     freeze       = fmap withBounds . freeze
 
-instance (Index i, Thaw m (rep e) mut, Bordered1 rep Int e) => Thaw m (AnyBorder rep i e) mut
+instance (Index i, Thaw m imm (rep e), Bordered1 rep Int e) => Thaw m imm (AnyBorder rep i e)
   where
-    unsafeThaw = unsafeThaw . unpack
-    thaw       = thaw . unpack
+    unsafeThaw = fmap withBounds . unsafeThaw
+    thaw       = fmap withBounds . thaw
 
 --------------------------------------------------------------------------------
 
