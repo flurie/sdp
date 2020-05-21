@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE PatternSynonyms, ViewPatterns, DefaultSignatures #-}
+{-# LANGUAGE PatternSynonyms, ViewPatterns, BangPatterns, DefaultSignatures #-}
 {-# LANGUAGE TypeFamilies, TypeOperators, ConstraintKinds #-}
 {-# LANGUAGE Trustworthy #-}
 
@@ -446,9 +446,10 @@ class (Linear s e) => Split s e | s -> e
       @combo f es@ returns the length of the @es@ subsequence (left to tight)
       whose elements are in order @f@.
       
-      > combo (<) [] = 0
-      > combo (<) [7, 4, 12] = 1
-      > combo (<) [1, 7, 3, 12] = 2
+      > combo (<) [] == 0
+      > combo (<) [1] == 1
+      > combo (<) [7, 4, 12] == 1
+      > combo (<) [1, 7, 3, 12] == 2
     -}
     default combo :: (Bordered s i) => Equal e -> s -> Int
     combo :: (e -> e -> Bool) -> s -> Int
@@ -684,8 +685,11 @@ instance Split [e] e
         
         n = sizeOf sub
     
-    combo _ [] = 0
-    combo f es = p == 0 ? 1 $ p + 1 where p = prefix id $ zipWith f es (tail es)
+    combo _    []    = 0
+    combo f (x : xs) = go 1 x xs
+      where
+        go !n e1 (e2 : es) = e1 `f` e2 ? go (n + 1) e2 es $ n
+        go !n _ _ = n
     
     splitBy f es = let (as, bs) = breakl f es in isNull bs ? (es, []) $ (as, tail bs)
     
@@ -745,6 +749,7 @@ sorted es = combo (<=) es == sizeOf es
 -}
 ascending :: (Split s e, Bordered s i, Ord e) => s -> [Int] -> Bool
 ascending =  all sorted ... flip splits
+
 
 
 
