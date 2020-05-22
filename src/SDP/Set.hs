@@ -60,12 +60,13 @@ default ()
 -}
 class (Linear s o) => Set s o | s -> o
   where
-    {-# MINIMAL setWith, intersectionWith, unionWith, differenceWith, lookupLTWith, lookupGTWith #-}
+    {-# MINIMAL intersectionWith, unionWith, differenceWith, lookupLTWith, lookupGTWith #-}
     
     {- Creation functions. -}
     
     -- | Creates ordered set from linear structure.
     setWith :: Compare o -> s -> s
+    setWith f = fromList . setWith f. listL
     
     {- |
       Creates set from linear structure using additional function for
@@ -137,9 +138,8 @@ class (Linear s o) => Set s o | s -> o
     isSubsetWith f xs ys = all (\ x -> isContainedIn f x ys) xs
     
     -- | Generates a list of different subsets (including empty and equivalent).
-    default subsets :: (Ord s, Ord o) => s -> [s]
     subsets :: (Ord o) => s -> [s]
-    subsets =  set . subsequences . set
+    subsets =  subsequences . set
     
     {- Lookups. -}
     

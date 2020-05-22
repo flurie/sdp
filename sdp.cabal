@@ -39,7 +39,7 @@ Library
     data-default >= 0.7   && < 0.8,
     QuickCheck   >= 2.12  && < 3
   
-  ghc-options: -O2 -Wall
+  ghc-options: -O2 -Wall -Wno-orphans
   
   exposed-modules:
     -- common definitions
@@ -69,6 +69,7 @@ Library
     -- tepmlates
     
     SDP.Templates.AnyBorder
+    SDP.Templates.AnyChunks
     
     -- general structure implementations
     
@@ -141,6 +142,7 @@ test-suite test-indices
     Control.Exception.SDP
     
     SDP.Templates.AnyBorder
+    SDP.Templates.AnyChunks
     SDP.SafePrelude
     SDP.Internal
     
@@ -172,7 +174,7 @@ test-suite test-indices
     test-framework             >= 0.8   && < 0.9,
     test-framework-quickcheck2 >= 0.3   && < 0.4
   
-  ghc-options: -Wall -O2
+  ghc-options: -O2 -Wall -Wno-orphans
 
 test-suite test-array
   default-language: Haskell2010
@@ -185,8 +187,9 @@ test-suite test-array
     SDP.Array.ST
     SDP.Array
     
-    Control.Exception.SDP
     SDP.Templates.AnyBorder
+    SDP.Templates.AnyChunks
+    Control.Exception.SDP
     Control.Monad.Rope
     
     SDP.SafePrelude
@@ -233,7 +236,7 @@ test-suite test-array
     test-framework             >= 0.8   && < 0.9,
     test-framework-quickcheck2 >= 0.3   && < 0.4
   
-  ghc-options: -Wall -O2
+  ghc-options: -O2 -Wall -Wno-orphans
 
 test-suite test-bytes
   default-language: Haskell2010
@@ -246,8 +249,9 @@ test-suite test-bytes
     SDP.Bytes.ST
     SDP.Bytes
     
-    Control.Exception.SDP
     SDP.Templates.AnyBorder
+    SDP.Templates.AnyChunks
+    Control.Exception.SDP
     Control.Monad.Rope
     SDP.SafePrelude
     SDP.SortM.Tim
@@ -295,7 +299,7 @@ test-suite test-bytes
     test-framework             >= 0.8   && < 0.9,
     test-framework-quickcheck2 >= 0.3   && < 0.4
   
-  ghc-options: -Wall -O2
+  ghc-options: -O2 -Wall -Wno-orphans
 
 test-suite test-unrolled
   default-language: Haskell2010
@@ -310,8 +314,9 @@ test-suite test-unrolled
     SDP.Unrolled.ST
     SDP.Unrolled
     
-    Control.Exception.SDP
     SDP.Templates.AnyBorder
+    SDP.Templates.AnyChunks
+    Control.Exception.SDP
     Control.Monad.Rope
     SDP.SafePrelude
     SDP.SortM.Tim
@@ -358,7 +363,7 @@ test-suite test-unrolled
     test-framework             >= 0.8   && < 0.9,
     test-framework-quickcheck2 >= 0.3   && < 0.4
   
-  ghc-options: -Wall -O2
+  ghc-options: -O2 -Wall -Wno-orphans
 
 test-suite test-bytelist
   default-language: Haskell2010
@@ -373,8 +378,9 @@ test-suite test-bytelist
     SDP.ByteList.ST
     SDP.ByteList
     
-    Control.Exception.SDP
     SDP.Templates.AnyBorder
+    SDP.Templates.AnyChunks
+    Control.Exception.SDP
     Control.Monad.Rope
     
     SDP.SafePrelude
@@ -423,7 +429,7 @@ test-suite test-bytelist
     test-framework             >= 0.8   && < 0.9,
     test-framework-quickcheck2 >= 0.3   && < 0.4
   
-  ghc-options: -Wall -O2
+  ghc-options: -O2 -Wall -Wno-orphans
 
 test-suite test-ublist
   default-language: Haskell2010
@@ -436,8 +442,9 @@ test-suite test-ublist
     SDP.ByteList.STUblist
     SDP.ByteList.Ublist
     
-    Control.Exception.SDP
     SDP.Templates.AnyBorder
+    SDP.Templates.AnyChunks
+    Control.Exception.SDP
     Control.Monad.Rope
     SDP.SafePrelude
     SDP.SortM.Tim
@@ -485,7 +492,7 @@ test-suite test-ublist
     test-framework             >= 0.8   && < 0.9,
     test-framework-quickcheck2 >= 0.3   && < 0.4
   
-  ghc-options: -Wall -O2
+  ghc-options: -O2 -Wall -Wno-orphans
 
 test-suite test-unlist
   default-language: Haskell2010
@@ -498,8 +505,9 @@ test-suite test-unlist
     SDP.Unrolled.STUnlist
     SDP.Unrolled.Unlist
     
-    Control.Exception.SDP
     SDP.Templates.AnyBorder
+    SDP.Templates.AnyChunks
+    Control.Exception.SDP
     Control.Monad.Rope
     SDP.SafePrelude
     SDP.SortM.Tim
@@ -546,7 +554,7 @@ test-suite test-unlist
     test-framework             >= 0.8   && < 0.9,
     test-framework-quickcheck2 >= 0.3   && < 0.4
   
-  ghc-options: -Wall -O2
+  ghc-options: -O2 -Wall -Wno-orphans
 
 ---   ______ _____ _   _ _____  _   _ ___  ___  ___  ______ _   __ _____     ---
 ---   | ___ \  ___| \ | /  __ \| | | ||  \/  | / _ \ | ___ \ | / //  ___|    ---
@@ -579,8 +587,9 @@ benchmark bench-sort
     SDP.Bytes.ST
     SDP.Bytes
     
-    Control.Exception.SDP
     SDP.Templates.AnyBorder
+    SDP.Templates.AnyChunks
+    Control.Exception.SDP
     Control.Monad.Rope
     SDP.SafePrelude
     SDP.SortM.Tim
@@ -619,5 +628,5 @@ benchmark bench-sort
     ghc-prim     >= 0.5.3 && < 0.6,
     QuickCheck   >= 2.12  && < 3
   
-  ghc-options: -O2
+  ghc-options: -O2 -Wall -Wno-orphans
 

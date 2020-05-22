@@ -1,7 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 {-# LANGUAGE PatternSynonyms, ViewPatterns, BangPatterns, DefaultSignatures #-}
-{-# LANGUAGE TypeFamilies, TypeOperators, ConstraintKinds #-}
-{-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE TypeFamilies, TypeOperators, ConstraintKinds, Trustworthy #-}
 
 {- |
     Module      :  SDP.Linear
@@ -53,6 +52,8 @@ import GHC.Types
 import SDP.Internal
 
 default ()
+
+infix 8 `filter`, `except`
 
 infixr 5 :>, ++
 infixl 5 :<
@@ -749,7 +750,6 @@ sorted es = combo (<=) es == sizeOf es
 -}
 ascending :: (Split s e, Bordered s i, Ord e) => s -> [Int] -> Bool
 ascending =  all sorted ... flip splits
-
 
 
 
