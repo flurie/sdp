@@ -42,26 +42,28 @@
       upto: 3
 
   fixes:
-    - assoc and assoc' for ranges starting not with 0
-    - copied' for Array and Bytes and related segfault in timSort
-    - test suite for Sort, new generate Medium structures
-    - some Ord instances, now guaranteed lexicographical order
-    - tails and inits, now returns [Z] if structure is empty
-    - unsafeIndex definition for unsigned numeric types
-    - Freeze instances for Array, Ublist and ByteList
     - prevTest and nextTest memory leak
-    - a lot of stupid bugs
+    - some Ord instances, now lexicographical
+    - assoc and assoc' for non-standard ranges
+    - Freeze instances for Array, Ublist and ByteList
+    - unsafeIndex definition for unsigned numeric types
+    - test suite for Sort, new generate Medium structures
+    - tails and inits, now returns [Z] if structure is empty
+    - copied' for Array and Bytes and related segfault in timSort
 
   deprecations:
     - Bounds in favour tuple type synonyms
     - newUnboxedByteArray and safe_scale functions
 
   improvements:
-    - structures: size and offset encapsulation, code reuse
+    - structures: size and offset encapsulation and template-based structures
     - tests: sortTest rewrited for Medium structures, see fixes
 
   # news
   modules:
+    - SDP.Templates.AnyChunks: chunk stream template
+    - SDP.Templates.AnyBorder: arbitrary-bordered structure template
+
     - SDP.Prim.SArray: SArray# and STArray# pseudo-primitives
     - SDP.Prim.SBytes: SBytes# and STBytes# pseudo-primitives
 
@@ -151,6 +153,8 @@
 
   changes:
     - (/>): removed second argument, now updates all elements in structure
+    - Bordered: removed 'e' parameter (Bordered b i e => Bordered b i)
+    - BorderedM: removed 'e' parameter (BorderedM m b i e => BorderedM b i)
     - instances: Read and Show for (:&), now list-like and require IsList
 
   superclasses:
