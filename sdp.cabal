@@ -160,6 +160,7 @@ test-suite test-indices
     SDP.Indexed
     SDP.LinearM
     SDP.Linear
+    SDP.Shaped
     SDP.SortM
     SDP.Sort
     SDP.Scan
@@ -202,6 +203,7 @@ test-suite test-array
     SDP.Indexed
     SDP.LinearM
     SDP.Linear
+    SDP.Shaped
     SDP.Finite
     SDP.Index
     SDP.Shape
@@ -264,6 +266,7 @@ test-suite test-bytes
     SDP.Unboxed
     SDP.LinearM
     SDP.Linear
+    SDP.Shaped
     SDP.Finite
     SDP.Index
     SDP.Shape
@@ -328,6 +331,7 @@ test-suite test-unrolled
     SDP.Indexed
     SDP.LinearM
     SDP.Linear
+    SDP.Shaped
     SDP.Finite
     SDP.Index
     SDP.Shape
@@ -394,6 +398,7 @@ test-suite test-bytelist
     SDP.Unboxed
     SDP.LinearM
     SDP.Linear
+    SDP.Shaped
     SDP.Finite
     SDP.Index
     SDP.Shape
@@ -457,6 +462,7 @@ test-suite test-ublist
     SDP.Unboxed
     SDP.LinearM
     SDP.Linear
+    SDP.Shaped
     SDP.Finite
     SDP.Index
     SDP.Shape
@@ -519,6 +525,7 @@ test-suite test-unlist
     SDP.Indexed
     SDP.LinearM
     SDP.Linear
+    SDP.Shaped
     SDP.Finite
     SDP.Index
     SDP.Shape
@@ -602,6 +609,7 @@ benchmark bench-sort
     SDP.Unboxed
     SDP.LinearM
     SDP.Linear
+    SDP.Shaped
     SDP.Finite
     SDP.Index
     SDP.Shape

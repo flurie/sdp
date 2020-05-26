@@ -61,8 +61,8 @@
 
   # news
   modules:
-    - SDP.Templates.AnyChunks: chunk stream template
     - SDP.Templates.AnyBorder: arbitrary-bordered structure template
+    - SDP.Templates.AnyChunks: chunk stream template
 
     - SDP.Prim.SArray: SArray# and STArray# pseudo-primitives
     - SDP.Prim.SBytes: SBytes# and STBytes# pseudo-primitives
@@ -96,6 +96,7 @@
 
   classes:
     - SubIndex: constraint synonym for internal class
+    - Shaped: additional functions for indexed structures
     - SplitM: mutable version of Split
     - Shape: new Index superclass
     - Map: class of dictionaries
@@ -123,7 +124,7 @@
     - Index: (:|:)
 
   exceptions:
-    - UnexpectedRank
+    - IndexException: UnexpectedRank
 
   syntax:
     - OverloadedIndices
@@ -270,7 +271,7 @@
 
   # news
   exceptions:
-    - UnreachableException
+    - UnreachableException: UnreachableException
 
 # ---------------------------------------------------------------------------- #
 # ############################################################################ #
@@ -428,4 +429,5 @@
     - Zip: generalization of ZipWith, specific Applicative without pure
 
   exceptions:
-    - IndexException
+    - IndexException: |
+        EmptyRange, IndexOverflow, IndexUnderflow and UndefinedValue

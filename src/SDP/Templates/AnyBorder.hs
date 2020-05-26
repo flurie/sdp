@@ -1,5 +1,5 @@
+{-# LANGUAGE TypeFamilies, DeriveDataTypeable, DeriveGeneric, TypeOperators #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts #-}
-{-# LANGUAGE TypeFamilies, DeriveDataTypeable, DeriveGeneric #-}
 {-# LANGUAGE Trustworthy, UndecidableInstances #-}
 
 {- |
@@ -16,6 +16,7 @@ module SDP.Templates.AnyBorder
 (
   -- * Export
   module SDP.IndexedM,
+  module SDP.Shaped,
   module SDP.Sort,
   module SDP.Scan,
   module SDP.Set,
@@ -29,6 +30,7 @@ import Prelude ()
 import SDP.SafePrelude
 
 import SDP.IndexedM
+import SDP.Shaped
 import SDP.SortM
 import SDP.Sort
 import SDP.Scan
@@ -379,7 +381,7 @@ instance (Index i, Sort (rep e) e) => Sort (AnyBorder rep i e) e
 
 --------------------------------------------------------------------------------
 
-{- Indexed and IFold instances. -}
+{- Indexed, IFold and Shaped instances. -}
 
 instance (Index i, Indexed1 rep Int e) => Indexed (AnyBorder rep i e) i e
   where
@@ -420,6 +422,17 @@ instance (Index i, Bordered1 rep Int e, IFold1 rep Int e) => IFold (AnyBorder re
     
     i_foldr f base = i_foldr f base . unpack
     i_foldl f base = i_foldl f base . unpack
+
+instance (Bordered1 rep Int e, Split1 rep e) => Shaped (AnyBorder rep) e
+  where
+    reshape es bs = size bs >. es ? expEx "reshape" $ uncurry AnyBorder bs (unpack es)
+    
+    sliceOf (AnyBorder l u rep) ij = uncurry AnyBorder sub . take s $ drop o rep
+      where
+        (num, sub) = slice (l, u) ij
+        
+        o = offset num ij * s
+        s = size sub
 
 --------------------------------------------------------------------------------
 
@@ -515,6 +528,9 @@ instance {-# OVERLAPS #-} (Index i, Freeze1 m mut imm e) => Freeze m (AnyBorder 
 
 --------------------------------------------------------------------------------
 
+expEx :: String -> a
+expEx =  throw . UnacceptableExpansion . showString "in SDP.Templates.AnyBorder."
+
 {-# INLINE unpack #-}
 unpack :: AnyBorder rep i e -> rep e
 unpack =  \ (AnyBorder _ _ es) -> es
@@ -526,5 +542,4 @@ withBounds rep = uncurry AnyBorder (defaultBounds $ sizeOf rep) rep
 {-# INLINE withBounds' #-}
 withBounds' :: (Index i, BorderedM1 m rep Int e) => rep e -> m (AnyBorder rep i e)
 withBounds' rep = (\ n -> uncurry AnyBorder (defaultBounds n) rep) <$> getSizeOf rep
-
 
