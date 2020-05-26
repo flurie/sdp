@@ -63,8 +63,9 @@ Library
     
     SDP.Indexed
     SDP.Linear
-    SDP.Set
+    SDP.Shaped
     SDP.Map
+    SDP.Set
     
     -- tepmlates
     

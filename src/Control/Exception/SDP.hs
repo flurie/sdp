@@ -14,7 +14,7 @@ module Control.Exception.SDP
   module Control.Exception,
   
   -- * Exceptions
-  UnreachableException (..), IndexException (..), UnexpectedRank (..)
+  UnreachableException (..), IndexException (..)
 )
 where
 
@@ -27,48 +27,43 @@ default ()
 
 --------------------------------------------------------------------------------
 
-{-|
+{- |
   'IndexException' replaces the less informative 'ArrayException' and has more
-  neutral names in relation to other structures.
+  neutral names.
+  
+  * 'UnacceptableExpansion' - occurs if the desired range exceed the actual size
+  * 'UnexpectedRank' - occurs when trying to convert a list into a generalized
+  index of inappropriate dimension
+  * 'UndefinedValue' - occurs if the value is undefined
+  * 'EmptyRange' - occurs if range is empty
+  * 'IndexOverflow' - occurs if index overflows range
+  * 'IndexUnderflow' - occurs if index underflows range
+  
+  Exception constructors are specified in the order of definition, this is the
+  recommended check order.
   
   If the error type may depend on the check order, then it should be indicated
-  in the documentation.
-  
-  For example: overflow is checked first, and then underflow. But if an overflow
-  is detected, underflow may not be noticed.
-  
-  Recommended check order: empty range, undefined value, overflow and underflow.
+  in the documentation. For example: overflow is checked first, and then
+  underflow. But if an overflow is detected, underflow may not be noticed.
 -}
-data IndexException = EmptyRange     String
-                    | UndefinedValue String
-                    | IndexOverflow  String
-                    | IndexUnderflow String
-  deriving (Eq, Typeable)
+data IndexException = UnacceptableExpansion String
+                    | UnexpectedRank        String
+                    | UndefinedValue        String
+                    | EmptyRange            String
+                    | IndexOverflow         String
+                    | IndexUnderflow        String
+  deriving ( Eq, Typeable )
 
 instance Show IndexException
   where
-    show (UndefinedValue  s) = "undefined element "        ++ s
-    show (EmptyRange      s) = "empty range "              ++ s
-    show (IndexOverflow   s) = "index out of upper bound " ++ s
-    show (IndexUnderflow  s) = "index out of lower bound " ++ s
+    show (UnacceptableExpansion s) = "unacceptable expansion "   ++ s
+    show (UnexpectedRank        s) = "unexpected rank "          ++ s
+    show (UndefinedValue        s) = "undefined element "        ++ s
+    show (EmptyRange            s) = "empty range "              ++ s
+    show (IndexOverflow         s) = "index out of upper bound " ++ s
+    show (IndexUnderflow        s) = "index out of lower bound " ++ s
 
 instance Exception IndexException
-
---------------------------------------------------------------------------------
-
-{- |
-  'UnexpectedRank' - service exception for "SDP.Finite" @IsList@ instances.
-  
-  This exception is thrown when the rank of the index doesn't match the number
-  of elements in its list representation.
--}
-data UnexpectedRank = UnexpectedRank String deriving ( Eq, Typeable )
-
-instance Show UnexpectedRank
-  where
-    show (UnexpectedRank s) = "unexpected rank " ++ s
-
-instance Exception UnexpectedRank
 
 --------------------------------------------------------------------------------
 

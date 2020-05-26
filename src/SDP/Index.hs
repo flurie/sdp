@@ -251,10 +251,26 @@ class (Ord i, Shape i, Shape (DimLast i), Shape (DimInit i), Shape (GIndex i)) =
         (u', uj) = splitDim u
     
     slice :: (Sub i j, Index (i :|: j)) => (i, i) -> i :|: j -> ((i :|: j, i :|: j), (j, j))
-    slice (l, u) ij = checkBounds (l', u') ij ((l', u'), (lj, uj)) "slice {default}"
+    slice (l, u) ij = checkBounds (ls, us) ij ((ls, us), (lj, uj)) "slice {default}"
       where
-        (l', lj) = splitDim l
-        (u', uj) = splitDim u
+        (ls, lj) = splitDim l
+        (us, uj) = splitDim u
+
+--------------------------------------------------------------------------------
+
+instance (Index i) => Estimate (i, i)
+  where
+    (<==>) = on (<=>) size
+    (.<=.) = on (<=)  size
+    (.>=.) = on (>=)  size
+    (.>.)  = on (>)   size
+    (.<.)  = on (<)   size
+    
+    (<.=>) = (<=>) . size
+    (.>)   = (>)   . size
+    (.<)   = (<)   . size
+    (.>=)  = (>=)  . size
+    (.<=)  = (<=)  . size
 
 --------------------------------------------------------------------------------
 
@@ -264,7 +280,7 @@ instance Index E
   where
     unsafeIndex  = const (emptyEx "unsafeIndex (E)")
     
-    defLimit = const 0
+    defLimit = const (-1)
     
     size  = const 0
     sizes = const []
@@ -272,14 +288,14 @@ instance Index E
     
     next   _ _ = E
     prev   _ _ = E
-    offset _ _ = 0
-    index  _ _ = emptyEx "index (E)"
+    offset _ _ = emptyEx "offset {E}"
+    index  _ _ = emptyEx "index {E}"
     
     inBounds    _ _ = ER
-    isEmpty       _ = True
     inRange     _ _ = False
-    isOverflow  _ _ = False
-    isUnderflow _ _ = False
+    isEmpty       _ = True
+    isOverflow  _ _ = True
+    isUnderflow _ _ = True
 
 instance Index ()
   where
@@ -473,13 +489,12 @@ defaultBoundsUnsign n = n < 1 ? ub 1 0 $ ub 0 (n - 1) where ub = on (,) unsafeIn
 -- | Check bounds and 'throw' 'IndexException' if needed.
 checkBounds :: (Index i) => (i, i) -> i -> res -> String -> res
 checkBounds bnds i res = case inBounds bnds i of
-  ER -> throw . EmptyRange     . showString "in SDP.Index."
-  UR -> throw . IndexOverflow  . showString "in SDP.Index."
-  OR -> throw . IndexUnderflow . showString "in SDP.Index."
+  ER -> throw . EmptyRange      . showString "in SDP.Index."
+  OR -> throw . IndexOverflow   . showString "in SDP.Index."
+  UR -> throw . IndexUnderflow  . showString "in SDP.Index."
   IN -> const res
 
 emptyEx :: String -> a
 emptyEx =  throw . EmptyRange . showString "in SDP.Index."
-
 
 
