@@ -166,6 +166,7 @@
 
     - Indexed: (Linear v e, Bordered v i e)
     - IndexedM: (LinearM m v e, BorderedM m v i e)
+    - Bordered: (Index i, Estimate b)
 
   removed:
     - SDP.Index: IndexEQ class, unsafeBounds and toBounds helpers

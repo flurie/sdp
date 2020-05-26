@@ -61,7 +61,7 @@ infixl 5 :<
 --------------------------------------------------------------------------------
 
 -- | Class of bordered data structures.
-class (Index i) => Bordered b i | b -> i
+class (Index i, Estimate b) => Bordered b i | b -> i
   where
     {-# MINIMAL (bounds|(lower, upper)) #-}
     
@@ -108,6 +108,28 @@ class (Index i) => Bordered b i | b -> i
     -- | index offset in structure bounds.
     offsetOf :: b -> i -> Int
     offsetOf =  offset . bounds
+
+--------------------------------------------------------------------------------
+
+instance (Index i) => Bordered (i, i) i
+  where
+    bounds = id
+    lower  = fst
+    upper  = snd
+    
+    indexIn = inRange
+    indices = range
+    
+    offsetOf = offset
+    indexOf  = index
+    sizeOf   = size
+
+instance Bordered [e] Int
+  where
+    sizeOf = length
+    
+    lower _  = 0
+    upper es = length es - 1
 
 --------------------------------------------------------------------------------
 
@@ -659,13 +681,6 @@ instance Linear [e] e
     isSubseqOf  = L.isSubsequenceOf
     
     iterate n f e = n < 1 ? [] $ e : iterate (n - 1) f (f e)
-
-instance Bordered [e] Int
-  where
-    sizeOf = length
-    
-    lower _  = 0
-    upper es = length es - 1
 
 instance Split [e] e
   where

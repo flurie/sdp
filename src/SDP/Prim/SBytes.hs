@@ -563,7 +563,22 @@ instance Eq (STBytes# s e)
 
 --------------------------------------------------------------------------------
 
-{- Bordered, BorderedM, LinearM and SplitM instances. -}
+{- Estimate, Bordered, BorderedM, LinearM and SplitM instances. -}
+
+instance Estimate (STBytes# s e)
+  where
+    (<==>) = on (<=>) sizeOf
+    
+    (.>.)  = on (>)  sizeOf
+    (.<.)  = on (<)  sizeOf
+    (.<=.) = on (<=) sizeOf
+    (.>=.) = on (>=) sizeOf
+    
+    (<.=>) = (<=>) . sizeOf
+    (.>)   = (>)   . sizeOf
+    (.<)   = (<)   . sizeOf
+    (.>=)  = (>=)  . sizeOf
+    (.<=)  = (<=)  . sizeOf
 
 instance Bordered (STBytes# s e) Int
   where

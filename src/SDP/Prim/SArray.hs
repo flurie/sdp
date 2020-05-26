@@ -634,7 +634,22 @@ instance Eq (STArray# s e)
 
 --------------------------------------------------------------------------------
 
-{- BorderedM, LinearM and SplitM instances. -}
+{- Estimate, Bordered, BorderedM, LinearM and SplitM instances. -}
+
+instance Estimate (STArray# s e)
+  where
+    (<==>) = on (<=>) sizeOf
+    
+    (.>.)  = on (>)  sizeOf
+    (.<.)  = on (<)  sizeOf
+    (.<=.) = on (<=) sizeOf
+    (.>=.) = on (>=) sizeOf
+    
+    (<.=>) = (<=>) . sizeOf
+    (.>)   = (>)   . sizeOf
+    (.<)   = (<)   . sizeOf
+    (.>=)  = (>=)  . sizeOf
+    (.<=)  = (<=)  . sizeOf
 
 instance Bordered (STArray# s e) Int
   where
