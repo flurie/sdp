@@ -506,11 +506,14 @@ instance (Unboxed e) => Indexed (SBytes# e) Int e
 
 instance (Unboxed e) => IFold (SBytes# e) Int e
   where
-    ifoldr f base = \ arr@(SBytes# c _ _) ->
+    ifoldr = ofoldr
+    ifoldl = ofoldl
+    
+    ofoldr f base = \ arr@(SBytes# c _ _) ->
       let go i = c == i ? base $ f i (arr !^ i) (go $ i + 1)
       in  go 0
     
-    ifoldl f base = \ arr@(SBytes# c _ _) ->
+    ofoldl f base = \ arr@(SBytes# c _ _) ->
       let go i = -1 == i ? base $ f i (go $ i - 1) (arr !^ i)
       in  go (c - 1)
     
@@ -589,7 +592,7 @@ instance BorderedM (ST s) (STBytes# s e) Int
   where
     getLower _ = return 0
     
-    getIndexOf (STBytes# c _ _) = return . inRange (0, c - 1)
+    nowIndexIn (STBytes# c _ _) = return . inRange (0, c - 1)
     getIndices (STBytes# c _ _) = return [0 .. c - 1]
     getBounds  (STBytes# c _ _) = return (0, c - 1)
     getUpper   (STBytes# c _ _) = return (c - 1)
@@ -759,11 +762,14 @@ instance (Unboxed e) => IndexedM (ST s) (STBytes# s e) Int e
 
 instance (Unboxed e) => IFoldM (ST s) (STBytes# s e) Int e
   where
-    ifoldrM  f base = \ arr@(STBytes# n _ _) ->
+    ifoldrM = ofoldrM
+    ifoldlM = ofoldlM
+    
+    ofoldrM  f base = \ arr@(STBytes# n _ _) ->
       let go i =  n == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f i
       in  go 0
     
-    ifoldlM  f base = \ arr@(STBytes# n _ _) ->
+    ofoldlM  f base = \ arr@(STBytes# n _ _) ->
       let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ (f i)
       in  go (n - 1)
     
@@ -904,7 +910,6 @@ overEx =  throw . IndexOverflow . showString "in SDP.Prim.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
-
 
 
 

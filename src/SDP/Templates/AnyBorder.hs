@@ -265,7 +265,7 @@ instance (Index i, Split1 rep e, Bordered1 rep Int e) => Split (AnyBorder rep i 
 
 instance (Index i, BorderedM1 m rep Int e) => BorderedM m (AnyBorder rep i e) i
   where
-    getIndexOf (AnyBorder l u _) = return . inRange (l, u)
+    nowIndexIn (AnyBorder l u _) = return . inRange (l, u)
     getIndices (AnyBorder l u _) = return $ range (l, u)
     getSizeOf  (AnyBorder l u _) = return $ size (l, u)
     getBounds  (AnyBorder l u _) = return (l, u)
@@ -417,8 +417,8 @@ instance (Index i, Indexed1 rep Int e) => Indexed (AnyBorder rep i e) i e
 
 instance (Index i, Bordered1 rep Int e, IFold1 rep Int e) => IFold (AnyBorder rep i e) i e
   where
-    ifoldr f base = \ es -> ifoldr (f . indexOf es) base (unpack es)
-    ifoldl f base = \ es -> ifoldl (f . indexOf es) base (unpack es)
+    ofoldr f base = ifoldr f base . unpack
+    ofoldl f base = ifoldl f base . unpack
     
     i_foldr f base = i_foldr f base . unpack
     i_foldl f base = i_foldl f base . unpack
@@ -474,10 +474,10 @@ instance (Index i, IndexedM1 m rep Int e) => IndexedM m (AnyBorder rep i e) i e
     fromIndexed' = withBounds' <=< fromIndexed'
     fromIndexedM = withBounds' <=< fromIndexedM
 
-instance (Index i, IFoldM1 m rep Int e) => IFoldM m (AnyBorder rep i e) i e
+instance (Index i, BorderedM1 m rep Int e, IFoldM1 m rep Int e) => IFoldM m (AnyBorder rep i e) i e
   where
-    ifoldrM f e (AnyBorder l u es) = ifoldrM (f . index (l, u)) e es
-    ifoldlM f e (AnyBorder l u es) = ifoldlM (f . index (l, u)) e es
+    ofoldrM f e = ifoldrM f e . unpack
+    ofoldlM f e = ifoldlM f e . unpack
     
     i_foldrM f e = i_foldrM f e . unpack
     i_foldlM f e = i_foldlM f e . unpack

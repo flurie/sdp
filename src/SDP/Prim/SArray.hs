@@ -581,11 +581,14 @@ instance Indexed (SArray# e) Int e
 
 instance IFold (SArray# e) Int e
   where
-    ifoldr f base = \ arr@(SArray# c _ _) ->
+    ifoldr = ofoldr
+    ifoldl = ifoldl
+    
+    ofoldr f base = \ arr@(SArray# c _ _) ->
       let go i = c == i ? base $ f i (arr !^ i) (go $ i + 1)
       in  go 0
     
-    ifoldl f base = \ arr@(SArray# c _ _) ->
+    ofoldl f base = \ arr@(SArray# c _ _) ->
       let go i = -1 == i ? base $ f i (go $ i - 1) (arr !^ i)
       in  go (c - 1)
     
@@ -658,7 +661,7 @@ instance Bordered (STArray# s e) Int
 
 instance BorderedM (ST s) (STArray# s e) Int
   where
-    getIndexOf (STArray# c _ _) = return . inRange (0, c - 1)
+    nowIndexIn (STArray# c _ _) = return . inRange (0, c - 1)
     getIndices (STArray# c _ _) = return [0 .. c - 1]
     getBounds  (STArray# c _ _) = return (0, c - 1)
     getUpper   (STArray# c _ _) = return (c - 1)
@@ -822,11 +825,14 @@ instance IndexedM (ST s) (STArray# s e) Int e
 
 instance IFoldM (ST s) (STArray# s e) Int e
   where
-    ifoldrM  f base = \ arr@(STArray# n _ _) ->
+    ifoldrM = ofoldrM
+    ifoldlM = ofoldlM
+    
+    ofoldrM  f base = \ arr@(STArray# n _ _) ->
       let go i =  n == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f i
       in  go 0
     
-    ifoldlM  f base = \ arr@(STArray# n _ _) ->
+    ofoldlM  f base = \ arr@(STArray# n _ _) ->
       let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f i
       in  go (n - 1)
     
@@ -922,4 +928,8 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
+
+
+
+
 

@@ -263,7 +263,7 @@ instance (BorderedM1 m rep Int e) => BorderedM m (AnyChunks rep e) Int
     getSizeOf (AnyChunks es) = foldr (liftA2 (+) . getSizeOf) (return 0) es
     
     getIndices es = do n <- getSizeOf es; return [0 .. n - 1]
-    getIndexOf es = \ i -> i < 0 ? return False $ do n <- getSizeOf es; return (i < n)
+    nowIndexIn es = \ i -> i < 0 ? return False $ do n <- getSizeOf es; return (i < n)
 
 instance (BorderedM1 m rep Int e, SplitM1 m rep e) => LinearM m (AnyChunks rep e) e
   where
@@ -416,12 +416,12 @@ instance (Indexed1 rep Int e) => Indexed (AnyChunks rep e) Int e
 
 instance (IFold1 rep Int e, Bordered1 rep Int e, Linear1 rep e) => IFold (AnyChunks rep e) Int e
   where
-    ifoldr f' base' = go 0 f' base' . unpack
+    ofoldr f' base' = go 0 f' base' . unpack
       where
         go o f base (x : xs) = ifoldr (f . (o +)) (go (o + sizeOf x) f base xs) x
         go _ _ base _ = base
     
-    ifoldl f' base' = go 0 f' base' . unpack
+    ofoldl f' base' = go 0 f' base' . unpack
       where
         go o f base (x : xs) = go (o + sizeOf x) f (ifoldl (f . (o +)) base x) xs
         go _ _ base _ = base
@@ -484,21 +484,21 @@ instance (SplitM1 m rep e, IndexedM1 m rep Int e) => IndexedM m (AnyChunks rep e
 
 instance (BorderedM1 m rep Int e, IFoldM1 m rep Int e) => IFoldM m (AnyChunks rep e) Int e
   where
-    ifoldrM f base' = ifoldrCh 0 base' <=< unpack'
+    ofoldrM f base' = ofoldrCh 0 base' <=< unpack'
       where
-        ifoldrCh !o base (x : xs) = do
+        ofoldrCh !o base (x : xs) = do
           n   <- getSizeOf x
-          xs' <- ifoldrCh (o + n) base xs
+          xs' <- ofoldrCh (o + n) base xs
           ifoldrM (f . (o +)) xs' x
-        ifoldrCh _ base _ = return base
+        ofoldrCh _ base _ = return base
     
-    ifoldlM f base' = ifoldlCh 0 base' <=< unpack'
+    ofoldlM f base' = ofoldlCh 0 base' <=< unpack'
       where
-        ifoldlCh !o base (x : xs) = do
+        ofoldlCh !o base (x : xs) = do
           n  <- getSizeOf x
           x' <- ifoldlM (f . (o +)) base x
-          ifoldlCh (o + n) x' xs
-        ifoldlCh _ base _ = return base
+          ofoldlCh (o + n) x' xs
+        ofoldlCh _ base _ = return base
     
     i_foldlM f base (AnyChunks es) = foldl (flip $ (=<<) . flip (i_foldlM f)) (return base) es
     i_foldrM f base (AnyChunks es) = foldr ((=<<) . flip (i_foldrM f)) (return base) es

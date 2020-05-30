@@ -102,16 +102,19 @@
     - Map: class of dictionaries
 
   class-functions:
+    - BorderedM: nowIndexIn, offsetOf, indexOf
     - Unboxed: sizeof, copyUnboxed#, copyUnboxedM#
     - Index: defLimit, defaultBounds, shape and slice
-    - Freeze: unsafeFreeze
     - Set: groupSetWith
+    - IFoldM: added ofoldrM and ofoldlM
+    - IFold: added ofoldr and ofoldl
+    - Freeze: unsafeFreeze
     - Thaw: unsafeThaw
 
     - Bordered: offsetOf and indexIn
     - Indexed: assocMap, assocMap' and update
-    - Linear: except, select, extract, selects, select', extract', selects'
     - LinearM: nowNull, newSIngle, getHead, getLast, prepend, append and copyTo
+    - Linear: except, select, extract, selects, select', extract', selects'
 
     - Split: |
         keep, sans, divide, divides, save, skip, chunks, each, each',
@@ -150,7 +153,9 @@
     - reshape: reshaped
     - Index.rank: Shape.rank
     - SDP.SortM.Stuff: SDP.SortM.Tim
+    - Bordered.getAssocs: IndexedM.getAssocs
     - Bordered.assocs: Indexed.assocs
+    - getIndexOf: nowIndexIn
 
   changes:
     - (/>): removed second argument, now updates all elements in structure
@@ -162,8 +167,8 @@
     - Scan: (Linear s a)
     - Estimate: removed
 
-    - IFold: removed
-    - IFold: (Monad m)
+    - IFold: (Index i)
+    - IFold: (Monad m, Index i)
 
     - Indexed: (Linear v e, Bordered v i e)
     - IndexedM: (LinearM m v e, BorderedM m v i e)

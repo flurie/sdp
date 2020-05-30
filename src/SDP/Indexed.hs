@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE BangPatterns, ConstraintKinds #-}
+{-# LANGUAGE BangPatterns, DefaultSignatures, ConstraintKinds #-}
 
 {- |
     Module      :  SDP.Indexed
@@ -149,41 +149,69 @@ class (Linear v e, Bordered v i) => Indexed v i e
   the Foldable extension to containers with a restriction on the type of
   elements - monomorphic, Storable, Unboxed, etc.
 -}
-class IFold v i e | v -> i, v -> e
+class (Index i) => IFold v i e | v -> i, v -> e
   where
-    {-# MINIMAL ifoldr, ifoldl #-}
+    {-# MINIMAL (ifoldr | ofoldr), (ifoldl | ofoldr) #-}
     
-    -- | 'ifoldr' is right fold with index
-    ifoldr   :: (i -> e -> r -> r) -> r -> v -> r
+    {- Folds with index. -}
     
-    -- | 'ifoldl' is left  fold with index
-    ifoldl   :: (i -> r -> e -> r) -> r -> v -> r
+    -- | 'ifoldr' is right fold with index.
+    default ifoldr :: (Bordered v i) => (i -> e -> r -> r) -> r -> v -> r
+    ifoldr :: (i -> e -> r -> r) -> r -> v -> r
+    ifoldr f base es = let bnds = bounds es in ofoldr (f . index bnds) base es
     
-    -- | 'ifoldr'' is strict version of 'ifoldr'
-    ifoldr'  :: (i -> e -> r -> r) -> r -> v -> r
+    -- | 'ifoldl' is left  fold with index.
+    default ifoldl :: (Bordered v i) => (i -> r -> e -> r) -> r -> v -> r
+    ifoldl :: (i -> r -> e -> r) -> r -> v -> r
+    ifoldl f base es = let bnds = bounds es in ofoldl (f . index bnds) base es
     
-    -- | 'ifoldl'' is strict version of 'ifoldl'
-    ifoldl'  :: (i -> r -> e -> r) -> r -> v -> r
+    -- | 'ifoldr'' is strict version of 'ifoldr'.
+    ifoldr' :: (i -> e -> r -> r) -> r -> v -> r
+    ifoldr' f = ifoldr (\ !i e !r -> f i e r)
     
-    -- | 'i_foldr' is just 'foldr' in 'IFold' context
-    i_foldr  :: (e -> r -> r) -> r -> v -> r
+    -- | 'ifoldl'' is strict version of 'ifoldl'.
+    ifoldl' :: (i -> r -> e -> r) -> r -> v -> r
+    ifoldl' f = ifoldl (\ !i !r e -> f i r e)
     
-    -- | 'i_foldl' is just 'foldl' in 'IFold' context
-    i_foldl  :: (r -> e -> r) -> r -> v -> r
+    {- Folds with offset. -}
     
-    -- | 'i_foldr'' is just 'foldl'' with 'IFold' context
+    -- | 'ofoldr' is right fold with offset.
+    ofoldr :: (Int -> e -> r -> r) -> r -> v -> r
+    default ofoldr :: (Bordered v i) => (Int -> e -> r -> r) -> r -> v -> r
+    ofoldr f base es = ifoldr (f . offsetOf es) base es
+    
+    -- | 'ofoldl' is left fold with offset.
+    default ofoldl :: (Bordered v i) => (Int -> r -> e -> r) -> r -> v -> r
+    ofoldl :: (Int -> r -> e -> r) -> r -> v -> r
+    ofoldl f base es = ifoldl (f . offsetOf es) base es
+    
+    -- | 'ofoldr'' is strict version of 'ofoldr'.
+    default ofoldr' :: (Bordered v i) => (Int -> e -> r -> r) -> r -> v -> r
+    ofoldr' :: (Int -> e -> r -> r) -> r -> v -> r
+    ofoldr' f base es = ifoldr' (f . offsetOf es) base es
+    
+    -- | 'ofoldl'' is strict version of 'ofoldl'.
+    default ofoldl' :: (Bordered v i) => (Int -> r -> e -> r) -> r -> v -> r
+    ofoldl' :: (Int -> r -> e -> r) -> r -> v -> r
+    ofoldl' f base es = ifoldl' (f . offsetOf es) base es
+    
+    {- 'Foldable' crutches. -}
+    
+    -- | 'i_foldr' is just 'foldr' in 'IFold' context.
+    i_foldr :: (e -> r -> r) -> r -> v -> r
+    i_foldr =  ifoldr  . const
+    
+    -- | 'i_foldl' is just 'foldl' in 'IFold' context.
+    i_foldl :: (r -> e -> r) -> r -> v -> r
+    i_foldl =  ifoldl  . const
+    
+    -- | 'i_foldr'' is just 'foldr'' in 'IFold' context.
     i_foldr' :: (e -> r -> r) -> r -> v -> r
+    i_foldr' =  ifoldr' . const
     
-    -- | 'i_foldl'' is just 'foldl'' with 'IFold' context
+    -- | 'i_foldl'' is just 'foldl'' in 'IFold' context.
     i_foldl' :: (r -> e -> r) -> r -> v -> r
-    
-    ifoldr'  f = ifoldr (\ !i e !r -> f i e r)
-    ifoldl'  f = ifoldl (\ !i !r e -> f i r e)
-    
-    i_foldr  = ifoldr  . const
-    i_foldl  = ifoldl  . const
-    i_foldr' = ifoldr' . const
-    i_foldl' = ifoldl' . const
+    i_foldl' =  ifoldl' . const
 
 --------------------------------------------------------------------------------
 
@@ -266,5 +294,7 @@ es >/> is = update es is . const
 
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.Indexed."
+
+
 
 

@@ -44,33 +44,35 @@ class (Monad m, Index i) => BorderedM m b i | b -> m, b -> i
   where
     {-# MINIMAL (getBounds|getLower, getUpper) #-}
     
-    -- | getBounds returns 'bounds' of mutable data structure.
-    {-# INLINE getBounds #-}
+    -- | 'getBounds' returns 'bounds' of mutable data structure.
     getBounds :: b -> m (i, i)
     getBounds es = liftA2 (,) (getLower es) (getUpper es)
     
-    -- | getLower returns 'lower' bound of mutable data structure.
-    {-# INLINE getLower #-}
+    -- | 'getLower' returns 'lower' bound of mutable data structure.
     getLower :: b -> m i
     getLower =  fsts . getBounds
     
-    -- | getUpper returns 'upper' bound of mutable data structure.
-    {-# INLINE getUpper #-}
+    -- | 'getUpper' returns 'upper' bound of mutable data structure.
     getUpper :: b -> m i
     getUpper =  snds . getBounds
     
-    -- | getSizeOf returns size of mutable data structure.
-    {-# INLINE getSizeOf #-}
+    -- | 'getSizeOf' returns size of mutable data structure.
     getSizeOf :: b -> m Int
     getSizeOf =  fmap size . getBounds
     
-    -- | getIndexOf is 'indexOf' version for mutable data structures.
-    {-# INLINE getIndexOf #-}
-    getIndexOf :: b -> i -> m Bool
-    getIndexOf =  \ es i -> (`inRange` i) <$> getBounds es
+    -- | 'nowIndexIn' is 'indexIn' version for mutable structures.
+    nowIndexIn :: b -> i -> m Bool
+    nowIndexIn es i = (`inRange` i) <$> getBounds es
     
-    -- | getIndices returns 'indices' of mutable data structure.
-    {-# INLINE getIndices #-}
+    -- | 'getOffsetOf' is 'offsetOf' version for mutable structures.
+    getOffsetOf :: b -> i -> m Int
+    getOffsetOf es i = (`offset` i) <$> getBounds es
+    
+    -- | 'getIndexOf' is 'indexOf' version for mutable structures.
+    getIndexOf :: b -> Int -> m i
+    getIndexOf es i = (`index` i) <$> getBounds es
+    
+    -- | 'getIndices' returns 'indices' of mutable data structure.
     getIndices :: b -> m [i]
     getIndices =  fmap range . getBounds
 
@@ -299,7 +301,5 @@ type BorderedM2 m l i e = BorderedM m (l i e) i
 -- | sortedM checks if structure is sorted.
 sortedM :: (LinearM m l e, Ord e) => l -> m Bool
 sortedM =  fmap (\ es -> null es || and (zipWith (<=) es (tail es))) . getLeft
-
-
 
 
