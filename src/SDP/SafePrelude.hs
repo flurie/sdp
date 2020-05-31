@@ -38,7 +38,7 @@ import Prelude hiding
     concat, concatMap, replicate, takeWhile, dropWhile, iterate,
     
     -- defined in SDP.IO (sdp-io extension) and System.IO
-    readFile, writeFile, appendFile, getLine, putStr, putStrLn
+    readFile, writeFile, appendFile, getContents, getLine, putStr, putStrLn
   )
 
 import Control.Applicative
