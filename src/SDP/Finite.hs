@@ -35,9 +35,6 @@ where
 import Prelude ( (++) )
 import SDP.SafePrelude
 
-import Data.Bifunctor
-import Data.Default
-
 import qualified GHC.Exts as E
 import GHC.Exts ( IsList )
 
@@ -47,6 +44,8 @@ import GHC.Read
 import Test.QuickCheck
 
 import Control.Exception.SDP
+
+import SDP.Internal
 
 default ()
 
@@ -211,5 +210,6 @@ unsnoc :: [i] -> ([i], i)
 unsnoc    [i]   = ([], i)
 unsnoc (i : is) = (i :) `first` unsnoc is
 unsnoc     _    = throw $ UnexpectedRank "in SDP.Finite.fromList"
+
 
 

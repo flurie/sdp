@@ -33,9 +33,9 @@
       since: 0.5.3
       upto: 0.6
 
-    - package: data-default
-      since: 0.7
-      upto: 0.8
+    - package: data-default-class
+      since: 0.1
+      upto: 0.2
 
     - package: QuickCheck
       since: 2.12

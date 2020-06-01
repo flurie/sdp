@@ -41,10 +41,9 @@ import Text.Read.Lex ( expect )
 
 import GHC.Show ( appPrec )
 
-import Data.Default
-import Data.Maybe
-
 import Text.ParserCombinators.ReadP ( eof, manyTill, skipSpaces )
+
+import SDP.Internal
 
 default ()
 
@@ -228,8 +227,4 @@ parens' parser = do
   value <- parser
   expectPrec (Punc "]")
   return value
-
-
-
-
 

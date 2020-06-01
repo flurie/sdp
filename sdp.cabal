@@ -34,10 +34,10 @@ Library
   default-language: Haskell2010
   
   build-depends:
-    base         >= 4.8   && < 5,
-    ghc-prim     >= 0.5.3 && < 0.6,
-    data-default >= 0.7   && < 0.8,
-    QuickCheck   >= 2.12  && < 3
+    base               >= 4.8   && < 5,
+    ghc-prim           >= 0.5.3 && < 0.6,
+    data-default-class >= 0.1   && < 0.2,
+    QuickCheck         >= 2.12  && < 3
   
   ghc-options: -O2 -Wall -Wno-orphans
   
@@ -171,7 +171,7 @@ test-suite test-indices
   build-depends:
     base                       >= 4.8   && < 5,
     ghc-prim                   >= 0.5.3 && < 0.6,
-    data-default               >= 0.7   && < 0.8,
+    data-default-class         >= 0.1   && < 0.2,
     QuickCheck                 >= 2.12  && < 3,
     test-framework             >= 0.8   && < 0.9,
     test-framework-quickcheck2 >= 0.3   && < 0.4
@@ -234,7 +234,7 @@ test-suite test-array
   build-depends:
     base                       >= 4.8   && < 5,
     ghc-prim                   >= 0.5.3 && < 0.6,
-    data-default               >= 0.7   && < 0.8,
+    data-default-class         >= 0.1   && < 0.2,
     QuickCheck                 >= 2.12  && < 3,
     test-framework             >= 0.8   && < 0.9,
     test-framework-quickcheck2 >= 0.3   && < 0.4
@@ -298,7 +298,7 @@ test-suite test-bytes
   build-depends:
     base                       >= 4.8   && < 5,
     ghc-prim                   >= 0.5.3 && < 0.6,
-    data-default               >= 0.7   && < 0.8,
+    data-default-class         >= 0.1   && < 0.2,
     QuickCheck                 >= 2.12  && < 3,
     test-framework             >= 0.8   && < 0.9,
     test-framework-quickcheck2 >= 0.3   && < 0.4
@@ -363,7 +363,7 @@ test-suite test-unrolled
   build-depends:
     base                       >= 4.8   && < 5,
     ghc-prim                   >= 0.5.3 && < 0.6,
-    data-default               >= 0.7   && < 0.8,
+    data-default-class         >= 0.1   && < 0.2,
     QuickCheck                 >= 2.12  && < 3,
     test-framework             >= 0.8   && < 0.9,
     test-framework-quickcheck2 >= 0.3   && < 0.4
@@ -430,7 +430,7 @@ test-suite test-bytelist
   build-depends:
     base                       >= 4.8   && < 5,
     ghc-prim                   >= 0.5.3 && < 0.6,
-    data-default               >= 0.7   && < 0.8,
+    data-default-class         >= 0.1   && < 0.2,
     QuickCheck                 >= 2.12  && < 3,
     test-framework             >= 0.8   && < 0.9,
     test-framework-quickcheck2 >= 0.3   && < 0.4
@@ -494,7 +494,7 @@ test-suite test-ublist
   build-depends:
     base                       >= 4.8   && < 5,
     ghc-prim                   >= 0.5.3 && < 0.6,
-    data-default               >= 0.7   && < 0.8,
+    data-default-class         >= 0.1   && < 0.2,
     QuickCheck                 >= 2.12  && < 3,
     test-framework             >= 0.8   && < 0.9,
     test-framework-quickcheck2 >= 0.3   && < 0.4
@@ -557,7 +557,7 @@ test-suite test-unlist
   build-depends:
     base                       >= 4.8   && < 5,
     ghc-prim                   >= 0.5.3 && < 0.6,
-    data-default               >= 0.7   && < 0.8,
+    data-default-class         >= 0.1   && < 0.2,
     QuickCheck                 >= 2.12  && < 3,
     test-framework             >= 0.8   && < 0.9,
     test-framework-quickcheck2 >= 0.3   && < 0.4
@@ -631,11 +631,11 @@ benchmark bench-sort
     SDP.Tuple
   
   build-depends:
-    base         >= 4.8   && < 5,
-    criterion    >= 1.5   && < 1.6,
-    data-default >= 0.7   && < 0.8,
-    ghc-prim     >= 0.5.3 && < 0.6,
-    QuickCheck   >= 2.12  && < 3
+    base               >= 4.8   && < 5,
+    criterion          >= 1.5   && < 1.6,
+    data-default-class >= 0.1   && < 0.2,
+    ghc-prim           >= 0.5.3 && < 0.6,
+    QuickCheck         >= 2.12  && < 3
   
   ghc-options: -O2 -Wall -Wno-orphans
 

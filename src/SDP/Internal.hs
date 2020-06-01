@@ -6,9 +6,9 @@ module SDP.Internal
 (
   module Control.Exception.SDP,
   
+  module Data.Default.Class,
   module Data.Bifunctor,
   module Data.Function,
-  module Data.Default,
   module Data.Coerce,
   module Data.String,
   module Data.Maybe,
@@ -29,9 +29,9 @@ import SDP.SafePrelude
 
 import Control.Exception.SDP
 
+import Data.Default.Class
 import Data.Bifunctor
 import Data.Function
-import Data.Default
 import Data.String
 import Data.Coerce
 import Data.Maybe
