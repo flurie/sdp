@@ -43,8 +43,6 @@ import qualified GHC.Exts as E
 import Data.Typeable
 import Data.Data
 
-import Test.QuickCheck
-
 import SDP.Internal
 
 default ()
@@ -97,15 +95,11 @@ instance (Index i, E.IsList (rep e), Bordered1 rep Int e) => E.IsList (AnyBorder
 
 --------------------------------------------------------------------------------
 
-{- Semigroup, Monoid, Default, Arbitrary and Estimate instances. -}
+{- Semigroup, Monoid, Default and Estimate instances. -}
 
 instance (Linear1 (AnyBorder rep i) e) => Semigroup (AnyBorder rep i e) where (<>) = (++)
 instance (Linear1 (AnyBorder rep i) e) => Monoid    (AnyBorder rep i e) where mempty = Z
 instance (Linear1 (AnyBorder rep i) e) => Default   (AnyBorder rep i e) where def = Z
-
-instance (Linear1 (AnyBorder rep i) e, Arbitrary e) => Arbitrary (AnyBorder rep i e)
-  where
-    arbitrary = fromList <$> arbitrary
 
 instance (Index i) => Estimate (AnyBorder rep i e)
   where
@@ -542,4 +536,5 @@ withBounds rep = uncurry AnyBorder (defaultBounds $ sizeOf rep) rep
 {-# INLINE withBounds' #-}
 withBounds' :: (Index i, BorderedM1 m rep Int e) => rep e -> m (AnyBorder rep i e)
 withBounds' rep = (\ n -> uncurry AnyBorder (defaultBounds n) rep) <$> getSizeOf rep
+
 

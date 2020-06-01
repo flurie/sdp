@@ -36,8 +36,6 @@ where
 import Prelude ()
 import SDP.SafePrelude
 
-import Test.QuickCheck
-
 import SDP.IndexedM
 import SDP.Unboxed
 
@@ -131,7 +129,7 @@ instance (Unboxed e) => E.IsList (SBytes# e)
 
 --------------------------------------------------------------------------------
 
-{- Semigroup, Monoid, Default, Arbitrary and Estimate instances. -}
+{- Semigroup, Monoid, Default and Estimate instances. -}
 
 instance (Unboxed e) => Semigroup (SBytes# e) where (<>) = (++)
 instance (Unboxed e) => Monoid    (SBytes# e) where mempty = Z
@@ -142,10 +140,6 @@ instance Default (SBytes# e)
       where
         empty' = ST $ \ s1# -> case newByteArray# 0# s1# of
           (# s2#, marr# #) -> (# s2#, STBytes# 0 0 marr# #)
-
-instance (Unboxed e, Arbitrary e) => Arbitrary (SBytes# e)
-  where
-    arbitrary = fromList <$> arbitrary
 
 instance Estimate (SBytes# e)
   where
@@ -910,6 +904,7 @@ overEx =  throw . IndexOverflow . showString "in SDP.Prim.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
+
 
 
 

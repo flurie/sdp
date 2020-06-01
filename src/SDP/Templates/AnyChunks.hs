@@ -39,8 +39,6 @@ import qualified GHC.Exts as E
 import Data.Typeable
 import Data.Data
 
-import Test.QuickCheck
-
 import SDP.Internal
 
 default ()
@@ -79,7 +77,7 @@ instance (Ord (rep e), Bordered1 rep Int e, Split1 rep e) => Ord (AnyChunks rep 
 
 --------------------------------------------------------------------------------
 
-{- Semigroup, Monoid, Default, Arbitrary and Estimate instances. -}
+{- Semigroup, Monoid, Default and Estimate instances. -}
 
 instance Semigroup (AnyChunks rep e)
   where
@@ -87,10 +85,6 @@ instance Semigroup (AnyChunks rep e)
 
 instance Monoid  (AnyChunks rep e) where mempty = AnyChunks []
 instance Default (AnyChunks rep e) where def    = AnyChunks []
-
-instance (Arbitrary e, Linear1 (AnyChunks rep) e) => Arbitrary (AnyChunks rep e)
-  where
-    arbitrary = fromList <$> arbitrary
 
 instance (Bordered1 rep Int e) => Estimate (AnyChunks rep e)
   where
@@ -566,5 +560,6 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Unrolled.STUnlist."
 
 lim :: Int
 lim =  1024
+
 
 

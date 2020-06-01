@@ -57,7 +57,7 @@
 
   improvements:
     - structures: size and offset encapsulation and template-based structures
-    - tests: sortTest rewrited for Medium structures, see fixes
+    - tests: moved to sdp-quickcheck package
 
   # news
   modules:
@@ -78,9 +78,6 @@
 
     - Text.Show.SDP: Show commons
     - Text.Read.SDP: Read commons
-
-    - Test.SDP.Gen newtypes: Short, Medium and Long
-    - Test.SDP: short import of basic test suite
 
   definitions:
     - SDP.SafePrelude: (?+), (?-), (...), (?^), (<=<<), (>>=>) and (>>=<<)

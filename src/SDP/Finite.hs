@@ -41,8 +41,6 @@ import GHC.Exts ( IsList )
 import GHC.Types
 import GHC.Read
 
-import Test.QuickCheck
-
 import Control.Exception.SDP
 
 import SDP.Internal
@@ -55,8 +53,6 @@ default ()
 
 -- | Service type, that represents zero-dimensional index.
 data E = E deriving ( Eq, Ord, Show, Read )
-
-instance Arbitrary E where arbitrary = return E
 
 instance Default E where def = E
 
@@ -78,10 +74,6 @@ instance IsList E
   finite dimension number.
 -}
 data tail :& head = !tail :& !head deriving ( Eq, Ord )
-
-instance (Arbitrary i, Arbitrary i') => Arbitrary (i' :& i)
-  where
-    arbitrary = applyArbitrary2 (:&)
 
 instance (Enum i) => Enum (E :& i)
   where
@@ -210,6 +202,4 @@ unsnoc :: [i] -> ([i], i)
 unsnoc    [i]   = ([], i)
 unsnoc (i : is) = (i :) `first` unsnoc is
 unsnoc     _    = throw $ UnexpectedRank "in SDP.Finite.fromList"
-
-
 

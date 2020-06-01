@@ -33,8 +33,6 @@ where
 import Prelude ()
 import SDP.SafePrelude
 
-import Test.QuickCheck
-
 import SDP.IndexedM
 import SDP.Sort
 import SDP.Scan
@@ -134,15 +132,11 @@ instance E.IsList (SArray# e)
 
 --------------------------------------------------------------------------------
 
-{- Semigroup, Monoid, Default, Arbitrary and Estimate instances. -}
+{- Semigroup, Monoid, Default and Estimate instances. -}
 
 instance Semigroup (SArray# e) where (<>) = (++)
 instance Monoid    (SArray# e) where mempty = Z
 instance Default   (SArray# e) where def = Z
-
-instance (Arbitrary e) => Arbitrary (SArray# e)
-  where
-    arbitrary = fromList <$> arbitrary
 
 instance Estimate (SArray# e)
   where
@@ -928,8 +922,4 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
-
-
-
-
 
