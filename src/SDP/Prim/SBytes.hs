@@ -282,6 +282,14 @@ instance (Unboxed e) => Split (SBytes# e) e
         
         n = sizeOf es
     
+    complement n@(I# n#) e es@(SBytes# c@(I# c#) (I# o#) src#) = case c <=> n of
+      EQ -> es
+      GT -> take n es
+      LT -> runST $ ST $ \ s1# -> case newUnboxed' e n# s1# of
+        (# s2#, mbytes# #) -> case copyUnboxed# e src# o# mbytes# 0# c# s2# of
+          s3# -> case unsafeFreezeByteArray# mbytes# s3# of
+            (# s4#, bytes# #) -> (# s4#, SBytes# n 0 bytes# #)
+    
     each n es = case n <=> 1 of {LT -> Z; EQ -> es; GT -> fromList $ go (n - 1)}
       where
         go i = i < s ? es!^i : go (i + n) $ []
@@ -904,7 +912,4 @@ overEx =  throw . IndexOverflow . showString "in SDP.Prim.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
-
-
-
 

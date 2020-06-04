@@ -351,6 +351,14 @@ instance Split (SArray# e) e
     
     splitsBy f es = dropWhile f <$> f *$ es `parts` es
     
+    complement n@(I# n#) e es@(SArray# c@(I# c#) (I# o#) src#) = case c <=> n of
+      EQ -> es
+      GT -> take n es
+      LT -> runST $ ST $ \ s1# -> case newArray# n# e s1# of
+        (# s2#, marr# #) -> case copyArray# src# o# marr# 0# c# s2# of
+          s3# -> case unsafeFreezeArray# marr# s3# of
+            (# s4#, arr# #) -> (# s4#, SArray# n 0 arr# #)
+    
     combo _  Z = 0
     combo f es = go (head es) 1
       where
@@ -922,4 +930,6 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
+
+
 

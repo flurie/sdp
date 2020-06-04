@@ -459,11 +459,11 @@ class (Linear s e) => Split s e | s -> e
     {- |
       Removes every non-overlapping occurrence of @sub@ with 'Z'.
       
-      > removeSubs = concat ... splitsOn
-      > (`replaceBy` Z) = removeSubs
+      > removeAll = concat ... splitsOn
+      > (`replaceBy` Z) = removeAll
     -}
-    removeSubs :: (Eq e) => s -> s -> s
-    removeSubs =  concat ... splitsOn
+    removeAll :: (Eq e) => s -> s -> s
+    removeAll =  concat ... splitsOn
     
     {- |
       @combo f es@ returns the length of the @es@ subsequence (left to tight)
@@ -477,6 +477,10 @@ class (Linear s e) => Split s e | s -> e
     default combo :: (Bordered s i) => Equal e -> s -> Int
     combo :: (e -> e -> Bool) -> s -> Int
     combo f = combo f . listL
+    
+    -- | @complement n e es@ shrinks @es@ to @n@ elements, pad with @e@ if shorter.
+    complement :: Int -> e -> s -> s
+    complement n e = take n . (++ replicate n e)
     
     {- |
       @each n es@ returns each nth element of structure.
@@ -765,6 +769,7 @@ sorted es = combo (<=) es == sizeOf es
 -}
 ascending :: (Split s e, Bordered s i, Ord e) => s -> [Int] -> Bool
 ascending =  all sorted ... flip splits
+
 
 
 

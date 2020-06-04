@@ -57,9 +57,7 @@ data AnyBorder rep i e = AnyBorder !i !i !(rep e)
 
 {- Eq ad Eq1 instances. -}
 
-instance (Index i, Eq (rep e)) => Eq (AnyBorder rep i e)
-  where
-    xs == ys = unpack xs == unpack ys
+instance (Index i, Eq (rep e)) => Eq (AnyBorder rep i e) where (==) = on (==) unpack
 
 instance (Index i, Eq1 rep) => Eq1 (AnyBorder rep i)
   where
@@ -246,6 +244,8 @@ instance (Index i, Split1 rep e, Bordered1 rep Int e) => Split (AnyBorder rep i 
     splits ns = fmap withBounds . splits ns . unpack
     chunks ns = fmap withBounds . chunks ns . unpack
     parts  ns = fmap withBounds . parts  ns . unpack
+    
+    complement n e = withBounds . complement n e . unpack
     
     isPrefixOf xs ys = xs .<=. ys && on isPrefixOf unpack xs ys
     isSuffixOf xs ys = xs .<=. ys && on isSuffixOf unpack xs ys
