@@ -64,8 +64,19 @@
     - SDP.Templates.AnyBorder: arbitrary-bordered structure template
     - SDP.Templates.AnyChunks: chunk stream template
 
+    - SDP.Array.IO: see IOArray
+    - SDP.Bytes.IO: see IOBytes
+
+    - SDP.Unrolled.IO: see IOUnrolled
+    - SDP.ByteList.IO: see IOByteList
+
+    - SDP.Unrolled.IOUnlist: see IOUnlist
+    - SDP.ByteList.IOUblist: see IOUblist
+
     - SDP.Prim.SArray: SArray# and STArray# pseudo-primitives
     - SDP.Prim.SBytes: SBytes# and STBytes# pseudo-primitives
+    - SDP.Prim.IArray: IArray# and IOArray# pseudo-primitives
+    - SDP.Prim.IBytes: IBytes# and IOBytes# pseudo-primitives
 
     - SDP.SortM.Insertion: InsertionSort for mutable structures
     - SDP.SortM.Tim: TimSort for mutable structures
@@ -123,6 +134,14 @@
         complement, combo, splitBy, splitsBy, splitsOn, removeAll, replaceBy,
         selectWhile,  extractWhile,  selectEnd,  extractEnd,
         selectWhile', extractWhile', selectEnd', extractEnd'
+
+  types:
+    - IOArray: mutable boxed array in monad IO
+    - IOBytes: mutable unboxed array in monad IO
+    - IOUnlist: mutable boxed unrolled linked list in monad IO
+    - IOUblist: mutable unboxed unrolled linked list in monad IO
+    - IOUnrolled: mutable boxed unrolled linked list in monad IO with bounds
+    - IOByteList: mutable unboxed unrolled linked list in monad IO with bounds
 
   type-families:
     - Shape: GIndex, DimLast and DimInit
@@ -232,6 +251,16 @@
     - old bug in SDP.Index.inBounds ("wrong" Ord for default declaration)
 
   # news
+  modules:
+    - SDP.Array.ST: see STArray
+    - SDP.Bytes.ST: see STBytes
+
+    - SDP.Unrolled.ST: see STUnrolled
+    - SDP.ByteList.ST: see STByteList
+
+    - SDP.Unrolled.STUnlist: see STUnlist
+    - SDP.ByteList.STUblist: see STUblist
+
   classes:
     - IndexEQ: service class, provisional
 
