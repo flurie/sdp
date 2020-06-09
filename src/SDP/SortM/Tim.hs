@@ -1,5 +1,3 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
-
 {- |
     Module      :  SDP.SortM.Tim
     Copyright   :  (c) Andrey Mulik 2019
@@ -154,7 +152,4 @@ timSortBy cmp es = getSizeOf es >>= timSort'
 -- | minrunTS returns Timsort chunk size.
 minrunTS :: Int -> Int
 minrunTS i = mr i 0 where mr n r = n >= 64 ? mr (shiftR n 1) (n .&. 1) $ n + r
-
-
-
 

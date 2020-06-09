@@ -1,7 +1,5 @@
-{-
-  NOTE: This is an internal module for typical functions and imports.
-  Its contents may be changed or removed without reference to the changelog.
--}
+{-# LANGUAGE Trustworthy #-}
+
 module SDP.Internal
 (
   module Control.Exception.SDP,
@@ -16,6 +14,8 @@ module SDP.Internal
   module Data.Bool,
   module Data.Ord,
   module Data.Eq,
+  
+  module GHC.Types,
   
   Bounded (..), Enum (..),
   
@@ -40,6 +40,8 @@ import Data.Bool
 import Data.Ord
 import Data.Eq
 
+import GHC.Types
+
 default ()
 
 --------------------------------------------------------------------------------
@@ -52,4 +54,7 @@ snds =  fmap snd
 
 both :: (a -> b) -> (a, a) -> (b, b)
 both =  uncurry . on (,)
+
+
+
 

@@ -1,5 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, DeriveGeneric #-}
-{-# LANGUAGE Unsafe, MagicHash, BangPatterns #-}
+{-# LANGUAGE Unsafe, MagicHash, MultiParamTypeClasses, FlexibleInstances #-}
 
 {- |
     Module      :  SDP.ByteList.STUblist
@@ -26,14 +25,15 @@ where
 import Prelude ()
 import SDP.SafePrelude
 
+import SDP.Templates.AnyChunks
+import SDP.Prim.SBytes
+
 import SDP.IndexedM
 import SDP.Unboxed
 import SDP.SortM
 
 import Control.Monad.ST
 
-import SDP.Templates.AnyChunks
-import SDP.Prim.SBytes
 import SDP.SortM.Tim
 
 default ()

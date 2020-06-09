@@ -24,7 +24,7 @@ module SDP.Finite
   E (..), (:&) (..),
   
   -- * Type synonyms
-  I2, I3, I4, I5, I6, I7, I8, I9, I10, I11, I12, I13, I14, I15,
+  I1, I2, I3, I4, I5, I6, I7, I8, I9, I10, I11, I12, I13, I14, I15,
   
   -- * Old constructors
   ind2,  ind3,  ind4,  ind5,  ind6,  ind7,  ind8,  ind9,
@@ -123,6 +123,8 @@ instance (E.Item (i' :& i) ~~ i, IsList (i' :& i)) => IsList (i' :& i :& i)
 
 {- Type synonyms are declared up to 15 dimensions. -}
 
+-- | 1-dimensional index ((E :& i) without TypeOperators)
+type I1  i = E :& i
 -- | 2-dimensional index
 type I2  i = E :& i  :& i
 -- | 3-dimensional index
@@ -202,4 +204,7 @@ unsnoc :: [i] -> ([i], i)
 unsnoc    [i]   = ([], i)
 unsnoc (i : is) = (i :) `first` unsnoc is
 unsnoc     _    = throw $ UnexpectedRank "in SDP.Finite.fromList"
+
+
+
 

@@ -43,7 +43,7 @@ import SDP.SortM
 
 import GHC.Exts
   (
-    Array#, MutableArray#, Int (..), State#,
+    Array#, MutableArray#, State#,
     
     newArray#, indexArray#, readArray#, writeArray#,
     
@@ -51,7 +51,7 @@ import GHC.Exts
     
     copyArray#, copyMutableArray#, cloneArray#, cloneMutableArray#,
     
-    isTrue#, sameMutableArray#, (+#), (-#), (==#)
+    sameMutableArray#, (+#), (-#), (==#)
   )
 import GHC.ST ( runST, ST (..), STRep )
 

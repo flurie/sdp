@@ -1,4 +1,4 @@
-{-# LANGUAGE Unsafe, TypeFamilies, FlexibleInstances #-}
+{-# LANGUAGE Unsafe, FlexibleInstances #-}
 
 {- |
     Module      :  SDP.ByteList

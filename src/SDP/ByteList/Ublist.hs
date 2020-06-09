@@ -27,7 +27,6 @@ import Prelude ()
 import SDP.SafePrelude
 
 import SDP.Templates.AnyChunks
-import SDP.ByteList.STUblist
 import SDP.Prim.SBytes
 
 import SDP.Indexed
@@ -80,6 +79,7 @@ instance (Unboxed e) => Sort (Ublist e) e
 {-# INLINE done #-}
 done :: (Unboxed e) => STBytes# s e -> ST s (Ublist e)
 done =  unsafeFreeze
+
 
 
 

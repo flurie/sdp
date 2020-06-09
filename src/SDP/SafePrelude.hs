@@ -1,3 +1,4 @@
+{-# LANGUAGE Safe #-}
 {-# OPTIONS_HADDOCK ignore-exports #-}
 
 {- |
@@ -11,11 +12,10 @@
 -}
 module SDP.SafePrelude
 (
+  -- Exports
   module Control.Applicative,
   module Control.Monad,
-  
   module Data.Foldable,
-  
   module SDP.Comparing,
   module SDP.Estimate,
   

@@ -47,11 +47,11 @@ import SDP.Set
 
 import GHC.Exts
   (
-    ByteArray#, MutableByteArray#, Int (..), State#,
+    ByteArray#, MutableByteArray#, State#,
     
     newByteArray#, unsafeFreezeByteArray#,
     
-    isTrue#, sameMutableByteArray#, (+#), (-#), (==#)
+    sameMutableByteArray#, (+#), (-#), (==#)
   )
 import GHC.ST ( runST, ST (..), STRep )
 

@@ -1,6 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 {-# LANGUAGE PatternSynonyms, ViewPatterns, BangPatterns, DefaultSignatures #-}
-{-# LANGUAGE TypeFamilies, TypeOperators, ConstraintKinds, Trustworthy #-}
+{-# LANGUAGE Trustworthy, TypeOperators, TypeFamilies, ConstraintKinds #-}
 
 {- |
     Module      :  SDP.Linear

@@ -1,6 +1,5 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE TypeOperators, TypeFamilies, ConstraintKinds, DefaultSignatures #-}
-{-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, DefaultSignatures #-}
+{-# LANGUAGE Safe, TypeOperators, TypeFamilies, ConstraintKinds #-}
 
 {- |
     Module      :  SDP.Set
@@ -35,8 +34,6 @@ import SDP.Linear
 
 import Data.List ( sortBy, groupBy )
 
-import GHC.Types
-
 import SDP.Internal
 
 default ()
@@ -58,7 +55,7 @@ default ()
   'isContainedIn' to search for an equal element in the set - if such an element
   is found, then the result is the given element (since they are equal).
 -}
-class (Linear s o) => Set s o | s -> o
+class (Linear s o) => Set s o
   where
     {-# MINIMAL intersectionWith, unionWith, differenceWith, lookupLTWith, lookupGTWith #-}
     
@@ -335,6 +332,4 @@ instance Set [e] e
     lookupGEWith _ _ _ = Nothing
     
     groupSetWith cmp f = map (foldr1 f) . groupBy ((== EQ) ... cmp) . sortBy cmp
-
-
 

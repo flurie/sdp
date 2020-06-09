@@ -1,5 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
-{-# LANGUAGE Unsafe, MagicHash, BangPatterns #-}
+{-# LANGUAGE Unsafe, MagicHash, MultiParamTypeClasses, FlexibleInstances #-}
 
 {- |
     Module      :  SDP.Unrolled.STUnlist
@@ -42,4 +41,5 @@ default ()
 type STUnlist s = AnyChunks (STArray# s)
 
 instance SortM (ST s) (STUnlist s e) e where sortMBy = timSortBy
+
 

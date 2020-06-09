@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
 
 {- |
     Module      :  SDP.Scan
@@ -24,7 +24,7 @@ default ()
 --------------------------------------------------------------------------------
 
 -- | Scan is class of scans.
-class (Linear s a) => Scan s a | s -> a
+class (Linear s a) => Scan s a
   where
     scanl  :: (b -> a -> b) -> b -> s -> [b]
     scanr  :: (a -> b -> b) -> b -> s -> [b]

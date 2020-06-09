@@ -1,4 +1,4 @@
-{-# LANGUAGE Unsafe, MagicHash, TypeFamilies, FlexibleInstances #-}
+{-# LANGUAGE Unsafe, MagicHash, FlexibleInstances #-}
 
 {- |
     Module      :  SDP.Array
