@@ -421,12 +421,16 @@ instance (Bordered1 rep Int e, Split1 rep e) => Shaped (AnyBorder rep) e
   where
     reshape es bs = size bs >. es ? expEx "reshape" $ uncurry AnyBorder bs (unpack es)
     
-    sliceOf (AnyBorder l u rep) ij = uncurry AnyBorder sub . take s $ drop o rep
+    (AnyBorder l u rep) !! ij = uncurry AnyBorder sub . take s $ drop o rep
       where
         (num, sub) = slice (l, u) ij
         
         o = offset num ij * s
         s = size sub
+    
+    slicesOf es =
+      let (l, u) = both takeDim (bounds es)
+      in  [ AnyBorder l u sl | sl <- size (l, u) `chunks` unpack es ]
 
 --------------------------------------------------------------------------------
 
@@ -536,5 +540,6 @@ withBounds rep = uncurry AnyBorder (defaultBounds $ sizeOf rep) rep
 {-# INLINE withBounds' #-}
 withBounds' :: (Index i, BorderedM1 m rep Int e) => rep e -> m (AnyBorder rep i e)
 withBounds' rep = (\ n -> uncurry AnyBorder (defaultBounds n) rep) <$> getSizeOf rep
+
 
 

@@ -29,11 +29,21 @@ default ()
 -}
 class Shaped s e
   where
+    {-# MINIMAL reshape, (!!), slicesOf #-}
+    
+    -- | Set new bounds of same type, may shrink.
+    rebound :: (Index i) => s i e -> (i, i) -> s i e
+    rebound =  reshape
+    
     -- | Set new bounds, may shrink.
     reshape :: (Index i, Index j) => s i e -> (j, j) -> s j e
     
-    -- | @sliceOf es ij@ returns subshape @ij@ of @es@.
-    sliceOf :: (SubIndex i j) => s i e -> i :|: j -> s j e
+    -- | @es !! ij@ returns subshape @ij@ of @es@.
+    (!!) :: (SubIndex i j) => s i e -> i :|: j -> s j e
+    
+    -- | @slicesOf es@ returns list of @es@ subshapes.
+    slicesOf :: (SubIndex i j) => s i e -> [s j e]
+
 
 
 

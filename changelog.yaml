@@ -76,6 +76,8 @@
     - SDP.Tuple: tiple synonyms, exported by SDP.Index
     - SDP.Map: dictionaries
 
+    - SDP.Shaped: see Shaped class
+
     - Text.Show.SDP: Show commons
     - Text.Read.SDP: Read commons
 
@@ -102,16 +104,19 @@
     - BorderedM: nowIndexIn, offsetOf, indexOf
     - Unboxed: sizeof, copyUnboxed#, copyUnboxedM#
     - Index: defLimit, defaultBounds, shape and slice
+
     - Set: groupSetWith
     - IFoldM: added ofoldrM and ofoldlM
     - IFold: added ofoldr and ofoldl
+
     - Freeze: unsafeFreeze
     - Thaw: unsafeThaw
 
     - Bordered: offsetOf and indexIn
     - Indexed: assocMap, assocMap' and update
     - LinearM: nowNull, newSIngle, getHead, getLast, prepend, append and copyTo
-    - Linear: except, select, extract, selects, select', extract', selects'
+    - Linear: except, select, extract, selects, select', extract' and selects'
+    - Shaped: rebound, (!!) and slicesOf
 
     - Split: |
         keep, sans, divide, divides, save, skip, chunks, each, each', infixes,
