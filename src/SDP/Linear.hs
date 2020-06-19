@@ -491,15 +491,15 @@ class (Linear s e) => Split s e | s -> e
     each n = fromList . each n . listL
     
     {- |
-      @each' o n es@ returns each nth element of structure, beginning from o.
+      @eachFrom o n es@ returns each nth element of structure, beginning from o.
       
-      > each' o n = each n . drop o
+      > eachFrom o n = each n . drop o
       
-      > each' 0 2 [1 .. 20] == [2, 4 .. 20]
-      > each' 1 2 [1 .. 20] == [3, 5 .. 19]
+      > eachFrom 0 2 [1 .. 20] == [2, 4 .. 20]
+      > eachFrom 1 2 [1 .. 20] == [3, 5 .. 19]
     -}
-    each' :: Int -> Int -> s -> s
-    each' o n = each n . drop o
+    eachFrom :: Int -> Int -> s -> s
+    eachFrom o n = each n . drop o
     
     -- | isPrefixOf checks whether the first line is the beginning of the second
     isPrefixOf :: (Eq e) => s -> s -> Bool
@@ -705,11 +705,11 @@ instance Split [e] e
         
         n = sizeOf sub
     
-    combo _    []    = 0
-    combo f (x : xs) = go 1 x xs
+    combo f (e1 : e2 : es) = e1 `f` e2 ? go 2 e2 es $ 0
       where
-        go !n e1 (e2 : es) = e1 `f` e2 ? go (n + 1) e2 es $ n
-        go !n _ _ = n
+        go !i p (x2 : xs) = p `f` x2 ? go (i + 1) x2 xs $ i
+        go  i _ _ = i
+    combo _ _ = 0
     
     splitBy f es = let (as, bs) = breakl f es in isNull bs ? (es, []) $ (as, tail bs)
     
