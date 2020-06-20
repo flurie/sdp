@@ -260,16 +260,16 @@ instance IFold [e] Int e
 
 --------------------------------------------------------------------------------
 
--- | Rank (* -> *) 'Indexed' structure.
+-- | Kind (* -> *) 'Indexed' structure.
 type Indexed1 v i e = Indexed (v e) i e
 
--- | Rank (* -> * -> *) 'Indexed' structure.
+-- | Kind (* -> * -> *) 'Indexed' structure.
 type Indexed2 v i e = Indexed (v i e) i e
 
--- | Rank (* -> *) 'IFold' structure.
+-- | Kind (* -> *) 'IFold' structure.
 type IFold1 v i e = IFold (v e) i e
 
--- | Rank (* -> * -> *) 'IFold' structure.
+-- | Kind (* -> * -> *) 'IFold' structure.
 type IFold2 v i e = IFold (v i e) i e
 
 --------------------------------------------------------------------------------

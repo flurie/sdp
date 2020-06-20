@@ -33,7 +33,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | 'IOArray' is mutable version of 'Array'.
+-- | 'IOArray' is mutable version of Array.
 type IOArray = AnyBorder IOArray#
 
 

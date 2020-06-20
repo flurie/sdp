@@ -156,7 +156,7 @@ class (Linear s o) => Set s o
 
 --------------------------------------------------------------------------------
 
--- | Rank (* -> *) 'Set'.
+-- | Kind (* -> *) 'Set'.
 type Set1 s e = Set (s e) e
 
 {- Useful functions. -}

@@ -232,22 +232,22 @@ class (Monad m) => Freeze m v' v | v' -> m
 
 --------------------------------------------------------------------------------
 
--- | Rank (* -> *) 'IndexedM'.
+-- | Kind (* -> *) 'IndexedM'.
 type IndexedM1 m v i e = IndexedM m (v e) i e
 
--- | Rank (* -> * -> *) 'IndexedM'.
+-- | Kind (* -> * -> *) 'IndexedM'.
 type IndexedM2 m v i e = IndexedM m (v i e) i e
 
--- | Rank (* -> *) 'IFoldM'.
+-- | Kind (* -> *) 'IFoldM'.
 type IFoldM1 m v i e = IFoldM m (v e) i e
 
--- | Rank (* -> * -> *) 'IFoldM'.
+-- | Kind (* -> * -> *) 'IFoldM'.
 type IFoldM2 m v i e = IFoldM m (v i e) i e
 
--- Rank (* -> *) 'Thaw'.
+-- | Kind (* -> *) 'Thaw'.
 type Thaw1 m v v' e = Thaw m (v e) (v' e)
 
--- Rank (* -> *) 'Freeze'.
+-- | Kind (* -> *) 'Freeze'.
 type Freeze1 m v' v e = Freeze m (v' e) (v e)
 
 --------------------------------------------------------------------------------

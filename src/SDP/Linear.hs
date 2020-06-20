@@ -634,16 +634,16 @@ pattern xs :< x <- ((isNull ?- unsnoc) -> Just (xs, x)) where (:<) = toLast
 
 --------------------------------------------------------------------------------
 
--- | Rank (* -> *) 'Linear' structure.
+-- | Kind (* -> *) 'Linear' structure.
 type Linear1 l e = Linear (l e) e
 
--- | Rank (* -> *) 'Split' structure.
+-- | Kind (* -> *) 'Split' structure.
 type Split1 s e = Split (s e) e
 
--- | Rank (* -> *) 'Bordered' structure.
+-- | Kind (* -> *) 'Bordered' structure.
 type Bordered1 l i e = Bordered (l e) i
 
--- | Rank (* -> * -> *) 'Bordered' structure.
+-- | Kind (* -> * -> *) 'Bordered' structure.
 type Bordered2 l i e = Bordered (l i e) i
 
 --------------------------------------------------------------------------------

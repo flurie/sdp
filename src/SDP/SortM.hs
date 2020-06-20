@@ -42,6 +42,7 @@ class SortM m s e | s -> m, s -> e
     mathsortMBy :: Compare e -> s -> m ()
     mathsortMBy =  sortMBy
 
+-- | Kind (* -> *) version of 'SortM'.
 type SortM1 m s e = SortM m (s e) e
 
 --------------------------------------------------------------------------------
@@ -61,5 +62,4 @@ mathsortM =  mathsortMBy compare
 -- | Math sort by comparing the results of a key function applied to each element.
 mathsortMOn :: (SortM m s e, Ord o) => (e -> o) -> s -> m ()
 mathsortMOn =  mathsortMBy . comparing
-
 

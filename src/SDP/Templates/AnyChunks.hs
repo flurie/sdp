@@ -156,8 +156,10 @@ instance (Bordered1 rep Int e) => Bordered (AnyChunks rep e) Int
     
     indexIn es = \ i -> i >= 0 && i <. es
     
-    offsetOf = const id -- ^ Quick unchecked offset.
-    indexOf  = const id -- ^ Quick unchecked index.
+    -- | Quick unchecked offset.
+    offsetOf = const id
+    -- | Quick unchecked index.
+    indexOf  = const id
     
     lower   _ = 0
     upper  es = sizeOf es - 1
@@ -560,6 +562,4 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Unrolled.STUnlist."
 
 lim :: Int
 lim =  1024
-
-
 

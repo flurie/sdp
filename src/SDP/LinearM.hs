@@ -284,16 +284,16 @@ class (LinearM m s e) => SplitM m s e
 
 --------------------------------------------------------------------------------
 
--- | Rank (* -> *) 'SplitM' structure.
+-- | Kind (* -> *) 'SplitM' structure.
 type SplitM1 m l e = SplitM m (l e) e
 
--- | Rank (* -> *) 'LinearM' structure.
+-- | Kind (* -> *) 'LinearM' structure.
 type LinearM1 m l e = LinearM m (l e) e
 
--- | Rank (* -> *) 'BorderedM' structure.
+-- | Kind (* -> *) 'BorderedM' structure.
 type BorderedM1 m l i e = BorderedM m (l e) i
 
--- | Rank (* -> * -> *) 'BorderedM' structure.
+-- | Kind (* -> * -> *) 'BorderedM' structure.
 type BorderedM2 m l i e = BorderedM m (l i e) i
 
 --------------------------------------------------------------------------------

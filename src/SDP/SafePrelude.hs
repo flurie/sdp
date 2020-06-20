@@ -84,12 +84,15 @@ f ... g = \ a b -> f (g a b)
 --------------------------------------------------------------------------------
 
 {-# INLINE (?^) #-}
+-- | Lifted ('?').
 (?^) :: (Monad m) => m Bool -> m a -> m a -> m a
 (?^) mb mt = \ me -> do b <- mb; if b then mt else me
 
+-- | Monadic vesion of ('...') with reversed arguments.
 (>>=>) :: (Monad m) => (a -> b -> m c) -> (c -> m d) -> (a -> b -> m d)
 (>>=>) mf mg = \ a b -> mf a b >>= mg
 
+-- | Monadic version of ('...').
 (<=<<) :: (Monad m) => (c -> m d) -> (a -> b -> m c) -> (a -> b -> m d)
 (<=<<) mg mf = \ a b -> mf a b >>= mg
 
@@ -97,4 +100,6 @@ f ... g = \ a b -> f (g a b)
 {-# INLINE (>>=<<) #-}
 (>>=<<) :: (Monad m) => m a -> m b -> (a -> b -> m c) -> m c
 ma >>=<< mb = \ f -> join $ liftM2 f ma mb
+
+
 

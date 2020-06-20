@@ -36,7 +36,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | IOUnlist is mutable version of 'Unlist'.
+-- | IOUnlist is mutable version of Unlist.
 type IOUnlist = AnyChunks IOArray#
 
 instance SortM IO (IOUnlist e) e where sortMBy = timSortBy

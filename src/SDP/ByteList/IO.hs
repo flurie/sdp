@@ -35,6 +35,6 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | IOByteList is mutable version of 'ByteList'.
+-- | IOByteList is mutable version of ByteList.
 type IOByteList = AnyBorder IOUblist
 

@@ -35,6 +35,6 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | 'IOBytes' is mutable version of 'Bytes'.
+-- | 'IOBytes' is mutable version of Bytes.
 type IOBytes = AnyBorder IOBytes#
 

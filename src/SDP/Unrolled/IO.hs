@@ -32,7 +32,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | 'IOUnrolled' is mutable version of 'Unrolled'.
+-- | 'IOUnrolled' is mutable version of Unrolled.
 type IOUnrolled = AnyBorder IOUnlist
 
 
