@@ -35,8 +35,8 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-
 import SDP.IndexedM
+import SDP.Internal
 import SDP.Unboxed
 
 import SDP.SortM.Tim
@@ -60,8 +60,6 @@ import qualified GHC.Exts as E
 import Data.Typeable
 
 import Text.Read
-
-import SDP.Internal
 
 default ()
 
@@ -129,7 +127,17 @@ instance (Unboxed e) => E.IsList (SBytes# e)
 
 --------------------------------------------------------------------------------
 
-{- Semigroup, Monoid, Default and Estimate instances. -}
+{- Semigroup, Monoid, Nullable, Default and Estimate instances. -}
+
+instance Nullable (SBytes# e)
+  where
+    lzero = runST $ zero >>= done
+      where
+        zero :: ST s (STBytes# s e)
+        zero =  ST $ \ s1# -> case newByteArray# 0# s1# of
+          (# s2#, marr# #) -> (# s2#, STBytes# 0 0 marr# #)
+    
+    isNull = \ (SBytes# c _ _) -> c < 1
 
 instance (Unboxed e) => Semigroup (SBytes# e) where (<>) = (++)
 instance (Unboxed e) => Monoid    (SBytes# e) where mempty = Z
@@ -162,10 +170,6 @@ instance Estimate (SBytes# e)
 
 instance (Unboxed e) => Linear (SBytes# e) e
   where
-    isNull (SBytes# c _ _) = c < 1
-    
-    lzero = runST $ filled 0 (unreachEx "lzero") >>= done
-    
     toHead e (SBytes# (I# c#) (I# o#) bytes#) = runST $ ST $
         \ s1# -> case newUnboxed' e n# s1# of
           (# s2#, marr# #) -> case copyUnboxed# e bytes# o# marr# 1# c# s2# of
@@ -912,4 +916,5 @@ overEx =  throw . IndexOverflow . showString "in SDP.Prim.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
+
 

@@ -32,8 +32,8 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-
 import SDP.IndexedM
+import SDP.Internal
 import SDP.Sort
 import SDP.Scan
 import SDP.Set
@@ -60,8 +60,6 @@ import qualified GHC.Exts as E
 import Data.Typeable
 
 import Text.Read
-
-import SDP.Internal
 
 default ()
 
@@ -132,7 +130,12 @@ instance E.IsList (SArray# e)
 
 --------------------------------------------------------------------------------
 
-{- Semigroup, Monoid, Default and Estimate instances. -}
+{- Semigroup, Monoid, Nullable, Default and Estimate instances. -}
+
+instance Nullable (SArray# e)
+  where
+    lzero  = runST $ filled 0 (unreachEx "lzero") >>= done
+    isNull = \ (SArray# c _ _) -> c < 1
 
 instance Semigroup (SArray# e) where (<>) = (++)
 instance Monoid    (SArray# e) where mempty = Z
@@ -243,9 +246,6 @@ instance Traversable SArray#
 
 instance Linear (SArray# e) e
   where
-    isNull (SArray# c _ _) = c < 1
-    
-    lzero         = runST $ filled 0 (unreachEx "lzero") >>= done
     single      e = runST $ filled 1 e >>= done
     replicate n e = runST $ filled n e >>= done
     

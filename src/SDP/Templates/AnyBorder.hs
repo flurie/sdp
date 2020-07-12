@@ -93,7 +93,12 @@ instance (Index i, E.IsList (rep e), Bordered1 rep Int e) => E.IsList (AnyBorder
 
 --------------------------------------------------------------------------------
 
-{- Semigroup, Monoid, Default and Estimate instances. -}
+{- Semigroup, Monoid, Nullable, Default and Estimate instances. -}
+
+instance (Index i, Bordered (rep e) Int, Nullable (rep e)) => Nullable (AnyBorder rep i e)
+  where
+    isNull = \ (AnyBorder l u rep) -> isEmpty (l, u) || isNull rep
+    lzero  = withBounds lzero
 
 instance (Linear1 (AnyBorder rep i) e) => Semigroup (AnyBorder rep i e) where (<>) = (++)
 instance (Linear1 (AnyBorder rep i) e) => Monoid    (AnyBorder rep i e) where mempty = Z
@@ -192,9 +197,6 @@ instance (Index i) => Bordered (AnyBorder rep i e) i
 
 instance (Index i, Linear1 rep e, Bordered1 rep Int e) => Linear (AnyBorder rep i e) e
   where
-    isNull (AnyBorder l u rep) = isEmpty (l, u) || isNull rep
-    
-    lzero  = withBounds Z
     single = withBounds . single
     
     toHead e es = withBounds (e :> unpack es)
@@ -540,6 +542,4 @@ withBounds rep = uncurry AnyBorder (defaultBounds $ sizeOf rep) rep
 {-# INLINE withBounds' #-}
 withBounds' :: (Index i, BorderedM1 m rep Int e) => rep e -> m (AnyBorder rep i e)
 withBounds' rep = (\ n -> uncurry AnyBorder (defaultBounds n) rep) <$> getSizeOf rep
-
-
 

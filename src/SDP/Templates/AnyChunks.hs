@@ -26,8 +26,8 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-
 import SDP.IndexedM
+import SDP.Internal
 import SDP.Sort
 import SDP.Scan
 import SDP.Set
@@ -38,8 +38,6 @@ import qualified GHC.Exts as E
 
 import Data.Typeable
 import Data.Data
-
-import SDP.Internal
 
 default ()
 
@@ -77,7 +75,12 @@ instance (Ord (rep e), Bordered1 rep Int e, Split1 rep e) => Ord (AnyChunks rep 
 
 --------------------------------------------------------------------------------
 
-{- Semigroup, Monoid, Default and Estimate instances. -}
+{- Semigroup, Monoid, Nullable, Default and Estimate instances. -}
+
+instance (Nullable (rep e)) => Nullable (AnyChunks rep e)
+  where
+    isNull = \ (AnyChunks es) -> all isNull es
+    lzero  = AnyChunks []
 
 instance Semigroup (AnyChunks rep e)
   where
@@ -103,7 +106,7 @@ instance (Bordered1 rep Int e) => Estimate (AnyChunks rep e)
 
 --------------------------------------------------------------------------------
 
-{- Overloaded Lists and String support. -}
+{- Overloaded Lists and Strings support. -}
 
 instance (Linear1 (AnyChunks rep) Char) => IsString (AnyChunks rep Char)
   where
@@ -158,6 +161,7 @@ instance (Bordered1 rep Int e) => Bordered (AnyChunks rep e) Int
     
     -- | Quick unchecked offset.
     offsetOf = const id
+    
     -- | Quick unchecked index.
     indexOf  = const id
     
@@ -167,10 +171,6 @@ instance (Bordered1 rep Int e) => Bordered (AnyChunks rep e) Int
 
 instance (Bordered1 rep Int e, Linear1 rep e) => Linear (AnyChunks rep e) e
   where
-    isNull (AnyChunks es) = all isNull es
-    
-    lzero = AnyChunks []
-    
     single e = AnyChunks [single e]
     
     toHead e (AnyChunks es@(x : xs)) = AnyChunks $ sizeOf x < lim ? (e :> x) : xs $ single e : es

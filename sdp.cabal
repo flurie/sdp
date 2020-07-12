@@ -48,6 +48,7 @@ Library
     SDP.SafePrelude
     SDP.Comparing
     SDP.Estimate
+    SDP.Nullable
     SDP.Unboxed
     SDP.Finite
     SDP.Tuple

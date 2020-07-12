@@ -14,6 +14,7 @@
 -}
 module SDP.Linear
 (
+  module SDP.Nullable,
   module SDP.Index,
   module SDP.Zip,
   
@@ -41,15 +42,12 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-
-import qualified Data.List as L
-
+import SDP.Internal
+import SDP.Nullable
 import SDP.Index
 import SDP.Zip
 
-import GHC.Types
-
-import SDP.Internal
+import qualified Data.List as L
 
 default ()
 
@@ -166,16 +164,9 @@ instance Bordered [e] Int
 #-}
 
 -- | Class of list-like data structures.
-class Linear l e | l -> e
+class (Nullable l) => Linear l e | l -> e
   where
-    {-# MINIMAL isNull, (listL|listR), (fromList|fromFoldable), (head,tail|uncons), (init,last|unsnoc) #-}
-    
-    -- | Synonym for 'null', check function for 'Z'.
-    isNull :: l -> Bool
-    
-    -- | Empty line, value for 'Z'.
-    lzero :: l
-    lzero =  fromList []
+    {-# MINIMAL (listL|listR), (fromList|fromFoldable), (head,tail|uncons), (init,last|unsnoc) #-}
     
     -- | Separates line to 'head' and 'tail', deconstructor for ':>' pattern.
     uncons :: l -> (e, l)
@@ -621,8 +612,8 @@ class (Linear s e) => Split s e | s -> e
 -}
 
 -- | Pattern Z is overloaded empty (or incorrect) line. Same as 'isNull' and 'lzero'.
-pattern Z :: (Linear l e) => l
-pattern Z <- (isNull -> True)                           where  Z   = lzero
+pattern Z :: (Nullable n) => n
+pattern Z <- (isNull -> True) where Z = lzero
 
 -- | Pattern (:>) is left-size view of line. Same as 'uncons' and 'toHead'.
 pattern  (:>)   :: (Linear l e) => e -> l -> l
@@ -654,9 +645,7 @@ type Bordered2 l i e = Bordered (l i e) i
 
 instance Linear [e] e
   where
-    lzero  = []
     toHead = (:)
-    isNull = null
     single = pure
     (++)   = (L.++)
     
@@ -711,16 +700,15 @@ instance Split [e] e
         go  i _ _ = i
     combo _ _ = 0
     
-    splitBy f es = let (as, bs) = breakl f es in isNull bs ? (es, []) $ (as, tail bs)
-    
+    splitBy  f es = let (as, bs) = breakl f es in isNull bs ? (es, []) $ (as, tail bs)
     splitsBy f es = dropWhile f <$> L.findIndices f es `parts` es
     
     isPrefixOf = L.isPrefixOf
     isSuffixOf = L.isSuffixOf
     isInfixOf  = L.isInfixOf
     
-    spanl  = L.span
     breakl = L.break
+    spanl  = L.span
     
     selectWhile _    []    = []
     selectWhile f (x : xs) = case f x of {(Just e) -> e : select f xs; _ -> []}
@@ -769,7 +757,4 @@ sorted es = combo (<=) es == sizeOf es
 -}
 ascending :: (Split s e, Bordered s i, Ord e) => s -> [Int] -> Bool
 ascending =  all sorted ... flip splits
-
-
-
 
