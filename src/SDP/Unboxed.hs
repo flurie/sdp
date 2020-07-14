@@ -15,13 +15,14 @@ module SDP.Unboxed
     -- * Unboxed
     Unboxed (..), cloneUnboxed#,
     
-    -- * Related functions
+    -- * Related
     newUnboxedByteArray, safe_scale, sizeof#, psizeof
   )
 where
 
 import Prelude ()
 import SDP.SafePrelude
+import SDP.Ratio
 
 import GHC.Stable
 import GHC.Base
@@ -30,6 +31,7 @@ import GHC.Int
 import GHC.Ptr
 import GHC.ST
 
+import Data.Complex
 import Data.Proxy
 
 #include "MachDeps.h"
@@ -117,7 +119,7 @@ instance Unboxed Int
     sizeof _ n = max 0 n * SIZEOF_HSWORD
     
     {-# INLINE (!#) #-}
-    bytes#  !#  i# = I# (indexIntArray# bytes# i#)
+    bytes# !# i# = I# (indexIntArray# bytes# i#)
     
     {-# INLINE (!>#) #-}
     mbytes# !># i# = \ s1# -> case readIntArray# mbytes# i# s1# of
@@ -135,7 +137,7 @@ instance Unboxed Int8
     sizeof _ n = max 0 n
     
     {-# INLINE (!#) #-}
-    bytes#  !#  i# = I8# (indexInt8Array# bytes# i#)
+    bytes# !# i# = I8# (indexInt8Array# bytes# i#)
     
     {-# INLINE (!>#) #-}
     mbytes# !># i# = \ s1# -> case readInt8Array# mbytes# i# s1# of
@@ -153,7 +155,7 @@ instance Unboxed Int16
     sizeof _ n = max 0 n * 2
     
     {-# INLINE (!#) #-}
-    bytes#  !#  i# = I16# (indexInt16Array# bytes# i#)
+    bytes# !# i# = I16# (indexInt16Array# bytes# i#)
     
     {-# INLINE (!>#) #-}
     mbytes# !># i# = \ s1# -> case readInt16Array# mbytes# i# s1# of
@@ -171,7 +173,7 @@ instance Unboxed Int32
     sizeof _ n = max 0 n * 4
     
     {-# INLINE (!#) #-}
-    bytes#  !#  i# = I32# (indexInt32Array# bytes# i#)
+    bytes# !# i# = I32# (indexInt32Array# bytes# i#)
     
     {-# INLINE (!>#) #-}
     mbytes# !># i# = \ s1# -> case readInt32Array# mbytes# i# s1# of
@@ -189,7 +191,7 @@ instance Unboxed Int64
     sizeof _ n = max 0 n * 8
     
     {-# INLINE (!#) #-}
-    bytes#  !#  i# = I64# (indexInt64Array# bytes# i#)
+    bytes# !# i# = I64# (indexInt64Array# bytes# i#)
     
     {-# INLINE (!>#) #-}
     mbytes# !># i# = \ s1# -> case readInt64Array# mbytes# i# s1# of
@@ -211,7 +213,7 @@ instance Unboxed Word
     sizeof _ n = max 0 n * SIZEOF_HSWORD
     
     {-# INLINE (!#) #-}
-    bytes#  !#  i# = W# (indexWordArray# bytes# i#)
+    bytes# !# i# = W# (indexWordArray# bytes# i#)
     
     {-# INLINE (!>#) #-}
     mbytes# !># i# = \ s1# -> case readWordArray# mbytes# i# s1# of
@@ -229,7 +231,7 @@ instance Unboxed Word8
     sizeof _ n = max 0 n
     
     {-# INLINE (!#) #-}
-    bytes#  !#  i# = W8# (indexWord8Array# bytes# i#)
+    bytes# !# i# = W8# (indexWord8Array# bytes# i#)
     
     {-# INLINE (!>#) #-}
     mbytes# !># i# = \ s1# -> case readWord8Array# mbytes# i# s1# of
@@ -247,7 +249,7 @@ instance Unboxed Word16
     sizeof _ n = max 0 n * 2
     
     {-# INLINE (!#) #-}
-    bytes#  !#  i# = W16# (indexWord16Array# bytes# i#)
+    bytes# !# i# = W16# (indexWord16Array# bytes# i#)
     
     {-# INLINE (!>#) #-}
     mbytes# !># i# = \ s1# -> case readWord16Array# mbytes# i# s1# of
@@ -265,7 +267,7 @@ instance Unboxed Word32
     sizeof _ n = max 0 n * 4
     
     {-# INLINE (!#) #-}
-    bytes#  !#  i# = W32# (indexWord32Array# bytes# i#)
+    bytes# !# i# = W32# (indexWord32Array# bytes# i#)
     
     {-# INLINE (!>#) #-}
     mbytes# !># i# = \ s1# -> case readWord32Array# mbytes# i# s1# of
@@ -283,7 +285,7 @@ instance Unboxed Word64
     sizeof _ n = max 0 n * 8
     
     {-# INLINE (!#) #-}
-    bytes#  !#  i# = W64# (indexWord64Array# bytes# i#)
+    bytes# !# i# = W64# (indexWord64Array# bytes# i#)
     
     {-# INLINE (!>#) #-}
     mbytes# !># i# = \ s1# -> case readWord64Array# mbytes# i# s1# of
@@ -305,7 +307,7 @@ instance Unboxed (Ptr a)
     sizeof _ n = max 0 n * SIZEOF_HSWORD
     
     {-# INLINE (!#) #-}
-    bytes#  !#  i# = Ptr (indexAddrArray# bytes# i#)
+    bytes# !# i# = Ptr (indexAddrArray# bytes# i#)
     
     {-# INLINE (!>#) #-}
     mbytes# !># i# = \ s1# -> case readAddrArray# mbytes# i# s1# of
@@ -341,7 +343,7 @@ instance Unboxed (StablePtr a)
     sizeof _ n = max 0 n * SIZEOF_HSWORD
     
     {-# INLINE (!#) #-}
-    bytes#  !#  i# = StablePtr (indexStablePtrArray# bytes# i#)
+    bytes# !# i# = StablePtr (indexStablePtrArray# bytes# i#)
     
     {-# INLINE (!>#) #-}
     mbytes# !># i# = \ s1# -> case readStablePtrArray# mbytes# i# s1# of
@@ -366,8 +368,8 @@ instance Unboxed ()
     sizeof _ _ = 0
     
     {-# INLINE (!#) #-}
-    (!#) = \ _ _ -> ()
-    _ !># _ = \ s# -> (# s#, () #)
+    (!>#) = \ _ _ s# -> (# s#, () #)
+    (!#)  = \ _ _ -> ()
     
     newUnboxed  _ _ = newByteArray# 0#
     newUnboxed' _ _ = newByteArray# 0#
@@ -381,7 +383,7 @@ instance Unboxed Bool
     sizeof _ c = d == 0 ? n $ n + 1 where (n, d) = max 0 c `divMod` 8
     
     {-# INLINE (!#) #-}
-    bytes#  !#  i# = isTrue# ((indexWordArray# bytes# (bool_index i#) `and#` bool_bit i#) `neWord#` int2Word# 0#)
+    bytes# !# i# = isTrue# ((indexWordArray# bytes# (bool_index i#) `and#` bool_bit i#) `neWord#` int2Word# 0#)
     
     {-# INLINE (!>#) #-}
     mbytes# !># i# = \ s1# -> case readWordArray# mbytes# (bool_index i#) s1# of
@@ -397,9 +399,9 @@ instance Unboxed Bool
       (# s2#, mbytes# #) -> case fillByteArray# mbytes# n# False s2# of
         s3# -> (# s3#, mbytes# #)
     
-    fillByteArray# mbytes# n# e = \ s1# -> setByteArray# mbytes# 0# (bool_scale n#) byte# s1#
+    fillByteArray# mbytes# n# e = setByteArray# mbytes# 0# (bool_scale n#) byte#
       where
-        !(I# byte#) = e ? 0xff $ 0
+        byte# = if e then 0xff# else 0#
     
     copyUnboxed# e bytes# o1# mbytes# o2# c# = isTrue# (c# <# 1#) ? (\ s1# -> s1#) $
       \ s1# -> case writeByteArray# mbytes# o2# ((bytes# !# o1#) `asTypeOf` e) s1# of
@@ -415,7 +417,7 @@ instance Unboxed Char
     sizeof _ n = max 0 n * 4
     
     {-# INLINE (!#) #-}
-    bytes#  !#  i# = C# (indexWideCharArray# bytes# i#)
+    bytes# !# i# = C# (indexWideCharArray# bytes# i#)
     
     {-# INLINE (!>#) #-}
     mbytes# !># i# = \ s1# -> case readWideCharArray# mbytes# i# s1# of
@@ -433,13 +435,13 @@ instance Unboxed Float
     sizeof _ n = max 0 n * SIZEOF_HSFLOAT
     
     {-# INLINE (!#) #-}
-    bytes#  !#  i# = F# (indexFloatArray# bytes# i#)
+    bytes# !# i# = F# (indexFloatArray# bytes# i#)
     
     {-# INLINE (!>#) #-}
     mbytes# !># i# = \ s1# -> case readFloatArray# mbytes# i# s1# of
       (# s2#, f# #) -> (# s2#, F# f# #)
     
-    writeByteArray# mbytes# n# (F# e#) = \ s1# -> writeFloatArray# mbytes# n# e# s1#
+    writeByteArray# mbytes# n# (F# e#) = writeFloatArray# mbytes# n# e#
     
     newUnboxed e n# = \ s1# -> case newByteArray# (sizeof# e n#) s1# of
       (# s2#, mbytes# #) -> case fillByteArray# mbytes# n# (0 :: Float) s2# of
@@ -451,16 +453,52 @@ instance Unboxed Double
     sizeof _ n = max 0 n * SIZEOF_HSDOUBLE
     
     {-# INLINE (!#) #-}
-    bytes#  !#  i# = D# (indexDoubleArray# bytes# i#)
+    bytes# !# i# = D# (indexDoubleArray# bytes# i#)
     
     {-# INLINE (!>#) #-}
     mbytes# !># i# = \ s1# -> case readDoubleArray# mbytes# i# s1# of
       (# s2#, d# #) -> (# s2#, D# d# #)
     
-    writeByteArray# mbytes# n# (D# e#) = \ s1# -> writeDoubleArray# mbytes# n# e# s1#
+    writeByteArray# mbytes# n# (D# e#) = writeDoubleArray# mbytes# n# e#
     
     newUnboxed e n# = \ s1# -> case newByteArray# (sizeof# e n#) s1# of
       (# s2#, mbytes# #) -> case fillByteArray# mbytes# n# (0 :: Double) s2# of
+        s3# -> (# s3#, mbytes# #)
+
+instance (Unboxed a, Integral a) => Unboxed (Ratio a)
+  where
+    sizeof e n = 2 * sizeof (undefined `asProxyTypeOf` e) n
+    
+    bytes# !# i# = bytes# !# i2# :% (bytes# !# (i2# +# 1#)) where i2# = 2# *# i#
+    
+    mbytes# !># i# = let i2# = 2# *# i# in \ s1# -> case (!>#) mbytes# i2# s1# of
+      (# s2#, n #) -> case (!>#) mbytes# (i2# +# 1#) s2# of
+        (# s3#, d #) -> (# s3#, n :% d #)
+    
+    writeByteArray# mbytes# i# (n :% d) = let i2# = 2# *# i# in
+      \ s1# -> case writeByteArray# mbytes# i2# n s1# of
+        s2# -> writeByteArray# mbytes# (i2# +# 1#) d s2#
+    
+    newUnboxed e n# = \ s1# -> case newByteArray# (sizeof# e n#) s1# of
+      (# s2#, mbytes# #) -> case fillByteArray# mbytes# n# ((0 :% 0) `asTypeOf` e) s2# of
+        s3# -> (# s3#, mbytes# #)
+
+instance (Unboxed a, Num a) => Unboxed (Complex a)
+  where
+    sizeof e n = 2 * sizeof (undefined `asProxyTypeOf` e) n
+    
+    bytes# !# i# = bytes# !# i2# :+ (bytes# !# (i2# +# 1#)) where i2# = 2# *# i#
+    
+    mbytes# !># i# = let i2# = 2# *# i# in \ s1# -> case (!>#) mbytes# i2# s1# of
+      (# s2#, n #) -> case (!>#) mbytes# (i2# +# 1#) s2# of
+        (# s3#, d #) -> (# s3#, n :+ d #)
+    
+    writeByteArray# mbytes# i# (n :+ d) = let i2# = 2# *# i# in
+      \ s1# -> case writeByteArray# mbytes# i2# n s1# of
+        s2# -> writeByteArray# mbytes# (i2# +# 1#) d s2#
+    
+    newUnboxed e n# = \ s1# -> case newByteArray# (sizeof# e n#) s1# of
+      (# s2#, mbytes# #) -> case fillByteArray# mbytes# n# ((0 :+ 0) `asTypeOf` e) s2# of
         s3# -> (# s3#, mbytes# #)
 
 --------------------------------------------------------------------------------
@@ -506,7 +544,17 @@ bool_index = (`uncheckedIShiftRA#` 6#)
 
 --------------------------------------------------------------------------------
 
-{- Deprecated -}
+-- | 'psizeof' is 'Proxy' 'sizeof'.
+{-# INLINE psizeof #-}
+psizeof :: (Unboxed e) => Proxy e -> Int
+psizeof e = sizeof (undefined `asProxyTypeOf` e) 1
+
+-- | 'sizeof#' is unboxed 'sizeof'.
+{-# INLINE sizeof# #-}
+sizeof# :: (Unboxed e) => e -> Int# -> Int#
+sizeof# =  \ e c# -> case sizeof e (I# c#) of I# n# -> n#
+
+--------------------------------------------------------------------------------
 
 {- |
   newUnboxedByteArray is service function for ordinary newUnboxed decrarations.
@@ -532,19 +580,6 @@ safe_scale scale# n# = if isTrue# (mb# `divInt#` scale# <# n#)
     else scale# *# n#
   where
     !(I# mb#) = maxBound
-
---------------------------------------------------------------------------------
-
--- | 'psizeof' is 'Proxy' 'sizeof'.
-{-# INLINE psizeof #-}
-psizeof :: (Unboxed e) => Proxy e -> Int
-psizeof e = sizeof (undefined `asProxyTypeOf` e) 1
-
--- | 'sizeof#' is unboxed 'sizeof'.
-{-# INLINE sizeof# #-}
-sizeof# :: (Unboxed e) => e -> Int# -> Int#
-sizeof# =  \ e c# -> case sizeof e (I# c#) of I# n# -> n#
-
 
 
 

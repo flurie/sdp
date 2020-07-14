@@ -54,6 +54,7 @@ Library
     SDP.Tuple
     SDP.Shape
     SDP.Index
+    SDP.Ratio
     
     SDP.SortM.Insertion
     SDP.SortM.Tim
@@ -72,6 +73,9 @@ Library
     SDP.Templates.AnyChunks
     
     -- primitives
+    
+    SDP.Unboxed.WordAs
+    SDP.Unboxed.IntAs
     
     SDP.Prim.SArray
     SDP.Prim.SBytes
