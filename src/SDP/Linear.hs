@@ -612,7 +612,7 @@ class (Linear s e) => Split s e | s -> e
 -}
 
 -- | Pattern Z is overloaded empty (or incorrect) line. Same as 'isNull' and 'lzero'.
-pattern Z :: (Nullable n) => n
+pattern Z :: (Nullable e) => e
 pattern Z <- (isNull -> True) where Z = lzero
 
 -- | Pattern (:>) is left-size view of line. Same as 'uncons' and 'toHead'.

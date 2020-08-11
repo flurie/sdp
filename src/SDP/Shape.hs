@@ -1,6 +1,5 @@
-{-# LANGUAGE TypeFamilies, TypeOperators, DefaultSignatures #-}
-{-# LANGUAGE FlexibleInstances, UndecidableInstances #-}
-{-# LANGUAGE CPP, OverloadedLists, ConstraintKinds #-}
+{-# LANGUAGE TypeFamilies, TypeOperators, DefaultSignatures, ConstraintKinds #-}
+{-# LANGUAGE CPP, FlexibleInstances, UndecidableInstances, OverloadedLists #-}
 
 {- |
     Module      :  SDP.Shape
@@ -40,6 +39,8 @@ import Data.Word
 import Data.Int
 
 import SDP.Internal
+
+import Foreign.C.Types
 
 default ()
 
@@ -159,6 +160,8 @@ type RANK15 i = GIndex i ~~ I15 i
 
 --------------------------------------------------------------------------------
 
+{- Basic instances. -}
+
 instance Shape E
   where
     rank = const 0
@@ -182,6 +185,36 @@ instance Shape Word32
 instance Shape Word64
 
 --------------------------------------------------------------------------------
+
+{- Foreign C instances. -}
+
+instance Shape CChar
+instance Shape CUChar
+instance Shape CSChar
+instance Shape CWchar
+instance Shape CShort
+instance Shape CUShort
+
+instance Shape CInt
+instance Shape CUInt
+instance Shape CLong
+instance Shape CLLong
+instance Shape CULong
+instance Shape CULLong
+instance Shape CIntPtr
+instance Shape CUIntPtr
+
+instance Shape CIntMax
+instance Shape CUIntMax
+
+instance Shape CSize
+instance Shape CBool
+instance Shape CPtrdiff
+instance Shape CSigAtomic
+
+--------------------------------------------------------------------------------
+
+{- N-dimensional instances. -}
 
 instance (Shape i, Enum i, Bounded i) => Shape (E :& i)
   where
@@ -214,6 +247,8 @@ instance (Shape i, Enum i, Bounded i, Shape (i' :& i)) => Shape (i' :& i :& i)
     unconsDim = \ (is :& i) -> (is, i)
 
 --------------------------------------------------------------------------------
+
+{- Tuple instances. -}
 
 #define SHAPE_INSTANCE(Type,Last,GType,RANK)\
 instance (Shape i, Enum i, Bounded i) => Shape (Type i)\

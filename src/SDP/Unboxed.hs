@@ -34,6 +34,8 @@ import GHC.ST
 import Data.Complex
 import Data.Proxy
 
+import Foreign.C.Types
+
 #include "MachDeps.h"
 
 default ()
@@ -360,6 +362,53 @@ nullStablePtr =  StablePtr (unsafeCoerce# 0#)
 
 --------------------------------------------------------------------------------
 
+{- Foreign C instances. -}
+
+#define SDP_DERIVE_FOREIGN_UNBOXED(Type)\
+instance Unboxed Type where\
+{\
+  sizeof e = sizeof (unpackUndefined e Type);\
+  arr# !# i# = Type ( arr# !# i# );\
+  marr# !># i# = \ s1# -> case (!>#) marr# i# s1# of {(# s2#, e #) -> (# s2#, Type e #)};\
+  writeByteArray# marr# i# (Type e) = writeByteArray# marr# i# e;\
+  fillByteArray#  marr# i# (Type e) = fillByteArray#  marr# i# e;\
+  newUnboxed  (Type e) = newUnboxed  e;\
+  newUnboxed' (Type e) = newUnboxed' e;\
+}
+
+SDP_DERIVE_FOREIGN_UNBOXED(CChar)
+SDP_DERIVE_FOREIGN_UNBOXED(CSChar)
+SDP_DERIVE_FOREIGN_UNBOXED(CWchar)
+SDP_DERIVE_FOREIGN_UNBOXED(CShort)
+SDP_DERIVE_FOREIGN_UNBOXED(CUShort)
+
+SDP_DERIVE_FOREIGN_UNBOXED(CInt)
+SDP_DERIVE_FOREIGN_UNBOXED(CUInt)
+SDP_DERIVE_FOREIGN_UNBOXED(CLong)
+SDP_DERIVE_FOREIGN_UNBOXED(CULong)
+SDP_DERIVE_FOREIGN_UNBOXED(CLLong)
+SDP_DERIVE_FOREIGN_UNBOXED(CULLong)
+SDP_DERIVE_FOREIGN_UNBOXED(CIntPtr)
+SDP_DERIVE_FOREIGN_UNBOXED(CUIntPtr)
+SDP_DERIVE_FOREIGN_UNBOXED(CIntMax)
+SDP_DERIVE_FOREIGN_UNBOXED(CUIntMax)
+SDP_DERIVE_FOREIGN_UNBOXED(CPtrdiff)
+
+SDP_DERIVE_FOREIGN_UNBOXED(CTime)
+SDP_DERIVE_FOREIGN_UNBOXED(CClock)
+SDP_DERIVE_FOREIGN_UNBOXED(CUSeconds)
+SDP_DERIVE_FOREIGN_UNBOXED(CSUSeconds)
+
+SDP_DERIVE_FOREIGN_UNBOXED(CSize)
+SDP_DERIVE_FOREIGN_UNBOXED(CBool)
+SDP_DERIVE_FOREIGN_UNBOXED(CFloat)
+SDP_DERIVE_FOREIGN_UNBOXED(CDouble)
+SDP_DERIVE_FOREIGN_UNBOXED(CSigAtomic)
+
+#undef SDP_DERIVE_FOREIGN_UNBOXED
+
+--------------------------------------------------------------------------------
+
 {- Other instances. -}
 
 instance Unboxed ()
@@ -581,5 +630,6 @@ safe_scale scale# n# = if isTrue# (mb# `divInt#` scale# <# n#)
   where
     !(I# mb#) = maxBound
 
-
+unpackUndefined :: b -> (a -> b) -> a
+unpackUndefined =  \ _ _ -> undefined
 

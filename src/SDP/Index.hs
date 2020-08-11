@@ -40,6 +40,8 @@ import Data.Tuple
 
 import SDP.Internal
 
+import Foreign.C.Types
+
 default ()
 
 --------------------------------------------------------------------------------
@@ -274,7 +276,7 @@ instance (Index i) => Estimate (i, i)
 
 --------------------------------------------------------------------------------
 
-{- Basic instances -}
+{- Basic instances. -}
 
 instance Index E
   where
@@ -336,6 +338,34 @@ instance Index Word8   where offset = offsetIntegral; defaultBounds = defaultBou
 instance Index Word16  where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
 instance Index Word32  where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
 instance Index Word64  where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+
+--------------------------------------------------------------------------------
+
+{- Foreign C instances. -}
+
+instance Index CChar      where offset = offsetIntegral
+instance Index CSChar     where offset = offsetIntegral
+instance Index CWchar     where offset = offsetIntegral
+instance Index CShort     where offset = offsetIntegral
+
+instance Index CInt       where offset = offsetIntegral
+instance Index CLong      where offset = offsetIntegral
+instance Index CLLong     where offset = offsetIntegral
+instance Index CIntPtr    where offset = offsetIntegral
+instance Index CIntMax    where offset = offsetIntegral
+instance Index CPtrdiff   where offset = offsetIntegral
+instance Index CSigAtomic where offset = offsetIntegral
+
+instance Index CSize      where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+instance Index CBool      where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+instance Index CUChar     where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+instance Index CUShort    where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+
+instance Index CUInt      where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+instance Index CULong     where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+instance Index CULLong    where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+instance Index CUIntPtr   where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+instance Index CUIntMax   where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
 
 --------------------------------------------------------------------------------
 
