@@ -243,7 +243,7 @@ instance Indexed [e] Int e
     
     fromIndexed es = (es !) <$> indices es
     
-    xs // es = snds $ unionWith cmpfst (assocs xs) (setWith cmpfst es)
+    xs // es = snds $ unionWith cmpfst (setWith cmpfst es) (assocs xs)
     
     (.$) = findIndex
     (*$) = findIndices

@@ -42,7 +42,7 @@ default ()
 --------------------------------------------------------------------------------
 
 -- | Primitive int-indexed unboxed array in monad 'IO'.
-newtype IOBytes# e = IOBytes# { unpack :: STBytes# RealWorld e} deriving ( Eq )
+newtype IOBytes# e = IOBytes# { unpack :: STBytes# RealWorld e } deriving ( Eq )
 
 --------------------------------------------------------------------------------
 

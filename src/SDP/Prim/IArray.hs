@@ -42,7 +42,7 @@ default ()
 --------------------------------------------------------------------------------
 
 -- | Primitive int-indexed unboxed array in monad 'IO'.
-newtype IOArray# e = IOArray# { unpack :: STArray# RealWorld e} deriving ( Eq )
+newtype IOArray# e = IOArray# { unpack :: STArray# RealWorld e } deriving ( Eq )
 
 --------------------------------------------------------------------------------
 
