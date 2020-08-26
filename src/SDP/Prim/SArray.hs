@@ -288,6 +288,8 @@ instance Linear (SArray# e) e
     listL = toList
     listR = flip (:) `foldl` []
     
+    (!^) (SArray# _ (I# o#) arr#) = \ (I# i#) -> case indexArray# arr# (i# +# o#) of (# e #) -> e
+    
     reverse es = runST $ fromIndexed' es >>= reversed >>= done
     
     concat ess = runST $ do
@@ -574,10 +576,7 @@ instance Indexed (SArray# e) Int e
         u = fst $ maximumBy cmpfst ascs
     arr // ascs = runST $ fromFoldableM arr >>= (`overwrite` ascs) >>= done
     
-    (!^) (SArray# _ (I# o#) arr#) = \ (I# i#) -> case indexArray# arr# (i# +# o#) of (# e #) -> e
-    
     (.!) = (!^)
-    (!)  = (!^)
     
     (*$) p = ifoldr (\ i e is -> p e ? (i : is) $ is) []
 
@@ -930,6 +929,7 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
+
 
 
 

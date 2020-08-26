@@ -210,6 +210,9 @@ instance (Unboxed e) => Linear (SBytes# e) e
           where
             n# = n1# +# n2#
     
+    {-# INLINE (!^) #-}
+    (!^) (SBytes# _ (I# o#) arr#) = \ (I# i#) -> arr# !# (i# +# o#)
+    
     replicate n e = runST $ filled n e >>= done
     
     listL = i_foldr (:) []
@@ -502,11 +505,7 @@ instance (Unboxed e) => Indexed (SBytes# e) Int e
         u = fst $ maximumBy cmpfst ascs
     arr // ascs = runST $ thaw arr >>= (`overwrite` ascs) >>= done
     
-    {-# INLINE (!^) #-}
-    (!^) (SBytes# _ (I# o#) arr#) = \ (I# i#) -> arr# !# (i# +# o#)
-    
     (.!) = (!^)
-    (!)  = (!^)
     
     (*$) p = ifoldr (\ i e is -> p e ? (i : is) $ is) []
 
@@ -916,5 +915,6 @@ overEx =  throw . IndexOverflow . showString "in SDP.Prim.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
+
 
 

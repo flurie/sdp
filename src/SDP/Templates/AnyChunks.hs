@@ -192,6 +192,9 @@ instance (Bordered1 rep Int e, Linear1 rep e) => Linear (AnyChunks rep e) e
     fromList = AnyChunks . fmap fromList . chunks lim
     listL    = foldr ((++) . listL) [] . unpack
     
+    (AnyChunks (x : xs)) !^ i = i < sizeOf x ? x !^ i $ AnyChunks xs !^ (i - sizeOf x)
+    _ !^ _ = error "in SDP.Unrolled.Unlist.(!^)"
+    
     -- | Deduplicated chunks.
     replicate n e = AnyChunks $ replicate count chunk :< rest
       where
@@ -263,8 +266,8 @@ instance (BorderedM1 m rep Int e) => BorderedM m (AnyChunks rep e) Int
 
 instance (BorderedM1 m rep Int e, SplitM1 m rep e) => LinearM m (AnyChunks rep e) e
   where
-    newNull = return (AnyChunks [])
     nowNull = fmap null . unpack'
+    newNull = return (AnyChunks [])
     getHead = getHead . head <=< unpack'
     getLast = getLast . last <=< unpack'
     
@@ -399,9 +402,6 @@ instance (Indexed1 rep Int e) => Indexed (AnyChunks rep e) Int e
     
     fromIndexed es = AnyChunks [fromIndexed es]
     
-    (AnyChunks (x : xs)) !^ i = i < sizeOf x ? x !^ i $ AnyChunks xs !^ (i - sizeOf x)
-    _ !^ _ = error "in SDP.Unrolled.Unlist.(!^)"
-    
     (.!) = (!^)
     
     (.$) p (AnyChunks (x : xs)) = p .$ x <|> (+ sizeOf x) <$> p .$ AnyChunks xs
@@ -509,7 +509,7 @@ instance {-# OVERLAPPABLE #-} (Linear1 imm e, Thaw1 m imm mut e) => Thaw m (AnyC
 
 {- |
   Creates one-chunk mutable stream. Works without 'Split' and 'SplitM', but may
-  cause memory leaks.
+  be memory inefficient.
 -}
 instance {-# OVERLAPPABLE #-} (Thaw1 m imm mut e) => Thaw m (imm e) (AnyChunks mut e)
   where
@@ -523,7 +523,7 @@ instance {-# OVERLAPS #-} (Thaw1 m imm mut e) => Thaw m (AnyChunks imm e) (AnyCh
 
 {- |
   Creates one-chunk immutable stream. Works without 'Split' and 'SplitM', but
-  may cause memory leaks.
+  may be memory inefficient.
 -}
 instance {-# OVERLAPPABLE #-} (Freeze1 m mut imm e) => Freeze m (mut e) (AnyChunks imm e)
   where

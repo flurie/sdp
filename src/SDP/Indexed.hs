@@ -26,19 +26,18 @@ module SDP.Indexed
 )
 where
 
-import SDP.SafePrelude
 import Prelude ()
-
-import Data.List ( findIndex, findIndices )
-
+import SDP.SafePrelude
 import SDP.Linear
 import SDP.Map
+
+import Data.List ( findIndex, findIndices )
 
 import SDP.Internal
 
 default ()
 
-infixl 9 !^, .!, !, !?
+infixl 9 .!, !, !?
 
 --------------------------------------------------------------------------------
 
@@ -102,10 +101,6 @@ class (Linear v e, Bordered v i) => Indexed v i e
     (/>) es f = assoc (bounds es) [ (i, f i (es ! i)) | i <- indices es ]
     
     {- Elementwise operations. -}
-    
-    -- | (!^) is completely unsafe reader. Must work as fast, as possible.
-    (!^) :: v -> Int -> e
-    (!^) es = (es .!) . indexOf es
     
     -- | (.!) is unsafe reader, but on bit faster of ('!').
     {-# INLINE (.!) #-}
@@ -227,8 +222,6 @@ instance Indexed [e] Int e
             nx   = next bnds i1
         fill xs  = xs
     
-    (!^) = (.!)
-    
     (x : xs) .! n = n == 0 ? x $ xs .! (n - 1)
     _        .! _ = error "in SDP.Indexed.(.!)"
     
@@ -275,7 +268,7 @@ type IFold2 v i e = IFold (v i e) i e
 --------------------------------------------------------------------------------
 
 -- | binaryContain checks that sorted structure has equal element.
-binaryContain :: (Indexed v i e) => Compare e -> e -> v -> Bool
+binaryContain :: (Linear v e, Bordered v i) => Compare e -> e -> v -> Bool
 binaryContain f e es = and [ s /= 0, f e (es !^ 0) /= LT, f e (es !^ u') /= GT, contain 0 u' ]
   where
     contain l u = l > u ? False $ case f e (es !^ j) of
@@ -294,7 +287,4 @@ es >/> is = update es is . const
 
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.Indexed."
-
-
-
 

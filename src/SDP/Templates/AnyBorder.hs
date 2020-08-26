@@ -219,6 +219,9 @@ instance (Index i, Linear1 rep e, Bordered1 rep Int e) => Linear (AnyBorder rep 
     listL = listL . unpack
     listR = listR . unpack
     
+    {-# INLINE (!^) #-}
+    (!^) = (!^) . unpack
+    
     concatMap f = withBounds . concatMap (unpack . f)
     concat      = withBounds . concatMap unpack
     
@@ -392,9 +395,6 @@ instance (Index i, Indexed1 rep Int e) => Indexed (AnyBorder rep i e) i e
         bnds' = defaultBounds $ size bnds
     
     fromIndexed = withBounds . fromIndexed
-    
-    {-# INLINE (!^) #-}
-    (!^) = (!^) . unpack
     
     {-# INLINE (.!) #-}
     (.!) (AnyBorder l u rep) = (rep !^) . offset (l, u)

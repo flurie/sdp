@@ -55,6 +55,7 @@ infix 8 `filter`, `except`
 
 infixr 5 :>, ++
 infixl 5 :<
+infixl 9 !^
 
 --------------------------------------------------------------------------------
 
@@ -231,6 +232,19 @@ class (Nullable l) => Linear l e | l -> e
     -- | Generalized 'fromList'.
     fromFoldable :: (Foldable f) => f e -> l
     fromFoldable =  fromList . toList
+    
+    {- |
+      Returns the element of a sequence by number (from 0), may be completely
+      unsafe. This is an optimistic unsafe read function and shouldn't perform
+      checks for efficiency reasons.
+      
+      If you need safety, use (!) or (!?). The generalization of this function
+      for an arbitrary index is (.!).
+      
+      > es !^ i = listL es !! i
+    -}
+    (!^) :: l -> Int -> e
+    (!^) =  (L.!!) . listL
     
     -- | Generalized concat.
     concat :: (Foldable f) => f l -> l
@@ -648,6 +662,7 @@ instance Linear [e] e
     toHead = (:)
     single = pure
     (++)   = (L.++)
+    (!^)   = (L.!!)
     
     fromList     = id
     fromListN    = take
