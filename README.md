@@ -1,132 +1,159 @@
 # Simple Data Processing
 
-This is a library for simple data processing. SDP is inspired by array, vector,
-bytestring and partly by containers and repa. SDP focuses on efficiency and
-openness.
+It is a library for simple data processing. SDP is inspired by ``array``,
+``vector``, ``bytestring``, ``containers`` and ``repa``. SDP is focused on
+efficiency and openness.
 
-## tl;dr
+## tl; dr
 
-SDP is a compilation of best features of common Haskell Platform structure
-libraries. It's interchangeable with array and vector (except Bundles),
-almost with containers (except Graphs and Trees) and partly with the ByteString
-(Bytes and Unrolled is higher level analogues of strict and lazy bytestrings).
+``sdp`` is designed to combine the main ``Haskell Platform`` libraries and their
+functionality for more comfortable work and better code readability.
 
-## Reasons
+In addition to the base classes and algorithms, ``sdp`` implements the simplest
+data structures (arrays and unrolled lists) to replace the obsolete ``array``
+library.
 
-* Solve the problem of name clashes for basic definitions without qualified
-imports.
-* Offer a replacement for the legacy array package. SDP uses ideas taken from
-vector, bytestring, repa and other libraries to implement common structures and
-algorithms more efficiently.
-* Offer an interface for generalized programming.
-* Offer more convenient notation for commonly used operations (compare SDP.Set
-and Data.Set).
-* Create a base for quick implementation of new structures. SDP pseudo-primitive
-structures are much more functional and flexible than their counterparts from
-primitive package.
-* Smooth out the problems of generalizing. Text and ByteString are excellent
-structures, but functors, folds and other useful operations on them cannot be
-generalized using the standard library. Unfortunately, solving the problem in
-the general case is still not easy.
+## Motivation
+
+The purpose of ``sdp`` is to provide the most comfortable interface for working
+with various data structures in one namespace without qualified imports, keeping
+a sufficiently high quality of the code and speed of work.
 
 ## Functionality
 
-SDP provides a lot of common data conversion functions, a powerful abstraction
-for generalized programming and the most used operations, including (but not
-limited to) filtering, splitting and sorting.
+``sdp`` provides basic structures and operations on them.
 
-With SDP list functions don't overlap analogues for other structures.
+### Structures
 
-SDP provides 12 common data structures (not including lists):
-- immutable arrays:
-[Array](https://github.com/andreymulik/sdp/blob/master/src/SDP/Array.hs) and
-[Bytes](https://github.com/andreymulik/sdp/blob/master/src/SDP/Bytes.hs)
-- immutable unrolled lists:
-[Unlist](https://github.com/andreymulik/sdp/blob/master/src/SDP/Unrolled/Unlist.hs),
-[Ublist](https://github.com/andreymulik/sdp/blob/master/src/SDP/ByteList/Ublist.hs),
-[Unrolled](https://github.com/andreymulik/sdp/blob/master/src/SDP/Unrolled.hs) and
-[ByteList](https://github.com/andreymulik/sdp/blob/master/src/SDP/ByteList.hs)
-- mutable arrays:
-[STArray](https://github.com/andreymulik/sdp/blob/master/src/SDP/Array/ST.hs) and
-[STBytes](https://github.com/andreymulik/sdp/blob/master/src/SDP/Bytes.ST.hs)
-- mutable unrolled lists:
-[STUnlist](https://github.com/andreymulik/sdp/blob/master/src/SDP/Unrolled/ST.hs),
-[STUblist](https://github.com/andreymulik/sdp/blob/master/src/SDP/ByteList/ST.hs),
-[STUnrolled](https://github.com/andreymulik/sdp/blob/master/src/SDP/Unrolled.ST.hs)
-and [STByteList](https://github.com/andreymulik/sdp/blob/master/src/SDP/ByteList/ST.hs)
+All predefined structures are based on **pseudo-primitive** types ``SArray#``,
+``SBytes#``, ``STArray#``, ``STBytes#``, ``IOArray#``, ``IOBytes#`` that
+securely encapsulate real primitives.
 
-Also SDP has pseudo-primitive types (SArray#, SBytes#, STArray# and STBytes#)
-that simplifies the implementation of more complex structures. They are
-protected from tampering and provide some important guarantees.
+``sdp`` uses **templates** to define more complex structures:
+* ``AnyBorder`` adds explicit boundaries of arbitrary type.
+* ``AnyChunks`` defines an unrolled list with structure elements.
 
-SDP provides the following classes:
+Based on pseudo-primitives and templates, the following are defined:
+* immutable arrays ``Array`` and ``Bytes``
+* mutable arrays ``STArray`` and ``STBytes``, ``IOArray`` and ``IOBytes``
+* immutable unrolled lists ``Unlist`` and ``Ublist``
+* mutable unrolled lists ``STUnlist`` and ``STUblist``, ``IOUnlist`` and
+``IOUblist``
+* immutable unrolled lists with explicit boundaries ``Unrolled`` and
+``ByteList``
+* mutable expanded lists with explicit boundaries ``STUnrolled`` and
+``STByteList``, ``IOUnrolled`` and ``IOByteList``
 
-- Bordered, Linear and Indexed - for common immutable operations.
-- BorderedM, LinearM and IndexedM - for common mutable operations.
-- IFold and IFoldM - folds with index. For some structures may be used instead
-Foldable.
-- Sort and SortM - sorts for immutable and mutable structures.
-- Set and Map - for set and map operations.
-- Index, Unboxed, Estimate, Zip and Scan - service classes.
+--------------------------------------------------------------------------------
 
-## Versioning
+### Classes
 
-SDP follow [Haskell Package Versioning Policy](https://pvp.haskell.org).
-To simplify the search for derivative components, I propose the following rules:
-* The MAJOR version of the derivative must match the smallest MAJOR version of
-SDP with which it's compatible.
-* The MINOR version is left to the discretion of the derivative developer.
-* SDP extensions should be called by the rule: sdp-%extensionname%.
-* SDP wrappers should be called by one of the follow rules.
-sdp4%libraryname% (for libraries that already has most of the provided by
-wrapper functionality, but need a little generalization). Or sdp2%libraryname% -
-for poor libraries that not only generalized, but also expanded by the wrapper.
+``sdp`` provides a lot of conversion functions, powerful abstraction data for
+writing generalized algorithms, implements the most popular operations including
+selection, splitting and sorting. With ``sdp`` list functions are not overlap
+their counterparts for other structures.
+
+``Nullable`` is a service class of structures with null values.
+
+``Bordered`` is a class of structures with borders and finite number of elements.
+
+``Estimate`` is a service class for efficiently estimating the length of a
+structure. Allows to express such conditions as "is structure longer than 5
+elements?", "The length of the structure is 10?" or "structure 1 is
+shorter than structure 2?" and calculate them in a finite time (in the last
+example, at least one of the structures must be finite). It makes sense to use
+``Estimate`` in cases where length calculation is more difficult than O(1) and
+you don't need to know the exact size.
+
+``Unboxed`` is a service class that simplifies interacting with data stored in
+``ByteArray#`` and ``MutableArray#``. Used in containers that based on
+``SBytes#``, ``STBytes#`` or ``IOBytes#``.
+
+``Shape`` is a service class for dimension operations and finite-dimensional
+index transformations.
+
+``Index`` is a service class that generalizes enumeration and membership
+operations interval. It is an improved version of ``Ix``.
+
+``IFold`` is a service class to fold indexed sequences. Provides
+``Foldable``-like functions for structures with value type constraints.
+
+``Linear`` is a class of linear structures that generalizes the standard list
+functions.
+
+``Split`` is a split structure class that extends ``Linear``.
+
+``Indexed`` is a class of indexed structures that generalizes read and modify
+operations immutable structures.
+
+``Shaped`` is a class of operations on structures generalized by the type of
+index. Provides safe change of range and index type, fast extraction of
+subsequences.
+
+``Map`` is a class of operations with dictionaries.
+
+``Set`` is a class of operations on sets.
+
+``Zip`` is a class that generalizes element-wise union of structures.
+
+``Scan`` is a class of convolutions with intermediate values.
+
+``Sort`` is a sorting class for immutable structures.
+
+``BorderedM``, ``LinearM``, ``SplitM``, ``IndexedM``, ``IFoldM``, ``SortM`` -
+classes of operations on mutable containers.
+
+## Versions
+
+``sdp`` follow [Haskell Package Versioning Policy](https://pvp.haskell.org). To
+simplify the search for derivative components, I propose the following rules:
+* The ``MAJOR`` version of the derivative must match the smallest ``MAJOR``
+version of ``sdp`` with which it's compatible.
+* ``sdp`` extensions should be called ``sdp-%extensionname%``, e.g. ``sdp-io``
+or ``sdp-quickcheck``.
+* ``sdp`` wrappers should be called ``sdp4%libraryname%``, e.g. ``sdp4text``.
+* Some wrappers may be called ``sdp2%libraryname%``, e.g. ``sdp2binary``.
 
 ## Differences from other similar projects
 
-* Internal consistency. Unfortunately, not all libraries are self-consistent,
-even in the Haskell Platform.
-* Maximum functionality with the minimal dependencies and size. SDP requires
-only the most necessary and commonly used packages. This is one of the reasons
-for which I refused to use some libraries as dependencies (for example, array,
-which relies on a poorly designed Ix class or containers, in which a lot of the
-code duplication).
-* Good extensibility. SDP is based on type classes that provide the simplest
-interfaces for working with different data structures and reduce code
-duplication. SDP will not requires qualified imports when work with different
-structures in the same namespace.
-* Orientation to other libraries. This library is interchangeable with array and
-vector, however this isn't the main purpose. First of all, SDP is a way of
-interacting libraries at the level of data abstraction. SDP doesn't give its own
-implementations an advantage over external.
+* **Internal consistency.** Unfortunately, not all Haskell libraries are
+self-consistent, even in the ``Haskell Platform``. The current version
+``sdp-0.2`` is much better than the preliminary ones.
+* **Not another rebase.** ``sdp`` works **with** ``base``, generalizes and
+extends it.
+* **Maximum functionality with minimum size**. The ``sdp`` is comparable in size
+to ``containers``, and it only requires 3 simple dependencies (including
+``base``). ``sdp`` and its dependencies do not require ``array``, ``containers``
+or ``vector``, it is completely independent of them.
+* **Good extensibility.** Since SDP is based on typeclasses, I can easily add
+new function without updating derived components. For SDP compatibility, it is
+enough to implement several open and universal interfaces.
+* **Targeting other libraries.** Although SDP was created as ``array``
+replacement, its main purpose was to eliminate name conflicts with other
+libraries and (partially) between them. The library generalizes standard
+functions and thus hides many qualified imports. SDP wrappers also improves code
+readability. For example, you can work with text and binary streams (``Text``
+and ``ByteString``) in one module without unnecessary qualifiers.
 
-## SDP category using
+## Using the SDP category
 
-SDP category must be used for:
-* type classes declared in SDP and extensions
-* types whose names are occupied in the Data category. For example, Array can't
-be placed in the Data.Array module due to a conflict with the array package.
-* types based on SDP pseudo-primitives (STUnlist, STUblist, as well as based on
-them Unrolled and ByteList)
-* wrapper modules, to avoid a 3-5 level hierarchy. For example, the wrapper for
-Data.ByteString is SDP.ByteString, not Data.ByteString.SDP and the wrapper for
-Data.ByteString.Lazy is SDP.ByteString.Lazy, not Data.ByteString.Lazy.SDP or
-Data.ByteString.SDP.Lazy
+The SDP category can be used for:
+* ``sdp`` type classes and extensions.
+* Types based on pseudo-primitives and ``sdp`` templates.
+* Wrapper modules, to avoid a 3-5 level hierarchy. For example,
+``SDP.ByteString.Lazy`` instead of ``Data.ByteString.Lazy.SDP``.
 
-SDP category mustn't be used for types from System, Control, Foreign, Test and
-other important categories (for example, instances for Foreign.C types should be
-in Foreign.C.SDP, not in SDP.C or SDP.Foreign.C).
+If other categories (``Control``, ``Foreign``, ``System``, etc.) can be used,
+they must be used.
 
 ## Contributing
-
 For details of the process for submitting pull requests, please read
 [CONTRIBUTING.md](https://github.com/andreymulik/sdp/blob/master/CONTRIBUTING.md).
 
 ## License
-
-SDP is free software, you can redistribute it and/or modify it under the
-terms of the BSD3 license.
-SDP is distributed in the hope that it will be useful, but without any
-warranty, without even the implied warranty of merchantability or fitness for
-a particular purpose. See the BSD3 license for more details.
+``sdp`` is free software, you can redistribute it and/or modify it under the
+terms of the BSD3 license. ``sdp`` is distributed in the hope that it will be
+useful, but without any warranty, without even the implied warranty of
+merchantability or fitness for a particular purpose. See the BSD3 license for
+more details.
 
