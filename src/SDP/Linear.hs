@@ -358,13 +358,15 @@ class (Nullable l) => Linear l e | l -> e
   
   * length: 'take', 'drop', 'split', 'splits', 'keep', 'sans', 'divide',
   'divides', 'parts', 'chunks'
+  * content: 'splitBy', 'divideBy', 'splitsBy', 'splitsOn'
   * predicate: 'takeWhile', 'dropWhile', 'spanl', 'breakl' (left to right),
   'takeEnd', 'dropEnd', 'spanr', 'breakr' (right to left)
   * selector: 'selectWhile', 'selectEnd', 'extractWhile', 'extractEnd',
-  'selectWhile'', 'selectEnd'', 'extractWhile'', 'extractEnd''
+  'selectWhile'', 'selectEnd'', 'extractWhile'', 'extractEnd'', 'replaceBy',
+  'removeAll', 'each', 'eachFrom'.
   
-  Also Split contain useful comparators: 'isPrefixOf', 'isInfixOf' and
-  'isSuffixOf'.
+  Also Split provides some usefil predicates: 'isPrefixOf', 'isInfixOf',
+  'isSuffixOf', 'prefix', 'suffix', 'infixes', 'combo'.
 -}
 
 -- | Split - class of splittable data structures.
@@ -440,10 +442,29 @@ class (Linear s e) => Split s e | s -> e
     
     {- |
       Split line by first (left) separation element. If there is no such
-      element, returns (es, Z).
+      element, @splitBy es = (es, Z)@.
+      
+      > splitBy (== '.') "foo" == ("foo","")
+      > splitBy (== '.') "foo." == ("foo","")
+      > splitBy (== '.') ".foo" == ("","foo")
+      > splitBy (== '.') "foo.bar" == ("foo","bar")
+      > splitBy (== '.') "foo.bar.baz" == ("foo","bar.baz")
     -}
     splitBy :: (e -> Bool) -> s -> (s, s)
     splitBy f = bimap fromList fromList . splitBy f . listL
+    
+    {- |
+      Split line by last (right) separation element. If there is no such
+      element, @divide es = (Z, es)@.
+      
+      > divideBy (== '.') "foo" == ("","foo")
+      > divideBy (== '.') ".foo" == ("","foo")
+      > divideBy (== '.') "foo." == ("foo","")
+      > divideBy (== '.') "foo.bar" == ("foo","bar")
+      > divideBy (== '.') "foo.bar.baz" == ("foo.bar","baz")
+    -}
+    divideBy :: (e -> Bool) -> s -> (s, s)
+    divideBy f = bimap fromList fromList . divideBy f . listL
     
     -- | Splits line by separation elements.
     splitsBy :: (e -> Bool) -> s -> [s]
@@ -716,6 +737,7 @@ instance Split [e] e
     combo _ _ = 0
     
     splitBy  f es = let (as, bs) = breakl f es in isNull bs ? (es, []) $ (as, tail bs)
+    divideBy f es = let (as, bs) = breakr f es in isNull as ? ([], es) $ (init as, bs)
     splitsBy f es = dropWhile f <$> L.findIndices f es `parts` es
     
     isPrefixOf = L.isPrefixOf
@@ -772,4 +794,7 @@ sorted es = combo (<=) es == sizeOf es
 -}
 ascending :: (Split s e, Bordered s i, Ord e) => s -> [Int] -> Bool
 ascending =  all sorted ... flip splits
+
+
+
 

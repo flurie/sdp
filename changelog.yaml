@@ -131,9 +131,10 @@
 
     - Split: |
         keep, sans, divide, divides, save, skip, chunks, each, each', infixes,
-        complement, combo, splitBy, splitsBy, splitsOn, removeAll, replaceBy,
+        complement, combo, splitBy, divideBy, splitsBy, splitsOn,
         selectWhile,  extractWhile,  selectEnd,  extractEnd,
-        selectWhile', extractWhile', selectEnd', extractEnd'
+        selectWhile', extractWhile', selectEnd', extractEnd',
+        removeAll, replaceBy
 
   types:
     - IOArray: mutable boxed array in monad IO
