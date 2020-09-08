@@ -26,10 +26,7 @@ module SDP.Prim.SBytes
   unsafePackPseudoBytes#, unsafePackMutableBytes#,
   
   -- ** Unsafe coerce
-  unsafeCoercePseudoBytes#, unsafeCoerceMutableBytes#,
-  
-  -- ** Safe memory allocation
-  filled_
+  unsafeCoercePseudoBytes#, unsafeCoerceMutableBytes#
 )
 where
 
@@ -915,6 +912,4 @@ overEx =  throw . IndexOverflow . showString "in SDP.Prim.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
-
-
 

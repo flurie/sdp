@@ -16,7 +16,7 @@ module SDP.Prim.IBytes
   module SDP.Unboxed,
   
   -- * Pseudo-primitive types
-  IOBytes# ( IOBytes# )
+  IOBytes# ( IOBytes# ), SBytes#
 )
 where
 
@@ -27,7 +27,6 @@ import SDP.Unboxed
 import SDP.SortM
 
 import SDP.Prim.SBytes
-
 import SDP.SortM.Tim
 
 import Data.Function
@@ -191,5 +190,6 @@ pack' =  stToIO . coerce
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.IArray."
+
 
 

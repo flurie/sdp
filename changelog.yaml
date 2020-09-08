@@ -1,6 +1,7 @@
 # template
 # - version: 1.0
 #   # important
+#   dependencies: []
 #   crutches:     [] # post factum indication
 #   fixes:        []
 #   deprecations: []

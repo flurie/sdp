@@ -16,19 +16,17 @@ module SDP.Prim.IArray
   module SDP.IndexedM,
   module SDP.SortM,
   
-  -- * Pseudo-primitive types
-  IOArray# ( IOArray# ),
+  -- * Pseudo-primitive type
+  IOArray# ( IOArray# ), SArray#
 )
 where
 
 import Prelude ()
 import SDP.SafePrelude
-
-import SDP.Prim.SArray
-
 import SDP.IndexedM
 import SDP.SortM
 
+import SDP.Prim.SArray
 import SDP.SortM.Tim
 
 import Data.Function
@@ -192,4 +190,6 @@ pack' =  stToIO . coerce
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.IArray."
+
+
 
