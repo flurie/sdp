@@ -44,8 +44,6 @@ Based on pseudo-primitives and templates, the following are defined:
 * mutable expanded lists with explicit boundaries ``STUnrolled`` and
 ``STByteList``, ``IOUnrolled`` and ``IOByteList``
 
---------------------------------------------------------------------------------
-
 ### Classes
 
 ``sdp`` provides a lot of conversion functions, powerful abstraction data for
