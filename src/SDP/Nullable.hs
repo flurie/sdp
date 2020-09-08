@@ -1,4 +1,4 @@
-{-# LANGUAGE PatternSynonyms, ViewPatterns #-}
+{-# LANGUAGE PatternSynonyms, ViewPatterns, MagicHash #-}
 
 {- |
     Module      :  SDP.Nullable
@@ -18,6 +18,9 @@ module SDP.Nullable
 where
 
 import Foreign.Ptr
+
+import GHC.Stable
+import GHC.Base
 
 default ()
 
@@ -46,5 +49,12 @@ instance Nullable (Ptr e)
   where
     isNull = (== nullPtr)
     lzero  = nullPtr
+
+instance Nullable (StablePtr e)
+  where
+    isNull = (== lzero)
+    lzero  = StablePtr (unsafeCoerce# 0#)
+
+
 
 
