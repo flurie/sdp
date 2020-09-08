@@ -125,7 +125,7 @@
 
     - Bordered: offsetOf and indexIn
     - Indexed: assocMap, assocMap' and update
-    - LinearM: nowNull, newSIngle, getHead, getLast, prepend, append and copyTo
+    - LinearM: nowNull, newSingle, getHead, getLast, prepend, append and copyTo
     - Linear: except, select, extract, selects, select', extract' and selects'
     - Shaped: rebound, (!!) and slicesOf
 
@@ -174,10 +174,11 @@
     - indexOf: indexIn
     - reshape: reshaped
     - Index.rank: Shape.rank
-    - SDP.SortM.Stuff: SDP.SortM.Tim
-    - Bordered.getAssocs: IndexedM.getAssocs
-    - Bordered.assocs: Indexed.assocs
     - getIndexOf: nowIndexIn
+    - Indexed.(!^): Linear.(!^)
+    - Bordered.assocs: Indexed.assocs
+    - Bordered.getAssocs: IndexedM.getAssocs
+    - SDP.SortM.Stuff: SDP.SortM.Tim
 
   changes:
     - (/>): removed second argument, now updates all elements in structure

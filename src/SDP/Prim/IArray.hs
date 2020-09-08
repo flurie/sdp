@@ -92,6 +92,8 @@ instance LinearM IO (IOArray# e) e
     newLinearN    = pack' ... newLinearN
     fromFoldableM = pack' . fromFoldableM
     
+    (!#>) = stToIO ... (!#>) . unpack
+    
     copied   = pack'  . copied   . unpack
     getLeft  = stToIO . getLeft  . unpack
     getRight = stToIO . getRight . unpack
@@ -135,8 +137,7 @@ instance IndexedM IO (IOArray# e) Int e
     fromAssocs  bnds = pack'  .  fromAssocs  bnds
     fromAssocs' bnds = pack' ... fromAssocs' bnds
     
-    (!#>) = stToIO ... (!#>) . unpack
-    (>!)  = (!#>)
+    (>!) = (!#>)
     
     writeM_ = writeM
     
@@ -191,5 +192,4 @@ pack' =  stToIO . coerce
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.IArray."
-
 

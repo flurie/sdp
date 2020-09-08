@@ -283,6 +283,11 @@ instance (BorderedM1 m rep Int e, SplitM1 m rep e) => LinearM m (AnyChunks rep e
     
     newLinear = fmap AnyChunks . mapM newLinear . chunks lim
     
+    (!#>) (AnyChunks es) = go es
+      where
+        go (x : xs) i = do n <- getSizeOf x; i < n ? x !#> i $ go xs (i - n)
+        go _ _ = overEx "(>!)"
+    
     getLeft  (AnyChunks es) = concat <$> mapM getLeft es
     getRight (AnyChunks es) = (concat . reverse) <$> mapM getRight es
     reversed (AnyChunks es) = (AnyChunks . reverse) <$> mapM reversed es
@@ -444,11 +449,6 @@ instance (SplitM1 m rep e, IndexedM1 m rep Int e) => IndexedM m (AnyChunks rep e
           where
             (as, bs) = partition (inRange (l, n) . fst) ies
             n = min u (l + lim)
-    
-    (!#>) (AnyChunks es) = go es
-      where
-        go (x : xs) i = do n <- getSizeOf x; i < n ? x !#> i $ go xs (i - n)
-        go _ _ = overEx "(>!)"
     
     {-# INLINE (>!) #-}
     es >! i = i < 0 ? overEx "(>!)" $ es !#> i

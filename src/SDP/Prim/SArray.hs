@@ -34,12 +34,12 @@ import Prelude ()
 import SDP.SafePrelude
 import SDP.IndexedM
 import SDP.Internal
+import SDP.SortM
 import SDP.Sort
 import SDP.Scan
 import SDP.Set
 
 import SDP.SortM.Tim
-import SDP.SortM
 
 import GHC.Exts
   (
@@ -76,7 +76,7 @@ default ()
 -}
 data SArray# e = SArray#
                         {-# UNPACK #-} !Int -- ^ Element count (not a real size)
-                        {-# UNPACK #-} !Int -- ^ Offset
+                        {-# UNPACK #-} !Int -- ^ Offset (is elements)
                         !(Array# e)         -- ^ Real primitive array
   deriving ( Typeable )
 
@@ -621,7 +621,7 @@ instance Freeze (ST s) (STArray# s e) (SArray# e)
 -- | Primitive mutable array type for internal use.
 data STArray# s e = STArray#
                             {-# UNPACK #-} !Int  -- ^ Element count (not a real size)
-                            {-# UNPACK #-} !Int  -- ^ Offset
+                            {-# UNPACK #-} !Int  -- ^ Offset (in elements)
                             !(MutableArray# s e) -- ^ Real primitive array
   deriving ( Typeable )
 
@@ -702,6 +702,9 @@ instance LinearM (ST s) (STArray# s e) e
     
     getLeft  es@(STArray# n _ _) = (es !#>) `mapM` [0 .. n - 1]
     getRight es@(STArray# n _ _) = (es !#>) `mapM` [n - 1, n - 2 .. 0]
+    
+    {-# INLINE (!#>) #-}
+    (!#>) (STArray# _ (I# o#) marr#) = \ (I# i#) -> ST $ readArray# marr# (o# +# i#)
     
     copied es@(STArray# n _ _) = do
       copy <- filled n $ unreachEx "copied"
@@ -796,9 +799,6 @@ instance SplitM (ST s) (STArray# s e) e
 instance IndexedM (ST s) (STArray# s e) Int e
   where
     fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
-    
-    {-# INLINE (!#>) #-}
-    (!#>) (STArray# _ (I# o#) marr#) = \ (I# i#) -> ST $ readArray# marr# (o# +# i#)
     
     (>!) = (!#>)
     

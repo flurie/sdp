@@ -40,7 +40,7 @@ Library
     data-default-class >= 0.1   && < 0.2
   
   exposed-modules:
-    -- common definitions
+    -- Commons
     
     Control.Exception.SDP
     Control.Monad.Rope
@@ -56,23 +56,31 @@ Library
     SDP.Index
     SDP.Ratio
     
+    -- Sorting
+    
     SDP.SortM.Insertion
     SDP.SortM.Tim
+    SDP.SortM
     
-    -- general class modules
+    -- General classes
     
+    SDP.IndexedM
+    SDP.LinearM
     SDP.Indexed
-    SDP.Linear
     SDP.Shaped
+    SDP.Linear
+    SDP.Scan
+    SDP.Sort
     SDP.Map
     SDP.Set
+    SDP.Zip
     
-    -- templates
+    -- Templates
     
     SDP.Templates.AnyBorder
     SDP.Templates.AnyChunks
     
-    -- primitives
+    -- Primitives
     
     SDP.Unboxed.WordAs
     SDP.Unboxed.IntAs
@@ -83,7 +91,7 @@ Library
     SDP.Prim.IArray
     SDP.Prim.IBytes
     
-    -- general structure implementations
+    -- General structures
     
     SDP.Array
     SDP.Unrolled
@@ -111,15 +119,7 @@ Library
     SDP.Unrolled.IO
     SDP.Unrolled.IOUnlist
     
-    -- some dispensable classes
-    
-    SDP.Scan
-    SDP.Sort
-    SDP.Zip
-    
-    SDP.IndexedM
-    SDP.LinearM
-    SDP.SortM
+    -- Service definitions
     
     Text.Show.SDP
     Text.Read.SDP

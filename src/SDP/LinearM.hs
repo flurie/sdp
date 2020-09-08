@@ -37,6 +37,8 @@ import SDP.Internal
 
 default ()
 
+infixl 5 !#>
+
 --------------------------------------------------------------------------------
 
 -- | 'BorderedM' is 'Bordered' version for mutable data structures.
@@ -81,7 +83,7 @@ class (Monad m, Index i) => BorderedM m b i | b -> m, b -> i
 -- | 'LinearM' is 'Linear' version for mutable data structures.
 class (Monad m) => LinearM m l e | l -> m, l -> e
   where
-    {-# MINIMAL (newLinear|fromFoldableM), (getLeft|getRight), copyTo #-}
+    {-# MINIMAL (newLinear|fromFoldableM), (getLeft|getRight), (!#>), copyTo #-}
     
     -- | Monadic 'single'.
     newNull :: m l
@@ -149,6 +151,9 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     {-# INLINE getRight #-}
     getRight :: l -> m [e]
     getRight =  fmap reverse . getLeft
+    
+    -- | (!#>) is unsafe monadic offset-based reader.
+    (!#>) :: l -> Int -> m e
     
     -- | Create copy.
     {-# INLINE copied #-}

@@ -28,7 +28,6 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-
 import SDP.IndexedM
 import SDP.Shaped
 import SDP.SortM
@@ -289,6 +288,9 @@ instance (Index i, LinearM1 m rep e, BorderedM1 m rep Int e) => LinearM m (AnyBo
     getLeft   = getLeft  . unpack
     getRight  = getRight . unpack
     
+    {-# INLINE (!#>) #-}
+    (!#>) = (!#>) . unpack
+    
     copied   (AnyBorder l u es) = AnyBorder l u <$> copied  es
     copied'  (AnyBorder l u es) = (AnyBorder l u <$>) ... copied' es
     reversed (AnyBorder l u es) = AnyBorder l u <$> reversed es
@@ -450,9 +452,6 @@ instance (Index i, IndexedM1 m rep Int e) => IndexedM m (AnyBorder rep i e) i e
         ies  = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
         bnds = (0, size (l, u) - 1)
     
-    {-# INLINE (!#>) #-}
-    (!#>) = (!#>) . unpack
-    
     {-# INLINE (>!) #-}
     (>!) (AnyBorder l u es) = (es !#>) . offset (l, u)
     
@@ -542,4 +541,5 @@ withBounds rep = uncurry AnyBorder (defaultBounds $ sizeOf rep) rep
 {-# INLINE withBounds' #-}
 withBounds' :: (Index i, BorderedM1 m rep Int e) => rep e -> m (AnyBorder rep i e)
 withBounds' rep = (\ n -> uncurry AnyBorder (defaultBounds n) rep) <$> getSizeOf rep
+
 

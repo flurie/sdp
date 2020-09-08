@@ -35,7 +35,6 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-
 import SDP.LinearM
 import SDP.Indexed
 
@@ -43,7 +42,7 @@ import SDP.Internal
 
 default ()
 
-infixl 5 !#>, >!, !>, !?>
+infixl 5 >!, !>, !?>
 
 --------------------------------------------------------------------------------
 
@@ -71,11 +70,6 @@ class (LinearM m v e, BorderedM m v i) => IndexedM m v i e
       may not match with the result bounds (not always possible).
     -}
     fromAssocs' :: (i, i) -> e -> [(i, e)] -> m v
-    
-    -- | (!#>) is unsafe monadic offset-based reader.
-    {-# INLINE (!#>) #-}
-    (!#>) :: v -> Int -> m e
-    es !#> i = do bnds <- getBounds es; es >! index bnds i
     
     -- | (>!) is unsafe monadic reader.
     {-# INLINE (>!) #-}
@@ -261,5 +255,6 @@ swapM es i j = do ei <- es !#> i; writeM_ es i =<< es !#> j; writeM_ es j ei
 
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.IndexedM."
+
 
 

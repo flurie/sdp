@@ -38,12 +38,12 @@ import SDP.SafePrelude
 import SDP.IndexedM
 import SDP.Internal
 import SDP.Unboxed
-
-import SDP.SortM.Tim
 import SDP.SortM
 import SDP.Sort
 import SDP.Scan
 import SDP.Set
+
+import SDP.SortM.Tim
 
 import GHC.Exts
   (
@@ -554,7 +554,7 @@ instance (Unboxed e) => Freeze (ST s) (STBytes# s e) (SBytes# e)
 -- | Primitive mutable byte array type for internal use.
 data STBytes# s e = STBytes#
                             {-# UNPACK #-} !Int    -- ^ Element count (not a real size)
-                            {-# UNPACK #-} !Int    -- ^ Offset
+                            {-# UNPACK #-} !Int    -- ^ Offset (in elements)
                             !(MutableByteArray# s) -- ^ Real primitive byte array
   deriving ( Typeable )
 
@@ -637,6 +637,9 @@ instance (Unboxed e) => LinearM (ST s) (STBytes# s e) e
     
     getLeft  es@(STBytes# n _ _) = (es !#>) `mapM` [0 .. n - 1]
     getRight es@(STBytes# n _ _) = (es !#>) `mapM` [n - 1, n - 2 .. 0]
+    
+    {-# INLINE (!#>) #-}
+    (!#>) (STBytes# _ (I# o#) marr#) = \ (I# i#) -> ST $ marr# !># (o# +# i#)
     
     copied es@(STBytes# n _ _) = do
       copy <- filled_ n
@@ -736,9 +739,6 @@ instance (Unboxed e) => IndexedM (ST s) (STBytes# s e) Int e
   where
     fromAssocs  bnds ascs = filled_ (size bnds) >>= (`overwrite` ascs)
     fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
-    
-    {-# INLINE (!#>) #-}
-    (!#>) (STBytes# _ (I# o#) marr#) = \ (I# i#) -> ST $ marr# !># (o# +# i#)
     
     (>!) = (!#>)
     

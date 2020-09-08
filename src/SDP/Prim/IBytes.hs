@@ -22,12 +22,11 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-
-import SDP.Prim.SBytes
-
 import SDP.IndexedM
 import SDP.Unboxed
 import SDP.SortM
+
+import SDP.Prim.SBytes
 
 import SDP.SortM.Tim
 
@@ -92,6 +91,8 @@ instance (Unboxed e) => LinearM IO (IOBytes# e) e
     newLinearN    = pack' ... newLinearN
     fromFoldableM = pack' . fromFoldableM
     
+    (!#>) = stToIO ... (!#>) . unpack
+    
     copied   = pack'  . copied   . unpack
     getLeft  = stToIO . getLeft  . unpack
     getRight = stToIO . getRight . unpack
@@ -135,8 +136,7 @@ instance (Unboxed e) => IndexedM IO (IOBytes# e) Int e
     fromAssocs  bnds = pack'  .  fromAssocs  bnds
     fromAssocs' bnds = pack' ... fromAssocs' bnds
     
-    (!#>) = stToIO ... (!#>) . unpack
-    (>!)  = (!#>)
+    (>!) = (!#>)
     
     writeM_ = writeM
     
