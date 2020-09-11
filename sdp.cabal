@@ -80,16 +80,13 @@ Library
     SDP.Templates.AnyBorder
     SDP.Templates.AnyChunks
     
-    -- Primitives
+    -- Types
     
     SDP.Unboxed.WordAs
     SDP.Unboxed.IntAs
     
     SDP.Prim.SArray
     SDP.Prim.SBytes
-    
-    SDP.Prim.IArray
-    SDP.Prim.IBytes
     
     -- General structures
     
@@ -126,5 +123,8 @@ Library
   
   other-modules:
     SDP.Internal
+
+
+
 
 

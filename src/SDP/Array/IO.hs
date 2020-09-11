@@ -24,7 +24,7 @@ import Prelude ()
 import SDP.SafePrelude
 
 import SDP.Templates.AnyBorder
-import SDP.Prim.IArray
+import SDP.Prim.SArray
 
 import SDP.IndexedM
 import SDP.SortM

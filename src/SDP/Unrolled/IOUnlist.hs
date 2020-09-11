@@ -23,12 +23,11 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-
-import SDP.Templates.AnyChunks
-import SDP.Prim.IArray
-
 import SDP.IndexedM
 import SDP.SortM
+
+import SDP.Templates.AnyChunks
+import SDP.Prim.SArray
 
 import SDP.SortM.Tim
 
@@ -40,6 +39,7 @@ default ()
 type IOUnlist = AnyChunks IOArray#
 
 instance SortM IO (IOUnlist e) e where sortMBy = timSortBy
+
 
 
 

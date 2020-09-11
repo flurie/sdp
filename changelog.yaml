@@ -74,10 +74,8 @@
     - SDP.Unrolled.IOUnlist: see IOUnlist
     - SDP.ByteList.IOUblist: see IOUblist
 
-    - SDP.Prim.SArray: SArray# and STArray# pseudo-primitives
-    - SDP.Prim.SBytes: SBytes# and STBytes# pseudo-primitives
-    - SDP.Prim.IArray: IArray# and IOArray# pseudo-primitives
-    - SDP.Prim.IBytes: IBytes# and IOBytes# pseudo-primitives
+    - SDP.Prim.SArray: SArray#, STArray# and IOArray# pseudo-primitives
+    - SDP.Prim.SBytes: SBytes#, STBytes# and IOBytes# pseudo-primitives
 
     - SDP.SortM.Insertion: InsertionSort for mutable structures
     - SDP.SortM.Tim: TimSort for mutable structures
@@ -154,18 +152,6 @@
 
   syntax:
     - OverloadedIndices
-
-  tests:
-    - Suite: Eq, Ord and Estimate
-
-    - Index: test-indices
-
-    - Array: test-array
-    - Bytes: test-bytes
-    - Unlist: test-unlist
-    - Ublist: test-ublist
-    - Unrolled: test-unrolled
-    - ByteList: test-bytelist
 
   benchmarks:
     - bench-sort: for immutable timSort

@@ -25,7 +25,7 @@ import Prelude ()
 import SDP.SafePrelude
 
 import SDP.Templates.AnyBorder
-import SDP.Prim.IBytes
+import SDP.Prim.SBytes
 
 import SDP.IndexedM
 import SDP.Unboxed

@@ -26,7 +26,7 @@ import Prelude ()
 import SDP.SafePrelude
 
 import SDP.Templates.AnyChunks
-import SDP.Prim.IBytes
+import SDP.Prim.SBytes
 
 import SDP.IndexedM
 import SDP.Unboxed
