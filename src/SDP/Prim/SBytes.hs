@@ -26,7 +26,10 @@ module SDP.Prim.SBytes
   unsafePackPseudoBytes#, unsafePackMutableBytes#,
   
   -- ** Unsafe coerce
-  unsafeCoercePseudoBytes#, unsafeCoerceMutableBytes#
+  unsafeCoercePseudoBytes#, unsafeCoerceMutableBytes#,
+  
+  -- ** Unsafe pointer conversions
+  unsafeSBytesToPtr#, unsafePtrToSBytes#
 )
 where
 
@@ -55,8 +58,15 @@ import GHC.ST ( ST (..), STRep )
 import qualified GHC.Exts as E
 
 import Data.Typeable
+import Data.Proxy
 
 import Text.Read
+
+import Foreign
+  (
+    Ptr, Storable, peekByteOff, peekElemOff, pokeByteOff, pokeElemOff,
+    mallocBytes, callocArray
+  )
 
 import Control.Monad.ST
 
@@ -941,6 +951,27 @@ instance (Unboxed e) => Freeze IO (IOBytes# e) (SBytes# e)
 
 --------------------------------------------------------------------------------
 
+instance (Storable e, Unboxed e) => Freeze IO (Int, Ptr e) (SBytes# e)
+  where
+    freeze (n, ptr) = do
+        let !n'@(I# n#) = max 0 n
+        es' <- stToIO . ST $ \ s1# -> case newUnboxed err n# s1# of
+          (# s2#, marr# #) -> (# s2#, IOBytes# (STBytes# n' 0 marr#) #)
+        forM_ [0 .. n' - 1] $ \ i -> peekElemOff ptr i >>= writeM_ es' i
+        freeze es'
+      where
+        err = undEx "freeze {(Int, Ptr e) => SBytes#}" `asProxyTypeOf` ptr
+
+instance (Storable e, Unboxed e) => Thaw IO (SBytes# e) (Int, Ptr e)
+  where
+    thaw (SBytes# n o arr#) = do
+      ptr <- callocArray n
+      forM_ [o .. n + o - 1] $
+        \ i@(I# i#) -> let e = arr# !# i# in pokeElemOff ptr i e
+      return (n, ptr)
+
+--------------------------------------------------------------------------------
+
 {- |
   unsafeUnpackPseudoBytes\# returns ByteArray\# field of SBytes\# or fails (if
   offset is not 0).
@@ -974,8 +1005,8 @@ unsafeCoercePseudoBytes# =  go Proxy Proxy
     go :: (Unboxed a, Unboxed b) => Proxy a -> Proxy b -> SBytes# a -> SBytes# b
     go pa pb (SBytes# n o arr#) = SBytes# n' o' arr#
       where
-        n' = n * s1 `div` s2; s1 = psizeof pa
-        o' = o * s1 `div` s2; s2 = psizeof pb
+        n' = n * s1 `div` s2; s1 = psizeof pa 1
+        o' = o * s1 `div` s2; s2 = psizeof pb 1
 
 {- |
   unsafeUnpackMutableBytes# returns MutableByteArray\# field of STBytes\# or
@@ -1006,8 +1037,53 @@ unsafeCoerceMutableBytes# =  go Proxy Proxy
     go :: (Unboxed a, Unboxed b) => Proxy a -> Proxy b -> STBytes# s a -> STBytes# s b
     go pa pb (STBytes# n o arr#) = STBytes# n' o' arr#
       where
-        n' = n * s1 `div` s2; s1 = psizeof pa
-        o' = o * s1 `div` s2; s2 = psizeof pb
+        n' = n * s1 `div` s2; s1 = psizeof pa 1
+        o' = o * s1 `div` s2; s2 = psizeof pb 1
+
+{- |
+  @unsafeSBytesToPtr\# es@ byte-wise stores 'SBytes#' content to 'Ptr'. Returns
+  the number of overwritten elements and a pointer to @psizeof es (sizeOf es)@
+  bytes of allocated memory.
+-}
+unsafeSBytesToPtr# :: (Unboxed e) => SBytes# e -> IO (Int, Ptr e)
+unsafeSBytesToPtr# es@(SBytes# c (I# o#) marr#) = do
+  let
+    pokeByte :: Ptr a -> Int -> Word8 -> IO ()
+    pokeByte =  pokeByteOff
+    
+    s = psizeof es c
+    n = s * c
+  
+  ptr <- mallocBytes n
+  forM_ [0 .. n - 1] $ \ i@(I# i#) -> pokeByte ptr i (marr# !# (o# +# i#))
+  return (n, ptr)
+
+{- |
+  @unsafePtrToSBytes\# n ptr@ byte-wise stores @n@ elements of 'Ptr' @ptr@ to
+  'SBytes#'.
+-}
+unsafePtrToSBytes# :: (Unboxed e) => (Int, Ptr e) -> IO (SBytes# e)
+unsafePtrToSBytes# (c, ptr) = do
+  let
+    peekByte :: Ptr a -> Int -> IO Word8
+    peekByte =  peekByteOff
+    
+    c' = max 0 c
+    s = psizeof ptr c'
+    !n@(I# n#) = s * c'
+  
+  es@(STBytes# _ _ arr#) <- stToIO $ ST $
+    \ s1# -> case newUnboxed err n# s1# of
+      (# s2#, marr# #) -> (# s2#, STBytes# c' 0 marr# #)
+  
+  forM_ [0 .. n - 1] $ \ i@(I# i#) -> do
+      e <- peekByte ptr i
+      stToIO $ ST $ \ s1# -> case writeByteArray# arr# i# e s1# of
+        s2# -> (# s2#, () #)
+  
+  stToIO (done es)
+  where
+    err = undEx "unsafePtrToSBytes#" `asProxyTypeOf` ptr
 
 --------------------------------------------------------------------------------
 
@@ -1070,6 +1146,5 @@ overEx =  throw . IndexOverflow . showString "in SDP.Prim.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
-
 
 

@@ -595,8 +595,8 @@ bool_index = (`uncheckedIShiftRA#` 6#)
 
 -- | 'psizeof' is 'Proxy' 'sizeof'.
 {-# INLINE psizeof #-}
-psizeof :: (Unboxed e) => Proxy e -> Int
-psizeof e = sizeof (undefined `asProxyTypeOf` e) 1
+psizeof :: (Unboxed e) => proxy e -> Int -> Int
+psizeof =  sizeof . asProxyTypeOf undefined
 
 -- | 'sizeof#' is unboxed 'sizeof'.
 {-# INLINE sizeof# #-}

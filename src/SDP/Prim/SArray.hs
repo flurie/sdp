@@ -58,8 +58,11 @@ import GHC.ST ( ST (..), STRep )
 import qualified GHC.Exts as E
 
 import Data.Typeable
+import Data.Proxy
 
 import Text.Read
+
+import Foreign ( Ptr, Storable, callocArray, peekElemOff, pokeElemOff )
 
 import Control.Monad.ST
 
@@ -1003,6 +1006,27 @@ instance Freeze IO (IOArray# e) (SArray# e)
 
 --------------------------------------------------------------------------------
 
+instance (Storable e) => Freeze IO (Int, Ptr e) (SArray# e)
+  where
+    freeze (n, ptr) = do
+        let !n'@(I# n#) = max 0 n
+        es' <- stToIO . ST $ \ s1# -> case newArray# n# err s1# of
+          (# s2#, marr# #) -> (# s2#, IOArray# (STArray# n' 0 marr#) #)
+        forM_ [0 .. n' - 1] $ \ i -> peekElemOff ptr i >>= writeM_ es' i
+        freeze es'
+      where
+        err = undEx "freeze {(Int, Ptr e) => SArray#}" `asProxyTypeOf` ptr
+
+instance (Storable e) => Thaw IO (SArray# e) (Int, Ptr e)
+  where
+    thaw (SArray# n o arr#) = do
+      ptr <- callocArray n
+      forM_ [o .. n + o - 1] $
+        \ i@(I# i#) -> let (# e #) = indexArray# arr# i# in pokeElemOff ptr i e
+      return (n, ptr)
+
+--------------------------------------------------------------------------------
+
 {- |
   unsafeUnpackPseudoArray\# returns ByteArray\# field of SArray\# or fails (if
   offset is not 0).
@@ -1087,4 +1111,5 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
+
 
