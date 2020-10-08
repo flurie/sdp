@@ -13,20 +13,26 @@
 -}
 module SDP.Prim.SArray
 (
+  -- * Exports
+  module SDP.IndexedM,
+  module SDP.SortM,
+  module SDP.Sort,
+  module SDP.Set,
+  
   -- * Pseudo-primitive types
   IOArray# ( IOArray# ), STArray#, SArray#,
   
   -- ** Safe (copy) unpack
-  fromPseudoArray#, fromPseudoMutableArray#,
+  fromSArray#, fromSTArray#,
   
   -- ** Unsafe unpack
-  unsafeUnpackPseudoArray#, unsafeUnpackMutableArray#,
+  unpackSArray#, offsetSArray#, unpackSTArray#, offsetSTArray#,
   
   -- ** Unsafe pack
-  unsafePackPseudoArray#, unsafePackMutableArray#,
+  packSArray#, packSTArray#,
   
   -- ** Coerce
-  coercePseudoArray#, coerceMutableArray#
+  coerceSArray#, coerceSTArray#
 )
 where
 
@@ -43,7 +49,7 @@ import SDP.SortM.Tim
 
 import GHC.Exts
   (
-    Array#, MutableArray#, State#,
+    Array#, MutableArray#, State#, Int#,
     
     newArray#, indexArray#, readArray#, writeArray#,
     
@@ -77,7 +83,7 @@ default ()
   reliability and stability, I made it inaccessible to direct work.
   
   If you need a primitive type (Array\#), then you can get it only by
-  fromPseudoArray\# (copying function).
+  fromSArray\# (copying function).
 -}
 data SArray# e = SArray#
                         {-# UNPACK #-} !Int -- ^ Element count (not a real size)
@@ -1027,43 +1033,45 @@ instance (Storable e) => Thaw IO (SArray# e) (Int, Ptr e)
 
 --------------------------------------------------------------------------------
 
-{- |
-  unsafeUnpackPseudoArray\# returns ByteArray\# field of SArray\# or fails (if
-  offset is not 0).
--}
-unsafeUnpackPseudoArray# :: SArray# e -> Array# e
-unsafeUnpackPseudoArray# = \ (SArray# _ 0 arr#) -> arr#
+-- | unpackSArray\# returns ByteArray\# field of SArray\#.
+unpackSArray# :: SArray# e -> Array# e
+unpackSArray# = \ (SArray# _ _ arr#) -> arr#
 
--- | unsafePackPseudoArray\# creates new SArray\# from sized Array\#.
-unsafePackPseudoArray# :: Int -> Array# e -> SArray# e
-unsafePackPseudoArray# n arr# = SArray# (max 0 n) 0 arr#
+-- | offsetSArray\# returns SArray\# offset in elements.
+offsetSArray# :: SArray# e -> Int#
+offsetSArray# =  \ (SArray# _ (I# o#) _) -> o#
 
--- | fromPseudoArray\# returns new Array\# (uses cloneArray\#).
-fromPseudoArray# :: SArray# e -> Array# e
-fromPseudoArray# (SArray# (I# c#) (I# o#) arr#) = cloneArray# arr# o# c#
+-- | packSArray\# creates new SArray\# from sized Array\#.
+packSArray# :: Int -> Array# e -> SArray# e
+packSArray# n arr# = SArray# (max 0 n) 0 arr#
 
--- | coercePseudoArray\# is 'coerce' alias.
-coercePseudoArray# :: (Coercible a b) => SArray# a -> SArray# b
-coercePseudoArray# =  coerce
+-- | fromSArray\# returns new Array\# (uses cloneArray\#).
+fromSArray# :: SArray# e -> Array# e
+fromSArray# (SArray# (I# c#) (I# o#) arr#) = cloneArray# arr# o# c#
 
--- | fromPseudoMutableArray\# returns new MutableArray\#.
-fromPseudoMutableArray# :: STArray# s e -> State# s -> (# State# s, MutableArray# s e #)
-fromPseudoMutableArray# (STArray# (I# c#) (I# o#) marr#) = cloneMutableArray# marr# o# c#
+-- | coerceSArray\# is 'coerce' alias.
+coerceSArray# :: (Coercible a b) => SArray# a -> SArray# b
+coerceSArray# =  coerce
 
-{- |
-  unsafeUnpackMutableArray# returns ByteArray\# field of STArray\# or
-  fails (if offset is not 0).
--}
-unsafeUnpackMutableArray# :: STArray# s e -> MutableArray# s e
-unsafeUnpackMutableArray# =  \ (STArray# _ 0 marr#) -> marr#
+-- | unpackSTArray# returns ByteArray\# field of STArray\# or fails.
+unpackSTArray# :: STArray# s e -> MutableArray# s e
+unpackSTArray# =  \ (STArray# _ _ marr#) -> marr#
 
--- | unsafePackMutableArray\# creates new STArray\# from sized MutableArray\#.
-unsafePackMutableArray# :: Int -> MutableArray# s e -> STArray# s e
-unsafePackMutableArray# n marr# = STArray# (max 0 n) 0 marr#
+-- | offsetSTArray\# returns STArray\# offset in elements.
+offsetSTArray# :: STArray# s e -> Int#
+offsetSTArray# =  \ (STArray# _ (I# o#) _) -> o#
 
--- | coercePseudoArray\# is 'coerce' alias.
-coerceMutableArray# :: (Coercible a b) => STArray# s a -> STArray# s b
-coerceMutableArray# =  coerce
+-- | packSTArray\# creates new STArray\# from sized MutableArray\#.
+packSTArray# :: Int -> MutableArray# s e -> STArray# s e
+packSTArray# n marr# = STArray# (max 0 n) 0 marr#
+
+-- | fromSTArray\# returns new MutableArray\#.
+fromSTArray# :: STArray# s e -> State# s -> (# State# s, MutableArray# s e #)
+fromSTArray# (STArray# (I# c#) (I# o#) marr#) = cloneMutableArray# marr# o# c#
+
+-- | coerceSTArray\# is 'coerce' alias.
+coerceSTArray# :: (Coercible a b) => STArray# s a -> STArray# s b
+coerceSTArray# =  coerce
 
 --------------------------------------------------------------------------------
 
@@ -1111,5 +1119,7 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
+
+
 
 

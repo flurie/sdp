@@ -25,7 +25,6 @@ where
 import Prelude ()
 import SDP.SafePrelude
 import SDP.Prim.SArray
-import SDP.Unrolled.STUnlist
 
 import SDP.Indexed
 import SDP.Sort
@@ -117,4 +116,5 @@ instance Sort (Unlist e) e
 {-# INLINE done #-}
 done :: STArray# s e -> ST s (Unlist e)
 done =  unsafeFreeze
+
 

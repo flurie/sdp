@@ -13,20 +13,27 @@
 -}
 module SDP.Prim.SBytes
 (
+  -- * Exports
+  module SDP.IndexedM,
+  module SDP.Unboxed,
+  module SDP.SortM,
+  module SDP.Sort,
+  module SDP.Set,
+  
   -- * Preudo-primitive types
-  IOBytes# ( IOBytes# ), STBytes#, SBytes#,
+  IOBytes# (..), STBytes#, SBytes#,
   
   -- ** Safe (copy) unpack
-  fromPseudoBytes#, fromPseudoMutableBytes#,
+  fromSBytes#, fromSTBytes#,
   
   -- ** Unsafe unpack
-  unsafeUnpackPseudoBytes#, unsafeUnpackMutableBytes#,
+  unpackSBytes#, offsetSBytes#, unpackSTBytes#, offsetSTBytes#,
   
   -- ** Unsafe pack
-  unsafePackPseudoBytes#, unsafePackMutableBytes#,
+  packSBytes#, packSTBytes#,
   
   -- ** Unsafe coerce
-  unsafeCoercePseudoBytes#, unsafeCoerceMutableBytes#,
+  unsafeCoerceSBytes#, unsafeCoerceSTBytes#,
   
   -- ** Unsafe pointer conversions
   unsafeSBytesToPtr#, unsafePtrToSBytes#
@@ -47,7 +54,7 @@ import SDP.SortM.Tim
 
 import GHC.Exts
   (
-    ByteArray#, MutableByteArray#, State#,
+    ByteArray#, MutableByteArray#, State#, Int#,
     
     newByteArray#, unsafeFreezeByteArray#,
     
@@ -972,20 +979,21 @@ instance (Storable e, Unboxed e) => Thaw IO (SBytes# e) (Int, Ptr e)
 
 --------------------------------------------------------------------------------
 
-{- |
-  unsafeUnpackPseudoBytes\# returns ByteArray\# field of SBytes\# or fails (if
-  offset is not 0).
--}
-unsafeUnpackPseudoBytes# :: (Unboxed e) => SBytes# e -> ByteArray#
-unsafeUnpackPseudoBytes# = \ (SBytes# _ 0 marr#) -> marr#
+-- | unpackSBytes\# returns ByteArray\# field of SBytes\#.
+unpackSBytes# :: (Unboxed e) => SBytes# e -> ByteArray#
+unpackSBytes# = \ (SBytes# _ _ marr#) -> marr#
 
--- | unsafePackPseudoBytes\# creates new SBytes\# from sized ByteArray\#.
-unsafePackPseudoBytes# :: (Unboxed e) => Int -> ByteArray# -> SBytes# e
-unsafePackPseudoBytes# n marr# = SBytes# (max 0 n) 0 marr#
+-- | offsetSBytes\# returns byte offset of SBytes\#.
+offsetSBytes# :: (Unboxed e) => SBytes# e -> Int#
+offsetSBytes# =  \ es@(SBytes# _ o _) -> case psizeof es o of I# o# -> o#
 
--- | fromPseudoBytes\# returns new ByteArray\#.
-fromPseudoBytes# :: (Unboxed e) => SBytes# e -> ByteArray#
-fromPseudoBytes# es = case clone err es of (SBytes# _ _ arr#) -> arr#
+-- | packSBytes\# creates new SBytes\# from sized ByteArray\#.
+packSBytes# :: (Unboxed e) => Int -> ByteArray# -> SBytes# e
+packSBytes# n marr# = SBytes# (max 0 n) 0 marr#
+
+-- | fromSBytes\# returns new ByteArray\#.
+fromSBytes# :: (Unboxed e) => SBytes# e -> ByteArray#
+fromSBytes# es = case clone err es of (SBytes# _ _ arr#) -> arr#
   where
     clone :: (Unboxed e) => e -> SBytes# e -> SBytes# e
     clone e (SBytes# c@(I# c#) o@(I# o#) arr#) = runST $ ST $
@@ -993,14 +1001,14 @@ fromPseudoBytes# es = case clone err es of (SBytes# _ _ arr#) -> arr#
         (# s2#, marr# #) -> case copyUnboxed# e arr# o# marr# 0# c# s2# of
           s3# -> case unsafeFreezeByteArray# marr# s3# of
             (# s4#, arr'# #) -> (# s4#, SBytes# c o arr'# #)
-    err = unreachEx "fromPseudoBytes#"
+    err = unreachEx "fromSBytes#"
 
 {- |
   Unsafe low-lowel coerce of an array with recounting the number of elements and
   offset (with possible rounding).
 -}
-unsafeCoercePseudoBytes# :: (Unboxed a, Unboxed b) => SBytes# a -> SBytes# b
-unsafeCoercePseudoBytes# =  go Proxy Proxy
+unsafeCoerceSBytes# :: (Unboxed a, Unboxed b) => SBytes# a -> SBytes# b
+unsafeCoerceSBytes# =  go Proxy Proxy
   where
     go :: (Unboxed a, Unboxed b) => Proxy a -> Proxy b -> SBytes# a -> SBytes# b
     go pa pb (SBytes# n o arr#) = SBytes# n' o' arr#
@@ -1008,20 +1016,20 @@ unsafeCoercePseudoBytes# =  go Proxy Proxy
         n' = n * s1 `div` s2; s1 = psizeof pa 1
         o' = o * s1 `div` s2; s2 = psizeof pb 1
 
-{- |
-  unsafeUnpackMutableBytes# returns MutableByteArray\# field of STBytes\# or
-  fails (if offset is not 0).
--}
-unsafeUnpackMutableBytes# :: (Unboxed e) => STBytes# s e -> MutableByteArray# s
-unsafeUnpackMutableBytes# =  \ (STBytes# _ 0 marr#) -> marr#
+-- | unpackSTBytes# returns MutableByteArray\# field of STBytes\#.
+unpackSTBytes# :: (Unboxed e) => STBytes# s e -> MutableByteArray# s
+unpackSTBytes# =  \ (STBytes# _ _ marr#) -> marr#
 
--- | unsafePackMutableBytes\# creates new STBytes\# from sized MutableByteArray\#.
-unsafePackMutableBytes# :: (Unboxed e) => Int -> MutableByteArray# s -> STBytes# s e
-unsafePackMutableBytes# n marr# = STBytes# (max 0 n) 0 marr#
+offsetSTBytes# :: (Unboxed e) => STBytes# s e -> Int#
+offsetSTBytes# =  \ (STBytes# _ (I# o#) _) -> o#
 
--- | fromPseudoMutableBytes\# returns new MutableByteArray\#
-fromPseudoMutableBytes# :: (Unboxed e) => STBytes# s e -> State# s -> (# State# s, MutableByteArray# s #)
-fromPseudoMutableBytes# es = \ s1# -> case clone es s1# of
+-- | packSTBytes\# creates new STBytes\# from sized MutableByteArray\#.
+packSTBytes# :: (Unboxed e) => Int -> MutableByteArray# s -> STBytes# s e
+packSTBytes# n marr# = STBytes# (max 0 n) 0 marr#
+
+-- | fromSTBytes\# returns new MutableByteArray\#
+fromSTBytes# :: (Unboxed e) => STBytes# s e -> State# s -> (# State# s, MutableByteArray# s #)
+fromSTBytes# es = \ s1# -> case clone es s1# of
     (# s2#, (STBytes# _ _ marr#) #) -> (# s2#, marr# #)
   where
     clone :: (Unboxed e) => STBytes# s e -> State# s -> (# State# s, STBytes# s e #)
@@ -1031,8 +1039,8 @@ fromPseudoMutableBytes# es = \ s1# -> case clone es s1# of
   Unsafe low-lowel coerce of an mutable array with recounting the number of
   elements and offset (with possible rounding).
 -}
-unsafeCoerceMutableBytes# :: (Unboxed a, Unboxed b) => STBytes# s a -> STBytes# s b
-unsafeCoerceMutableBytes# =  go Proxy Proxy
+unsafeCoerceSTBytes# :: (Unboxed a, Unboxed b) => STBytes# s a -> STBytes# s b
+unsafeCoerceSTBytes# =  go Proxy Proxy
   where
     go :: (Unboxed a, Unboxed b) => Proxy a -> Proxy b -> STBytes# s a -> STBytes# s b
     go pa pb (STBytes# n o arr#) = STBytes# n' o' arr#
@@ -1146,5 +1154,7 @@ overEx =  throw . IndexOverflow . showString "in SDP.Prim.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
+
+
 
 
