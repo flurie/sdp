@@ -125,7 +125,9 @@
     - Bordered: offsetOf and indexIn
     - Indexed: assocMap, assocMap' and update
     - LinearM: nowNull, newSingle, getHead, getLast, prepend, append and copyTo
-    - Linear: except, select, extract, selects, select', extract' and selects'
+    - Linear: |
+        except, select, extract, selects, select', extract', selects',
+        uncons', unsnoc'
     - Shaped: rebound, (!!) and slicesOf
 
     - Split: |

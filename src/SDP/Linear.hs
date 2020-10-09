@@ -173,6 +173,10 @@ class (Nullable l) => Linear l e | l -> e
     uncons :: l -> (e, l)
     uncons xs = (head xs, tail xs)
     
+    -- | Same as @'isNull' '?-' 'uncons'@
+    uncons' :: l -> Maybe (e, l)
+    uncons' =  isNull ?- uncons
+    
     -- | Adds element to line as 'head', constructor for ':>' pattern.
     toHead :: e -> l -> l
     toHead =  (++) . single
@@ -188,6 +192,10 @@ class (Nullable l) => Linear l e | l -> e
     -- | Separates line to 'init' and 'last', deconstructor for ':<' pattern.
     unsnoc :: l -> (l, e)
     unsnoc xs = (init xs, last xs)
+    
+    -- | Same as @'isNull' '?-' 'unsnoc'@
+    unsnoc' :: l -> Maybe (l, e)
+    unsnoc' =  isNull ?- unsnoc
     
     -- | Adds element to line as 'last', constructor for ':<' pattern.
     toLast :: l -> e -> l
@@ -652,11 +660,11 @@ pattern Z <- (isNull -> True) where Z = lzero
 
 -- | Pattern (:>) is left-size view of line. Same as 'uncons' and 'toHead'.
 pattern  (:>)   :: (Linear l e) => e -> l -> l
-pattern x :> xs <- ((isNull ?- uncons) -> Just (x, xs)) where (:>) = toHead
+pattern x :> xs <- (uncons' -> Just (x, xs)) where (:>) = toHead
 
 -- | Pattern (:<) is right-size view of line. Same as 'unsnoc' and 'toLast'.
 pattern   (:<)  :: (Linear l e) => l -> e -> l
-pattern xs :< x <- ((isNull ?- unsnoc) -> Just (xs, x)) where (:<) = toLast
+pattern xs :< x <- (unsnoc' -> Just (xs, x)) where (:<) = toLast
 
 --------------------------------------------------------------------------------
 
@@ -794,7 +802,4 @@ sorted es = combo (<=) es == sizeOf es
 -}
 ascending :: (Split s e, Bordered s i, Ord e) => s -> [Int] -> Bool
 ascending =  all sorted ... flip splits
-
-
-
 
