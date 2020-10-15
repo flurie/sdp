@@ -1,5 +1,6 @@
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, DefaultSignatures #-}
-{-# LANGUAGE Safe, TypeOperators, TypeFamilies, ConstraintKinds #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
+{-# LANGUAGE TypeOperators, TypeFamilies, ConstraintKinds, DefaultSignatures #-}
+{-# LANGUAGE Safe #-}
 
 {- |
     Module      :  SDP.Set
@@ -12,42 +13,37 @@
 -}
 module SDP.Set
 (
-  -- * Exports
-  module SDP.Linear,
+  -- * SetWith
+  SetWith (..), SetWith1,
   
   -- * Set
-  Set (..), Set1,
-  
-  -- * Related functions
-  set, insert, delete, intersections, unions, differences, symdiffs, isSetElem,
-  
-  lookupLT, lookupGT, lookupLE, lookupGE,
-  
-  (\/), (/\), (\\), (\^/), (\?/), (/?\), (\+/)
+  Set (..), Set1
 )
 where
 
 import Prelude ()
 import SDP.SafePrelude
-
+import SDP.Internal
 import SDP.Linear
 
 import Data.List ( sortBy, groupBy )
-
-import SDP.Internal
 
 default ()
 
 --------------------------------------------------------------------------------
 
 {- |
-  Set is a class of data structures, that can represent sets.
+  'SetWith' is a class of data structures, that can represent ordered sets.
   
-  SDP doesn't making the difference between sets and any arbitrary data, but the
-  function in Set (except 'setWith') works correctly only on correct sets. SDP
-  only ensures that any function in Set returns the correct set.
+  SetWith doesn't provide data protection/validation before each first action.
+  All functions (except 'setWith') works correctly only with correct sets.
+  'SetWith' guarantee only that the returned data is correct.
+  * If you need maximum reliability and security, go to @containers@ or write
+  @newtype@.
+  * If you want simplicity, openness and a lot of non-set functions without
+  extra conversions, then you are at the right place.
   
-  Note that function of type @Compare e@ must follow 'Ord' rules. If you use the
+  Note that function of type @Compare o@ must follow 'Ord' rules. If you use the
   wrong comparator, the result will depend on the implementation of the
   function.
   
@@ -55,13 +51,14 @@ default ()
   'isContainedIn' to search for an equal element in the set - if such an element
   is found, then the result is the given element (since they are equal).
 -}
-class (Linear s o) => Set s o
+class (Nullable s) => SetWith s o | s -> o
   where
     {-# MINIMAL intersectionWith, unionWith, differenceWith, lookupLTWith, lookupGTWith #-}
     
     {- Creation functions. -}
     
     -- | Creates ordered set from linear structure.
+    default setWith :: (Linear s o) => Compare o -> s -> s
     setWith :: Compare o -> s -> s
     setWith f = fromList . setWith f. listL
     
@@ -71,13 +68,15 @@ class (Linear s o) => Set s o
     -}
     default groupSetWith :: (Linear s o) => Compare o -> (o -> o -> o) -> s -> s
     groupSetWith :: Compare o -> (o -> o -> o) -> s -> s
-    groupSetWith cmp mrg = fromList . groupSetWith cmp mrg . listL
+    groupSetWith cmp f = fromList . groupSetWith cmp f . listL
     
     -- | Adding element to set.
+    default insertWith :: (Linear s o) => Compare o -> o -> s -> s
     insertWith :: Compare o -> o -> s -> s
     insertWith f = unionWith f . single
     
     -- | Deleting element from set.
+    default deleteWith :: (Linear s o) => Compare o -> o -> s -> s
     deleteWith :: Compare o -> o -> s -> s
     deleteWith f = flip (differenceWith f) . single
     
@@ -125,18 +124,19 @@ class (Linear s o) => Set s o
     isDisjointWith f = isNull ... intersectionWith f
     
     -- | Same as 'elem', but can work faster. By default, uses 'find'.
-    default isContainedIn :: (t o ~~ s, Foldable t) => Compare o -> o -> s -> Bool
-    isContainedIn :: Compare o -> o -> s -> Bool
-    isContainedIn f e = isJust . find (\ x -> f e x == EQ)
+    default memberWith :: (t o ~~ s, Foldable t) => Compare o -> o -> s -> Bool
+    memberWith :: Compare o -> o -> s -> Bool
+    memberWith f e = isJust . find (\ x -> f e x == EQ)
     
     -- | Сhecks whether a first set is a subset of second.
     default isSubsetWith :: (t o ~~ s, Foldable t) => Compare o -> s -> s -> Bool
     isSubsetWith :: Compare o -> s -> s -> Bool
-    isSubsetWith f xs ys = all (\ x -> isContainedIn f x ys) xs
+    isSubsetWith f xs ys = all (\ x -> memberWith f x ys) xs
     
     -- | Generates a list of different subsets (including empty and equivalent).
+    default subsets :: (Linear s o, Ord o) => s -> [s]
     subsets :: (Ord o) => s -> [s]
-    subsets =  subsequences . set
+    subsets =  subsequences . setWith compare
     
     {- Lookups. -}
     
@@ -148,117 +148,137 @@ class (Linear s o) => Set s o
     
     -- | lookupGEWith trying to find greater or equal element in set.
     lookupGEWith :: Compare o -> o -> s -> Maybe o
-    lookupGEWith f e es = isContainedIn f e es ? Just e $ lookupGTWith f e es
+    lookupGEWith f e es = memberWith f e es ? Just e $ lookupGTWith f e es
     
     -- | lookupLEWith trying to find lesser or equal element in set.
     lookupLEWith :: Compare o -> o -> s -> Maybe o
-    lookupLEWith f e es = isContainedIn f e es ? Just e $ lookupLTWith f e es
+    lookupLEWith f e es = memberWith f e es ? Just e $ lookupLTWith f e es
+
+--------------------------------------------------------------------------------
+
+{- |
+  'Set' is a class of data structures, that can represent any sets.
+  
+  'Set' is intended for more specific sets than ordered linear structures. In
+  particular, it doesn't require you to explicitly pass a comparator and (unlike
+  the earlier implementation) doesn't impose restrictions on the type of the set
+  element.
+  
+  'Set' doesn't provide data protection/validation before each first action.
+  All functions (except 'set') works correctly only with correct sets. 'Set'
+  guarantee only that the returned data is correct. So everything said about
+  'SetWith' is also true for 'Set'.
+-}
+class (Nullable s) => Set s o | s -> o
+  where
+    -- | The same as @'setWith' 'compare'@.
+    default set :: (SetWith s o, Ord o) => s -> s
+    set :: s -> s
+    set =  setWith compare
+    
+    -- | Same as @'insert' 'compare'@.
+    default insert :: (SetWith s o, Ord o) => o -> s -> s
+    insert :: o -> s -> s
+    insert =  insertWith compare
+    
+    -- | Same as @'deleteWith' 'compare'@.
+    default delete :: (SetWith s o, Ord o) => o -> s -> s
+    delete :: o -> s -> s
+    delete =  deleteWith compare
+    
+    -- | Same as @'intersectionWith' 'compare'@.
+    default (/\) :: (SetWith s o, Ord o) => s -> s -> s
+    (/\) :: s -> s -> s
+    (/\) =  intersectionWith compare
+    
+    -- | Same as @'unionWith' 'compare'@.
+    default (\/) :: (SetWith s o, Ord o) => s -> s -> s
+    (\/) :: s -> s -> s
+    (\/) =  unionWith compare
+    
+    -- | Same as @'differenceWith' 'compare'@.
+    default (\\) :: (SetWith s o, Ord o) => s -> s -> s
+    (\\) :: s -> s -> s
+    (\\) =  differenceWith compare
+    
+    -- | Same as @'symdiffWith' 'compare'@.
+    default (\^/) :: (SetWith s o, Ord o) => s -> s -> s
+    (\^/) :: s -> s -> s
+    (\^/) =  symdiffWith compare
+    
+    -- | Same as @'isDisjointWith' 'compare'@.
+    default (/?\) :: (SetWith s o, Ord o) => s -> s -> Bool
+    (/?\) :: s -> s -> Bool
+    (/?\) =  isDisjointWith compare
+    
+    -- | Same as @'isIntersectsWith' 'compare'@.
+    default (\?/) :: (SetWith s o, Ord o) => s -> s -> Bool
+    (\?/) :: s -> s -> Bool
+    (\?/) =  isIntersectsWith compare
+    
+    -- | Same as @'isSubsetWith' 'compare'@.
+    default (\+/) :: (SetWith s o, Ord o) => s -> s -> Bool
+    (\+/) :: s -> s -> Bool
+    (\+/) =  isSubsetWith compare
+    
+    -- | Same as @'intersectionsWith' 'compare'@.
+    default intersections :: (Foldable f, SetWith s o, Ord o) => f s -> s
+    intersections :: (Foldable f) => f s -> s
+    intersections =  intersectionsWith compare
+    
+    -- | Same as @'unionsWith' 'compare'@.
+    default unions :: (Foldable f, SetWith s o, Ord o) => f s -> s
+    unions :: (Foldable f) => f s -> s
+    unions =  unionsWith compare
+    
+    -- | Same as @'differencesWith' 'compare'@.
+    default differences :: (Foldable f, SetWith s o, Ord o) => f s -> s
+    differences :: (Foldable f) => f s -> s
+    differences =  differencesWith compare
+    
+    -- | Same as @'symdiffsWith' compare'@.
+    default symdiffs :: (Foldable f, SetWith s o, Ord o) => f s -> s
+    symdiffs :: (Foldable f) => f s -> s
+    symdiffs =  symdiffsWith compare
+    
+    -- | Same as @'memberWith' 'compare'@.
+    default member :: (SetWith s o, Ord o) => o -> s -> Bool
+    member :: o -> s -> Bool
+    member =  memberWith compare
+    
+    -- | Same as @'lookupLTWith' 'compare'@.
+    default lookupLT :: (SetWith s o, Ord o) => o -> s -> Maybe o
+    lookupLT :: (Ord o) => o -> s -> Maybe o
+    lookupLT =  lookupLTWith compare
+    
+    -- | Same as @'lookupGTWith' 'compare'@.
+    default lookupGT :: (SetWith s o, Ord o) => o -> s -> Maybe o
+    lookupGT :: (Ord o) => o -> s -> Maybe o
+    lookupGT =  lookupGTWith compare
+    
+    -- | Same as @'lookupLEWith' 'compare'@.
+    default lookupLE :: (SetWith s o, Ord o) => o -> s -> Maybe o
+    lookupLE :: (Ord o) => o -> s -> Maybe o
+    lookupLE =  lookupLEWith compare
+    
+    -- | Same as @'lookupGEWith' 'compare'@.
+    default lookupGE :: (SetWith s o, Ord o) => o -> s -> Maybe o
+    lookupGE :: (Ord o) => o -> s -> Maybe o
+    lookupGE =  lookupGEWith compare
 
 --------------------------------------------------------------------------------
 
 -- | Kind (* -> *) 'Set'.
-type Set1 s e = Set (s e) e
+type Set1 s o = Set (s o) o
 
-{- Useful functions. -}
-
--- | The same as @setWith compare@.
-{-# INLINE set #-}
-set :: (Set s o, Ord o) => s -> s
-set =  setWith compare
-
--- | Same as @insert compare@.
-{-# INLINE insert #-}
-insert :: (Set s o, Ord o) => o -> s -> s
-insert =  insertWith compare
-
--- | Same as @deleteWith compare@.
-{-# INLINE delete #-}
-delete :: (Set s o, Ord o) => o -> s -> s
-delete =  deleteWith compare
-
--- | Same as @intersectionWith compare@.
-{-# INLINE (/\) #-}
-(/\) :: (Set s o, Ord o) => s -> s -> s
-(/\) =  intersectionWith compare
-
--- | Same as @unionWith compare@.
-{-# INLINE (\/) #-}
-(\/) :: (Set s o, Ord o) => s -> s -> s
-(\/) =  unionWith compare
-
--- | Same as @differenceWith compare@.
-{-# INLINE (\\) #-}
-(\\) :: (Set s o, Ord o) => s -> s -> s
-(\\) =  differenceWith compare
-
--- | Same as @symdiffWith compare@.
-{-# INLINE (\^/) #-}
-(\^/) :: (Set s o, Ord o) => s -> s -> s
-(\^/) =  symdiffWith compare
-
--- | Same as @isDisjointWith compare@.
-{-# INLINE (/?\) #-}
-(/?\) :: (Set s o, Ord o) => s -> s -> Bool
-(/?\) =  isDisjointWith compare
-
--- | Same as i@sIntersectsWith compare@.
-{-# INLINE (\?/) #-}
-(\?/) :: (Set s o, Ord o) => s -> s -> Bool
-(\?/) =  isIntersectsWith compare
-
--- | Same as @isSubsetWith compare@.
-{-# INLINE (\+/) #-}
-(\+/) :: (Set s o, Ord o) => s -> s -> Bool
-(\+/) =  isSubsetWith compare
-
--- | Same as @intersectionsWith compare@.
-{-# INLINE intersections #-}
-intersections :: (Foldable f, Set s o, Ord o) => f s -> s
-intersections =  intersectionsWith compare
-
--- | Same as @unionsWith compare@.
-{-# INLINE unions #-}
-unions :: (Foldable f, Set s o, Ord o) => f s -> s
-unions =  unionsWith compare
-
--- | Same as @differencesWith compare@.
-{-# INLINE differences #-}
-differences :: (Foldable f, Set s o, Ord o) => f s -> s
-differences =  differencesWith compare
-
--- | Same as @symdiffsWith compare@.
-{-# INLINE symdiffs #-}
-symdiffs :: (Foldable f, Set s o, Ord o) => f s -> s
-symdiffs =  symdiffsWith compare
-
--- | Same as @isContainedIn compare@.
-{-# INLINE isSetElem #-}
-isSetElem :: (Set s o, Ord o) => o -> s -> Bool
-isSetElem =  isContainedIn compare
-
--- | Same as @lookupLTWith compare@.
-{-# INLINE lookupLT #-}
-lookupLT :: (Set s o, Ord o) => o -> s -> Maybe o
-lookupLT =  lookupLTWith compare
-
--- | Same as @lookupGTWith compare@.
-{-# INLINE lookupGT #-}
-lookupGT :: (Set s o, Ord o) => o -> s -> Maybe o
-lookupGT =  lookupGTWith compare
-
--- | Same as @lookupLEWith compare@.
-{-# INLINE lookupLE #-}
-lookupLE :: (Set s o, Ord o) => o -> s -> Maybe o
-lookupLE =  lookupLEWith compare
-
--- | Same as @lookupGEWith compare@.
-{-# INLINE lookupGE #-}
-lookupGE :: (Set s o, Ord o) => o -> s -> Maybe o
-lookupGE =  lookupGEWith compare
+-- | Kind (* -> *) 'SetWith'.
+type SetWith1 s o = SetWith (s o) o
 
 --------------------------------------------------------------------------------
 
-instance Set [e] e
+instance (Ord o) => Set [o] o
+
+instance SetWith [o] o
   where
     setWith f = sortBy f . nubBy ((EQ ==) ... f)
     
@@ -268,8 +288,8 @@ instance Set [e] e
     deleteWith f e es@(x : xs) = case e `f` x of {GT -> x : deleteWith f e xs; LT -> es; EQ -> xs}
     deleteWith _ _ _ = []
     
-    isContainedIn f e (x : xs) = case e `f` x of {GT -> isContainedIn f e xs; LT -> False; EQ -> True}
-    isContainedIn _ _ _ = False
+    memberWith f e (x : xs) = case e `f` x of {GT -> memberWith f e xs; LT -> False; EQ -> True}
+    memberWith _ _ _ = False
     
     intersectionWith f xs'@(x : xs) ys'@(y : ys) = case x `f` y of
       LT -> intersectionWith f xs  ys'

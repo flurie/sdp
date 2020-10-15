@@ -18,7 +18,6 @@ module SDP.Prim.SBytes
   module SDP.Unboxed,
   module SDP.SortM,
   module SDP.Sort,
-  module SDP.Set,
   
   -- * Preudo-primitive types
   IOBytes# (..), STBytes#, SBytes#,
@@ -48,10 +47,10 @@ import SDP.Unboxed
 import SDP.SortM
 import SDP.Sort
 import SDP.Scan
-import SDP.Set
 
 import SDP.SortM.Tim
 
+import qualified GHC.Exts as E
 import GHC.Exts
   (
     ByteArray#, MutableByteArray#, State#, Int#,
@@ -61,8 +60,6 @@ import GHC.Exts
     sameMutableByteArray#, (+#), (-#), (==#)
   )
 import GHC.ST ( ST (..), STRep )
-
-import qualified GHC.Exts as E
 
 import Data.Typeable
 import Data.Proxy
@@ -359,7 +356,9 @@ instance Bordered (SBytes# e) Int
 
 {- Set and Sort instances. -}
 
-instance (Unboxed e) => Set (SBytes# e) e
+instance (Unboxed e, Ord e) => Set (SBytes# e) e
+
+instance (Unboxed e) => SetWith (SBytes# e) e
   where
     setWith f = nubSorted f . sortBy f
     
@@ -367,7 +366,7 @@ instance (Unboxed e) => Set (SBytes# e) e
       Just  i -> e `f` (es!^i) == EQ ? es $ before i e es
       Nothing -> es :< e
     
-    deleteWith f e es = isContainedIn f e es ? except (\ x -> f e x == EQ) es $ es
+    deleteWith f e es = memberWith f e es ? except (\ x -> f e x == EQ) es $ es
     
     {-# INLINE intersectionWith #-}
     intersectionWith f xs ys = fromList $ intersection' 0 0
@@ -422,7 +421,7 @@ instance (Unboxed e) => Set (SBytes# e) e
           where
             x = xs !^ i; y = ys !^ j
     
-    isContainedIn = binaryContain
+    memberWith = binaryContain
     
     lookupLTWith _ _ Z  = Nothing
     lookupLTWith f o es
@@ -491,7 +490,7 @@ instance (Unboxed e) => Set (SBytes# e) e
             j = l + (u - l) `div` 2
             e = es !^ j
     
-    isSubsetWith f xs ys = i_foldr (\ x b -> b && isContainedIn f x ys) True xs
+    isSubsetWith f xs ys = i_foldr (\ x b -> b && memberWith f x ys) True xs
 
 instance (Unboxed e) => Scan (SBytes# e) e
 
@@ -503,10 +502,28 @@ instance (Unboxed e) => Sort (SBytes# e) e
 
 {- Indexed and IFold instances. -}
 
+instance (Unboxed e) => Map (SBytes# e) Int e
+  where
+    toMap ascs = isNull ascs ? Z $ assoc (l, u) ascs
+      where
+        l = fst $ minimumBy cmpfst ascs
+        u = fst $ maximumBy cmpfst ascs
+    
+    toMap' e ascs = isNull ascs ? Z $ assoc' (l, u) e ascs
+      where
+        l = fst $ minimumBy cmpfst ascs
+        u = fst $ maximumBy cmpfst ascs
+    
+    (.!) = (!^)
+    
+    Z  // ascs = toMap ascs
+    es // ascs = runST $ thaw es >>= (`overwrite` ascs) >>= done
+    
+    (*$) p = ifoldr (\ i e is -> p e ? (i : is) $ is) []
+
 instance (Unboxed e) => Indexed (SBytes# e) Int e
   where
-    assoc bnds ascs = runST $ fromAssocs bnds ascs >>= done
-    
+    assoc  bnds ascs = runST $ fromAssocs bnds ascs >>= done
     assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
     
     fromIndexed es = runST $ do
@@ -514,16 +531,6 @@ instance (Unboxed e) => Indexed (SBytes# e) Int e
         copy <- filled_ n
         forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
         done copy
-    
-    Z // ascs = null ascs ? Z $ assoc (l, u) ascs
-      where
-        l = fst $ minimumBy cmpfst ascs
-        u = fst $ maximumBy cmpfst ascs
-    arr // ascs = runST $ thaw arr >>= (`overwrite` ascs) >>= done
-    
-    (.!) = (!^)
-    
-    (*$) p = ifoldr (\ i e is -> p e ? (i : is) $ is) []
 
 instance (Unboxed e) => IFold (SBytes# e) Int e
   where
@@ -967,7 +974,7 @@ instance (Storable e, Unboxed e) => Freeze IO (Int, Ptr e) (SBytes# e)
         forM_ [0 .. n' - 1] $ \ i -> peekElemOff ptr i >>= writeM_ es' i
         freeze es'
       where
-        err = undEx "freeze {(Int, Ptr e) => SBytes#}" `asProxyTypeOf` ptr
+        err = undEx "freeze {(Int, Ptr e) => SBytes# e}" `asProxyTypeOf` ptr
 
 instance (Storable e, Unboxed e) => Thaw IO (SBytes# e) (Int, Ptr e)
   where
@@ -1146,15 +1153,13 @@ nubSorted f es = fromList $ foldr fun [last es] ((es !^) <$> [0 .. sizeOf es - 2
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.Prim.SBytes."
 
-underEx :: String -> a
-underEx =  throw . IndexUnderflow . showString "in SDP.Prim.SBytes."
-
 overEx :: String -> a
 overEx =  throw . IndexOverflow . showString "in SDP.Prim.SBytes."
 
+underEx :: String -> a
+underEx =  throw . IndexUnderflow . showString "in SDP.Prim.SBytes."
+
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
-
-
 
 

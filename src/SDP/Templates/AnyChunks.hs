@@ -17,7 +17,6 @@ module SDP.Templates.AnyChunks
   module SDP.IndexedM,
   module SDP.Sort,
   module SDP.Scan,
-  module SDP.Set,
   
   -- * Chunk list
   AnyChunks (..)
@@ -30,11 +29,9 @@ import SDP.IndexedM
 import SDP.Internal
 import SDP.Sort
 import SDP.Scan
-import SDP.Set
-
-import GHC.Generics
 
 import qualified GHC.Exts as E
+import GHC.Generics
 
 import Data.Typeable
 import Data.Data
@@ -179,15 +176,15 @@ instance (Bordered1 rep Int e, Linear1 rep e) => Linear (AnyChunks rep e) e
     toLast (AnyChunks (xs :< x)) e = isNull x ? AnyChunks xs :< e $ AnyChunks (xs :< (x :< e))
     toLast _ e = single e
     
-    uncons = uncons' . unpack
+    uncons = uncons_ . unpack
       where
-        uncons' ((x :> xs) : xss) = (x, AnyChunks (xs : xss))
-        uncons' _ = pfailEx "(:>)"
+        uncons_ ((x :> xs) : xss) = (x, AnyChunks (xs : xss))
+        uncons_ _ = pfailEx "(:>)"
     
-    unsnoc = unsnoc' . unpack
+    unsnoc = unsnoc_ . unpack
       where
-        unsnoc' (xss :< (xs :< x)) = (AnyChunks (xss :< xs), x)
-        unsnoc' _ = pfailEx "(:<)"
+        unsnoc_ (xss :< (xs :< x)) = (AnyChunks (xss :< xs), x)
+        unsnoc_ _ = pfailEx "(:<)"
     
     fromList = AnyChunks . fmap fromList . chunks lim
     listL    = foldr ((++) . listL) [] . unpack
@@ -344,16 +341,18 @@ instance (BorderedM1 m rep Int e, SplitM1 m rep e) => SplitM m (AnyChunks rep e)
 
 {- Set and Scan instances. -}
 
-instance (Set1 rep e, Ord (rep e), Bordered1 rep Int e, IFold1 rep Int e) => Set (AnyChunks rep e) e
+instance (Nullable (AnyChunks rep e), SetWith1 (AnyChunks rep) e, Ord e) => Set (AnyChunks rep e) e
+
+instance (SetWith1 rep e, Linear1 rep e, Ord (rep e), Bordered1 rep Int e, IFold1 rep Int e) => SetWith (AnyChunks rep e) e
   where
     insertWith f' e' = AnyChunks . go f' e' . unpack
       where
-        go f e (x : xs) = isContainedIn f e x ? insertWith f e x : xs $ x : go f e xs
+        go f e (x : xs) = memberWith f e x ? insertWith f e x : xs $ x : go f e xs
         go _ e _ = [single e]
     
     deleteWith f' e' = AnyChunks . go f' e' . unpack
       where
-        go f e (x : xs) = isContainedIn f e x ? deleteWith f e x : xs $ x : go f e xs
+        go f e (x : xs) = memberWith f e x ? deleteWith f e x : xs $ x : go f e xs
         go _ _ _ = []
     
     intersectionWith f = fromList ... on (intersectionWith f) listL
@@ -366,15 +365,45 @@ instance (Set1 rep e, Ord (rep e), Bordered1 rep Int e, IFold1 rep Int e) => Set
     lookupGTWith f o = foldr ((<|>) . lookupGTWith f o) Nothing . unpack
     lookupGEWith f o = foldr ((<|>) . lookupGEWith f o) Nothing . unpack
     
-    isContainedIn f x (AnyChunks es) = isContainedIn f x `any` es
+    memberWith f x (AnyChunks es) = memberWith f x `any` es
     
-    isSubsetWith f xs ys = i_foldr (\ e b -> isContainedIn f e ys && b) True xs
+    isSubsetWith f xs ys = i_foldr (\ e b -> memberWith f e ys && b) True xs
 
 instance (Linear1 (AnyChunks rep) e) => Scan (AnyChunks rep e) e
 
 --------------------------------------------------------------------------------
 
 {- Indexed and IFold instances. -}
+
+instance (Indexed1 rep Int e) => Map (AnyChunks rep e) Int e
+  where
+    toMap ascs = isNull ascs ? Z $ assoc (l, u) ascs
+      where
+        l = fst $ minimumBy cmpfst ascs
+        u = fst $ maximumBy cmpfst ascs
+    
+    toMap' e ascs = isNull ascs ? Z $ assoc' (l, u) e ascs
+      where
+        l = fst $ minimumBy cmpfst ascs
+        u = fst $ maximumBy cmpfst ascs
+    
+    (.!) = (!^)
+    
+    Z // ascs = toMap ascs
+    (AnyChunks es) // ascs = AnyChunks (go 0 es ascs)
+      where
+        go _    []     _  = []
+        go _    xs    [ ] = xs
+        go l (x : xs) ies = x // as : go n xs bs
+          where
+            (as, bs) = partition (inRange (l, n - 1) . fst) ies
+            n = l + sizeOf es
+    
+    (.$) p (AnyChunks (x : xs)) = p .$ x <|> (+ sizeOf x) <$> p .$ AnyChunks xs
+    (.$) _ _ = Nothing
+    
+    (*$) p (AnyChunks (x : xs)) = p *$ x ++ fmap (+ sizeOf x) (p *$ AnyChunks xs)
+    (*$) _ _ = []
 
 instance (Indexed1 rep Int e) => Indexed (AnyChunks rep e) Int e
   where
@@ -392,28 +421,7 @@ instance (Indexed1 rep Int e) => Indexed (AnyChunks rep e) Int e
             (as, bs) = partition (inRange (l, n) . fst) ies
             n = min u (l + lim)
     
-    Z // ascs = isNull ascs ? Z $ assoc (l, u) ascs
-      where
-        l = fst $ minimumBy cmpfst ascs
-        u = fst $ maximumBy cmpfst ascs
-    (AnyChunks es) // ascs = AnyChunks (go 0 es ascs)
-      where
-        go _    []     _  = []
-        go _    xs    [ ] = xs
-        go l (x : xs) ies = x // as : go n xs bs
-          where
-            (as, bs) = partition (inRange (l, n - 1) . fst) ies
-            n = l + sizeOf es
-    
     fromIndexed es = AnyChunks [fromIndexed es]
-    
-    (.!) = (!^)
-    
-    (.$) p (AnyChunks (x : xs)) = p .$ x <|> (+ sizeOf x) <$> p .$ AnyChunks xs
-    (.$) _ _ = Nothing
-    
-    (*$) p (AnyChunks (x : xs)) = p *$ x ++ fmap (+ sizeOf x) (p *$ AnyChunks xs)
-    (*$) _ _ = []
 
 instance (IFold1 rep Int e, Bordered1 rep Int e, Linear1 rep e) => IFold (AnyChunks rep e) Int e
   where
@@ -521,10 +529,7 @@ instance {-# OVERLAPS #-} (Thaw1 m imm mut e) => Thaw m (AnyChunks imm e) (AnyCh
     unsafeThaw (AnyChunks imm) = AnyChunks <$> mapM unsafeThaw imm
     thaw       (AnyChunks imm) = AnyChunks <$> mapM thaw imm
 
-{- |
-  Creates one-chunk immutable stream. Works without 'Split' and 'SplitM', but
-  may be memory inefficient.
--}
+-- | Creates one-chunk immutable stream. May be memory inefficient.
 instance {-# OVERLAPPABLE #-} (Freeze1 m mut imm e) => Freeze m (mut e) (AnyChunks imm e)
   where
     unsafeFreeze = fmap (AnyChunks . single) . unsafeFreeze
@@ -545,6 +550,12 @@ instance {-# OVERLAPS #-} (Freeze1 m mut imm e) => Freeze m (AnyChunks mut e) (A
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.Templates.AnyChunks."
 
+overEx :: String -> a
+overEx =  throw . IndexOverflow . showString "in SDP.Templates.AnyChunks."
+
+underEx :: String -> a
+underEx =  throw . IndexUnderflow . showString "in SDP.Templates.AnyChunks."
+
 unpack :: (Linear1 rep e) => AnyChunks rep e -> [rep e]
 unpack =  \ (AnyChunks es) -> except isNull es
 
@@ -553,12 +564,6 @@ unpack' (AnyChunks es) = go es
   where
     go (x : xs) = do n <- getSizeOf x; n < 1 ? go xs $ (x :) <$> go xs
     go _ = return []
-
-overEx :: String -> a
-overEx =  throw . IndexOverflow . showString "in SDP.Unrolled.STUnlist."
-
-underEx :: String -> a
-underEx =  throw . IndexUnderflow . showString "in SDP.Unrolled.STUnlist."
 
 lim :: Int
 lim =  1024

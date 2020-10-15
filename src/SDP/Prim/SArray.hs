@@ -17,7 +17,6 @@ module SDP.Prim.SArray
   module SDP.IndexedM,
   module SDP.SortM,
   module SDP.Sort,
-  module SDP.Set,
   
   -- * Pseudo-primitive types
   IOArray# ( IOArray# ), STArray#, SArray#,
@@ -43,10 +42,10 @@ import SDP.Internal
 import SDP.SortM
 import SDP.Sort
 import SDP.Scan
-import SDP.Set
 
 import SDP.SortM.Tim
 
+import qualified GHC.Exts as E
 import GHC.Exts
   (
     Array#, MutableArray#, State#, Int#,
@@ -60,8 +59,6 @@ import GHC.Exts
     sameMutableArray#, (+#), (-#), (==#)
   )
 import GHC.ST ( ST (..), STRep )
-
-import qualified GHC.Exts as E
 
 import Data.Typeable
 import Data.Proxy
@@ -425,7 +422,9 @@ instance Bordered (SArray# e) Int
 
 {- Set, Scan and Sort instances. -}
 
-instance Set (SArray# e) e
+instance (Ord e) => Set (SArray# e) e
+
+instance SetWith (SArray# e) e
   where
     setWith f = nubSorted f . sortBy f
     
@@ -433,7 +432,7 @@ instance Set (SArray# e) e
       Just  i -> e `f` (es!^i) == EQ ? es $ before i e es
       Nothing -> es :< e
     
-    deleteWith f e es = isContainedIn f e es ? except (\ x -> f e x == EQ) es $ es
+    deleteWith f e es = memberWith f e es ? except (\ x -> f e x == EQ) es $ es
     
     {-# INLINE intersectionWith #-}
     intersectionWith f xs ys = fromList $ intersection' 0 0
@@ -488,7 +487,7 @@ instance Set (SArray# e) e
           where
             x = xs !^ i; y = ys !^ j
     
-    isContainedIn = binaryContain
+    memberWith = binaryContain
     
     lookupLTWith _ _ Z  = Nothing
     lookupLTWith f o es
@@ -571,25 +570,29 @@ instance Sort (SArray# e) e
 
 {- Indexed and IFold instances. -}
 
+instance Map (SArray# e) Int e
+  where
+    toMap' e ascs = isNull ascs ? Z $ assoc' (l, u) e ascs
+      where
+        l = fst $ minimumBy cmpfst ascs
+        u = fst $ maximumBy cmpfst ascs
+    
+    (.!) = (!^)
+    
+    Z  // ascs = toMap ascs
+    es // ascs = runST $ fromFoldableM es >>= (`overwrite` ascs) >>= done
+    
+    (*$) p = ifoldr (\ i e is -> p e ? (i : is) $ is) []
+
 instance Indexed (SArray# e) Int e
   where
     assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
     
     fromIndexed es = runST $ do
-        let n = sizeOf es
-        copy <- filled n (unreachEx "fromIndexed")
-        forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
-        done copy
-    
-    Z // ascs = null ascs ? Z $ assoc (l, u) ascs
-      where
-        l = fst $ minimumBy cmpfst ascs
-        u = fst $ maximumBy cmpfst ascs
-    arr // ascs = runST $ fromFoldableM arr >>= (`overwrite` ascs) >>= done
-    
-    (.!) = (!^)
-    
-    (*$) p = ifoldr (\ i e is -> p e ? (i : is) $ is) []
+      let n = sizeOf es
+      copy <- filled n (unreachEx "fromIndexed")
+      forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
+      done copy
 
 instance IFold (SArray# e) Int e
   where
@@ -1021,7 +1024,7 @@ instance (Storable e) => Freeze IO (Int, Ptr e) (SArray# e)
         forM_ [0 .. n' - 1] $ \ i -> peekElemOff ptr i >>= writeM_ es' i
         freeze es'
       where
-        err = undEx "freeze {(Int, Ptr e) => SArray#}" `asProxyTypeOf` ptr
+        err = undEx "freeze {(Int, Ptr e) => SArray# e}" `asProxyTypeOf` ptr
 
 instance (Storable e) => Thaw IO (SArray# e) (Int, Ptr e)
   where
@@ -1105,20 +1108,22 @@ before n@(I# n#) e es@(SArray# c@(I# c#) (I# o#) arr#)
         s4# -> case unsafeFreezeArray# marr# s4# of
           (# s5#, res# #) -> (# s5#, SArray# (c + 1) 0 res# #)
 
+--------------------------------------------------------------------------------
+
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.Prim.SArray."
-
-underEx :: String -> a
-underEx =  throw . IndexUnderflow . showString "in SDP.Prim.SArray."
 
 overEx :: String -> a
 overEx =  throw . IndexOverflow . showString "in SDP.Prim.SArray."
 
-pfailEx :: String -> a
-pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
+underEx :: String -> a
+underEx =  throw . IndexUnderflow . showString "in SDP.Prim.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
+
+pfailEx :: String -> a
+pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
 
 
 

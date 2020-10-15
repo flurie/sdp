@@ -20,13 +20,12 @@ module SDP.SortM.Tim
 where
 
 import Prelude ()
-
 import SDP.SafePrelude
 import SDP.IndexedM
 
-import Control.Monad.Rope
-
 import Data.Bits
+
+import Control.Monad.Rope
 
 default ()
 
@@ -61,9 +60,9 @@ insertionSortBy cmp es = do n <- getSizeOf es; insertionSort_ cmp es 0 0 (n - 1)
   [b .. e] - sortable fragment.
 -}
 insertionSort_ :: (IndexedM m v i e) => Compare e -> v -> Int -> Int -> Int -> m ()
-insertionSort_ cmp es b s e' = mapM_ insert [s + 1 .. e']
+insertionSort_ cmp es b s e' = mapM_ insert_ [s + 1 .. e']
   where
-    insert u = do j <- snext (b, u - 1) u; mapM_ (swapM es u) [j .. u - 1]
+    insert_ u = do j <- snext (b, u - 1) u; mapM_ (swapM es u) [j .. u - 1]
     
     snext (l, u) i = l > u ? return i $ (es !#> l) >>=<< (es !#> i) $
       \ c e -> case cmp e c of {GT -> snext (l + 1, u) i; _ -> return l}
@@ -152,4 +151,5 @@ timSortBy cmp es = getSizeOf es >>= timSort'
 -- | minrunTS returns Timsort chunk size.
 minrunTS :: Int -> Int
 minrunTS i = mr i 0 where mr n r = n >= 64 ? mr (shiftR n 1) (n .&. 1) $ n + r
+
 

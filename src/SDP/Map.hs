@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE DefaultSignatures, ConstraintKinds #-}
 
 {- |
     Module      :  SDP.Map
@@ -7,8 +7,8 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
-  
-  @SDP.Map@ provides 'Map' - class for dictionaries.
+    
+    @SDP.Map@ provides 'Map' - class for dictionaries.
 -}
 module SDP.Map
 (
@@ -16,244 +16,244 @@ module SDP.Map
   module SDP.Set,
   
   -- * Map
-  Map (..),
-  
-  -- * Related functions
-  union',  intersection', unions'
+  Map (..), Map1, Map2
 )
 where
 
 import Prelude ()
 import SDP.SafePrelude
+import SDP.Internal
+import SDP.Linear
 import SDP.Set
 
-import qualified Data.List as L
-
-import SDP.Internal
+import Data.List ( findIndex, findIndices )
 
 default ()
 
+infixl 9 .!, !, !?
+
 --------------------------------------------------------------------------------
 
--- | Map is class of dictionaries. It's unstable, provisional implementation.
-class (Ord k) => Map m k e | m -> k, m -> e
+{- |
+  'Map' is a class of dictionaries, simple associative arrays with an arbitrary
+  (implementation-dependent) key.
+  
+  'Map' is a class of dictionaries, simple associative arrays with an arbitrary
+  (implementation-dependent) key.
+  
+  In the current implementation, Map (since sdp-0.2) is a superclass of Indexed.
+  Map provides a set of operations on associative arrays that are not specific
+  to linear data structures and are not limited by the Bordered context (doesn't
+  impose significant restrictions on the type of the key, its properties).
+  
+  The disadvantage of this implementation is the impossibility of simultaneous
+  implementation of associative arrays of the form:
+  
+  > instance Map [e] Int e          -- current implementation
+  > instance (Eq k) => Map [(k, e)] -- previous implementation
+-}
+class (Nullable m, Eq k) => Map m k e | m -> k, m -> e
   where
-    {-# MINIMAL (fromSet|mapAssocs), unionWith', intersectionWith', differenceWith' #-}
+    {-# MINIMAL toMap', ((.!) | (!?)) #-}
     
-    {-# INLINE fromSet #-}
-    -- | fromSet creates map using elements of (correct) 'set' as keys.
-    fromSet :: (Set s k) => (k -> e) -> s -> m
-    fromSet =  mapAssocs ... fromSet
+    -- | List of associations (index, element).
+    default assocs :: (Bordered m k, Linear m e) => m -> [(k, e)]
+    assocs :: m -> [(k, e)]
+    assocs es = indices es `zip` listL es
     
-    -- | mapAssocs creates map from list of assocs @(key, element)@.
-    mapAssocs :: [(k, e)] -> m
-    mapAssocs ies = (`lookup_` ies) `fromSet` fsts ies
-    
-    {-# INLINE toMap #-}
-    -- | toMap creates correct map from arbitrary data.
-    toMap :: m -> m
-    toMap =  mapAssocs . listMap
-    
-    -- | listMap is just assocs.
-    default listMap :: (Bordered m k, Linear m e) => m -> [(k, e)]
-    listMap :: m -> [(k, e)]
-    listMap es = indices es `zip` listL es
-    
-    {-# INLINE filterMap #-}
-    -- | @filterMap f@ is same as @'mapAssocs' . 'filter' ('uncurry' f) . 'listMap'@
-    filterMap :: (k -> e -> Bool) -> m -> m
-    filterMap f = mapAssocs . filter (uncurry f) . listMap
-    
-    {-# INLINE update' #-}
     {- |
-      @update' upd key new map@ overwrites @(key, old)@ by @(key, upd old new)@
-      or just write @new@ if in @map@ is no @key@.
+      A less specific version of @assoc@ that creates a new associative array.
+      For 'Linear' structures without gaps, it may be less effective.
+      
+      > Z // ascs = toMap -- forall ascs
     -}
-    update' :: (e -> e -> e) -> k -> e -> m -> m
-    update' f = \ k e -> mapAssocs . update' f k e . listMap
+    toMap :: [(k, e)] -> m
+    toMap =  toMap' (undEx "toMap {default}")
     
-    {-# INLINE adjust #-}
-    -- | @adjust upd key map@ overwrites @(key, elem)@ by @(key, upd elem)@
-    adjust :: (e -> e) -> k -> m -> m
-    adjust f k = mapAssocs . adjust f k . listMap
+    -- TODO: create 'sdp-associative' for advanced templates and structures.
     
-    {-# INLINE insert' #-}
-    -- | @insert' key e@ is just @'insert' (k, e)@.
+    {- |
+      Strict version of 'toMap' with default value.
+      
+      Note that the default value is only set for uninitialized elements in
+      structures with gaps. When new gaps appear, their elements may be
+      overwritten with the other values.
+    -}
+    toMap' :: e -> [(k, e)] -> m
+    
+    {- |
+      @insert' key e map@ inserts @e@ with @key@ to @map@. If @map@ already
+      contains an element with @key@, the element will be overwritten.
+      
+      If @map@ doesn't allow gaps, then the missing elements should be filled
+      with default values.
+    -}
+    default insert' :: (Bordered m k) => k -> e -> m -> m
     insert' :: k -> e -> m -> m
-    insert' =  curry (union' . mapAssocs . single)
-    
-    {-# INLINE delete' #-}
-    -- | delete' removes element with given key.
-    delete' :: k -> m -> m
-    delete' k = mapAssocs . delete' k . listMap
-    
-    {-# INLINE lookup #-}
-    {-
-      lookup tries to find element in map by it's key. Requires 'Ord', so may
-      work in O(log n) but less general than 'Data.List.lookup'.
-    -}
-    lookup :: k -> m -> Maybe e
-    lookup k = lookup k . listMap
-    
-    {-# INLINE lookup' #-}
-    -- | lookup' is lookup with default value.
-    lookup' :: e -> k -> m -> e
-    lookup' e = fromMaybe e ... lookup
-    
-    {-# INLINE lookup_ #-}
-    -- | lookup_ is unsafe lookup, may fail.
-    lookup_ :: k -> m -> e
-    lookup_ =  fromJust ... lookup
-    
-    {-# INLINE keySet #-}
-    -- | @keySet@ is generic 'keys'.
-    keySet :: (Set s k) => m -> s
-    keySet =  fromList . keys
-    
-    {-# INLINE keys #-}
-    -- | Return list of keys.
-    keys :: m -> [k]
-    keys =  fsts . listMap
-    
-    {-# INLINE isMapElem #-}
-    -- | isMapElem is just 'isContainedIn' for maps.
-    isMapElem :: k -> m -> Bool
-    isMapElem k = isMapElem k . listMap
-    
-    {-# INLINE lookupLT' #-}
-    -- | lookupLT' is just 'lookupLT' for maps.
-    lookupLT' :: k -> m -> Maybe (k, e)
-    lookupLT' k = lookupLT' k . listMap
-    
-    {-# INLINE lookupGT' #-}
-    -- | lookupGT' is just 'lookupGT' for maps.
-    lookupGT' :: k -> m -> Maybe (k, e)
-    lookupGT' k = lookupGT' k . listMap
-    
-    {-# INLINE lookupLE' #-}
-    -- | lookupLE' is just 'lookupLE' for maps.
-    lookupLE' :: k -> m -> Maybe (k, e)
-    lookupLE' k me = (,) k <$> lookup k me <|> lookupLT' k me
-    
-    {-# INLINE lookupGE' #-}
-    -- | lookupGE' is just 'lookupGE' for maps.
-    lookupGE' :: k -> m -> Maybe (k, e)
-    lookupGE' k me = (,) k <$> lookup k me <|> lookupGT' k me
+    insert' k e es = toMap $ assocs es :< (k, e)
     
     {- |
-      unionWith' is 'groupSetWith' for maps but works with real groups of
+      delete' removes element with given key.
+      
+      If the structure has boundaries, when removed from the beginning (end),
+      they should change accordingly. If the structure doesn't allow gaps, then
+      when removed from the middle, the actual value should be replaced with the
+      default value.
+    -}
+    delete' :: k -> m -> m
+    delete' k = toMap . except ((== k) . fst) . assocs
+    
+    -- | @member' k map@ checks if there is an element with key @k@ in @map@.
+    default member' :: (Bordered m k) => k -> m -> Bool
+    member' :: k -> m -> Bool
+    member' =  flip indexIn
+    
+    -- | Update elements of immutable structure (by copying).
+    (//) :: m -> [(k, e)] -> m
+    (//) =  toMap ... (++) . assocs
+    
+    -- | (.!) is unsafe reader, can be faster ('!') by skipping checks.
+    {-# INLINE (.!) #-}
+    (.!) :: m -> k -> e
+    (.!) =  fromMaybe (undEx "(.!)") ... (!?)
+    
+    -- | (!) is well-safe reader. Must 'throw' 'IndexException'.
+    default (!) :: (Bordered m k) => m -> k -> e
+    (!) :: m -> k -> e
+    (!) es i = case inBounds (bounds es) i of
+        IN -> es .! i
+        ER -> throw $ EmptyRange     msg
+        OR -> throw $ IndexOverflow  msg
+        UR -> throw $ IndexUnderflow msg
+      where
+        msg = "in SDP.Indexed.(!) {default}"
+    
+    -- | (!?) is completely safe, but very boring function.
+    (!?) :: m -> k -> Maybe e
+    (!?) es = not . flip member' es ?- (es .!)
+    
+    -- | Filter with key.
+    filter' :: (k -> e -> Bool) -> m -> m
+    filter' f = toMap . filter (uncurry f) . assocs
+    {-
+    {- |
+      'union'' is 'groupSetWith' for maps but works with real groups of
       elements, not with consequentive equal elements.
       
-      unionWith' merges/chooses elements with equal keys from two maps.
+      'union'' merges/chooses elements with equal keys from two maps.
     -}
-    unionWith' :: (e -> e -> e) -> m -> m -> m
+    union' :: (e -> e -> e) -> m -> m -> m
     
     {- |
-      @differenceWith' comb mx my@ applies @comb@ to values with equal keys.
+      @'difference'' comb mx my@ applies @comb@ to values with equal keys.
       If @comp x y@ (where @(k1, x) <- mx@, @(k2, y) <- my@, @k1 == k2@) is
       'Nothing', element isn't included to result map.
       
-      Note that diffenenceWith is poorer than a similar functions in containers.
+      Note that 'diffenence'' is poorer than a similar functions in containers.
     -}
-    differenceWith' :: (e -> e -> Maybe e) -> m -> m -> m
+    difference' :: (e -> e -> Maybe e) -> m -> m -> m
     
     {- |
-      @intersectionWith' f mx my@ combines elements of 'intersection'' by @f@:
+      @'intersection'' f mx my@ combines elements of 'intersection'' by @f@:
       if @'isJust' (f x y)@ (where @(k1, x) <- mx, (k2, y) <- my, k1 == k2@),
       then element is added to result map.
     -}
-    intersectionWith' :: (e -> e -> e) -> m -> m -> m
+    intersection' :: (e -> e -> e) -> m -> m -> m
+    -}
+    -- | Update function, by default uses ('!') and may throw 'IndexException'.
+    update :: m -> [k] -> (k -> e -> e) -> m
+    update es is f = es // [ (i, f i (es!i)) | i <- is ]
     
-    -- | unionsWith' is right fold by unionWith'.
-    unionsWith' :: (Foldable f) => (e -> e -> e) -> f m -> m
-    unionsWith' =  foldr1 . unionWith'
+    lookupLT' :: (Ord k) => k -> m -> Maybe (k, e)
+    lookupLT' k = lookupLTWith cmpfst (k, unreachEx "lookupLT'") . assocs
+    
+    lookupGT' :: (Ord k) => k -> m -> Maybe (k, e)
+    lookupGT' k = lookupGTWith cmpfst (k, unreachEx "lookupGT'") . assocs
+    
+    lookupLE' :: (Ord k) => k -> m -> Maybe (k, e)
+    lookupLE' k me = (,) k <$> (me !? k) <|> lookupLEWith cmpfst (k, unreachEx "lookupLE'") (assocs me)
+    
+    lookupGE' :: (Ord k) => k -> m -> Maybe (k, e)
+    lookupGE' k me = (,) k <$> (me !? k) <|> lookupGEWith cmpfst (k, unreachEx "lookupGE'") (assocs me)
+    
+    -- | Keys of map elements.
+    default keys :: (Bordered m k) => m -> [k]
+    keys :: m -> [k]
+    keys =  indices
+    
+    -- | Searches the index of first matching element.
+    (.$) :: (e -> Bool) -> m -> Maybe k
+    (.$) =  null ?- head ... (*$)
+    
+    -- | Searches the indices of all matching elements.
+    (*$) :: (e -> Bool) -> m -> [k]
+    (*$) f = select (f . snd ?+ fst) . assocs
 
 --------------------------------------------------------------------------------
 
--- | union' is just @unionWith' const@.
-{-# INLINE union' #-}
-union' :: (Map m k e) => m -> m -> m
-union' =  unionWith' const
+-- | Kind (* -> *) 'Map' structure.
+type Map1 m k e = Map (m e) k e
 
--- | intersection' is just @intersectionWith' const@.
-{-# INLINE intersection' #-}
-intersection' :: (Map m k e) => m -> m -> m
-intersection' =  intersectionWith' const
-
--- | unions is just @unionsWith' const@.
-{-# INLINE unions' #-}
-unions' :: (Map m k e, Foldable f) => f m -> m
-unions' =  unionsWith' const
+-- | Kind (* -> * -> *) 'Map' structure.
+type Map2 m k e = Map (m k e) k e
 
 --------------------------------------------------------------------------------
 
-instance (Ord k) => Map [(k, e)] k e
+instance Map [e] Int e
   where
-    mapAssocs = L.sortBy cmpfst
-    toMap     = L.sortBy cmpfst
-    keys      = fsts
-    listMap   = id
-    
-    filterMap f = filter (uncurry f)
-    fromSet   f = map (\ e -> (e, f e)) . listL
-    isMapElem k = isContainedIn cmpfst (k, unreachEx    "isMapElem")
-    lookupLT' k = lookupLTWith  cmpfst (k, unreachEx "lookupLTWith")
-    lookupGT' k = lookupGTWith  cmpfst (k, unreachEx "lookupGTWith")
-    lookupLE' k = lookupLEWith  cmpfst (k, unreachEx "lookupLEWith")
-    lookupGE' k = lookupGEWith  cmpfst (k, unreachEx "lookupGEWith")
-    
-    lookup = L.lookup
-    
-    update' upd k e = go
+    toMap' e = snds . fill . setWith cmpfst
       where
-        go es@(m@(k', x) : ms) = case k <=> k' of
-          EQ -> (k', upd x e) : ms
-          LT -> m : go ms
-          GT -> es
-        go _ = []
+        fill (ix@(i1, _) : iy@(i2, _) : ies) =
+          let rest = i1 + 1 == i2 ? iy : ies $ (i1 + 1, e) : iy : ies
+          in  ix : fill rest
+        fill xs = xs
     
-    insert' k e es@(m : ms) = case k <=> fst m of
-      LT -> m : insert' k e ms
-      GT -> (fst m, e) : es
-      EQ -> es
-    insert' k e _ = [(k, e)]
+    assocs = zip [0 ..] . listL
     
-    delete' k (m : ms) = case k <=> fst m of
-      LT -> m : delete' k ms
-      GT -> m : ms
-      EQ -> ms
-    delete' _ _ = []
+    insert' k e es = k < 0 ? es $ go k es
+      where
+        go 0    xs    = isNull xs ? [e] $ e : tail xs
+        go i    []    = err : go (i - 1) []
+        go i (x : xs) = x : go (i - 1) xs
+        
+        err = undEx "insert'"
     
-    adjust f k (m@(k', x) : ms) = case k <=> k' of
-      LT -> m : adjust f k ms
-      EQ -> (k', f x) : ms
-      GT -> m : ms
-    adjust _ _ _ = []
+    (x : xs) .! n = n == 0 ? x $ xs .! (n - 1)
+    _        .! _ = error "in SDP.Map.(.!)"
     
-    unionWith' f xs@((kx, x) : mx) ys@((ky, y) : my) = case kx <=> ky of
-      LT -> (kx, x) : unionWith' f mx ys
-      EQ -> (kx, f x y) : unionWith' f mx my
-      GT -> (ky, y) : unionWith' f xs my
-    unionWith' _ xs ys = xs ++ ys
+    (!) [] _ = empEx "(!)"
+    (!) es n = n >= 0 ? es !# n $ underEx "(!)"
+      where
+        []       !# _  = overEx "(!)"
+        (x : xs) !# n' = n' == 0 ? x $ xs !# (n' - 1)
     
-    differenceWith' f xs@((kx, x) : mx) ys@((ky, y) : my) = case kx <=> ky of
-      LT -> (kx, x) : differenceWith' f mx ys
-      EQ -> let d = differenceWith' f mx my in case f x y of {Just z -> (kx, z) : d; _ -> d}
-      GT -> differenceWith' f xs my
-    differenceWith' _ xs _ = xs
+    []       !? _ = Nothing
+    (x : xs) !? n = case n <=> 0 of
+      GT -> xs !? (n - 1)
+      EQ -> Just x
+      LT -> Nothing
     
-    intersectionWith' f xs@((kx, x) : mx) ys@((ky, y) : my) = case kx <=> ky of
-      LT -> intersectionWith' f mx ys
-      EQ -> (kx, f x y) : intersectionWith' f mx my
-      GT -> intersectionWith' f xs my
-    intersectionWith' _ _ _ = []
+    xs // es = snds $ unionWith cmpfst (setWith cmpfst es) (assocs xs)
     
-    unionsWith' = (`foldl` Z) . unionWith'
+    (.$) = findIndex
+    (*$) = findIndices
 
 --------------------------------------------------------------------------------
+
+undEx :: String -> a
+undEx =  throw . UndefinedValue . showString "in SDP.Map."
+
+empEx :: String -> a
+empEx =  throw . EmptyRange . showString "in SDP.Map."
+
+overEx :: String -> a
+overEx =  throw . IndexOverflow . showString "in SDP.Map."
+
+underEx :: String -> a
+underEx =  throw . IndexUnderflow . showString "in SDP.Map."
 
 unreachEx :: String -> a
-unreachEx = throw . UnreachableException . showString "in SDP.Map."
+unreachEx =  throw . UnreachableException . showString "in SDP.Map."
 
 
 

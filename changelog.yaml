@@ -57,7 +57,7 @@
     - newUnboxedByteArray and safe_scale functions
 
   improvements:
-    - structures: size and offset encapsulation and template-based structures
+    - structures: size and offset encapsulation by template-based structures
     - tests: moved to sdp-quickcheck package
 
   # news
@@ -65,14 +65,14 @@
     - SDP.Templates.AnyBorder: arbitrary-bordered structure template
     - SDP.Templates.AnyChunks: chunk stream template
 
-    - SDP.Array.IO: see IOArray
-    - SDP.Bytes.IO: see IOBytes
+    - SDP.Unrolled.IOUnlist: see IOUnlist
+    - SDP.ByteList.IOUblist: see IOUblist
 
     - SDP.Unrolled.IO: see IOUnrolled
     - SDP.ByteList.IO: see IOByteList
 
-    - SDP.Unrolled.IOUnlist: see IOUnlist
-    - SDP.ByteList.IOUblist: see IOUblist
+    - SDP.Array.IO: see IOArray
+    - SDP.Bytes.IO: see IOBytes
 
     - SDP.Prim.SArray: SArray#, STArray# and IOArray# pseudo-primitives
     - SDP.Prim.SBytes: SBytes#, STBytes# and IOBytes# pseudo-primitives
@@ -123,7 +123,7 @@
     - Thaw: unsafeThaw
 
     - Bordered: offsetOf and indexIn
-    - Indexed: assocMap, assocMap' and update
+    - Indexed: update
     - LinearM: nowNull, newSingle, getHead, getLast, prepend, append and copyTo
     - Linear: |
         except, select, extract, selects, select', extract', selects',
@@ -138,12 +138,12 @@
         removeAll, replaceBy
 
   types:
-    - IOArray: mutable boxed array in monad IO
-    - IOBytes: mutable unboxed array in monad IO
-    - IOUnlist: mutable boxed unrolled linked list in monad IO
-    - IOUblist: mutable unboxed unrolled linked list in monad IO
-    - IOUnrolled: mutable boxed unrolled linked list in monad IO with bounds
     - IOByteList: mutable unboxed unrolled linked list in monad IO with bounds
+    - IOUnrolled: mutable boxed unrolled linked list in monad IO with bounds
+    - IOUblist: mutable unboxed unrolled linked list in monad IO
+    - IOUnlist: mutable boxed unrolled linked list in monad IO
+    - IOBytes: mutable unboxed array in monad IO
+    - IOArray: mutable boxed array in monad IO
 
   type-families:
     - Shape: GIndex, DimLast and DimInit
@@ -153,7 +153,7 @@
     - IndexException: UnexpectedRank
 
   syntax:
-    - OverloadedIndices
+    - Overloaded indices
 
   benchmarks:
     - bench-sort: for immutable timSort

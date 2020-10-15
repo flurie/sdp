@@ -19,7 +19,6 @@ module SDP.Templates.AnyBorder
   module SDP.Shaped,
   module SDP.Sort,
   module SDP.Scan,
-  module SDP.Set,
   
   -- * Border template
   AnyBorder (..)
@@ -29,20 +28,17 @@ where
 import Prelude ()
 import SDP.SafePrelude
 import SDP.IndexedM
+import SDP.Internal
 import SDP.Shaped
 import SDP.SortM
 import SDP.Sort
 import SDP.Scan
-import SDP.Set
-
-import GHC.Generics
 
 import qualified GHC.Exts as E
+import GHC.Generics
 
 import Data.Typeable
 import Data.Data
-
-import SDP.Internal
 
 default ()
 
@@ -352,7 +348,9 @@ instance (Index i, BorderedM1 m rep Int e, SplitM1 m rep e) => SplitM m (AnyBord
 
 {- Set, Scan and Sort instances. -}
 
-instance (Index i, Set1 rep e, Bordered1 rep Int e) => Set (AnyBorder rep i e) e
+instance (SetWith1 (AnyBorder rep i) e, Nullable (rep e), Bordered1 rep Int e, Index i, Ord e) => Set (AnyBorder rep i e) e
+
+instance (Index i, SetWith1 rep e, Linear1 rep e, Bordered1 rep Int e) => SetWith (AnyBorder rep i e) e
   where
     isSubsetWith f = isSubsetWith f `on` unpack
     
@@ -368,11 +366,11 @@ instance (Index i, Set1 rep e, Bordered1 rep Int e) => Set (AnyBorder rep i e) e
     differenceWith   f = withBounds ... on (differenceWith   f) unpack
     symdiffWith      f = withBounds ... on (symdiffWith      f) unpack
     
-    isContainedIn f e = isContainedIn f e . unpack
-    lookupLTWith  f o = lookupLTWith  f o . unpack
-    lookupGTWith  f o = lookupGTWith  f o . unpack
-    lookupLEWith  f o = lookupLEWith  f o . unpack
-    lookupGEWith  f o = lookupGEWith  f o . unpack
+    memberWith   f e = memberWith   f e . unpack
+    lookupLTWith f o = lookupLTWith f o . unpack
+    lookupGTWith f o = lookupGTWith f o . unpack
+    lookupLEWith f o = lookupLEWith f o . unpack
+    lookupGEWith f o = lookupGEWith f o . unpack
 
 instance (Linear1 (AnyBorder rep i) e) => Scan (AnyBorder rep i e) e
 
@@ -384,12 +382,35 @@ instance (Index i, Sort (rep e) e) => Sort (AnyBorder rep i e) e
 
 {- Indexed, IFold and Shaped instances. -}
 
+instance (Index i, Indexed1 rep Int e) => Map (AnyBorder rep i e) i e
+  where
+    toMap ascs = isNull ascs ? Z $ assoc (l, u) ascs
+      where
+        l = fst $ minimumBy cmpfst ascs
+        u = fst $ maximumBy cmpfst ascs
+    
+    toMap' e ascs = isNull ascs ? Z $ assoc' (l, u) e ascs
+      where
+        l = fst $ minimumBy cmpfst ascs
+        u = fst $ maximumBy cmpfst ascs
+    
+    {-# INLINE (.!) #-}
+    (.!) (AnyBorder l u rep) = (rep !^) . offset (l, u)
+    
+    Z // ascs = toMap ascs
+    (AnyBorder l u rep) // ascs =
+      let ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
+      in  AnyBorder l u (rep // ies)
+    
+    p .$ (AnyBorder l u rep) = index (l, u) <$> p .$ rep
+    p *$ (AnyBorder l u rep) = index (l, u) <$> p *$ rep
+
 instance (Index i, Indexed1 rep Int e) => Indexed (AnyBorder rep i e) i e
   where
     assoc bnds@(l, u) ascs = AnyBorder l u (assoc bnds' ies)
       where
         ies   = [ (offset bnds i, e) | (i, e) <- ascs, inRange bnds i ]
-        bnds' = defaultBounds $ size bnds
+        bnds' = defaultBounds (size bnds)
     
     assoc' bnds@(l, u) defvalue ascs = AnyBorder l u (assoc' bnds' defvalue ies)
       where
@@ -397,21 +418,6 @@ instance (Index i, Indexed1 rep Int e) => Indexed (AnyBorder rep i e) i e
         bnds' = defaultBounds $ size bnds
     
     fromIndexed = withBounds . fromIndexed
-    
-    {-# INLINE (.!) #-}
-    (.!) (AnyBorder l u rep) = (rep !^) . offset (l, u)
-    
-    Z // ascs = null ascs ? Z $ assoc (l, u) ascs
-      where
-        l = fst $ minimumBy cmpfst ascs
-        u = fst $ maximumBy cmpfst ascs
-    
-    (AnyBorder l u rep) // ascs = AnyBorder l u (rep // ies)
-      where
-        ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
-    
-    p .$ (AnyBorder l u rep) = index (l, u) <$> p .$ rep
-    p *$ (AnyBorder l u rep) = index (l, u) <$> p *$ rep
 
 instance (Index i, Bordered1 rep Int e, IFold1 rep Int e) => IFold (AnyBorder rep i e) i e
   where
@@ -541,5 +547,4 @@ withBounds rep = uncurry AnyBorder (defaultBounds $ sizeOf rep) rep
 {-# INLINE withBounds' #-}
 withBounds' :: (Index i, BorderedM1 m rep Int e) => rep e -> m (AnyBorder rep i e)
 withBounds' rep = (\ n -> uncurry AnyBorder (defaultBounds n) rep) <$> getSizeOf rep
-
 
