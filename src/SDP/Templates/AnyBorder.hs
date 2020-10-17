@@ -217,6 +217,8 @@ instance (Index i, Linear1 rep e, Bordered1 rep Int e) => Linear (AnyBorder rep 
     {-# INLINE (!^) #-}
     (!^) = (!^) . unpack
     
+    write (AnyBorder l u es) n e = AnyBorder l u (write es n e)
+    
     concatMap f = withBounds . concatMap (unpack . f)
     concat      = withBounds . concatMap unpack
     
@@ -348,7 +350,7 @@ instance (Index i, BorderedM1 m rep Int e, SplitM1 m rep e) => SplitM m (AnyBord
 
 {- Set, Scan and Sort instances. -}
 
-instance (SetWith1 (AnyBorder rep i) e, Nullable (rep e), Bordered1 rep Int e, Index i, Ord e) => Set (AnyBorder rep i e) e
+instance (SetWith1 (AnyBorder rep i) e, Nullable (AnyBorder rep i e), Ord e) => Set (AnyBorder rep i e) e
 
 instance (Index i, SetWith1 rep e, Linear1 rep e, Bordered1 rep Int e) => SetWith (AnyBorder rep i e) e
   where
@@ -438,9 +440,9 @@ instance (Bordered1 rep Int e, Split1 rep e) => Shaped (AnyBorder rep) e
         o = offset num ij * s
         s = size sub
     
-    slicesOf es =
-      let (l, u) = both takeDim (bounds es)
-      in  [ AnyBorder l u sl | sl <- size (l, u) `chunks` unpack es ]
+    slicesOf es = uncurry AnyBorder bnds <$> size bnds `chunks` unpack es
+      where
+        bnds = both takeDim (bounds es)
 
 --------------------------------------------------------------------------------
 
@@ -547,4 +549,7 @@ withBounds rep = uncurry AnyBorder (defaultBounds $ sizeOf rep) rep
 {-# INLINE withBounds' #-}
 withBounds' :: (Index i, BorderedM1 m rep Int e) => rep e -> m (AnyBorder rep i e)
 withBounds' rep = (\ n -> uncurry AnyBorder (defaultBounds n) rep) <$> getSizeOf rep
+
+
+
 

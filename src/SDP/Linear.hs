@@ -254,6 +254,13 @@ class (Nullable l) => Linear l e | l -> e
     (!^) :: l -> Int -> e
     (!^) =  (L.!!) . listL
     
+    {- |
+      @write es n e@ writes value @e@ in position @n@ (offset), returns new
+      structure. If @n@ is out of range, returns equal structure (@es@ or copy).
+    -}
+    write :: l -> Int -> e -> l
+    write es = fromList ... write (listL es)
+    
     -- | Generalized concat.
     concat :: (Foldable f) => f l -> l
     concat =  foldr (++) Z
@@ -697,6 +704,11 @@ instance Linear [e] e
     fromListN    = take
     fromFoldable = toList
     
+    write es n e = n < 0 ? es $ go n es
+      where
+        go i (x : xs) = i == 0 ? e : xs $ x : go (i - 1) xs
+        go _ _ = []
+    
     toLast = flip (foldr' (:) . pure)
     listR  = L.reverse
     listL  = toList
@@ -794,7 +806,7 @@ inits es = es : inits (init es)
 
 -- | sorted is a function that checks for sorting.
 sorted :: (Split s e, Bordered s i, Ord e) => s -> Bool
-sorted es = combo (<=) es == sizeOf es
+sorted es = combo (<=) es ==. es
 
 {- |
   @ascending es lens@ checks if the subsequences of @es@ of lengths @lens@ is
@@ -802,4 +814,7 @@ sorted es = combo (<=) es == sizeOf es
 -}
 ascending :: (Split s e, Bordered s i, Ord e) => s -> [Int] -> Bool
 ascending =  all sorted ... flip splits
+
+
+
 

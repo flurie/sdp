@@ -165,6 +165,7 @@
     - Index.rank: Shape.rank
     - getIndexOf: nowIndexIn
     - Indexed.(!^): Linear.(!^)
+    - Indexed.write: Linear.write
     - Bordered.assocs: Indexed.assocs
     - Bordered.getAssocs: IndexedM.getAssocs
     - SDP.SortM.Stuff: SDP.SortM.Tim

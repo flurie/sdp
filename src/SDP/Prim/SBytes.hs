@@ -226,6 +226,11 @@ instance (Unboxed e) => Linear (SBytes# e) e
     {-# INLINE (!^) #-}
     (!^) (SBytes# _ (I# o#) arr#) = \ (I# i#) -> arr# !# (i# +# o#)
     
+    write es n e = not (indexIn es n) ? es $ runST $ do
+      es' <- thaw es
+      writeM_ es' n e
+      done es'
+    
     replicate n e = runST $ filled n e >>= done
     
     listL = i_foldr (:) []

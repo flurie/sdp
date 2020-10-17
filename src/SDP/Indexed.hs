@@ -75,12 +75,6 @@ class (Linear v e, Bordered v i, Map v i e) => Indexed v i e | v -> i, v -> e
     -- | Create new structure from old by indexed mapping.
     (/>) :: v -> (i -> e -> e) -> v
     (/>) es f = assoc (bounds es) [ (i, f i (es ! i)) | i <- indices es ]
-    
-    -- TODO: move to Linear.
-    
-    -- | Write one element to structure.
-    write :: v -> Int -> e -> v
-    write es i e = es // [ (indexOf es i, e) ]
 
 --------------------------------------------------------------------------------
 
@@ -202,4 +196,5 @@ binaryContain f e es =
 
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.Indexed."
+
 

@@ -298,6 +298,11 @@ instance Linear (SArray# e) e
     
     (!^) (SArray# _ (I# o#) arr#) = \ (I# i#) -> case indexArray# arr# (i# +# o#) of (# e #) -> e
     
+    write es n e = not (indexIn es n) ? es $ runST $ do
+      es' <- thaw es
+      writeM_ es' n e
+      done es'
+    
     reverse es = runST $ fromIndexed' es >>= reversed >>= done
     
     concat ess = runST $ do

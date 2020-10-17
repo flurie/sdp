@@ -192,6 +192,14 @@ instance (Bordered1 rep Int e, Linear1 rep e) => Linear (AnyChunks rep e) e
     (AnyChunks (x : xs)) !^ i = i < sizeOf x ? x !^ i $ AnyChunks xs !^ (i - sizeOf x)
     _ !^ _ = error "in SDP.Unrolled.Unlist.(!^)"
     
+    write es'@(AnyChunks es) n e =
+      let
+        go i (x : xs) = i < c ? write x i e : xs $ x : go (i - c) xs
+          where
+            c = sizeOf x
+        go _ xs = xs
+      in  n < 0 ? es' $ AnyChunks (go n es)
+    
     -- | Deduplicated chunks.
     replicate n e = AnyChunks $ replicate count chunk :< rest
       where
@@ -567,4 +575,6 @@ unpack' (AnyChunks es) = go es
 
 lim :: Int
 lim =  1024
+
+
 
