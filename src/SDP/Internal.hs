@@ -19,7 +19,7 @@ module SDP.Internal
   
   Bounded (..), Enum (..),
   
-  fst, snd, fsts, snds, both
+  fst, snd, fsts, snds, both, ascsBounds
 )
 
 where
@@ -55,6 +55,6 @@ snds =  fmap snd
 both :: (a -> b) -> (a, a) -> (b, b)
 both =  uncurry . on (,)
 
-
-
+ascsBounds :: (Ord a) => [(a, b)] -> (a, a)
+ascsBounds =  \ ((x, _) : xs) -> foldr (\ (e, _) (mn, mx) -> (min mn e, max mx e)) (x, x) xs
 

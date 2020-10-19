@@ -386,15 +386,9 @@ instance (Index i, Sort (rep e) e) => Sort (AnyBorder rep i e) e
 
 instance (Index i, Indexed1 rep Int e) => Map (AnyBorder rep i e) i e
   where
-    toMap ascs = isNull ascs ? Z $ assoc (l, u) ascs
-      where
-        l = fst $ minimumBy cmpfst ascs
-        u = fst $ maximumBy cmpfst ascs
+    toMap ascs = isNull ascs ? Z $ assoc (ascsBounds ascs) ascs
     
-    toMap' e ascs = isNull ascs ? Z $ assoc' (l, u) e ascs
-      where
-        l = fst $ minimumBy cmpfst ascs
-        u = fst $ maximumBy cmpfst ascs
+    toMap' e ascs = isNull ascs ? Z $ assoc' (ascsBounds ascs) e ascs
     
     {-# INLINE (.!) #-}
     (.!) (AnyBorder l u rep) = (rep !^) . offset (l, u)
@@ -446,7 +440,27 @@ instance (Bordered1 rep Int e, Split1 rep e) => Shaped (AnyBorder rep) e
 
 --------------------------------------------------------------------------------
 
-{- IndexedM, IFoldM and SortM instances. -}
+{- MapM, IndexedM, IFoldM and SortM instances. -}
+
+instance (Index i, MapM1 m rep Int e, LinearM1 m rep e, BorderedM1 m rep Int e) => MapM m (AnyBorder rep i e) i e
+  where
+    newMap ascs = AnyBorder l u <$> newMap [ (offset (l, u) i, e) | (i, e) <- ascs ]
+      where
+        l = fst $ minimumBy cmpfst ascs
+        u = fst $ maximumBy cmpfst ascs
+    
+    newMap' defvalue ascs = AnyBorder l u <$> newMap' defvalue [ (offset (l, u) i, e) | (i, e) <- ascs ]
+      where
+        l = fst $ minimumBy cmpfst ascs
+        u = fst $ maximumBy cmpfst ascs
+    
+    {-# INLINE (>!) #-}
+    (>!) (AnyBorder l u es) = (es !#>) . offset (l, u)
+    
+    overwrite es [] = return es
+    overwrite (AnyBorder l u es) ascs =
+      let ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
+      in  isEmpty (l, u) ? newMap ascs $ AnyBorder l u <$> overwrite es ies
 
 instance (Index i, IndexedM1 m rep Int e) => IndexedM m (AnyBorder rep i e) i e
   where
@@ -460,23 +474,11 @@ instance (Index i, IndexedM1 m rep Int e) => IndexedM m (AnyBorder rep i e) i e
         ies  = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
         bnds = (0, size (l, u) - 1)
     
-    {-# INLINE (>!) #-}
-    (>!) (AnyBorder l u es) = (es !#>) . offset (l, u)
-    
     {-# INLINE writeM_ #-}
     writeM_ = writeM . unpack
     
     {-# INLINE writeM #-}
-    writeM  (AnyBorder l u es) = writeM es . offset (l, u)
-    
-    overwrite es [] = return es
-    overwrite (AnyBorder l u es) ascs = if isEmpty (l, u)
-        then fromAssocs (l', u') ascs
-        else AnyBorder l u <$> overwrite es ies
-      where
-        ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
-        l'  = fst $ minimumBy cmpfst ascs
-        u'  = fst $ maximumBy cmpfst ascs
+    writeM (AnyBorder l u es) = writeM es . offset (l, u)
     
     fromIndexed' = withBounds' <=< fromIndexed'
     fromIndexedM = withBounds' <=< fromIndexedM
@@ -549,7 +551,5 @@ withBounds rep = uncurry AnyBorder (defaultBounds $ sizeOf rep) rep
 {-# INLINE withBounds' #-}
 withBounds' :: (Index i, BorderedM1 m rep Int e) => rep e -> m (AnyBorder rep i e)
 withBounds' rep = (\ n -> uncurry AnyBorder (defaultBounds n) rep) <$> getSizeOf rep
-
-
 
 

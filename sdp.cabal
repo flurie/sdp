@@ -69,6 +69,7 @@ Library
     SDP.Indexed
     SDP.Shaped
     SDP.Linear
+    SDP.MapM
     SDP.Scan
     SDP.Sort
     SDP.Map
@@ -123,7 +124,6 @@ Library
   
   other-modules:
     SDP.Internal
-
 
 
 

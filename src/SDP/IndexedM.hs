@@ -15,6 +15,7 @@ module SDP.IndexedM
     -- * Exports
     module SDP.LinearM,
     module SDP.Indexed,
+    module SDP.MapM,
     
     -- * IndexedM
     IndexedM (..), IndexedM1, IndexedM2,
@@ -35,25 +36,19 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
+import SDP.Internal
 import SDP.LinearM
 import SDP.Indexed
-
-import SDP.Internal
+import SDP.MapM
 
 default ()
-
-infixl 5 >!, !>, !?>
 
 --------------------------------------------------------------------------------
 
 -- | Class for work with mutable indexed structures.
-class (LinearM m v e, BorderedM m v i) => IndexedM m v i e
+class (LinearM m v e, BorderedM m v i, MapM m v i e) => IndexedM m v i e
   where
-    {-# MINIMAL fromAssocs', fromIndexed', fromIndexedM, overwrite, ((>!)|(!?>)) #-}
-    
-    -- | getAssocs returns 'assocs' of mutable data structure.
-    getAssocs :: v -> m [(i, e)]
-    getAssocs es = liftA2 zip (getIndices es) (getLeft es)
+    {-# MINIMAL fromAssocs', fromIndexed', fromIndexedM #-}
     
     {-# INLINE fromAssocs #-}
     {- |
@@ -62,7 +57,7 @@ class (LinearM m v e, BorderedM m v i) => IndexedM m v i e
       match with the result bounds (not always possible).
     -}
     fromAssocs :: (i, i) -> [(i, e)] -> m v
-    fromAssocs =  (`fromAssocs'` undEx "fromAssocs")
+    fromAssocs =  flip fromAssocs' (undEx "fromAssocs")
     
     {- |
       @fromAssocs' bnds defvalue ascs@ creates new structure from list of
@@ -71,29 +66,17 @@ class (LinearM m v e, BorderedM m v i) => IndexedM m v i e
     -}
     fromAssocs' :: (i, i) -> e -> [(i, e)] -> m v
     
-    -- | (>!) is unsafe monadic reader.
-    {-# INLINE (>!) #-}
-    (>!) :: v -> i -> m e
-    (>!) =  fmap (fromMaybe $ undEx "(!) {default}") ... (!?>)
-    
-    -- | (!>) is well-safe monadic reader.
-    {-# INLINE (!>) #-}
-    (!>) :: v -> i -> m e
-    (!>) es i = getBounds es >>= \ bnds -> case inBounds bnds i of
-        IN -> es >! i
-        ER -> throw $ EmptyRange     msg
-        OR -> throw $ IndexOverflow  msg
-        UR -> throw $ IndexUnderflow msg
-      where
-        msg = "in SDP.IndexedM.(!>) {default}"
-    
-    -- | (!?>) is completely safe monadic reader.
-    (!?>) :: v -> i -> m (Maybe e)
-    (!?>) es i = do b <- nowIndexIn es i; b ? Just <$> (es >! i) $ return empty
-    
     writeM_ :: v -> Int -> e -> m ()
     writeM_ es i e = do bnds <- getBounds es; void $ overwrite es [(index bnds i, e)]
     
+    {- |
+      @'writeM' map key e@ writes element @e@ to @key@ position safely (if @key@
+      is out of @map@ range, do nothing). The 'writeM' function is intended to
+      overwrite only existing values, so its behavior is identical for
+      structures with both static and dynamic boundaries.
+      
+      By default, implemented via 'overwrite'.
+    -}
     writeM :: v -> i -> e -> m ()
     writeM es i e = do b <- nowIndexIn es i; when b . void $ overwrite es [(i, e)]
     
@@ -102,27 +85,6 @@ class (LinearM m v e, BorderedM m v i) => IndexedM m v i e
     
     -- | fromIndexed converts one mutable structure to other.
     fromIndexedM :: (IndexedM m v' j e) => v' -> m v
-    
-    {- |
-      This function designed to overwrite large enough fragments of the
-      structure (unlike 'writeM' and 'writeM_'). In addition to the main
-      conversion it can be moved, cleaned and optimized in any possible way. So,
-      the original structure may become incorrect and its change may lead to
-      undesirable consequences. Therefore, overwrite explicitly return the
-      result and the original structure should never been used.
-      
-      All standard SDP structures support secure in-place @overwrite@.
-      
-      If the structure uses unmanaged memory, when all unused fragments should
-      be cleared regardless of the reachability from the original structure
-      (after rewriting) and its correctness.
-      
-      Please note that @overwrite@ require a list of associations with indices
-      in the current structure bounds and ignore any other, therefore
-      
-      > (fromAssocs bnds ascs) /= (fromAssocs bnds ascs >>= (`overwrite` ascs))
-    -}
-    overwrite :: v -> [(i, e)] -> m v
     
     -- | reshaped creates new indexed structure from old with reshaping function.
     reshaped :: (IndexedM m v' j e) => (i, i) -> v' -> (i -> j) -> m v
@@ -140,14 +102,6 @@ class (LinearM m v e, BorderedM m v i) => IndexedM m v i e
     -- | updateM updates elements with specified indices by function.
     updateM :: v -> [i] -> (i -> e -> e) -> m v
     updateM es is f = sequence [ do e <- es !> i; return (i, f i e) | i <- is ] >>= overwrite es
-    
-    -- | (.?) is monadic version of (.$).
-    (.?) :: (e -> Bool) -> v -> m (Maybe i)
-    (.?) =  fmap listToMaybe ... (*?)
-    
-    -- | (*?) is monadic version of (*$).
-    (*?) :: (e -> Bool) -> v -> m [i]
-    (*?) p es = select (p . snd ?+ fst) <$> getAssocs es
 
 --------------------------------------------------------------------------------
 
@@ -255,6 +209,7 @@ swapM es i j = do ei <- es !#> i; writeM_ es i =<< es !#> j; writeM_ es j ei
 
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.IndexedM."
+
 
 
 

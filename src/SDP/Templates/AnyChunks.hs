@@ -385,15 +385,9 @@ instance (Linear1 (AnyChunks rep) e) => Scan (AnyChunks rep e) e
 
 instance (Indexed1 rep Int e) => Map (AnyChunks rep e) Int e
   where
-    toMap ascs = isNull ascs ? Z $ assoc (l, u) ascs
-      where
-        l = fst $ minimumBy cmpfst ascs
-        u = fst $ maximumBy cmpfst ascs
+    toMap ascs = isNull ascs ? Z $ assoc (ascsBounds ascs) ascs
     
-    toMap' e ascs = isNull ascs ? Z $ assoc' (l, u) e ascs
-      where
-        l = fst $ minimumBy cmpfst ascs
-        u = fst $ maximumBy cmpfst ascs
+    toMap' defvalue ascs = isNull ascs ? Z $ assoc' (ascsBounds ascs) defvalue ascs
     
     (.!) = (!^)
     
@@ -448,7 +442,35 @@ instance (IFold1 rep Int e, Bordered1 rep Int e, Linear1 rep e) => IFold (AnyChu
 
 --------------------------------------------------------------------------------
 
-{- IndexedM and IFoldM instances. -}
+{- MapM, IndexedM and IFoldM instances. -}
+
+instance (SplitM1 m rep e, MapM1 m rep Int e, BorderedM1 m rep Int e) => MapM m (AnyChunks rep e) Int e
+  where
+    newMap ascs = AnyChunks <$> sequence (go (ascsBounds ascs) ascs)
+      where
+        go (l, u) ies = isEmpty (l, u) ? [] $ newMap as : go (n + 1, u) bs
+          where
+            (as, bs) = partition (inRange (l, n) . fst) ies
+            n = min u (l + lim)
+    
+    newMap' defvalue ascs = AnyChunks <$> sequence (go (ascsBounds ascs) ascs)
+      where
+        go (l, u) ies = newMap' defvalue as : go (n + 1, u) bs
+          where
+            (as, bs) = partition (inRange (l, n) . fst) ies
+            n = min u (l + lim)
+    
+    {-# INLINE (>!) #-}
+    es >! i = i < 0 ? overEx "(>!)" $ es !#> i
+    
+    overwrite es'@(AnyChunks []) ascs = isNull ascs ? return es' $ newMap ascs
+    overwrite es'@(AnyChunks es) ascs = es' <$ go 0 es ((< 0) . fst `except` ascs)
+      where
+        go o (x : xs) ie = unless (null ie) $ do
+          n <- getSizeOf x
+          let (as, bs) = partition (\ (i, _) -> i < n + o) ie
+          overwrite x as >> go (n + o) xs bs
+        go _ _ _ = return ()
 
 instance (SplitM1 m rep e, IndexedM1 m rep Int e) => IndexedM m (AnyChunks rep e) Int e
   where
@@ -466,9 +488,6 @@ instance (SplitM1 m rep e, IndexedM1 m rep Int e) => IndexedM m (AnyChunks rep e
             (as, bs) = partition (inRange (l, n) . fst) ies
             n = min u (l + lim)
     
-    {-# INLINE (>!) #-}
-    es >! i = i < 0 ? overEx "(>!)" $ es !#> i
-    
     {-# INLINE writeM_ #-}
     writeM_ (AnyChunks es) = go es
       where
@@ -477,19 +496,6 @@ instance (SplitM1 m rep e, IndexedM1 m rep Int e) => IndexedM m (AnyChunks rep e
     
     {-# INLINE writeM #-}
     writeM es i e = (i < 0) `unless` writeM_ es i e
-    
-    overwrite es@(AnyChunks []) ascs = isNull ascs ? return es $ fromAssocs (l, u) ascs
-      where
-        l = fst $ minimumBy cmpfst ascs
-        u = fst $ maximumBy cmpfst ascs
-    
-    overwrite es'@(AnyChunks es) ascs = es' <$ go 0 es ((< 0) . fst `except` ascs)
-      where
-        go o (x : xs) ie = unless (null ie) $ do
-          n <- getSizeOf x
-          let (as, bs) = partition (\ (i, _) -> i < n + o) ie
-          overwrite x as >> go (n + o) xs bs
-        go _ _ _ = return ()
     
     fromIndexed' = newLinear  .  listL
     fromIndexedM = newLinear <=< getLeft
@@ -575,6 +581,5 @@ unpack' (AnyChunks es) = go es
 
 lim :: Int
 lim =  1024
-
 
 

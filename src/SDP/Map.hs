@@ -8,7 +8,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
     
-    @SDP.Map@ provides 'Map' - class for dictionaries.
+    @SDP.Map@ provides 'Map' - class of immutable dictionaries.
 -}
 module SDP.Map
 (
@@ -35,9 +35,6 @@ infixl 9 .!, !, !?
 --------------------------------------------------------------------------------
 
 {- |
-  'Map' is a class of dictionaries, simple associative arrays with an arbitrary
-  (implementation-dependent) key.
-  
   'Map' is a class of dictionaries, simple associative arrays with an arbitrary
   (implementation-dependent) key.
   
@@ -164,15 +161,31 @@ class (Nullable m, Eq k) => Map m k e | m -> k, m -> e
     update :: m -> [k] -> (k -> e -> e) -> m
     update es is f = es // [ (i, f i (es!i)) | i <- is ]
     
+    {- |
+      @lookupLT' k map@ finds pair @(key, value)@ with smallest @key@, where
+      @key < k@ (if any). @k@ may not be a @map@ element.
+    -}
     lookupLT' :: (Ord k) => k -> m -> Maybe (k, e)
     lookupLT' k = lookupLTWith cmpfst (k, unreachEx "lookupLT'") . assocs
     
+    {- |
+      @lookupGT' k map@ finds pair @(key, value)@ with greatest @key@, where
+      @key > k@ (if any). @k@ may not be a @map@ element.
+    -}
     lookupGT' :: (Ord k) => k -> m -> Maybe (k, e)
     lookupGT' k = lookupGTWith cmpfst (k, unreachEx "lookupGT'") . assocs
     
+    {- |
+      @lookupLE' k map@ finds pair @(key, value)@ with smallest @key@, where
+      @key <= k@ (if any). If @k@ is a @map@ element, returns @(k, e)@.
+    -}
     lookupLE' :: (Ord k) => k -> m -> Maybe (k, e)
     lookupLE' k me = (,) k <$> (me !? k) <|> lookupLEWith cmpfst (k, unreachEx "lookupLE'") (assocs me)
     
+    {- |
+      @lookupGE' k map@ finds pair @(key, value)@ with  @key@, where
+      @key >= k@ (if any).
+    -}
     lookupGE' :: (Ord k) => k -> m -> Maybe (k, e)
     lookupGE' k me = (,) k <$> (me !? k) <|> lookupGEWith cmpfst (k, unreachEx "lookupGE'") (assocs me)
     
@@ -254,7 +267,4 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Map."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Map."
-
-
-
 

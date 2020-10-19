@@ -509,15 +509,9 @@ instance (Unboxed e) => Sort (SBytes# e) e
 
 instance (Unboxed e) => Map (SBytes# e) Int e
   where
-    toMap ascs = isNull ascs ? Z $ assoc (l, u) ascs
-      where
-        l = fst $ minimumBy cmpfst ascs
-        u = fst $ maximumBy cmpfst ascs
+    toMap ascs = isNull ascs ? Z $ assoc (ascsBounds ascs) ascs
     
-    toMap' e ascs = isNull ascs ? Z $ assoc' (l, u) e ascs
-      where
-        l = fst $ minimumBy cmpfst ascs
-        u = fst $ maximumBy cmpfst ascs
+    toMap' defvalue ascs = isNull ascs ? Z $ assoc' (ascsBounds ascs) defvalue ascs
     
     (.!) = (!^)
     
@@ -761,14 +755,24 @@ instance (Unboxed e) => SplitM (ST s) (STBytes# s e) e
 
 --------------------------------------------------------------------------------
 
-{- IndexedM, IFoldM and SortM instances. -}
+{- MapM, IndexedM, IFoldM and SortM instances. -}
+
+instance (Unboxed e) => MapM (ST s) (STBytes# s e) Int e
+  where
+    newMap ascs = fromAssocs (ascsBounds ascs) ascs
+    
+    newMap' defvalue ascs = fromAssocs' (ascsBounds ascs) defvalue ascs
+    
+    (>!) = (!#>)
+    
+    overwrite es@(STBytes# c _ _) ascs =
+      let ies = filter (inRange (0, c - 1) . fst) ascs
+      in  mapM_ (uncurry $ writeM_ es) ies >> return es
 
 instance (Unboxed e) => IndexedM (ST s) (STBytes# s e) Int e
   where
     fromAssocs  bnds ascs = filled_ (size bnds) >>= (`overwrite` ascs)
     fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
-    
-    (>!) = (!#>)
     
     writeM_ = writeM
     
@@ -776,10 +780,6 @@ instance (Unboxed e) => IndexedM (ST s) (STBytes# s e) Int e
     writeM (STBytes# _ (I# o#) marr#) = \ (I# i#) e -> ST $
       \ s1# -> case writeByteArray# marr# (o# +# i#) e s1# of
         s2# -> (# s2#, () #)
-    
-    overwrite es@(STBytes# c _ _) ascs =
-      let ies = filter (inRange (0, c - 1) . fst) ascs
-      in  mapM_ (uncurry $ writeM_ es) ies >> return es
     
     fromIndexed' es = do
         let n = sizeOf es
@@ -914,19 +914,24 @@ instance (Unboxed e) => SplitM IO (IOBytes# e) e
 
 --------------------------------------------------------------------------------
 
-{- IndexedM, IFoldM and SortM instances. -}
+{- MapM, IndexedM, IFoldM and SortM instances. -}
+
+instance (Unboxed e) => MapM IO (IOBytes# e) Int e
+  where
+    newMap  = pack'  .  newMap
+    newMap' = pack' ... newMap'
+    
+    (>!) = (!#>)
+    
+    overwrite = pack' ... overwrite . unpack
 
 instance (Unboxed e) => IndexedM IO (IOBytes# e) Int e
   where
     fromAssocs  bnds = pack'  .  fromAssocs  bnds
     fromAssocs' bnds = pack' ... fromAssocs' bnds
     
-    (>!) = (!#>)
-    
     writeM_ = writeM
-    
     writeM es = stToIO ... writeM (unpack es)
-    overwrite = pack' ... overwrite . unpack
     
     fromIndexed' = pack' . fromIndexed'
     

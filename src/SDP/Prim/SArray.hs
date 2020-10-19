@@ -577,10 +577,7 @@ instance Sort (SArray# e) e
 
 instance Map (SArray# e) Int e
   where
-    toMap' e ascs = isNull ascs ? Z $ assoc' (l, u) e ascs
-      where
-        l = fst $ minimumBy cmpfst ascs
-        u = fst $ maximumBy cmpfst ascs
+    toMap' e ascs = isNull ascs ? Z $ assoc' (ascsBounds ascs) e ascs
     
     (.!) = (!^)
     
@@ -813,23 +810,27 @@ instance SplitM (ST s) (STArray# s e) e
 
 --------------------------------------------------------------------------------
 
-{- IndexedM, IFoldM and SortM instances. -}
+{- MapM, IndexedM, IFoldM and SortM instances. -}
+
+instance MapM (ST s) (STArray# s e) Int e
+  where
+    newMap' defvalue ascs = fromAssocs' (ascsBounds ascs) defvalue ascs
+    
+    (>!) = (!#>)
+    
+    overwrite es@(STArray# c _ _) ascs =
+      let ies = filter (inRange (0, c - 1) . fst) ascs
+      in  mapM_ (uncurry $ writeM_ es) ies >> return es
 
 instance IndexedM (ST s) (STArray# s e) Int e
   where
     fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
-    
-    (>!) = (!#>)
     
     writeM_ = writeM
     
     {-# INLINE writeM #-}
     writeM (STArray# _ (I# o#) marr#) = \ (I# i#) e -> ST $
       \ s1# -> case writeArray# marr# (o# +# i#) e s1# of s2# -> (# s2#, () #)
-    
-    overwrite es@(STArray# c _ _) ascs =
-      let ies = filter (inRange (0, c - 1) . fst) ascs
-      in  mapM_ (uncurry $ writeM_ es) ies >> return es
     
     fromIndexed' es = do
         let n = sizeOf es
@@ -964,19 +965,23 @@ instance SplitM IO (IOArray# e) e
 
 --------------------------------------------------------------------------------
 
-{- IndexedM, IFoldM and SortM instances. -}
+{- MapM, IndexedM, IFoldM and SortM instances. -}
+
+instance MapM IO (IOArray# e) Int e
+  where
+    newMap' defvalue ascs = fromAssocs' (ascsBounds ascs) defvalue ascs
+    
+    (>!) = (!#>)
+    
+    overwrite = pack' ... overwrite . unpack
 
 instance IndexedM IO (IOArray# e) Int e
   where
     fromAssocs  bnds = pack'  .  fromAssocs  bnds
     fromAssocs' bnds = pack' ... fromAssocs' bnds
     
-    (>!) = (!#>)
-    
     writeM_ = writeM
-    
     writeM es = stToIO ... writeM (unpack es)
-    overwrite = pack' ... overwrite . unpack
     
     fromIndexed' = pack' . fromIndexed'
     
