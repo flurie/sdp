@@ -22,12 +22,11 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
+import SDP.IndexedM
+import SDP.SortM
 
 import SDP.Templates.AnyBorder
 import SDP.Prim.SArray
-
-import SDP.IndexedM
-import SDP.SortM
 
 default ()
 
@@ -35,6 +34,7 @@ default ()
 
 -- | 'IOArray' is mutable version of Array.
 type IOArray = AnyBorder IOArray#
+
 
 
 

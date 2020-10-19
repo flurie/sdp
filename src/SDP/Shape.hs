@@ -30,15 +30,12 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
+import SDP.Internal
 import SDP.Finite
 import SDP.Tuple
 
-import GHC.Types
-
 import Data.Word
 import Data.Int
-
-import SDP.Internal
 
 import Foreign.C.Types
 
@@ -234,9 +231,7 @@ instance (Shape i, Enum i, Bounded i, Shape (i' :& i)) => Shape (i' :& i :& i)
     type DimInit (i' :& i :& i) = i' :& i
     type DimLast (i' :& i :& i) = i
     
-    rank = rnk undefined
-      where
-        rnk = const . succ . rank :: (Shape i') => i' -> (i' :& i) -> Int
+    rank = (const . succ . rank :: (Shape i') => i' -> (i' :& i) -> Int) undefined
     
     fromGIndex = id
     toGIndex   = id

@@ -25,15 +25,14 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-
-import SDP.Templates.AnyChunks
-import SDP.Prim.SBytes
-
 import SDP.Indexed
 import SDP.Unboxed
 import SDP.Sort
 import SDP.Scan
 import SDP.Set
+
+import SDP.Templates.AnyChunks
+import SDP.Prim.SBytes
 
 import SDP.SortM.Tim
 
@@ -51,24 +50,16 @@ type Ublist = AnyChunks SBytes#
 
 --------------------------------------------------------------------------------
 
-{- Show instance. -}
-
 instance {-# OVERLAPPABLE #-} (Show e, Unboxed e) => Show (Ublist e)
   where
     showsPrec = assocsPrec "ublist "
 
-instance Show (Ublist Char)
-  where
-    showsPrec = shows ... const listL
+instance Show (Ublist Char) where showsPrec = shows ... const listL
 
 instance (Read e, Unboxed e) => Read (Ublist e)
   where
     readPrec = indexedPrec' "ublist"
     readList = readListDefault
-
---------------------------------------------------------------------------------
-
-{- Sort instance. -}
 
 instance (Unboxed e) => Sort (Ublist e) e
   where
@@ -79,7 +70,6 @@ instance (Unboxed e) => Sort (Ublist e) e
 {-# INLINE done #-}
 done :: (Unboxed e) => STBytes# s e -> ST s (Ublist e)
 done =  unsafeFreeze
-
 
 
 

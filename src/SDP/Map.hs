@@ -119,11 +119,11 @@ class (Nullable m, Eq k) => Map m k e | m -> k, m -> e
     (!) :: m -> k -> e
     (!) es i = case inBounds (bounds es) i of
         IN -> es .! i
-        ER -> throw $ EmptyRange     msg
-        OR -> throw $ IndexOverflow  msg
-        UR -> throw $ IndexUnderflow msg
+        ER -> empEx   msg
+        OR -> overEx  msg
+        UR -> underEx msg
       where
-        msg = "in SDP.Indexed.(!) {default}"
+        msg = "(!) {default}"
     
     -- | (!?) is completely safe, but very boring function.
     (!?) :: m -> k -> Maybe e

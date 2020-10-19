@@ -16,7 +16,6 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-
 import SDP.Indexed
 
 import GHC.Show ( appPrec )
@@ -47,4 +46,5 @@ showsRaw p (x : xs) = showParen (p > appPrec) stream
 -- | Just 'showsRaw' version for 'Linear'.
 showsRawLinear :: (Linear l e, Show e) => Int -> l -> ShowS
 showsRawLinear p = showsRaw p . listL
+
 

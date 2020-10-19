@@ -24,12 +24,13 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-import SDP.Prim.SArray
-
 import SDP.Indexed
 import SDP.Sort
 import SDP.Scan
 import SDP.Set
+
+import SDP.Templates.AnyChunks
+import SDP.Prim.SArray
 
 import SDP.SortM.Tim
 
@@ -37,8 +38,6 @@ import Text.Show.SDP
 import Text.Read.SDP
 
 import Control.Monad.ST
-
-import SDP.Templates.AnyChunks
 
 default ()
 
@@ -116,5 +115,6 @@ instance Sort (Unlist e) e
 {-# INLINE done #-}
 done :: STArray# s e -> ST s (Unlist e)
 done =  unsafeFreeze
+
 
 

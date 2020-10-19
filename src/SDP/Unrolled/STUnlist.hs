@@ -23,12 +23,11 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
+import SDP.IndexedM
+import SDP.SortM
 
 import SDP.Templates.AnyChunks
 import SDP.Prim.SArray
-
-import SDP.IndexedM
-import SDP.SortM
 
 import Control.Monad.ST
 import SDP.SortM.Tim
@@ -41,5 +40,6 @@ default ()
 type STUnlist s = AnyChunks (STArray# s)
 
 instance SortM (ST s) (STUnlist s e) e where sortMBy = timSortBy
+
 
 

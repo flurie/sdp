@@ -23,13 +23,12 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-
-import SDP.Templates.AnyBorder
-import SDP.Prim.SBytes
-
 import SDP.IndexedM
 import SDP.Unboxed
 import SDP.SortM
+
+import SDP.Templates.AnyBorder
+import SDP.Prim.SBytes
 
 default ()
 
@@ -37,4 +36,5 @@ default ()
 
 -- | 'IOBytes' is mutable version of Bytes.
 type IOBytes = AnyBorder IOBytes#
+
 

@@ -35,6 +35,7 @@ class Nullable e
     -- | Is value empty?
     isNull :: e -> Bool
 
+-- | Originally defined in @sdp-ctypes@ (now @sdp-foreign@) same as @Z@ now.
 pattern NULL :: (Nullable e) => e
 pattern NULL <- (isNull -> True) where NULL = lzero
 
@@ -54,7 +55,6 @@ instance Nullable (StablePtr e)
   where
     isNull = (== lzero)
     lzero  = StablePtr (unsafeCoerce# 0#)
-
 
 
 

@@ -24,13 +24,12 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-
-import SDP.Templates.AnyChunks
-import SDP.Prim.SBytes
-
 import SDP.IndexedM
 import SDP.Unboxed
 import SDP.SortM
+
+import SDP.Templates.AnyChunks
+import SDP.Prim.SBytes
 
 import SDP.SortM.Tim
 
@@ -42,4 +41,5 @@ default ()
 type IOUblist = AnyChunks IOBytes#
 
 instance (Unboxed e) => SortM IO (IOUblist e) e where sortMBy = timSortBy
+
 

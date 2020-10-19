@@ -10,7 +10,6 @@
     @SDP.ByteList.ST@ provides 'STByteList' - mutable unboxed strict unrolled
     linked list.
 -}
-
 module SDP.ByteList.ST
 (
   -- * Exports
@@ -38,8 +37,4 @@ default ()
 
 -- | STByteList is mutable version of ByteList.
 type STByteList s = AnyBorder (STUblist s)
-
-
-
-
 

@@ -66,15 +66,15 @@ class (Linear v e, Bordered v i, Map v i e) => Indexed v i e | v -> i, v -> e
       updated by function @f@ and @ies@ associations list.
     -}
     accum :: (e -> e' -> e) -> v -> [(i, e')] -> v
-    accum f es ies = bounds es `assoc` [ (i, es ! i `f` e') | (i, e') <- ies ]
+    accum f es ies = bounds es `assoc` [ (i, es!i `f` e') | (i, e') <- ies ]
     
     -- | 'imap' creates new indexed structure from old with reshaping.
     imap :: (Map m j e) => (i, i) -> m -> (i -> j) -> v
-    imap bnds es f = assoc bnds [ (i, es ! f i) | i <- range bnds ]
+    imap bnds es f = assoc bnds [ (i, es!f i) | i <- range bnds ]
     
     -- | Create new structure from old by indexed mapping.
     (/>) :: v -> (i -> e -> e) -> v
-    (/>) es f = assoc (bounds es) [ (i, f i (es ! i)) | i <- indices es ]
+    (/>) es f = assoc (bounds es) [ (i, f i (es!i)) | i <- indices es ]
 
 --------------------------------------------------------------------------------
 

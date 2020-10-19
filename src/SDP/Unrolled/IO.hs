@@ -21,12 +21,11 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
+import SDP.IndexedM
+import SDP.SortM
 
 import SDP.Templates.AnyBorder
 import SDP.Unrolled.IOUnlist
-
-import SDP.IndexedM
-import SDP.SortM
 
 default ()
 
@@ -34,6 +33,7 @@ default ()
 
 -- | 'IOUnrolled' is mutable version of Unrolled.
 type IOUnrolled = AnyBorder IOUnlist
+
 
 
 

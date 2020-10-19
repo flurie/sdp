@@ -32,13 +32,10 @@ where
 
 import Prelude ( (++) )
 import SDP.SafePrelude
+import SDP.Internal
 import SDP.Shape
 
-import GHC.Exts
-
 import Data.Tuple
-
-import SDP.Internal
 
 import Foreign.C.Types
 
@@ -280,7 +277,7 @@ instance (Index i) => Estimate (i, i)
 
 instance Index E
   where
-    unsafeIndex  = const (emptyEx "unsafeIndex (E)")
+    unsafeIndex = const (emptyEx "unsafeIndex {E}")
     
     defLimit = const (-1)
     
@@ -524,7 +521,10 @@ checkBounds bnds i res = case inBounds bnds i of
   UR -> throw . IndexUnderflow  . showString "in SDP.Index."
   IN -> const res
 
+--------------------------------------------------------------------------------
+
 emptyEx :: String -> a
 emptyEx =  throw . EmptyRange . showString "in SDP.Index."
+
 
 

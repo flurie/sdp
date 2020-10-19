@@ -12,9 +12,8 @@ module SDP.ByteList.IO
 (
   -- * Exports
   module SDP.IndexedM,
-  module SDP.SortM,
-  
   module SDP.Unboxed,
+  module SDP.SortM,
   
   -- * IOByteList
   IOByteList
@@ -23,13 +22,12 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-
-import SDP.Templates.AnyBorder
-import SDP.ByteList.IOUblist
-
 import SDP.IndexedM
 import SDP.Unboxed
 import SDP.SortM
+
+import SDP.Templates.AnyBorder
+import SDP.ByteList.IOUblist
 
 default ()
 
@@ -37,4 +35,6 @@ default ()
 
 -- | IOByteList is mutable version of ByteList.
 type IOByteList = AnyBorder IOUblist
+
+
 
