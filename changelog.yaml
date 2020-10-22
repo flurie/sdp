@@ -1,29 +1,29 @@
 # template
 # - version: 1.0
 #   # important
-#   dependencies: []
-#   crutches:     [] # post factum indication
-#   fixes:        []
-#   deprecations: []
-#   improvements: []
+#   dependencies: # [{ !package, ~since, ~upto :: String }]
+#   crutches:     # [String]
+#   fixes:        # [String]
+#   deprecations: # [String]
+#   improvements: # [String: String]
 #
 #   # news
-#   modules:         []
-#   definitions:     []
-#   classes:         []
-#   class-functions: []
-#   types:           []
-#   type-families:   []
-#   exceptions:      []
-#   syntax:          []
-#   tests:           []
-#   benchmarks:      []
+#   modules:         # [String: String]
+#   definitions:     # [String: [String]]
+#   classes:         # [String: String]
+#   class-functions: # [String: [String]]
+#   types:           # [String: String]
+#   type-families:   # [String: [String]]
+#   exceptions:      # [String: [String]]
+#   syntax:          # [String]
+#   tests:           # [String: String; ~Suite]
+#   benchmarks:      # [String: String]
 #
 #   # changes
-#   moved:        []
-#   changes:      []
-#   superclasses: []
-#   removed:      []
+#   moved:        # [String: String]
+#   changes:      # [String: String]
+#   superclasses: # [String: [String]]
+#   removed:      # [String: [String]]
 
 ---
 
@@ -74,8 +74,8 @@
     - SDP.Array.IO: see IOArray
     - SDP.Bytes.IO: see IOBytes
 
-    - SDP.Prim.SArray: SArray#, STArray# and IOArray# pseudo-primitives
-    - SDP.Prim.SBytes: SBytes#, STBytes# and IOBytes# pseudo-primitives
+    - SDP.Prim.SArray: boxed pseudo-primitives SArray#, STArray# and IOArray#
+    - SDP.Prim.SBytes: unboxed pseudo-primitives SBytes#, STBytes# and IOBytes#
 
     - SDP.SortM.Insertion: InsertionSort for mutable structures
     - SDP.SortM.Tim: TimSort for mutable structures
@@ -92,16 +92,43 @@
     - Text.Read.SDP: Read commons
 
   definitions:
-    - SDP.SafePrelude: (?+), (?-), (...), (?^), (<=<<), (>>=>) and (>>=<<)
-    - SDP.Estimate: left-side Estimate
-    - SDP.Unboxed: sizeof#, psizeof and cloneUnboxed#
-    - SDP.Index: |
-        offsetIntegral, defaultBoundsUnsign, takeDim, dropDim and splitDim
-
-    - SDP.Linear: sorted, ascending, stripPrefix' and stripSuffix'
-    - SDP.LinearM: new class SplitM and sortedM
-    - SDP.Indexed: binaryContain
-    - SDP.IndexedM: swapM
+    - SDP.SafePrelude:
+        - "(?+)"
+        - "(?-)"
+        - "(?^)"
+        - "(...)"
+        - "(<=<<)"
+        - "(>>=>)"
+        - "(>>=<<)"
+    - SDP.Estimate:
+        - (<=.>)
+        - (<=.)
+        - (>=.)
+        - (==.)
+        - (/=.)
+        - (<.)
+        - (>.)
+    - SDP.Unboxed:
+        - sizeof#
+        - psizeof
+        - cloneUnboxed#
+    - SDP.Index:
+        - takeDim
+        - dropDim
+        - splitDim
+        - offsetIntegral
+        - defaultBoundsUnsign
+    - SDP.Linear:
+        - sorted
+        - ascending
+        - stripPrefix'
+        - stripSuffix'
+    - SDP.LinearM:
+        - SplitM
+        - sortedM
+        - swapM
+    - SDP.Indexed:
+        - binaryContain
 
   classes:
     - SubIndex: constraint synonym for internal class
@@ -111,31 +138,90 @@
     - Map: class of dictionaries
 
   class-functions:
-    - BorderedM: nowIndexIn, offsetOf, indexOf
-    - Unboxed: sizeof, copyUnboxed#, copyUnboxedM#
-    - Index: defLimit, defaultBounds, shape and slice
+    - BorderedM:
+        - nowIndexIn
+        - offsetOf
+        - indexOf
+    - Unboxed:
+        - sizeof
+        - copyUnboxed#
+        - copyUnboxedM#
+    - IFoldM:
+        - ofoldrM
+        - ofoldlM
+    - Freeze:
+        - unsafeFreeze
+        - defLimit
+        - defaultBounds
+    - IFold:
+        - ofoldr
+        - ofoldl
+    - Index:
+        - shape
+        - slice
+    - Thaw:
+        - unsafeThaw
+    - Set:
+        - groupSetWith
+    - Bordered:
+        - offsetOf
+        - indexIn
+    - Indexed:
+        - update
+    - LinearM:
+        - nowNull
+        - newSingle
+        - getHead
+        - getLast
+        - prepend
+        - append
+        - writeM
+        - copyTo
+        - (!#>)
+    - Linear:
+        - selects'
+        - extract'
+        - selects
+        - extract
+        - select'
+        - uncons'
+        - unsnoc'
+        - select
+        - except
+        - write
+        - (!^)
+    - Shaped:
+        - slicesOf
+        - rebound
+        - (!!)
 
-    - Set: groupSetWith
-    - IFoldM: added ofoldrM and ofoldlM
-    - IFold: added ofoldr and ofoldl
-
-    - Freeze: unsafeFreeze
-    - Thaw: unsafeThaw
-
-    - Bordered: offsetOf and indexIn
-    - Indexed: update
-    - LinearM: nowNull, newSingle, getHead, getLast, prepend, append and copyTo
-    - Linear: |
-        except, select, extract, selects, select', extract', selects',
-        uncons', unsnoc'
-    - Shaped: rebound, (!!) and slicesOf
-
-    - Split: |
-        keep, sans, divide, divides, save, skip, chunks, each, each', infixes,
-        complement, combo, splitBy, divideBy, splitsBy, splitsOn,
-        selectWhile,  extractWhile,  selectEnd,  extractEnd,
-        selectWhile', extractWhile', selectEnd', extractEnd',
-        removeAll, replaceBy
+    - Split:
+        - keep
+        - sans
+        - save
+        - skip
+        - each
+        - each'
+        - combo
+        - chunks
+        - divide
+        - divides
+        - infixes
+        - splitBy
+        - divideBy
+        - splitsBy
+        - splitsOn
+        - removeAll
+        - replaceBy
+        - selectEnd
+        - extractEnd
+        - complement
+        - selectEnd'
+        - extractEnd'
+        - selectWhile
+        - selectWhile'
+        - extractWhile
+        - extractWhile'
 
   types:
     - IOByteList: mutable unboxed unrolled linked list in monad IO with bounds
@@ -146,11 +232,16 @@
     - IOArray: mutable boxed array in monad IO
 
   type-families:
-    - Shape: GIndex, DimLast and DimInit
-    - Index: (:|:)
+    - Shape:
+        - GIndex
+        - DimLast
+        - DimInit
+    - Index:
+        - (:|:)
 
   exceptions:
-    - IndexException: UnexpectedRank
+    - IndexException:
+        - UnexpectedRank
 
   syntax:
     - Overloaded indices
@@ -177,20 +268,32 @@
     - instances: Read and Show for (:&), now list-like and require IsList
 
   superclasses:
-    - Scan: (Linear s a)
-    - Estimate: removed
+    - Scan:
+        - (Linear s a)
+    - Estimate:
+        - ()
 
-    - IFold: (Index i)
-    - IFold: (Monad m, Index i)
+    - IFold:
+        - (Index i)
+    - IFold:
+        - (Monad m, Index i)
 
-    - Indexed: (Linear v e, Bordered v i e)
-    - IndexedM: (LinearM m v e, BorderedM m v i e)
-    - Bordered: (Index i, Estimate b)
+    - Indexed:
+        - (Linear v e, Bordered v i e)
+    - IndexedM:
+        - (LinearM m v e, BorderedM m v i e)
+    - Bordered:
+        - (Index i, Estimate b)
 
   removed:
-    - SDP.Index: IndexEQ class, unsafeBounds and toBounds helpers
-    - SDP.Estimate: EL type
-    - SDP.Tree.BinTree: see sdp-tree
+    - SDP.Index:
+        - IndexEQ
+        - toBounds
+        - unsafeBounds
+    - SDP.Estimate:
+        - EL
+    - SDP.Tree.BinTree:
+        - SDP.Tree.BinTree
 
 # ---------------------------------------------------------------------------- #
 # ############################################################################ #
@@ -199,8 +302,12 @@
 - version: 0.1.1
   # news
   definitions:
-    - SDP.IndexedM: reshape and fromAccum
-    - SDP.Indexed: imap and accum
+    - SDP.IndexedM:
+        - reshape
+        - fromAccum
+    - SDP.Indexed:
+        - imap
+        - accum
 
   classes:
     - IFold: folds with indices
@@ -224,8 +331,14 @@
     - Thaw: thaw immutable structure (to mutable)
 
   class-functions:
-    - IndexedM: (!#>), write_ fromIndexed' and fromIndexedM
-    - Indexed: (!^) and fromIndexed
+    - IndexedM:
+        - (!#>)
+        - write_
+        - fromIndexed'
+        - fromIndexedM
+    - Indexed:
+        - (!^)
+        - fromIndexed
 
   # changes
   moved:
@@ -299,7 +412,8 @@
 
   # news
   exceptions:
-    - UnreachableException: UnreachableException
+    - UnreachableException:
+        - UnreachableException
 
 # ---------------------------------------------------------------------------- #
 # ############################################################################ #
@@ -317,11 +431,15 @@
 - version: 0.0.0.10
   # news
   definitions:
-    - SDP.Linear: stripPrefix and stripSuffix
+    - SDP.Linear:
+        - stripPrefix
+        - stripSuffix
 
   class-functions:
-    - Linear: partitions
-    - Split: arts
+    - Linear:
+        - partitions
+    - Split:
+        - parts
 
   types:
     - ByteList: immutable unboxed unrolled linked list with bounds
@@ -343,7 +461,8 @@
     - Bytes: immutable unboxed array with bounds
 
   removed:
-    - SDP.Unboxed: fillByteArray#
+    - SDP.Unboxed:
+        - fillByteArray#
 
 # ---------------------------------------------------------------------------- #
 # ############################################################################ #
@@ -447,15 +566,18 @@
 - version: 0.0.0.1
   # news
   classes:
-    - Indexed: common indexed operations on immutable structures
-    - Linear: common list-like operations on immutable structures
-    - Set: set class
+    - Indexed: Common indexed operations on immutable structures
+    - Linear: Common list-like operations on immutable structures
+    - Set: Set class
 
-    - Estimate: lazy comparing by length
+    - Estimate: Lazy comparing by length
     - Index: Ix fork with pretty names and some Repa.Shape features
-    - Scan: generalization of scan* operations
-    - Zip: generalization of ZipWith, specific Applicative without pure
+    - Scan: Generalization of scan* operations
+    - Zip: Generalization of ZipWith, specific Applicative without pure
 
   exceptions:
-    - IndexException: |
-        EmptyRange, IndexOverflow, IndexUnderflow and UndefinedValue
+    - IndexException:
+        - EmptyRange
+        - IndexOverflow
+        - IndexUnderflow
+        - UndefinedValue

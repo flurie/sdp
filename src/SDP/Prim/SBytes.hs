@@ -228,7 +228,7 @@ instance (Unboxed e) => Linear (SBytes# e) e
     
     write es n e = not (indexIn es n) ? es $ runST $ do
       es' <- thaw es
-      writeM_ es' n e
+      writeM es' n e
       done es'
     
     replicate n e = runST $ filled n e >>= done
@@ -528,7 +528,7 @@ instance (Unboxed e) => Indexed (SBytes# e) Int e
     fromIndexed es = runST $ do
         let n = sizeOf es
         copy <- filled_ n
-        forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
+        forM_ [0 .. n - 1] $ \ i -> writeM copy i (es !^ i)
         done copy
 
 instance (Unboxed e) => IFold (SBytes# e) Int e
@@ -663,14 +663,16 @@ instance (Unboxed e) => LinearM (ST s) (STBytes# s e) e
     {-# INLINE (!#>) #-}
     (!#>) (STBytes# _ (I# o#) marr#) = \ (I# i#) -> ST $ marr# !># (o# +# i#)
     
+    writeM = writeM'
+    
     copied es@(STBytes# n _ _) = do
       copy <- filled_ n
-      forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM_ copy i
+      forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM copy i
       return copy
     
     copied' es l n = do
       copy <- filled_ n
-      forM_ [0 .. n - 1] $ \ i -> es !#> (l + i) >>= writeM_ copy i
+      forM_ [0 .. n - 1] $ \ i -> es !#> (l + i) >>= writeM copy i
       return copy
     
     reversed es@(STBytes# n _ _) =
@@ -767,30 +769,28 @@ instance (Unboxed e) => MapM (ST s) (STBytes# s e) Int e
     
     overwrite es@(STBytes# c _ _) ascs =
       let ies = filter (inRange (0, c - 1) . fst) ascs
-      in  mapM_ (uncurry $ writeM_ es) ies >> return es
+      in  mapM_ (uncurry $ writeM es) ies >> return es
 
 instance (Unboxed e) => IndexedM (ST s) (STBytes# s e) Int e
   where
     fromAssocs  bnds ascs = filled_ (size bnds) >>= (`overwrite` ascs)
     fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
     
-    writeM_ = writeM
-    
-    {-# INLINE writeM #-}
-    writeM (STBytes# _ (I# o#) marr#) = \ (I# i#) e -> ST $
+    {-# INLINE writeM' #-}
+    writeM' (STBytes# _ (I# o#) marr#) = \ (I# i#) e -> ST $
       \ s1# -> case writeByteArray# marr# (o# +# i#) e s1# of
         s2# -> (# s2#, () #)
     
     fromIndexed' es = do
         let n = sizeOf es
         copy <- filled_ n
-        forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
+        forM_ [0 .. n - 1] $ \ i -> writeM copy i (es !^ i)
         return copy
     
     fromIndexedM es = do
       n    <- getSizeOf es
       copy <- filled_ n
-      forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM_ copy i
+      forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM copy i
       return copy
 
 instance (Unboxed e) => IFoldM (ST s) (STBytes# s e) Int e
@@ -878,6 +878,8 @@ instance (Unboxed e) => LinearM IO (IOBytes# e) e
     
     (!#>) = stToIO ... (!#>) . unpack
     
+    writeM es = stToIO ... writeM (unpack es)
+    
     copied   = pack'  . copied   . unpack
     getLeft  = stToIO . getLeft  . unpack
     getRight = stToIO . getRight . unpack
@@ -930,15 +932,14 @@ instance (Unboxed e) => IndexedM IO (IOBytes# e) Int e
     fromAssocs  bnds = pack'  .  fromAssocs  bnds
     fromAssocs' bnds = pack' ... fromAssocs' bnds
     
-    writeM_ = writeM
-    writeM es = stToIO ... writeM (unpack es)
+    writeM' es = stToIO ... writeM' (unpack es)
     
     fromIndexed' = pack' . fromIndexed'
     
     fromIndexedM es = do
       n    <- getSizeOf es
       copy <- filled n (unreachEx "fromIndexedM")
-      forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM_ copy i
+      forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM copy i
       return copy
 
 instance (Unboxed e) => IFoldM IO (IOBytes# e) Int e
@@ -981,7 +982,7 @@ instance (Storable e, Unboxed e) => Freeze IO (Int, Ptr e) (SBytes# e)
         let !n'@(I# n#) = max 0 n
         es' <- stToIO . ST $ \ s1# -> case newUnboxed err n# s1# of
           (# s2#, marr# #) -> (# s2#, IOBytes# (STBytes# n' 0 marr#) #)
-        forM_ [0 .. n' - 1] $ \ i -> peekElemOff ptr i >>= writeM_ es' i
+        forM_ [0 .. n' - 1] $ \ i -> peekElemOff ptr i >>= writeM es' i
         freeze es'
       where
         err = undEx "freeze {(Int, Ptr e) => SBytes# e}" `asProxyTypeOf` ptr
@@ -1171,5 +1172,4 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Prim.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
-
 

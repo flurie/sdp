@@ -300,7 +300,7 @@ instance Linear (SArray# e) e
     
     write es n e = not (indexIn es n) ? es $ runST $ do
       es' <- thaw es
-      writeM_ es' n e
+      writeM es' n e
       done es'
     
     reverse es = runST $ fromIndexed' es >>= reversed >>= done
@@ -593,7 +593,7 @@ instance Indexed (SArray# e) Int e
     fromIndexed es = runST $ do
       let n = sizeOf es
       copy <- filled n (unreachEx "fromIndexed")
-      forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
+      forM_ [0 .. n - 1] $ \ i -> writeM copy i (es !^ i)
       done copy
 
 instance IFold (SArray# e) Int e
@@ -722,14 +722,16 @@ instance LinearM (ST s) (STArray# s e) e
     {-# INLINE (!#>) #-}
     (!#>) (STArray# _ (I# o#) marr#) = \ (I# i#) -> ST $ readArray# marr# (o# +# i#)
     
+    writeM = writeM'
+    
     copied es@(STArray# n _ _) = do
       copy <- filled n $ unreachEx "copied"
-      forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM_ copy i
+      forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM copy i
       return copy
     
     copied' es l n = do
       copy <- n `filled` unreachEx "copied'"
-      forM_ [0 .. n - 1] $ \ i -> es !#> (l + i) >>= writeM_ copy i
+      forM_ [0 .. n - 1] $ \ i -> es !#> (l + i) >>= writeM copy i
       return copy
     
     reversed es =
@@ -820,28 +822,26 @@ instance MapM (ST s) (STArray# s e) Int e
     
     overwrite es@(STArray# c _ _) ascs =
       let ies = filter (inRange (0, c - 1) . fst) ascs
-      in  mapM_ (uncurry $ writeM_ es) ies >> return es
+      in  mapM_ (uncurry $ writeM es) ies >> return es
 
 instance IndexedM (ST s) (STArray# s e) Int e
   where
     fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
     
-    writeM_ = writeM
-    
-    {-# INLINE writeM #-}
-    writeM (STArray# _ (I# o#) marr#) = \ (I# i#) e -> ST $
+    {-# INLINE writeM' #-}
+    writeM' (STArray# _ (I# o#) marr#) = \ (I# i#) e -> ST $
       \ s1# -> case writeArray# marr# (o# +# i#) e s1# of s2# -> (# s2#, () #)
     
     fromIndexed' es = do
         let n = sizeOf es
         copy <- filled n (unreachEx "fromIndexed'")
-        forM_ [0 .. n - 1] $ \ i -> writeM_ copy i (es !^ i)
+        forM_ [0 .. n - 1] $ \ i -> writeM copy i (es !^ i)
         return copy
     
     fromIndexedM es = do
       n    <- getSizeOf es
       copy <- filled n (unreachEx "fromIndexedM")
-      forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM_ copy i
+      forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM copy i
       return copy
 
 instance IFoldM (ST s) (STArray# s e) Int e
@@ -929,6 +929,8 @@ instance LinearM IO (IOArray# e) e
     
     (!#>) = stToIO ... (!#>) . unpack
     
+    writeM = writeM'
+    
     copied   = pack'  . copied   . unpack
     getLeft  = stToIO . getLeft  . unpack
     getRight = stToIO . getRight . unpack
@@ -980,15 +982,14 @@ instance IndexedM IO (IOArray# e) Int e
     fromAssocs  bnds = pack'  .  fromAssocs  bnds
     fromAssocs' bnds = pack' ... fromAssocs' bnds
     
-    writeM_ = writeM
-    writeM es = stToIO ... writeM (unpack es)
+    writeM' es = stToIO ... writeM' (unpack es)
     
     fromIndexed' = pack' . fromIndexed'
     
     fromIndexedM es = do
       n    <- getSizeOf es
       copy <- filled n (unreachEx "fromIndexedM")
-      forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM_ copy i
+      forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM copy i
       return copy
 
 instance IFoldM IO (IOArray# e) Int e
@@ -1031,7 +1032,7 @@ instance (Storable e) => Freeze IO (Int, Ptr e) (SArray# e)
         let !n'@(I# n#) = max 0 n
         es' <- stToIO . ST $ \ s1# -> case newArray# n# err s1# of
           (# s2#, marr# #) -> (# s2#, IOArray# (STArray# n' 0 marr#) #)
-        forM_ [0 .. n' - 1] $ \ i -> peekElemOff ptr i >>= writeM_ es' i
+        forM_ [0 .. n' - 1] $ \ i -> peekElemOff ptr i >>= writeM es' i
         freeze es'
       where
         err = undEx "freeze {(Int, Ptr e) => SArray# e}" `asProxyTypeOf` ptr
@@ -1134,7 +1135,6 @@ unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
 
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
-
 
 
 

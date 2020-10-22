@@ -293,6 +293,12 @@ instance (BorderedM1 m rep Int e, SplitM1 m rep e) => LinearM m (AnyChunks rep e
         go (x : xs) i = do n <- getSizeOf x; i < n ? x !#> i $ go xs (i - n)
         go _ _ = overEx "(>!)"
     
+    {-# INLINE writeM #-}
+    writeM (AnyChunks es) = go es
+      where
+        go (x : xs) i e = do n <- getSizeOf x; i < n ? writeM x i e $ go xs (i - n) e
+        go _ _ _ = return ()
+    
     getLeft  (AnyChunks es) = concat <$> mapM getLeft es
     getRight (AnyChunks es) = (concat . reverse) <$> mapM getRight es
     reversed (AnyChunks es) = (AnyChunks . reverse) <$> mapM reversed es
@@ -488,14 +494,8 @@ instance (SplitM1 m rep e, IndexedM1 m rep Int e) => IndexedM m (AnyChunks rep e
             (as, bs) = partition (inRange (l, n) . fst) ies
             n = min u (l + lim)
     
-    {-# INLINE writeM_ #-}
-    writeM_ (AnyChunks es) = go es
-      where
-        go (x : xs) i e = do n <- getSizeOf x; i < n ? writeM_ x i e $ go xs (i - n) e
-        go _ _ _ = return ()
-    
-    {-# INLINE writeM #-}
-    writeM es i e = (i < 0) `unless` writeM_ es i e
+    {-# INLINE writeM' #-}
+    writeM' es i e = (i < 0) `unless` writeM es i e
     
     fromIndexed' = newLinear  .  listL
     fromIndexedM = newLinear <=< getLeft

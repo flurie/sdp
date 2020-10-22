@@ -27,10 +27,7 @@ module SDP.IndexedM
     Thaw (..), Thaw1,
     
     -- * Freeze
-    Freeze (..), Freeze1,
-    
-    -- * Related functions
-    swapM
+    Freeze (..), Freeze1
   )
 where
 
@@ -66,9 +63,6 @@ class (LinearM m v e, BorderedM m v i, MapM m v i e) => IndexedM m v i e
     -}
     fromAssocs' :: (i, i) -> e -> [(i, e)] -> m v
     
-    writeM_ :: v -> Int -> e -> m ()
-    writeM_ es i e = do bnds <- getBounds es; void $ overwrite es [(index bnds i, e)]
-    
     {- |
       @'writeM' map key e@ writes element @e@ to @key@ position safely (if @key@
       is out of @map@ range, do nothing). The 'writeM' function is intended to
@@ -77,8 +71,8 @@ class (LinearM m v e, BorderedM m v i, MapM m v i e) => IndexedM m v i e
       
       By default, implemented via 'overwrite'.
     -}
-    writeM :: v -> i -> e -> m ()
-    writeM es i e = do b <- nowIndexIn es i; when b . void $ overwrite es [(i, e)]
+    writeM' :: v -> i -> e -> m ()
+    writeM' es i e = do b <- nowIndexIn es i; when b . void $ overwrite es [(i, e)]
     
     -- | fromIndexed' is overloaded version of thaw.
     fromIndexed' :: (Indexed v' j e) => v' -> m v
@@ -200,16 +194,7 @@ type Freeze1 m v' v e = Freeze m (v' e) (v e)
 
 --------------------------------------------------------------------------------
 
-{-# INLINE swapM #-}
--- | Just swap two elements.
-swapM :: (IndexedM m v i e) => v -> Int -> Int -> m ()
-swapM es i j = do ei <- es !#> i; writeM_ es i =<< es !#> j; writeM_ es j ei
-
---------------------------------------------------------------------------------
-
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.IndexedM."
-
-
 
 

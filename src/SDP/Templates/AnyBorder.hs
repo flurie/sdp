@@ -289,6 +289,9 @@ instance (Index i, LinearM1 m rep e, BorderedM1 m rep Int e) => LinearM m (AnyBo
     {-# INLINE (!#>) #-}
     (!#>) = (!#>) . unpack
     
+    {-# INLINE writeM #-}
+    writeM = writeM . unpack
+    
     copied   (AnyBorder l u es) = AnyBorder l u <$> copied  es
     copied'  (AnyBorder l u es) = (AnyBorder l u <$>) ... copied' es
     reversed (AnyBorder l u es) = AnyBorder l u <$> reversed es
@@ -474,11 +477,8 @@ instance (Index i, IndexedM1 m rep Int e) => IndexedM m (AnyBorder rep i e) i e
         ies  = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
         bnds = (0, size (l, u) - 1)
     
-    {-# INLINE writeM_ #-}
-    writeM_ = writeM . unpack
-    
-    {-# INLINE writeM #-}
-    writeM (AnyBorder l u es) = writeM es . offset (l, u)
+    {-# INLINE writeM' #-}
+    writeM' (AnyBorder l u es) = writeM' es . offset (l, u)
     
     fromIndexed' = withBounds' <=< fromIndexed'
     fromIndexedM = withBounds' <=< fromIndexedM

@@ -25,7 +25,7 @@ module SDP.LinearM
     SplitM (..), SplitM1,
     
     -- * Related section
-    sortedM
+    sortedM, swapM
   )
 where
 
@@ -82,7 +82,7 @@ class (Monad m, Index i) => BorderedM m b i | b -> m, b -> i
 -- | 'LinearM' is 'Linear' version for mutable data structures.
 class (Monad m) => LinearM m l e | l -> m, l -> e
   where
-    {-# MINIMAL (newLinear|fromFoldableM), (getLeft|getRight), (!#>), copyTo #-}
+    {-# MINIMAL (newLinear|fromFoldableM), (getLeft|getRight), (!#>), writeM, copyTo #-}
     
     -- | Monadic 'single'.
     newNull :: m l
@@ -153,6 +153,9 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     
     -- | (!#>) is unsafe monadic offset-based reader.
     (!#>) :: l -> Int -> m e
+    
+    -- | Unsafe monadic offset-based writer.
+    writeM :: l -> Int -> e -> m ()
     
     -- | Create copy.
     {-# INLINE copied #-}
@@ -305,6 +308,13 @@ type BorderedM2 m l i e = BorderedM m (l i e) i
 -- | sortedM checks if structure is sorted.
 sortedM :: (LinearM m l e, Ord e) => l -> m Bool
 sortedM =  fmap (\ es -> null es || and (zipWith (<=) es (tail es))) . getLeft
+
+-- | Just swap two elements.
+{-# INLINE swapM #-}
+swapM :: (LinearM m v e) => v -> Int -> Int -> m ()
+swapM es i j = do ei <- es !#> i; writeM es i =<< es !#> j; writeM es j ei
+
+
 
 
 
