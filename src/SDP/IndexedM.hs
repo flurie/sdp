@@ -27,7 +27,10 @@ module SDP.IndexedM
     Thaw (..), Thaw1,
     
     -- * Freeze
-    Freeze (..), Freeze1
+    Freeze (..), Freeze1,
+  
+  -- * Related functions
+  swapM'
   )
 where
 
@@ -191,6 +194,13 @@ type Thaw1 m v v' e = Thaw m (v e) (v' e)
 
 -- | Kind (* -> *) 'Freeze'.
 type Freeze1 m v' v e = Freeze m (v' e) (v e)
+
+--------------------------------------------------------------------------------
+
+-- | Just swap two elements.
+{-# INLINE swapM' #-}
+swapM' :: (IndexedM m v i e) => v -> i -> i -> m ()
+swapM' es i j = do ei <- es >! i; writeM' es i =<< es >! j; writeM' es j ei
 
 --------------------------------------------------------------------------------
 
