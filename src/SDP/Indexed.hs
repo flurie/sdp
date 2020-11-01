@@ -61,6 +61,11 @@ class (Linear v e, Bordered v i, Map v i e) => Indexed v i e | v -> i, v -> e
     -- | 'fromIndexed' converts this indexed structure to another one.
     fromIndexed :: (Indexed m j e) => m -> v
     
+    -- | Safe index-based immutable writer.
+    {-# INLINE write' #-}
+    write' :: v -> i -> e -> v
+    write' es = write es . offsetOf es
+    
     {- |
       @'accum' f es ies@ create a new structure from @es@ elements selectively
       updated by function @f@ and @ies@ associations list.
