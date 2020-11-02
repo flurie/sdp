@@ -464,19 +464,34 @@ class (Linear s e) => Split s e | s -> e
     split :: Int -> s -> (s, s)
     split n es = (take n es, drop n es)
     
-    -- | Splits line into sequences of given sizes (left to right).
-    splits :: (Foldable f) => f Int -> s -> [s]
-    splits ns es = reverse $ foldl (\ (r : ds) n -> let (d, r') = split n r in r' : d : ds) [es] ns
-    
     -- | @divide n es@ is same to @(sans n es, keep n es)@.
     divide :: Int -> s -> (s, s)
     divide n es = (sans n es, keep n es)
     
-    -- | Splits line into sequences of given sizes (left to right).
+    {- |
+      Splits line into sequences of given sizes (left to right).
+      
+      > splits [5, 3, 12] ['a'..'z'] = ["abcde","fgh","ijklmnopqrst","uvwxyz"]
+    -}
+    splits :: (Foldable f) => f Int -> s -> [s]
+    splits ns es = reverse $ foldl (\ (r : ds) n -> let (d, r') = split n r in r' : d : ds) [es] ns
+    
+    {- |
+      Splits line into sequences of given sizes (right to left).
+      
+      > divides [5,3,12] ['a'..'z'] == ["abcdef","ghijk","lmn","opqrstuvwxyz"]
+    -}
     divides :: (Foldable f) => f Int -> s -> [s]
     divides ns es = foldr (\ n (r : ds) -> let (r', d) = divide n r in r' : d : ds) [es] ns
     
-    -- | Splits structures into parts by given initial indices.
+    {- |
+      Splits structures into parts by given offsets.
+      
+      > parts [0,5,6,12,26] ['a'..'z'] = ["",['a'..'e'],"f",['g'..'l'],['m'..'z'],""]
+      > -- if previous offset is equal or greater, subline is empty and next
+      > begins from previous:
+      > parts [0, 5, 4, 12, 26] ['a' .. 'z']
+    -}
     parts :: (Foldable f) => f Int -> s -> [s]
     parts =  splits . go . toList where go is = zipWith (-) is (0 : is)
     
@@ -522,7 +537,11 @@ class (Linear s e) => Split s e | s -> e
     splitsBy :: (e -> Bool) -> s -> [s]
     splitsBy e = map fromList . splitsBy e . listL
     
-    -- | @splitsOn sub line@ splits @line@ by @sub@.
+    {- |
+      @splitsOn sub line@ splits @line@ by @sub@.
+      
+      > splitsOn "fo" "foobar bazfoobar1" == ["","obar baz","obar1"]
+    -}
     default splitsOn :: (Eq e, Bordered s i) => s -> s -> [s]
     splitsOn :: (Eq e) => s -> s -> [s]
     splitsOn sub line = drop (sizeOf sub) <$> parts (infixes sub line) line
@@ -530,6 +549,8 @@ class (Linear s e) => Split s e | s -> e
     {- |
       @replaceBy sub new line@ replace every non-overlapping occurrence of @sub@
       in @line@ with @new@.
+      
+      > replaceBy "foo" "bar" "foobafoorbaz" == "barbabarrbaz"
     -}
     replaceBy :: (Eq e) => s -> s -> s -> s
     replaceBy sub new = intercalate new . splitsOn sub
@@ -553,7 +574,7 @@ class (Linear s e) => Split s e | s -> e
       > combo (<) [1, 7, 3, 12] == 2
     -}
     default combo :: (Bordered s i) => Equal e -> s -> Int
-    combo :: (e -> e -> Bool) -> s -> Int
+    combo :: Equal e -> s -> Int
     combo f = combo f . listL
     
     -- | @complement n e es@ shrinks @es@ to @n@ elements, pad with @e@ if shorter.
@@ -860,6 +881,5 @@ sorted es = combo (<=) es ==. es
 -}
 ascending :: (Split s e, Bordered s i, Ord e) => s -> [Int] -> Bool
 ascending =  all sorted ... flip splits
-
 
 
