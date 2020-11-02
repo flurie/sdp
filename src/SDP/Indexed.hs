@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE BangPatterns, DefaultSignatures, ConstraintKinds #-}
+{-# LANGUAGE DefaultSignatures, ConstraintKinds #-}
 
 {- |
     Module      :  SDP.Indexed
@@ -19,8 +19,8 @@ module SDP.Indexed
   -- * Indexed
   Indexed (..), Indexed1, Indexed2,
   
-  -- * IFold
-  IFold (..), IFold1, IFold2,
+  -- * Freeze
+  Freeze (..), Freeze1,
   
   -- * Related functions
   binaryContain
@@ -83,74 +83,34 @@ class (Linear v e, Bordered v i, Map v i e) => Indexed v i e | v -> i, v -> e
 
 --------------------------------------------------------------------------------
 
-{- |
-  IFold class for folds with index. The main reason for creating this class is
-  the Foldable extension to containers with a restriction on the type of
-  elements - monomorphic, Storable, Unboxed, etc.
--}
-class (Index i) => IFold v i e | v -> i, v -> e
+-- | Service class of mutable to immutable conversions.
+class (Monad m) => Freeze m v' v | v' -> m
   where
-    {-# MINIMAL (ifoldr | ofoldr), (ifoldl | ofoldr) #-}
+    {- |
+      @freeze@ is a safe way to convert a mutable structure to a immutable.
+      @freeze@ should copy the old structure or ensure that it will not be used
+      after calling the procedure.
+    -}
+    freeze :: v' -> m v
     
-    {- Folds with index. -}
-    
-    -- | 'ifoldr' is right fold with index.
-    default ifoldr :: (Bordered v i) => (i -> e -> r -> r) -> r -> v -> r
-    ifoldr :: (i -> e -> r -> r) -> r -> v -> r
-    ifoldr f base es = let bnds = bounds es in ofoldr (f . index bnds) base es
-    
-    -- | 'ifoldl' is left  fold with index.
-    default ifoldl :: (Bordered v i) => (i -> r -> e -> r) -> r -> v -> r
-    ifoldl :: (i -> r -> e -> r) -> r -> v -> r
-    ifoldl f base es = let bnds = bounds es in ofoldl (f . index bnds) base es
-    
-    -- | 'ifoldr'' is strict version of 'ifoldr'.
-    ifoldr' :: (i -> e -> r -> r) -> r -> v -> r
-    ifoldr' f = ifoldr (\ !i e !r -> f i e r)
-    
-    -- | 'ifoldl'' is strict version of 'ifoldl'.
-    ifoldl' :: (i -> r -> e -> r) -> r -> v -> r
-    ifoldl' f = ifoldl (\ !i !r e -> f i r e)
-    
-    {- Folds with offset. -}
-    
-    -- | 'ofoldr' is right fold with offset.
-    ofoldr :: (Int -> e -> r -> r) -> r -> v -> r
-    default ofoldr :: (Bordered v i) => (Int -> e -> r -> r) -> r -> v -> r
-    ofoldr f base es = ifoldr (f . offsetOf es) base es
-    
-    -- | 'ofoldl' is left fold with offset.
-    default ofoldl :: (Bordered v i) => (Int -> r -> e -> r) -> r -> v -> r
-    ofoldl :: (Int -> r -> e -> r) -> r -> v -> r
-    ofoldl f base es = ifoldl (f . offsetOf es) base es
-    
-    -- | 'ofoldr'' is strict version of 'ofoldr'.
-    default ofoldr' :: (Bordered v i) => (Int -> e -> r -> r) -> r -> v -> r
-    ofoldr' :: (Int -> e -> r -> r) -> r -> v -> r
-    ofoldr' f base es = ifoldr' (f . offsetOf es) base es
-    
-    -- | 'ofoldl'' is strict version of 'ofoldl'.
-    default ofoldl' :: (Bordered v i) => (Int -> r -> e -> r) -> r -> v -> r
-    ofoldl' :: (Int -> r -> e -> r) -> r -> v -> r
-    ofoldl' f base es = ifoldl' (f . offsetOf es) base es
-    
-    {- 'Foldable' crutches. -}
-    
-    -- | 'i_foldr' is just 'foldr' in 'IFold' context.
-    i_foldr :: (e -> r -> r) -> r -> v -> r
-    i_foldr =  ifoldr  . const
-    
-    -- | 'i_foldl' is just 'foldl' in 'IFold' context.
-    i_foldl :: (r -> e -> r) -> r -> v -> r
-    i_foldl =  ifoldl  . const
-    
-    -- | 'i_foldr'' is just 'foldr'' in 'IFold' context.
-    i_foldr' :: (e -> r -> r) -> r -> v -> r
-    i_foldr' =  ifoldr' . const
-    
-    -- | 'i_foldl'' is just 'foldl'' in 'IFold' context.
-    i_foldl' :: (r -> e -> r) -> r -> v -> r
-    i_foldl' =  ifoldl' . const
+    {- |
+      @unsafeFreeze@ is unsafe version of 'freeze'. @unsafeFreeze@ doesn't
+      guarantee that the structure will be copied or locked. It only guarantees
+      that if the old structure isn't used, no error will occur.
+    -}
+    unsafeFreeze :: v' -> m v
+    unsafeFreeze =  freeze
+
+--------------------------------------------------------------------------------
+
+-- | Kind @(* -> *)@ 'Indexed' structure.
+type Indexed1 v i e = Indexed (v e) i e
+
+-- | Kind @(* -> * -> *)@ 'Indexed' structure.
+type Indexed2 v i e = Indexed (v i e) i e
+
+-- | Kind @(* -> *)@ 'Freeze'.
+type Freeze1 m v' v e = Freeze m (v' e) (v e)
 
 --------------------------------------------------------------------------------
 
@@ -159,30 +119,6 @@ instance Indexed [e] Int e
     assoc' bnds e = toMap' e . filter (inRange bnds . fst)
     
     fromIndexed es = (es !) <$> indices es
-
-instance IFold [e] Int e
-  where
-    ifoldr f base =
-      let go i es = case es of {(x : xs) -> f i x $ go (i + 1) xs; _ -> base}
-      in  go 0
-    
-    ifoldl f =
-      let go i e es = case es of {(x : xs) -> go (i + 1) (f i e x) xs; _ -> e}
-      in  go 0
-
---------------------------------------------------------------------------------
-
--- | Kind (* -> *) 'Indexed' structure.
-type Indexed1 v i e = Indexed (v e) i e
-
--- | Kind (* -> * -> *) 'Indexed' structure.
-type Indexed2 v i e = Indexed (v i e) i e
-
--- | Kind (* -> *) 'IFold' structure.
-type IFold1 v i e = IFold (v e) i e
-
--- | Kind (* -> * -> *) 'IFold' structure.
-type IFold2 v i e = IFold (v i e) i e
 
 --------------------------------------------------------------------------------
 
@@ -201,5 +137,4 @@ binaryContain f e es =
 
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.Indexed."
-
 

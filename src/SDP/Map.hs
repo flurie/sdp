@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE DefaultSignatures, ConstraintKinds #-}
+{-# LANGUAGE DefaultSignatures, ConstraintKinds, BangPatterns #-}
 
 {- |
     Module      :  SDP.Map
@@ -16,7 +16,10 @@ module SDP.Map
   module SDP.Set,
   
   -- * Map
-  Map (..), Map1, Map2
+  Map (..), Map1, Map2,
+  
+  -- * KeyFold
+  IFold (..), IFold1, IFold2
 )
 where
 
@@ -66,8 +69,6 @@ class (Nullable m, Eq k) => Map m k e | m -> k, m -> e
     -}
     toMap :: [(k, e)] -> m
     toMap =  toMap' (undEx "toMap {default}")
-    
-    -- TODO: create 'sdp-associative' for advanced templates and structures.
     
     {- |
       Strict version of 'toMap' with default value.
@@ -204,11 +205,88 @@ class (Nullable m, Eq k) => Map m k e | m -> k, m -> e
 
 --------------------------------------------------------------------------------
 
--- | Kind (* -> *) 'Map' structure.
+{- |
+  IFold class for folds with index. The main reason for creating this class is
+  the Foldable extension to containers with a restriction on the type of
+  elements - monomorphic, Storable, Unboxed, etc.
+-}
+class IFold v i e | v -> i, v -> e
+  where
+    {-# MINIMAL (ifoldr | ofoldr), (ifoldl | ofoldr) #-}
+    
+    {- Folds with index. -}
+    
+    -- | 'ifoldr' is right fold with index.
+    default ifoldr :: (Bordered v i) => (i -> e -> r -> r) -> r -> v -> r
+    ifoldr :: (i -> e -> r -> r) -> r -> v -> r
+    ifoldr f base es = let bnds = bounds es in ofoldr (f . index bnds) base es
+    
+    -- | 'ifoldl' is left  fold with index.
+    default ifoldl :: (Bordered v i) => (i -> r -> e -> r) -> r -> v -> r
+    ifoldl :: (i -> r -> e -> r) -> r -> v -> r
+    ifoldl f base es = let bnds = bounds es in ofoldl (f . index bnds) base es
+    
+    -- | 'ifoldr'' is strict version of 'ifoldr'.
+    ifoldr' :: (i -> e -> r -> r) -> r -> v -> r
+    ifoldr' f = ifoldr (\ !i e !r -> f i e r)
+    
+    -- | 'ifoldl'' is strict version of 'ifoldl'.
+    ifoldl' :: (i -> r -> e -> r) -> r -> v -> r
+    ifoldl' f = ifoldl (\ !i !r e -> f i r e)
+    
+    {- Folds with offset. -}
+    
+    -- | 'ofoldr' is right fold with offset.
+    ofoldr :: (Int -> e -> r -> r) -> r -> v -> r
+    default ofoldr :: (Bordered v i) => (Int -> e -> r -> r) -> r -> v -> r
+    ofoldr f base es = ifoldr (f . offsetOf es) base es
+    
+    -- | 'ofoldl' is left fold with offset.
+    default ofoldl :: (Bordered v i) => (Int -> r -> e -> r) -> r -> v -> r
+    ofoldl :: (Int -> r -> e -> r) -> r -> v -> r
+    ofoldl f base es = ifoldl (f . offsetOf es) base es
+    
+    -- | 'ofoldr'' is strict version of 'ofoldr'.
+    default ofoldr' :: (Bordered v i) => (Int -> e -> r -> r) -> r -> v -> r
+    ofoldr' :: (Int -> e -> r -> r) -> r -> v -> r
+    ofoldr' f base es = ifoldr' (f . offsetOf es) base es
+    
+    -- | 'ofoldl'' is strict version of 'ofoldl'.
+    default ofoldl' :: (Bordered v i) => (Int -> r -> e -> r) -> r -> v -> r
+    ofoldl' :: (Int -> r -> e -> r) -> r -> v -> r
+    ofoldl' f base es = ifoldl' (f . offsetOf es) base es
+    
+    {- 'Foldable' crutches. -}
+    
+    -- | 'i_foldr' is just 'foldr' in 'IFold' context.
+    i_foldr :: (e -> r -> r) -> r -> v -> r
+    i_foldr =  ifoldr  . const
+    
+    -- | 'i_foldl' is just 'foldl' in 'IFold' context.
+    i_foldl :: (r -> e -> r) -> r -> v -> r
+    i_foldl =  ifoldl  . const
+    
+    -- | 'i_foldr'' is just 'foldr'' in 'IFold' context.
+    i_foldr' :: (e -> r -> r) -> r -> v -> r
+    i_foldr' =  ifoldr' . const
+    
+    -- | 'i_foldl'' is just 'foldl'' in 'IFold' context.
+    i_foldl' :: (r -> e -> r) -> r -> v -> r
+    i_foldl' =  ifoldl' . const
+
+--------------------------------------------------------------------------------
+
+-- | Kind @(* -> *)@ 'Map' structure.
 type Map1 m k e = Map (m e) k e
 
--- | Kind (* -> * -> *) 'Map' structure.
+-- | Kind @(* -> * -> *)@ 'Map' structure.
 type Map2 m k e = Map (m k e) k e
+
+-- | Kind @(* -> *)@ 'IFold' structure.
+type IFold1 v i e = IFold (v e) i e
+
+-- | Kind @(* -> * -> *)@ 'IFold' structure.
+type IFold2 v i e = IFold (v i e) i e
 
 --------------------------------------------------------------------------------
 
@@ -251,13 +329,23 @@ instance Map [e] Int e
     (.$) = findIndex
     (*$) = findIndices
 
---------------------------------------------------------------------------------
+instance IFold [e] Int e
+  where
+    ifoldr f base =
+      let go i es = case es of {(x : xs) -> f i x $ go (i + 1) xs; _ -> base}
+      in  go 0
+    
+    ifoldl f =
+      let go i e es = case es of {(x : xs) -> go (i + 1) (f i e x) xs; _ -> e}
+      in  go 0
 
-undEx :: String -> a
-undEx =  throw . UndefinedValue . showString "in SDP.Map."
+--------------------------------------------------------------------------------
 
 empEx :: String -> a
 empEx =  throw . EmptyRange . showString "in SDP.Map."
+
+undEx :: String -> a
+undEx =  throw . UndefinedValue . showString "in SDP.Map."
 
 overEx :: String -> a
 overEx =  throw . IndexOverflow . showString "in SDP.Map."
@@ -267,4 +355,6 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Map."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Map."
+
+
 
