@@ -233,8 +233,8 @@ instance (Unboxed e) => Linear (SBytes# e) e
     
     replicate n e = runST $ filled n e >>= done
     
-    listL = k_foldr (:) []
-    listR = flip (:) `k_foldl` []
+    listL = o_foldr (:) []
+    listR = flip (:) `o_foldl` []
     
     concat ess = runST $ do
         marr@(STBytes# _ _ marr#) <- filled_ s
@@ -252,13 +252,29 @@ instance (Unboxed e) => Linear (SBytes# e) e
     
     reverse es = runST $ fromIndexed' es >>= reversed >>= done
     
-    select  f = k_foldr (\ o es -> case f o of {Just e -> e : es; _ -> es}) []
+    select  f = o_foldr (\ o es -> case f o of {Just e -> e : es; _ -> es}) []
     
-    extract f = second fromList . k_foldr g ([], [])
+    extract f = second fromList . o_foldr g ([], [])
       where
         g = \ o -> case f o of {Just e -> first (e :); _ -> second (o :)}
     
     selects fs = second fromList . selects fs . listL
+    
+    ofoldr f base = \ arr@(SBytes# c _ _) ->
+      let go i = c == i ? base $ f i (arr !^ i) (go $ i + 1)
+      in  go 0
+    
+    ofoldl f base = \ arr@(SBytes# c _ _) ->
+      let go i = -1 == i ? base $ f i (go $ i - 1) (arr !^ i)
+      in  go (c - 1)
+    
+    o_foldr f base = \ arr@(SBytes# c _ _) ->
+      let go i = c == i ? base $ f (arr !^ i) (go $ i + 1)
+      in  go 0
+    
+    o_foldl f base = \ arr@(SBytes# c _ _) ->
+      let go i = -1 == i ? base $ f (go $ i - 1) (arr !^ i)
+      in  go (c - 1)
 
 instance (Unboxed e) => Split (SBytes# e) e
   where
@@ -495,7 +511,7 @@ instance (Unboxed e) => SetWith (SBytes# e) e
             j = l + (u - l) `div` 2
             e = es !^ j
     
-    isSubsetWith f xs ys = k_foldr (\ x b -> b && memberWith f x ys) True xs
+    isSubsetWith f xs ys = o_foldr (\ x b -> b && memberWith f x ys) True xs
 
 instance (Unboxed e) => Scan (SBytes# e) e
 
@@ -505,7 +521,7 @@ instance (Unboxed e) => Sort (SBytes# e) e
 
 --------------------------------------------------------------------------------
 
-{- Indexed and KFold instances. -}
+{- Indexed instance. -}
 
 instance (Unboxed e) => Map (SBytes# e) Int e
   where
@@ -518,7 +534,10 @@ instance (Unboxed e) => Map (SBytes# e) Int e
     Z  // ascs = toMap ascs
     es // ascs = runST $ thaw es >>= (`overwrite` ascs) >>= done
     
-    (*$) p = kfoldr (\ i e is -> p e ? (i : is) $ is) []
+    (*$) p = ofoldr (\ i e is -> p e ? (i : is) $ is) []
+    
+    kfoldr = ofoldr
+    kfoldl = ofoldl
 
 instance (Unboxed e) => Indexed (SBytes# e) Int e
   where
@@ -530,27 +549,6 @@ instance (Unboxed e) => Indexed (SBytes# e) Int e
         copy <- filled_ n
         forM_ [0 .. n - 1] $ \ i -> writeM copy i (es !^ i)
         done copy
-
-instance (Unboxed e) => KFold (SBytes# e) Int e
-  where
-    kfoldr = ofoldr
-    kfoldl = ofoldl
-    
-    ofoldr f base = \ arr@(SBytes# c _ _) ->
-      let go i = c == i ? base $ f i (arr !^ i) (go $ i + 1)
-      in  go 0
-    
-    ofoldl f base = \ arr@(SBytes# c _ _) ->
-      let go i = -1 == i ? base $ f i (go $ i - 1) (arr !^ i)
-      in  go (c - 1)
-    
-    k_foldr f base = \ arr@(SBytes# c _ _) ->
-      let go i = c == i ? base $ f (arr !^ i) (go $ i + 1)
-      in  go 0
-    
-    k_foldl f base = \ arr@(SBytes# c _ _) ->
-      let go i = -1 == i ? base $ f (go $ i - 1) (arr !^ i)
-      in  go (c - 1)
 
 --------------------------------------------------------------------------------
 
@@ -1172,4 +1170,6 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Prim.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
+
+
 

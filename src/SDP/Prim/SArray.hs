@@ -325,6 +325,17 @@ instance Linear (SArray# e) e
         g = \ o -> case f o of {Just e -> first (e :); _ -> second (o :)}
     
     selects fs = second fromList . selects fs . listL
+    
+    ofoldr f base = \ arr@(SArray# c _ _) ->
+      let go i = c == i ? base $ f i (arr !^ i) (go $ i + 1)
+      in  go 0
+    
+    ofoldl f base = \ arr@(SArray# c _ _) ->
+      let go i = -1 == i ? base $ f i (go $ i - 1) (arr !^ i)
+      in  go (c - 1)
+    
+    o_foldr = foldr
+    o_foldl = foldl
 
 instance Split (SArray# e) e
   where
@@ -573,7 +584,7 @@ instance Sort (SArray# e) e
 
 --------------------------------------------------------------------------------
 
-{- Indexed and KFold instances. -}
+{- Indexed instance. -}
 
 instance Map (SArray# e) Int e
   where
@@ -584,7 +595,10 @@ instance Map (SArray# e) Int e
     Z  // ascs = toMap ascs
     es // ascs = runST $ fromFoldableM es >>= (`overwrite` ascs) >>= done
     
-    (*$) p = kfoldr (\ i e is -> p e ? (i : is) $ is) []
+    (*$) p = ofoldr (\ i e is -> p e ? (i : is) $ is) []
+    
+    kfoldr = ofoldr
+    kfoldl = ofoldl
 
 instance Indexed (SArray# e) Int e
   where
@@ -595,22 +609,6 @@ instance Indexed (SArray# e) Int e
       copy <- filled n (unreachEx "fromIndexed")
       forM_ [0 .. n - 1] $ \ i -> writeM copy i (es !^ i)
       done copy
-
-instance KFold (SArray# e) Int e
-  where
-    kfoldr = ofoldr
-    kfoldl = kfoldl
-    
-    ofoldr f base = \ arr@(SArray# c _ _) ->
-      let go i = c == i ? base $ f i (arr !^ i) (go $ i + 1)
-      in  go 0
-    
-    ofoldl f base = \ arr@(SArray# c _ _) ->
-      let go i = -1 == i ? base $ f i (go $ i - 1) (arr !^ i)
-      in  go (c - 1)
-    
-    k_foldr = foldr
-    k_foldl = foldl
 
 --------------------------------------------------------------------------------
 
@@ -1130,11 +1128,13 @@ overEx =  throw . IndexOverflow . showString "in SDP.Prim.SArray."
 underEx :: String -> a
 underEx =  throw . IndexUnderflow . showString "in SDP.Prim.SArray."
 
+pfailEx :: String -> a
+pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
+
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
 
-pfailEx :: String -> a
-pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
+
 
 
 

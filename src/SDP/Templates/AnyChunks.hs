@@ -216,6 +216,19 @@ instance (Bordered1 rep Int e, Linear1 rep e) => Linear (AnyChunks rep e) e
     extract f (AnyChunks es) = bimap concat AnyChunks . unzip $ extract f <$> es
     
     selects fs = second fromList . selects fs . listL
+    
+    ofoldr f' base' = go 0 f' base' . unpack
+      where
+        go o f base (x : xs) = ofoldr (f . (o +)) (go (o + sizeOf x) f base xs) x
+        go _ _ base _ = base
+    
+    ofoldl f' base' = go 0 f' base' . unpack
+      where
+        go o f base (x : xs) = go (o + sizeOf x) f (ofoldl (f . (o +)) base x) xs
+        go _ _ base _ = base
+    
+    o_foldr f base = foldr (flip $ o_foldr f) base . unpack
+    o_foldl f base = foldl (o_foldl f) base . unpack
 
 instance (Bordered1 rep Int e, Split1 rep e) => Split (AnyChunks rep e) e
   where
@@ -357,7 +370,7 @@ instance (BorderedM1 m rep Int e, SplitM1 m rep e) => SplitM m (AnyChunks rep e)
 
 instance (Nullable (AnyChunks rep e), SetWith1 (AnyChunks rep) e, Ord e) => Set (AnyChunks rep e) e
 
-instance (SetWith1 rep e, Linear1 rep e, Ord (rep e), Bordered1 rep Int e, KFold1 rep Int e) => SetWith (AnyChunks rep e) e
+instance (SetWith1 rep e, Linear1 rep e, Ord (rep e), Bordered1 rep Int e) => SetWith (AnyChunks rep e) e
   where
     insertWith f' e' = AnyChunks . go f' e' . unpack
       where
@@ -381,13 +394,13 @@ instance (SetWith1 rep e, Linear1 rep e, Ord (rep e), Bordered1 rep Int e, KFold
     
     memberWith f x (AnyChunks es) = memberWith f x `any` es
     
-    isSubsetWith f xs ys = k_foldr (\ e b -> memberWith f e ys && b) True xs
+    isSubsetWith f xs ys = o_foldr (\ e b -> memberWith f e ys && b) True xs
 
 instance (Linear1 (AnyChunks rep) e) => Scan (AnyChunks rep e) e
 
 --------------------------------------------------------------------------------
 
-{- Indexed and KFold instances. -}
+{- Indexed instance. -}
 
 instance (Indexed1 rep Int e) => Map (AnyChunks rep e) Int e
   where
@@ -412,6 +425,9 @@ instance (Indexed1 rep Int e) => Map (AnyChunks rep e) Int e
     
     (*$) p (AnyChunks (x : xs)) = p *$ x ++ fmap (+ sizeOf x) (p *$ AnyChunks xs)
     (*$) _ _ = []
+    
+    kfoldr f base es = let bnds = bounds es in kfoldr (f . index bnds) base es
+    kfoldl f base es = let bnds = bounds es in kfoldl (f . index bnds) base es
 
 instance (Indexed1 rep Int e) => Indexed (AnyChunks rep e) Int e
   where
@@ -430,21 +446,6 @@ instance (Indexed1 rep Int e) => Indexed (AnyChunks rep e) Int e
             n = min u (l + lim)
     
     fromIndexed es = AnyChunks [fromIndexed es]
-
-instance (KFold1 rep Int e, Bordered1 rep Int e, Linear1 rep e) => KFold (AnyChunks rep e) Int e
-  where
-    ofoldr f' base' = go 0 f' base' . unpack
-      where
-        go o f base (x : xs) = kfoldr (f . (o +)) (go (o + sizeOf x) f base xs) x
-        go _ _ base _ = base
-    
-    ofoldl f' base' = go 0 f' base' . unpack
-      where
-        go o f base (x : xs) = go (o + sizeOf x) f (kfoldl (f . (o +)) base x) xs
-        go _ _ base _ = base
-    
-    k_foldr f base = foldr (flip $ k_foldr f) base . unpack
-    k_foldl f base = foldl (k_foldl f) base . unpack
 
 --------------------------------------------------------------------------------
 
@@ -581,5 +582,4 @@ unpack' (AnyChunks es) = go es
 
 lim :: Int
 lim =  1024
-
 

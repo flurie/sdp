@@ -14,6 +14,7 @@
 -}
 module SDP.Linear
 (
+  -- * Exports
   module SDP.Nullable,
   module SDP.Index,
   module SDP.Zip,
@@ -30,7 +31,7 @@ module SDP.Linear
   Split (..), Split1,
   
   -- * Patterns
-  -- $patternDoc
+  -- | SDP.Linear also provides three overloaded patterns: 'Z', (':>') and (':<').
   pattern (:>), pattern (:<), pattern Z,
   
   -- * Related functions
@@ -365,6 +366,42 @@ class (Nullable l) => Linear l e | l -> e
     -- | Generalization of nubBy.
     nubBy :: Equal e -> l -> l
     nubBy f = fromList . nubBy f . listL
+    
+    {- Folds with offset. -}
+    
+    -- | 'ofoldr' is right fold with offset.
+    ofoldr :: (Int -> e -> b -> b) -> b -> l -> b
+    ofoldr f base = ofoldr f base . listL
+    
+    -- | 'ofoldl' is left fold with offset.
+    ofoldl :: (Int -> b -> e -> b) -> b -> l -> b
+    ofoldl f base = ofoldl f base . listL
+    
+    -- | 'ofoldr'' is strict version of 'ofoldr'.
+    ofoldr' :: (Int -> e -> b -> b) -> b -> l -> b
+    ofoldr' f = ofoldr (\ !i e !b -> f i e b)
+    
+    -- | 'ofoldl'' is strict version of 'ofoldl'.
+    ofoldl' :: (Int -> b -> e -> b) -> b -> l -> b
+    ofoldl' f = ofoldl (\ !i !b e -> f i b e)
+    
+    {- 'Foldable' crutches. -}
+    
+    -- | 'o_foldr' is just 'foldr' in 'Linear' context.
+    o_foldr :: (e -> b -> b) -> b -> l -> b
+    o_foldr =  ofoldr . const
+    
+    -- | 'o_foldl' is just 'foldl' in 'Linear' context.
+    o_foldl :: (b -> e -> b) -> b -> l -> b
+    o_foldl =  ofoldl . const
+    
+    -- | 'o_foldr'' is just 'foldr'' in 'Linear' context.
+    o_foldr' :: (e -> b -> b) -> b -> l -> b
+    o_foldr' =  ofoldr' . const
+    
+    -- | 'o_foldl'' is just 'foldl'' in 'Linear' context.
+    o_foldl' :: (b -> e -> b) -> b -> l -> b
+    o_foldl' =  ofoldl' . const
 
 --------------------------------------------------------------------------------
 
@@ -657,10 +694,6 @@ class (Linear s e) => Split s e | s -> e
 
 --------------------------------------------------------------------------------
 
-{- $patternDoc
-  SDP.Linear also provides three overloaded patterns: 'Z', (':>') and (':<').
--}
-
 -- | Pattern Z is overloaded empty (or incorrect) line. Same as 'isNull' and 'lzero'.
 pattern Z :: (Nullable e) => e
 pattern Z <- (isNull -> True) where Z = lzero
@@ -730,6 +763,19 @@ instance Linear [e] e
     isSubseqOf  = L.isSubsequenceOf
     
     iterate n f e = n < 1 ? [] $ e : iterate (n - 1) f (f e)
+    
+    ofoldr f base =
+      let go !i es = case es of {(x : xs) -> f i x $ go (i + 1) xs; _ -> base}
+      in  go 0
+    
+    ofoldl f =
+      let go !i base es = case es of {(x : xs) -> go (i + 1) (f i base x) xs; _ -> base}
+      in  go 0
+    
+    o_foldr' = foldr'
+    o_foldl' = foldl'
+    o_foldr  = foldr
+    o_foldl  = foldl
 
 instance Split [e] e
   where
@@ -814,7 +860,6 @@ sorted es = combo (<=) es ==. es
 -}
 ascending :: (Split s e, Bordered s i, Ord e) => s -> [Int] -> Bool
 ascending =  all sorted ... flip splits
-
 
 
 

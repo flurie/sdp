@@ -16,10 +16,7 @@ module SDP.Map
   module SDP.Set,
   
   -- * Map
-  Map (..), Map1, Map2,
-  
-  -- * Key folds
-  KFold (..), KFold1, KFold2
+  Map (..), Map1, Map2
 )
 where
 
@@ -52,13 +49,13 @@ infixl 9 .!, !, !?
   > instance Map [e] Int e          -- current implementation
   > instance (Eq k) => Map [(k, e)] -- previous implementation
 -}
-class (Nullable m, Eq k) => Map m k e | m -> k, m -> e
+class (Nullable map, Eq key) => Map map key e | map -> key, map -> e
   where
-    {-# MINIMAL toMap', ((.!) | (!?)) #-}
+    {-# MINIMAL toMap', kfoldl, kfoldr, ((.!) | (!?)) #-}
     
     -- | List of associations (index, element).
-    default assocs :: (Bordered m k, Linear m e) => m -> [(k, e)]
-    assocs :: m -> [(k, e)]
+    default assocs :: (Bordered map key, Linear map e) => map -> [(key, e)]
+    assocs :: map -> [(key, e)]
     assocs es = indices es `zip` listL es
     
     {- |
@@ -67,7 +64,7 @@ class (Nullable m, Eq k) => Map m k e | m -> k, m -> e
       
       > Z // ascs = toMap -- forall ascs
     -}
-    toMap :: [(k, e)] -> m
+    toMap :: [(key, e)] -> map
     toMap =  toMap' (undEx "toMap {default}")
     
     {- |
@@ -77,7 +74,7 @@ class (Nullable m, Eq k) => Map m k e | m -> k, m -> e
       structures with gaps. When new gaps appear, their elements may be
       overwritten with the other values.
     -}
-    toMap' :: e -> [(k, e)] -> m
+    toMap' :: e -> [(key, e)] -> map
     
     {- |
       @insert' key e map@ inserts @e@ with @key@ to @map@. If @map@ already
@@ -86,8 +83,8 @@ class (Nullable m, Eq k) => Map m k e | m -> k, m -> e
       If @map@ doesn't allow gaps, then the missing elements should be filled
       with default values.
     -}
-    default insert' :: (Bordered m k) => k -> e -> m -> m
-    insert' :: k -> e -> m -> m
+    default insert' :: (Bordered map key) => key -> e -> map -> map
+    insert' :: key -> e -> map -> map
     insert' k e es = toMap $ assocs es :< (k, e)
     
     {- |
@@ -98,26 +95,26 @@ class (Nullable m, Eq k) => Map m k e | m -> k, m -> e
       when removed from the middle, the actual value should be replaced with the
       default value.
     -}
-    delete' :: k -> m -> m
+    delete' :: key -> map -> map
     delete' k = toMap . except ((== k) . fst) . assocs
     
     -- | @member' k map@ checks if there is an element with key @k@ in @map@.
-    default member' :: (Bordered m k) => k -> m -> Bool
-    member' :: k -> m -> Bool
+    default member' :: (Bordered map key) => key -> map -> Bool
+    member' :: key -> map -> Bool
     member' =  flip indexIn
     
     -- | Update elements of immutable structure (by copying).
-    (//) :: m -> [(k, e)] -> m
+    (//) :: map -> [(key, e)] -> map
     (//) =  toMap ... (++) . assocs
     
     -- | (.!) is unsafe reader, can be faster ('!') by skipping checks.
     {-# INLINE (.!) #-}
-    (.!) :: m -> k -> e
+    (.!) :: map -> key -> e
     (.!) =  fromMaybe (undEx "(.!)") ... (!?)
     
     -- | (!) is well-safe reader. Must 'throw' 'IndexException'.
-    default (!) :: (Bordered m k) => m -> k -> e
-    (!) :: m -> k -> e
+    default (!) :: (Bordered map key) => map -> key -> e
+    (!) :: map -> key -> e
     (!) es i = case inBounds (bounds es) i of
         IN -> es .! i
         ER -> empEx   msg
@@ -127,11 +124,11 @@ class (Nullable m, Eq k) => Map m k e | m -> k, m -> e
         msg = "(!) {default}"
     
     -- | (!?) is completely safe, but very boring function.
-    (!?) :: m -> k -> Maybe e
+    (!?) :: map -> key -> Maybe e
     (!?) es = not . flip member' es ?- (es .!)
     
     -- | Filter with key.
-    filter' :: (k -> e -> Bool) -> m -> m
+    filter' :: (key -> e -> Bool) -> map -> map
     filter' f = toMap . filter (uncurry f) . assocs
     {-
     {- |
@@ -159,134 +156,73 @@ class (Nullable m, Eq k) => Map m k e | m -> k, m -> e
     intersection' :: (e -> e -> e) -> m -> m -> m
     -}
     -- | Update function, by default uses ('!') and may throw 'IndexException'.
-    update :: m -> [k] -> (k -> e -> e) -> m
+    update :: map -> [key] -> (key -> e -> e) -> map
     update es is f = es // [ (i, f i (es!i)) | i <- is ]
     
     {- |
       @lookupLT' k map@ finds pair @(key, value)@ with smallest @key@, where
       @key < k@ (if any). @k@ may not be a @map@ element.
     -}
-    lookupLT' :: (Ord k) => k -> m -> Maybe (k, e)
+    lookupLT' :: (Ord key) => key -> map -> Maybe (key, e)
     lookupLT' k = lookupLTWith cmpfst (k, unreachEx "lookupLT'") . assocs
     
     {- |
       @lookupGT' k map@ finds pair @(key, value)@ with greatest @key@, where
       @key > k@ (if any). @k@ may not be a @map@ element.
     -}
-    lookupGT' :: (Ord k) => k -> m -> Maybe (k, e)
+    lookupGT' :: (Ord key) => key -> map -> Maybe (key, e)
     lookupGT' k = lookupGTWith cmpfst (k, unreachEx "lookupGT'") . assocs
     
     {- |
       @lookupLE' k map@ finds pair @(key, value)@ with smallest @key@, where
       @key <= k@ (if any). If @k@ is a @map@ element, returns @(k, e)@.
     -}
-    lookupLE' :: (Ord k) => k -> m -> Maybe (k, e)
+    lookupLE' :: (Ord key) => key -> map -> Maybe (key, e)
     lookupLE' k me = (,) k <$> (me !? k) <|> lookupLEWith cmpfst (k, unreachEx "lookupLE'") (assocs me)
     
     {- |
       @lookupGE' k map@ finds pair @(key, value)@ with  @key@, where
       @key >= k@ (if any).
     -}
-    lookupGE' :: (Ord k) => k -> m -> Maybe (k, e)
+    lookupGE' :: (Ord key) => key -> map -> Maybe (key, e)
     lookupGE' k me = (,) k <$> (me !? k) <|> lookupGEWith cmpfst (k, unreachEx "lookupGE'") (assocs me)
     
     -- | Keys of map elements.
-    default keys :: (Bordered m k) => m -> [k]
-    keys :: m -> [k]
+    default keys :: (Bordered map key) => map -> [key]
+    keys :: map -> [key]
     keys =  indices
     
     -- | Searches the index of first matching element.
-    (.$) :: (e -> Bool) -> m -> Maybe k
+    (.$) :: (e -> Bool) -> map -> Maybe key
     (.$) =  null ?- head ... (*$)
     
     -- | Searches the indices of all matching elements.
-    (*$) :: (e -> Bool) -> m -> [k]
+    (*$) :: (e -> Bool) -> map -> [key]
     (*$) f = select (f . snd ?+ fst) . assocs
-
---------------------------------------------------------------------------------
-
-{- |
-  'KFold' class for folds with key. The main reason for creating this class is
-  the 'Foldable' extension to containers with a restriction on the type of
-  elements - monomorphic, Storable, Unboxed, etc.
--}
-class KFold v i e | v -> i, v -> e
-  where
-    {-# MINIMAL (kfoldr | ofoldr), (kfoldl | ofoldr) #-}
     
     {- Folds with index. -}
     
-    -- | 'kfoldr' is right fold with index.
-    default kfoldr :: (Bordered v i) => (i -> e -> r -> r) -> r -> v -> r
-    kfoldr :: (i -> e -> r -> r) -> r -> v -> r
-    kfoldr f base es = let bnds = bounds es in ofoldr (f . index bnds) base es
+    -- | 'kfoldr' is right fold with key.
+    kfoldr :: (key -> e -> b -> b) -> b -> map -> b
     
-    -- | 'kfoldl' is left  fold with index.
-    default kfoldl :: (Bordered v i) => (i -> r -> e -> r) -> r -> v -> r
-    kfoldl :: (i -> r -> e -> r) -> r -> v -> r
-    kfoldl f base es = let bnds = bounds es in ofoldl (f . index bnds) base es
+    -- | 'kfoldl' is left  fold with key.
+    kfoldl :: (key -> b -> e -> b) -> b -> map -> b
     
     -- | 'kfoldr'' is strict version of 'kfoldr'.
-    kfoldr' :: (i -> e -> r -> r) -> r -> v -> r
-    kfoldr' f = kfoldr (\ !i e !r -> f i e r)
+    kfoldr' :: (key -> e -> b -> b) -> b -> map -> b
+    kfoldr' f = kfoldr (\ !i e !b -> f i e b)
     
     -- | 'kfoldl'' is strict version of 'kfoldl'.
-    kfoldl' :: (i -> r -> e -> r) -> r -> v -> r
-    kfoldl' f = kfoldl (\ !i !r e -> f i r e)
-    
-    {- Folds with offset. -}
-    
-    -- | 'ofoldr' is right fold with offset.
-    ofoldr :: (Int -> e -> r -> r) -> r -> v -> r
-    default ofoldr :: (Bordered v i) => (Int -> e -> r -> r) -> r -> v -> r
-    ofoldr f base es = kfoldr (f . offsetOf es) base es
-    
-    -- | 'ofoldl' is left fold with offset.
-    default ofoldl :: (Bordered v i) => (Int -> r -> e -> r) -> r -> v -> r
-    ofoldl :: (Int -> r -> e -> r) -> r -> v -> r
-    ofoldl f base es = kfoldl (f . offsetOf es) base es
-    
-    -- | 'ofoldr'' is strict version of 'ofoldr'.
-    default ofoldr' :: (Bordered v i) => (Int -> e -> r -> r) -> r -> v -> r
-    ofoldr' :: (Int -> e -> r -> r) -> r -> v -> r
-    ofoldr' f base es = kfoldr' (f . offsetOf es) base es
-    
-    -- | 'ofoldl'' is strict version of 'ofoldl'.
-    default ofoldl' :: (Bordered v i) => (Int -> r -> e -> r) -> r -> v -> r
-    ofoldl' :: (Int -> r -> e -> r) -> r -> v -> r
-    ofoldl' f base es = kfoldl' (f . offsetOf es) base es
-    
-    {- 'Foldable' crutches. -}
-    
-    -- | 'k_foldr' is just 'foldr' in 'KFold' context.
-    k_foldr :: (e -> r -> r) -> r -> v -> r
-    k_foldr =  kfoldr  . const
-    
-    -- | 'k_foldl' is just 'foldl' in 'KFold' context.
-    k_foldl :: (r -> e -> r) -> r -> v -> r
-    k_foldl =  kfoldl  . const
-    
-    -- | 'k_foldr'' is just 'foldr'' in 'KFold' context.
-    k_foldr' :: (e -> r -> r) -> r -> v -> r
-    k_foldr' =  kfoldr' . const
-    
-    -- | 'k_foldl'' is just 'foldl'' in 'KFold' context.
-    k_foldl' :: (r -> e -> r) -> r -> v -> r
-    k_foldl' =  kfoldl' . const
+    kfoldl' :: (key -> b -> e -> b) -> b -> map -> b
+    kfoldl' f = kfoldl (\ !i !b e -> f i b e)
 
 --------------------------------------------------------------------------------
 
 -- | Kind @(* -> *)@ 'Map' structure.
-type Map1 m k e = Map (m e) k e
+type Map1 map key e = Map (map e) key e
 
 -- | Kind @(* -> * -> *)@ 'Map' structure.
-type Map2 m k e = Map (m k e) k e
-
--- | Kind @(* -> *)@ 'KFold' structure.
-type KFold1 v i e = KFold (v e) i e
-
--- | Kind @(* -> * -> *)@ 'KFold' structure.
-type KFold2 v i e = KFold (v i e) i e
+type Map2 map key e = Map (map key e) key e
 
 --------------------------------------------------------------------------------
 
@@ -328,9 +264,7 @@ instance Map [e] Int e
     
     (.$) = findIndex
     (*$) = findIndices
-
-instance KFold [e] Int e
-  where
+    
     kfoldr f base =
       let go i es = case es of {(x : xs) -> f i x $ go (i + 1) xs; _ -> base}
       in  go 0
@@ -355,6 +289,7 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Map."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Map."
+
 
 
 

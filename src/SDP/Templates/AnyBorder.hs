@@ -235,6 +235,12 @@ instance (Index i, Linear1 rep e, Bordered1 rep Int e) => Linear (AnyBorder rep 
     
     nubBy f = withBounds . nubBy f . unpack
     nub     = withBounds .   nub   . unpack
+    
+    ofoldr f base = ofoldr f base . unpack
+    ofoldl f base = ofoldl f base . unpack
+    
+    o_foldr f base = o_foldr f base . unpack
+    o_foldl f base = o_foldl f base . unpack
 
 instance (Index i, Split1 rep e, Bordered1 rep Int e) => Split (AnyBorder rep i e) e
   where
@@ -385,7 +391,7 @@ instance (Index i, Sort (rep e) e) => Sort (AnyBorder rep i e) e
 
 --------------------------------------------------------------------------------
 
-{- Indexed, KFold and Shaped instances. -}
+{- Indexed and Shaped instances. -}
 
 instance (Index i, Indexed1 rep Int e) => Map (AnyBorder rep i e) i e
   where
@@ -403,6 +409,9 @@ instance (Index i, Indexed1 rep Int e) => Map (AnyBorder rep i e) i e
     
     p .$ (AnyBorder l u rep) = index (l, u) <$> p .$ rep
     p *$ (AnyBorder l u rep) = index (l, u) <$> p *$ rep
+    
+    kfoldr f base (AnyBorder l u es) = kfoldr (f . index (l, u)) base es
+    kfoldl f base (AnyBorder l u es) = kfoldl (f . index (l, u)) base es
 
 instance (Index i, Indexed1 rep Int e) => Indexed (AnyBorder rep i e) i e
   where
@@ -418,14 +427,6 @@ instance (Index i, Indexed1 rep Int e) => Indexed (AnyBorder rep i e) i e
     
     fromIndexed = withBounds . fromIndexed
 
-instance (Index i, Bordered1 rep Int e, KFold1 rep Int e) => KFold (AnyBorder rep i e) i e
-  where
-    ofoldr f base = kfoldr f base . unpack
-    ofoldl f base = kfoldl f base . unpack
-    
-    k_foldr f base = k_foldr f base . unpack
-    k_foldl f base = k_foldl f base . unpack
-
 instance (Bordered1 rep Int e, Split1 rep e) => Shaped (AnyBorder rep) e
   where
     reshape es bs = size bs >. es ? expEx "reshape" $ uncurry AnyBorder bs (unpack es)
@@ -437,13 +438,13 @@ instance (Bordered1 rep Int e, Split1 rep e) => Shaped (AnyBorder rep) e
         o = offset num ij * s
         s = size sub
     
-    slicesOf es = uncurry AnyBorder bnds <$> size bnds `chunks` unpack es
-      where
-        bnds = both takeDim (bounds es)
+    slicesOf es =
+      let bnds = both takeDim (bounds es)
+      in  uncurry AnyBorder bnds <$> size bnds `chunks` unpack es
 
 --------------------------------------------------------------------------------
 
-{- MapM, IndexedM, KFoldM and SortM instances. -}
+{- MapM, IndexedM and SortM instances. -}
 
 instance (Index i, MapM1 m rep Int e, LinearM1 m rep e, BorderedM1 m rep Int e) => MapM m (AnyBorder rep i e) i e
   where
@@ -551,5 +552,4 @@ withBounds rep = uncurry AnyBorder (defaultBounds $ sizeOf rep) rep
 {-# INLINE withBounds' #-}
 withBounds' :: (Index i, BorderedM1 m rep Int e) => rep e -> m (AnyBorder rep i e)
 withBounds' rep = (\ n -> uncurry AnyBorder (defaultBounds n) rep) <$> getSizeOf rep
-
 
