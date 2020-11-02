@@ -15,8 +15,8 @@ module SDP.MapM
   -- * Mutable maps
   MapM (..), MapM1, MapM2,
   
-  -- * IFoldM
-  IFoldM (..), IFoldM1, IFoldM2
+  -- * KFoldM
+  KFoldM (..), KFoldM1, KFoldM2
 )
 where
 
@@ -114,38 +114,38 @@ class (Monad m) => MapM m map key e | map -> m, map -> key, map -> e
 
 --------------------------------------------------------------------------------
 
--- | IFoldM is monadic version of IFold.
-class (Monad m) => IFoldM m v i e | v -> m, v -> i, v -> e
+-- | 'KFoldM' is monadic version of 'KFold'.
+class (Monad m) => KFoldM m v i e | v -> m, v -> i, v -> e
   where
-    {-# MINIMAL (ifoldrM | ofoldrM), (ifoldlM | ofoldlM) #-}
+    {-# MINIMAL (kfoldrM | ofoldrM), (kfoldlM | ofoldlM) #-}
     
-    -- | 'ifoldrM' is right monadic fold with index
-    default ifoldrM :: (BorderedM m v i) => (i -> e -> r -> m r) -> r -> v -> m r
-    ifoldrM :: (i -> e -> r -> m r) -> r -> v -> m r
-    ifoldrM f base es = do bnds <- getBounds es; ofoldrM (f . index bnds) base es
+    -- | 'kfoldrM' is right monadic fold with key
+    default kfoldrM :: (BorderedM m v i) => (i -> e -> r -> m r) -> r -> v -> m r
+    kfoldrM :: (i -> e -> r -> m r) -> r -> v -> m r
+    kfoldrM f base es = do bnds <- getBounds es; ofoldrM (f . index bnds) base es
     
-    -- | 'ifoldlM' is left  monadic fold with index
-    default ifoldlM :: (BorderedM m v i) => (i -> r -> e -> m r) -> r -> v -> m r
-    ifoldlM :: (i -> r -> e -> m r) -> r -> v -> m r
-    ifoldlM f base es = do bnds <- getBounds es; ofoldlM (f . index bnds) base es
+    -- | 'kfoldlM' is left monadic fold with key
+    default kfoldlM :: (BorderedM m v i) => (i -> r -> e -> m r) -> r -> v -> m r
+    kfoldlM :: (i -> r -> e -> m r) -> r -> v -> m r
+    kfoldlM f base es = do bnds <- getBounds es; ofoldlM (f . index bnds) base es
     
     -- | 'ofoldrM' is right monadic fold with offset
     default ofoldrM  :: (BorderedM m v i) => (Int -> e -> r -> m r) -> r -> v -> m r
     ofoldrM  :: (Int -> e -> r -> m r) -> r -> v -> m r
-    ofoldrM f base es = ifoldrM (\ i e r -> do o <- getOffsetOf es i; f o e r) base es
+    ofoldrM f base es = kfoldrM (\ i e r -> do o <- getOffsetOf es i; f o e r) base es
     
-    -- | 'ofoldlM' is left  monadic fold with offset
+    -- | 'ofoldlM' is left monadic fold with offset
     default ofoldlM  :: (BorderedM m v i) => (Int -> r -> e -> m r) -> r -> v -> m r
     ofoldlM  :: (Int -> r -> e -> m r) -> r -> v -> m r
-    ofoldlM f base es = ifoldlM (\ i r e -> do o <- getOffsetOf es i; f o r e) base es
+    ofoldlM f base es = kfoldlM (\ i r e -> do o <- getOffsetOf es i; f o r e) base es
     
-    -- | 'i_foldrM' is just 'foldrM' in 'IFoldM' context
-    i_foldrM :: (e -> r -> m r) -> r -> v -> m r
-    i_foldrM =  ifoldrM . const
+    -- | 'k_foldrM' is just 'foldrM' in 'KFoldM' context
+    k_foldrM :: (e -> r -> m r) -> r -> v -> m r
+    k_foldrM =  kfoldrM . const
     
-    -- | 'i_foldlM' is just 'foldlM' in 'IFoldM' context
-    i_foldlM :: (r -> e -> m r) -> r -> v -> m r
-    i_foldlM =  ifoldlM . const
+    -- | 'k_foldlM' is just 'foldlM' in 'KFoldM' context
+    k_foldlM :: (r -> e -> m r) -> r -> v -> m r
+    k_foldlM =  kfoldlM . const
 
 --------------------------------------------------------------------------------
 
@@ -155,11 +155,11 @@ type MapM1 m map key e = MapM m (map e) key e
 -- | Rank @(* -> * -> *)@ 'MapM'.
 type MapM2 m map key e = MapM m (map key e) key e
 
--- | Kind @(* -> *)@ 'IFoldM'.
-type IFoldM1 m v i e = IFoldM m (v e) i e
+-- | Kind @(* -> *)@ 'KFoldM'.
+type KFoldM1 m v i e = KFoldM m (v e) i e
 
--- | Kind @(* -> * -> *)@ 'IFoldM'.
-type IFoldM2 m v i e = IFoldM m (v i e) i e
+-- | Kind @(* -> * -> *)@ 'KFoldM'.
+type KFoldM2 m v i e = KFoldM m (v i e) i e
 
 --------------------------------------------------------------------------------
 

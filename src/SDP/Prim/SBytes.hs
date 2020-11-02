@@ -233,8 +233,8 @@ instance (Unboxed e) => Linear (SBytes# e) e
     
     replicate n e = runST $ filled n e >>= done
     
-    listL = i_foldr (:) []
-    listR = flip (:) `i_foldl` []
+    listL = k_foldr (:) []
+    listR = flip (:) `k_foldl` []
     
     concat ess = runST $ do
         marr@(STBytes# _ _ marr#) <- filled_ s
@@ -252,9 +252,9 @@ instance (Unboxed e) => Linear (SBytes# e) e
     
     reverse es = runST $ fromIndexed' es >>= reversed >>= done
     
-    select  f = i_foldr (\ o es -> case f o of {Just e -> e : es; _ -> es}) []
+    select  f = k_foldr (\ o es -> case f o of {Just e -> e : es; _ -> es}) []
     
-    extract f = second fromList . i_foldr g ([], [])
+    extract f = second fromList . k_foldr g ([], [])
       where
         g = \ o -> case f o of {Just e -> first (e :); _ -> second (o :)}
     
@@ -495,7 +495,7 @@ instance (Unboxed e) => SetWith (SBytes# e) e
             j = l + (u - l) `div` 2
             e = es !^ j
     
-    isSubsetWith f xs ys = i_foldr (\ x b -> b && memberWith f x ys) True xs
+    isSubsetWith f xs ys = k_foldr (\ x b -> b && memberWith f x ys) True xs
 
 instance (Unboxed e) => Scan (SBytes# e) e
 
@@ -505,7 +505,7 @@ instance (Unboxed e) => Sort (SBytes# e) e
 
 --------------------------------------------------------------------------------
 
-{- Indexed and IFold instances. -}
+{- Indexed and KFold instances. -}
 
 instance (Unboxed e) => Map (SBytes# e) Int e
   where
@@ -518,7 +518,7 @@ instance (Unboxed e) => Map (SBytes# e) Int e
     Z  // ascs = toMap ascs
     es // ascs = runST $ thaw es >>= (`overwrite` ascs) >>= done
     
-    (*$) p = ifoldr (\ i e is -> p e ? (i : is) $ is) []
+    (*$) p = kfoldr (\ i e is -> p e ? (i : is) $ is) []
 
 instance (Unboxed e) => Indexed (SBytes# e) Int e
   where
@@ -531,10 +531,10 @@ instance (Unboxed e) => Indexed (SBytes# e) Int e
         forM_ [0 .. n - 1] $ \ i -> writeM copy i (es !^ i)
         done copy
 
-instance (Unboxed e) => IFold (SBytes# e) Int e
+instance (Unboxed e) => KFold (SBytes# e) Int e
   where
-    ifoldr = ofoldr
-    ifoldl = ofoldl
+    kfoldr = ofoldr
+    kfoldl = ofoldl
     
     ofoldr f base = \ arr@(SBytes# c _ _) ->
       let go i = c == i ? base $ f i (arr !^ i) (go $ i + 1)
@@ -544,11 +544,11 @@ instance (Unboxed e) => IFold (SBytes# e) Int e
       let go i = -1 == i ? base $ f i (go $ i - 1) (arr !^ i)
       in  go (c - 1)
     
-    i_foldr f base = \ arr@(SBytes# c _ _) ->
+    k_foldr f base = \ arr@(SBytes# c _ _) ->
       let go i = c == i ? base $ f (arr !^ i) (go $ i + 1)
       in  go 0
     
-    i_foldl f base = \ arr@(SBytes# c _ _) ->
+    k_foldl f base = \ arr@(SBytes# c _ _) ->
       let go i = -1 == i ? base $ f (go $ i - 1) (arr !^ i)
       in  go (c - 1)
 
@@ -757,7 +757,7 @@ instance (Unboxed e) => SplitM (ST s) (STBytes# s e) e
 
 --------------------------------------------------------------------------------
 
-{- MapM, IndexedM, IFoldM and SortM instances. -}
+{- MapM, IndexedM, KFoldM and SortM instances. -}
 
 instance (Unboxed e) => MapM (ST s) (STBytes# s e) Int e
   where
@@ -793,10 +793,10 @@ instance (Unboxed e) => IndexedM (ST s) (STBytes# s e) Int e
       forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM copy i
       return copy
 
-instance (Unboxed e) => IFoldM (ST s) (STBytes# s e) Int e
+instance (Unboxed e) => KFoldM (ST s) (STBytes# s e) Int e
   where
-    ifoldrM = ofoldrM
-    ifoldlM = ofoldlM
+    kfoldrM = ofoldrM
+    kfoldlM = ofoldlM
     
     ofoldrM  f base = \ arr@(STBytes# n _ _) ->
       let go i =  n == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f i
@@ -806,11 +806,11 @@ instance (Unboxed e) => IFoldM (ST s) (STBytes# s e) Int e
       let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ (f i)
       in  go (n - 1)
     
-    i_foldrM f base = \ arr@(STBytes# n _ _) ->
+    k_foldrM f base = \ arr@(STBytes# n _ _) ->
       let go i = n == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f
       in  go 0
     
-    i_foldlM f base = \ arr@(STBytes# n _ _) ->
+    k_foldlM f base = \ arr@(STBytes# n _ _) ->
       let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f
       in  go (n - 1)
 
@@ -916,7 +916,7 @@ instance (Unboxed e) => SplitM IO (IOBytes# e) e
 
 --------------------------------------------------------------------------------
 
-{- MapM, IndexedM, IFoldM and SortM instances. -}
+{- MapM, IndexedM, KFoldM and SortM instances. -}
 
 instance (Unboxed e) => MapM IO (IOBytes# e) Int e
   where
@@ -942,21 +942,21 @@ instance (Unboxed e) => IndexedM IO (IOBytes# e) Int e
       forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM copy i
       return copy
 
-instance (Unboxed e) => IFoldM IO (IOBytes# e) Int e
+instance (Unboxed e) => KFoldM IO (IOBytes# e) Int e
   where
-    ifoldrM f base arr =
+    kfoldrM f base arr =
       let go i = sizeOf arr == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f i
       in  go 0
     
-    ifoldlM f base arr =
+    kfoldlM f base arr =
       let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f i
       in  go (sizeOf arr - 1)
     
-    i_foldrM f base arr =
+    k_foldrM f base arr =
       let go i = sizeOf arr == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f
       in  go 0
     
-    i_foldlM f base arr =
+    k_foldlM f base arr =
       let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f
       in  go (sizeOf arr - 1)
 

@@ -385,7 +385,7 @@ instance (Index i, Sort (rep e) e) => Sort (AnyBorder rep i e) e
 
 --------------------------------------------------------------------------------
 
-{- Indexed, IFold and Shaped instances. -}
+{- Indexed, KFold and Shaped instances. -}
 
 instance (Index i, Indexed1 rep Int e) => Map (AnyBorder rep i e) i e
   where
@@ -418,13 +418,13 @@ instance (Index i, Indexed1 rep Int e) => Indexed (AnyBorder rep i e) i e
     
     fromIndexed = withBounds . fromIndexed
 
-instance (Index i, Bordered1 rep Int e, IFold1 rep Int e) => IFold (AnyBorder rep i e) i e
+instance (Index i, Bordered1 rep Int e, KFold1 rep Int e) => KFold (AnyBorder rep i e) i e
   where
-    ofoldr f base = ifoldr f base . unpack
-    ofoldl f base = ifoldl f base . unpack
+    ofoldr f base = kfoldr f base . unpack
+    ofoldl f base = kfoldl f base . unpack
     
-    i_foldr f base = i_foldr f base . unpack
-    i_foldl f base = i_foldl f base . unpack
+    k_foldr f base = k_foldr f base . unpack
+    k_foldl f base = k_foldl f base . unpack
 
 instance (Bordered1 rep Int e, Split1 rep e) => Shaped (AnyBorder rep) e
   where
@@ -443,7 +443,7 @@ instance (Bordered1 rep Int e, Split1 rep e) => Shaped (AnyBorder rep) e
 
 --------------------------------------------------------------------------------
 
-{- MapM, IndexedM, IFoldM and SortM instances. -}
+{- MapM, IndexedM, KFoldM and SortM instances. -}
 
 instance (Index i, MapM1 m rep Int e, LinearM1 m rep e, BorderedM1 m rep Int e) => MapM m (AnyBorder rep i e) i e
   where
@@ -483,13 +483,13 @@ instance (Index i, IndexedM1 m rep Int e) => IndexedM m (AnyBorder rep i e) i e
     fromIndexed' = withBounds' <=< fromIndexed'
     fromIndexedM = withBounds' <=< fromIndexedM
 
-instance (Index i, BorderedM1 m rep Int e, IFoldM1 m rep Int e) => IFoldM m (AnyBorder rep i e) i e
+instance (Index i, BorderedM1 m rep Int e, KFoldM1 m rep Int e) => KFoldM m (AnyBorder rep i e) i e
   where
-    ofoldrM f e = ifoldrM f e . unpack
-    ofoldlM f e = ifoldlM f e . unpack
+    ofoldrM f e = kfoldrM f e . unpack
+    ofoldlM f e = kfoldlM f e . unpack
     
-    i_foldrM f e = i_foldrM f e . unpack
-    i_foldlM f e = i_foldlM f e . unpack
+    k_foldrM f e = k_foldrM f e . unpack
+    k_foldlM f e = k_foldlM f e . unpack
 
 instance (Index i, SortM1 m rep e) => SortM m (AnyBorder rep i e) e
   where

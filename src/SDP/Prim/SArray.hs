@@ -573,7 +573,7 @@ instance Sort (SArray# e) e
 
 --------------------------------------------------------------------------------
 
-{- Indexed and IFold instances. -}
+{- Indexed and KFold instances. -}
 
 instance Map (SArray# e) Int e
   where
@@ -584,7 +584,7 @@ instance Map (SArray# e) Int e
     Z  // ascs = toMap ascs
     es // ascs = runST $ fromFoldableM es >>= (`overwrite` ascs) >>= done
     
-    (*$) p = ifoldr (\ i e is -> p e ? (i : is) $ is) []
+    (*$) p = kfoldr (\ i e is -> p e ? (i : is) $ is) []
 
 instance Indexed (SArray# e) Int e
   where
@@ -596,10 +596,10 @@ instance Indexed (SArray# e) Int e
       forM_ [0 .. n - 1] $ \ i -> writeM copy i (es !^ i)
       done copy
 
-instance IFold (SArray# e) Int e
+instance KFold (SArray# e) Int e
   where
-    ifoldr = ofoldr
-    ifoldl = ifoldl
+    kfoldr = ofoldr
+    kfoldl = kfoldl
     
     ofoldr f base = \ arr@(SArray# c _ _) ->
       let go i = c == i ? base $ f i (arr !^ i) (go $ i + 1)
@@ -609,8 +609,8 @@ instance IFold (SArray# e) Int e
       let go i = -1 == i ? base $ f i (go $ i - 1) (arr !^ i)
       in  go (c - 1)
     
-    i_foldr = foldr
-    i_foldl = foldl
+    k_foldr = foldr
+    k_foldl = foldl
 
 --------------------------------------------------------------------------------
 
@@ -812,7 +812,7 @@ instance SplitM (ST s) (STArray# s e) e
 
 --------------------------------------------------------------------------------
 
-{- MapM, IndexedM, IFoldM and SortM instances. -}
+{- MapM, IndexedM, KFoldM and SortM instances. -}
 
 instance MapM (ST s) (STArray# s e) Int e
   where
@@ -844,10 +844,10 @@ instance IndexedM (ST s) (STArray# s e) Int e
       forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM copy i
       return copy
 
-instance IFoldM (ST s) (STArray# s e) Int e
+instance KFoldM (ST s) (STArray# s e) Int e
   where
-    ifoldrM = ofoldrM
-    ifoldlM = ofoldlM
+    kfoldrM = ofoldrM
+    kfoldlM = ofoldlM
     
     ofoldrM  f base = \ arr@(STArray# n _ _) ->
       let go i =  n == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f i
@@ -857,11 +857,11 @@ instance IFoldM (ST s) (STArray# s e) Int e
       let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f i
       in  go (n - 1)
     
-    i_foldrM f base = \ arr@(STArray# n _ _) ->
+    k_foldrM f base = \ arr@(STArray# n _ _) ->
       let go i = n == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f
       in  go 0
     
-    i_foldlM f base = \ arr@(STArray# n _ _) ->
+    k_foldlM f base = \ arr@(STArray# n _ _) ->
       let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f
       in  go (n - 1)
 
@@ -967,7 +967,7 @@ instance SplitM IO (IOArray# e) e
 
 --------------------------------------------------------------------------------
 
-{- MapM, IndexedM, IFoldM and SortM instances. -}
+{- MapM, IndexedM, KFoldM and SortM instances. -}
 
 instance MapM IO (IOArray# e) Int e
   where
@@ -992,21 +992,21 @@ instance IndexedM IO (IOArray# e) Int e
       forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM copy i
       return copy
 
-instance IFoldM IO (IOArray# e) Int e
+instance KFoldM IO (IOArray# e) Int e
   where
-    ifoldrM f base arr =
+    kfoldrM f base arr =
       let go i = sizeOf arr == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f i
       in  go 0
     
-    ifoldlM f base arr =
+    kfoldlM f base arr =
       let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f i
       in  go (sizeOf arr - 1)
     
-    i_foldrM f base arr =
+    k_foldrM f base arr =
       let go i = sizeOf arr == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f
       in  go 0
     
-    i_foldlM f base arr =
+    k_foldlM f base arr =
       let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f
       in  go (sizeOf arr - 1)
 
