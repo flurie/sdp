@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, BangPatterns #-}
 {-# LANGUAGE ConstraintKinds, DefaultSignatures #-}
 
 {- |
@@ -33,6 +33,7 @@ import Prelude ()
 import SDP.SafePrelude
 import SDP.Internal
 import SDP.Linear
+import SDP.Map
 
 default ()
 
@@ -63,15 +64,15 @@ class (Monad m, Index i) => BorderedM m b i | b -> m, b -> i
     
     -- | 'nowIndexIn' is 'indexIn' version for mutable structures.
     nowIndexIn :: b -> i -> m Bool
-    nowIndexIn es i = (`inRange` i) <$> getBounds es
+    nowIndexIn es i = flip inRange i <$> getBounds es
     
     -- | 'getOffsetOf' is 'offsetOf' version for mutable structures.
     getOffsetOf :: b -> i -> m Int
-    getOffsetOf es i = (`offset` i) <$> getBounds es
+    getOffsetOf es i = flip offset i <$> getBounds es
     
     -- | 'getIndexOf' is 'indexOf' version for mutable structures.
     getIndexOf :: b -> Int -> m i
-    getIndexOf es i = (`index` i) <$> getBounds es
+    getIndexOf es i = flip index i <$> getBounds es
     
     -- | 'getIndices' returns 'indices' of mutable data structure.
     getIndices :: b -> m [i]
@@ -186,13 +187,45 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
       from @soff@ to @target@ starting with @toff@.
     -}
     copyTo :: l -> Int -> l -> Int -> Int -> m ()
+    
+    -- | 'ofoldrM' is right monadic fold with offset.
+    ofoldrM :: (Int -> e -> r -> m r) -> r -> l -> m r
+    ofoldrM f base = foldr ((=<<) . uncurry f) (pure base) . assocs <=< getLeft
+    
+    -- | 'ofoldlM' is left monadic fold with offset.
+    ofoldlM :: (Int -> r -> e -> m r) -> r -> l -> m r
+    ofoldlM f base es = foldl (flip $ uncurry ((=<<) ... flip . f)) (pure base) . assocs =<< getLeft es
+    
+    -- | 'ofoldrM'' is strict version of 'ofoldrM'.
+    ofoldrM' :: (Int -> e -> r -> m r) -> r -> l -> m r
+    ofoldrM' f = ofoldrM (\ !i e !r -> f i e r)
+    
+    -- | 'ofoldrM'' is strict version of 'ofoldrM'.
+    ofoldlM' :: (Int -> r -> e -> m r) -> r -> l -> m r
+    ofoldlM' f = ofoldlM (\ !i !r e -> f i r e)
+    
+    -- | 'o_foldrM' is just 'ofoldrM' in 'Linear' context.
+    o_foldrM :: (e -> r -> m r) -> r -> l -> m r
+    o_foldrM =  ofoldrM . const
+    
+    -- | 'o_foldlM' is just 'ofoldlM' in 'Linear' context.
+    o_foldlM :: (r -> e -> m r) -> r -> l -> m r
+    o_foldlM =  ofoldlM . const
+    
+    -- | 'o_foldrM'' is strict version of 'o_foldrM'.
+    o_foldrM' :: (e -> r -> m r) -> r -> l -> m r
+    o_foldrM' f = o_foldrM (\ e !r -> f e r)
+    
+    -- | 'o_foldlM'' is strict version of 'o_foldlM'.
+    o_foldlM' :: (r -> e -> m r) -> r -> l -> m r
+    o_foldlM' f = o_foldlM (\ !r e -> f r e)
 
 --------------------------------------------------------------------------------
 
 -- | 'SplitM' is 'SplitM' version for mutable data structures.
 class (LinearM m s e) => SplitM m s e
   where
-    {-# MINIMAL (takeM|sansM), (dropM|keepM), prefixM, suffixM, mprefix, msuffix #-}
+    {-# MINIMAL (takeM|sansM), (dropM|keepM) #-}
     
     {- |
       @takeM n es@ returns a reference to the @es@, keeping first @n@ elements.
@@ -247,14 +280,14 @@ class (LinearM m s e) => SplitM m s e
       @n <- ns@. Changes in the source and results must be synchronous.
     -}
     splitsM :: (Foldable f) => f Int -> s -> m [s]
-    splitsM ns es = reverse <$> foldl (\ ds' n -> do ds <- ds'; (d, d') <- splitM n (head ds); return (d' : d : ds)) (return [es]) ns
+    splitsM ns es = reverse <$> foldl (\ ds' n -> do ds <- ds'; (d, d') <- splitM n (head ds); pure (d' : d : ds)) (pure [es]) ns
     
     {- |
       @dividesM ns es@ returns the sequence of @es@ suffix references of length
       @n <- ns@. Changes in the source and results must be synchronous.
     -}
     dividesM :: (Foldable f) => f Int -> s -> m [s]
-    dividesM ns es = foldr (\ n ds' -> do ds <- ds'; (d, d') <- divideM n (head ds); return (d' : d : ds)) (return [es]) ns
+    dividesM ns es = foldr (\ n ds' -> do ds <- ds'; (d, d') <- divideM n (head ds); pure (d' : d : ds)) (pure [es]) ns
     
     {- |
       @partsM n es@ returns the sequence of @es@ prefix references, splitted by
@@ -268,7 +301,7 @@ class (LinearM m s e) => SplitM m s e
       @n@. Changes in the source and results must be synchronous.
     -}
     chunksM :: Int -> s -> m [s]
-    chunksM n es = do (t, d) <- splitM n es; nowNull d ?^ return [t] $ (t :) <$> chunksM n d
+    chunksM n es = do (t, d) <- splitM n es; nowNull d ?^ pure [t] $ (t :) <$> chunksM n d
     
     {- |
       @eachM n es@ returns new sequence of @es@ elements with step @n@. eachM
@@ -279,15 +312,19 @@ class (LinearM m s e) => SplitM m s e
     
     -- | @prefixM p es@ returns the longest @es@ prefix size, satisfying @p@.
     prefixM :: (e -> Bool) -> s -> m Int
+    prefixM p = fmap (prefix p) . getLeft
     
     -- | @suffixM p es@ returns the longest @es@ suffix size, satisfying @p@.
     suffixM :: (e -> Bool) -> s -> m Int
+    suffixM p = fmap (suffix p) . getLeft
     
     -- | @mprefix p es@ returns the longest @es@ prefix size, satisfying @p@.
     mprefix :: (e -> m Bool) -> s -> m Int
+    mprefix p = foldr (\ e c -> do b <- p e; b ? succ <$> c $ pure 0) (pure 0) <=< getLeft
     
     -- | @msuffix p es@ returns the longest @es@ suffix size, satisfying @p@.
     msuffix :: (e -> m Bool) -> s -> m Int
+    msuffix p = foldl (\ c e -> do b <- p e; b ? succ <$> c $ pure 0) (pure 0) <=< getLeft
 
 --------------------------------------------------------------------------------
 
@@ -313,8 +350,6 @@ sortedM =  fmap (\ es -> null es || and (zipWith (<=) es (tail es))) . getLeft
 {-# INLINE swapM #-}
 swapM :: (LinearM m v e) => v -> Int -> Int -> m ()
 swapM es i j = do ei <- es !#> i; writeM es i =<< es !#> j; writeM es j ei
-
-
 
 
 

@@ -58,6 +58,7 @@ import GHC.Exts
     
     sameMutableArray#, (+#), (-#), (==#)
   )
+
 import GHC.ST ( ST (..), STRep )
 
 import Data.Typeable
@@ -759,6 +760,22 @@ instance LinearM (ST s) (STArray# s e) e
         return marr
       where
         n = foldr' ((+) . sizeOf) 0 ess
+    
+    ofoldrM f base = \ arr@(STArray# n _ _) ->
+      let go i =  n == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f i
+      in  go 0
+    
+    ofoldlM f base = \ arr@(STArray# n _ _) ->
+      let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f i
+      in  go (n - 1)
+    
+    o_foldrM f base = \ arr@(STArray# n _ _) ->
+      let go i = n == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f
+      in  go 0
+    
+    o_foldlM f base = \ arr@(STArray# n _ _) ->
+      let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f
+      in  go (n - 1)
 
 instance SplitM (ST s) (STArray# s e) e
   where
@@ -793,24 +810,24 @@ instance SplitM (ST s) (STArray# s e) e
       |  True  = return (STArray# n (c - n + o) marr#, STArray# (c - n) o marr#)
     
     prefixM p es@(STArray# c _ _) =
-      let go i = i >= c ? return i $ do e <- es !#> i; p e ? go (i + 1) $ return i
+      let go i = i >= c ? return c $ do e <- es !#> i; p e ? go (succ i) $ return i
       in  go 0
     
     suffixM p es@(STArray# c _ _) =
-      let go i = i == 0 ? return c $ do e <- es !#> i; p e ? go (i - 1) $ return (c - i - 1)
+      let go i = i < 0 ? return c $ do e <- es !#> i; p e ? go (pred i) $ return (c - i - 1)
       in  go (max 0 (c - 1))
     
     mprefix p es@(STArray# c _ _) =
-      let go i = i >= c ? return i $ do e <- es !#> i; p e ?^ go (i + 1) $ return i
+      let go i = i >= c ? return c $ do e <- es !#> i; p e ?^ go (succ 1) $ return i
       in  go 0
     
     msuffix p es@(STArray# c _ _) =
-      let go i = i == 0 ? return c $ do e <- es !#> i; p e ?^ go (i - 1) $ return (c - i - 1)
+      let go i = i < 0 ? return c $ do e <- es !#> i; p e ?^ go (pred i) $ return (c - i - 1)
       in  go (max 0 (c - 1))
 
 --------------------------------------------------------------------------------
 
-{- MapM, IndexedM, KFoldM and SortM instances. -}
+{- MapM, IndexedM and SortM instances. -}
 
 instance MapM (ST s) (STArray# s e) Int e
   where
@@ -821,6 +838,9 @@ instance MapM (ST s) (STArray# s e) Int e
     overwrite es@(STArray# c _ _) ascs =
       let ies = filter (inRange (0, c - 1) . fst) ascs
       in  mapM_ (uncurry $ writeM es) ies >> return es
+    
+    kfoldrM = ofoldrM
+    kfoldlM = ofoldlM
 
 instance IndexedM (ST s) (STArray# s e) Int e
   where
@@ -841,27 +861,6 @@ instance IndexedM (ST s) (STArray# s e) Int e
       copy <- filled n (unreachEx "fromIndexedM")
       forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM copy i
       return copy
-
-instance KFoldM (ST s) (STArray# s e) Int e
-  where
-    kfoldrM = ofoldrM
-    kfoldlM = ofoldlM
-    
-    ofoldrM  f base = \ arr@(STArray# n _ _) ->
-      let go i =  n == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f i
-      in  go 0
-    
-    ofoldlM  f base = \ arr@(STArray# n _ _) ->
-      let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f i
-      in  go (n - 1)
-    
-    k_foldrM f base = \ arr@(STArray# n _ _) ->
-      let go i = n == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f
-      in  go 0
-    
-    k_foldlM f base = \ arr@(STArray# n _ _) ->
-      let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f
-      in  go (n - 1)
 
 instance SortM (ST s) (STArray# s e) e where sortMBy = timSortBy
 
@@ -940,6 +939,22 @@ instance LinearM IO (IOArray# e) e
     filled = pack' ... filled
     
     copyTo src so trg to = stToIO . copyTo (unpack src) so (unpack trg) to
+    
+    ofoldrM f base = \ arr@(IOArray# (STArray# n _ _)) ->
+      let go i =  n == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f i
+      in  go 0
+    
+    ofoldlM f base = \ arr@(IOArray# (STArray# n _ _)) ->
+      let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f i
+      in  go (n - 1)
+    
+    o_foldrM f base arr =
+      let go i = sizeOf arr == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f
+      in  go 0
+    
+    o_foldlM f base arr =
+      let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f
+      in  go (sizeOf arr - 1)
 
 instance SplitM IO (IOArray# e) e
   where
@@ -951,21 +966,17 @@ instance SplitM IO (IOArray# e) e
     prefixM f = stToIO . prefixM f . unpack
     suffixM f = stToIO . suffixM f . unpack
     
-    mprefix p es = go 0
-      where
-        go i = i >= c ? return i $ do e <- es !#> i; p e ?^ go (i + 1) $ return i
-        
-        c = sizeOf es
+    mprefix p es@(IOArray# (STArray# c _ _)) =
+      let go i = i >= c ? return c $ do e <- es !#> i; p e ?^ go (succ 1) $ return i
+      in  go 0
     
-    msuffix p es = go (max 0 (c - 1))
-      where
-        go i = i == 0 ? return c $ do e <- es !#> i; p e ?^ go (i - 1) $ return (c - i - 1)
-        
-        c = sizeOf es
+    msuffix p es@(IOArray# (STArray# c _ _)) =
+      let go i = i < 0 ? return c $ do e <- es !#> i; p e ?^ go (pred i) $ return (c - i - 1)
+      in  go (max 0 (c - 1))
 
 --------------------------------------------------------------------------------
 
-{- MapM, IndexedM, KFoldM and SortM instances. -}
+{- MapM, IndexedM and SortM instances. -}
 
 instance MapM IO (IOArray# e) Int e
   where
@@ -974,6 +985,9 @@ instance MapM IO (IOArray# e) Int e
     (>!) = (!#>)
     
     overwrite = pack' ... overwrite . unpack
+    
+    kfoldrM = ofoldrM
+    kfoldlM = ofoldlM
 
 instance IndexedM IO (IOArray# e) Int e
   where
@@ -989,24 +1003,6 @@ instance IndexedM IO (IOArray# e) Int e
       copy <- filled n (unreachEx "fromIndexedM")
       forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM copy i
       return copy
-
-instance KFoldM IO (IOArray# e) Int e
-  where
-    kfoldrM f base arr =
-      let go i = sizeOf arr == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f i
-      in  go 0
-    
-    kfoldlM f base arr =
-      let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f i
-      in  go (sizeOf arr - 1)
-    
-    k_foldrM f base arr =
-      let go i = sizeOf arr == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f
-      in  go 0
-    
-    k_foldlM f base arr =
-      let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f
-      in  go (sizeOf arr - 1)
 
 instance SortM IO (IOArray# e) e where sortMBy = timSortBy
 
@@ -1133,7 +1129,6 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
-
 
 
 

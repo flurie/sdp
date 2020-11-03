@@ -618,12 +618,12 @@ class (Linear s e) => Split s e | s -> e
     -- | prefix gives length of init, satisfying preducate.
     prefix :: (e -> Bool) -> s -> Int
     default prefix :: (Foldable t, t e ~~ s) => (e -> Bool) -> s -> Int
-    prefix p = foldr (\ e c -> p e ? c + 1 $ 0) 0
+    prefix p = foldr (\ e c -> p e ? succ c $ 0) 0
     
     -- | suffix gives length of tail, satisfying predicate.
     suffix :: (e -> Bool) -> s -> Int
     default suffix :: (Foldable t, t e ~~ s) => (e -> Bool) -> s -> Int
-    suffix p = foldl (\ c e -> p e ? c + 1 $ 0) 0
+    suffix p = foldl (\ c e -> p e ? succ c $ 0) 0
     
     {- |
       @infixes inf es@ returns a list of @inf@ positions in @es@, without

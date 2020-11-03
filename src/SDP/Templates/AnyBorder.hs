@@ -35,6 +35,7 @@ import SDP.Sort
 import SDP.Scan
 
 import qualified GHC.Exts as E
+
 import GHC.Generics
 
 import Data.Typeable
@@ -303,6 +304,12 @@ instance (Index i, LinearM1 m rep e, BorderedM1 m rep Int e) => LinearM m (AnyBo
     reversed (AnyBorder l u es) = AnyBorder l u <$> reversed es
     
     copyTo src os trg ot = copyTo (unpack src) os (unpack trg) ot
+    
+    ofoldrM f e = ofoldrM f e . unpack
+    ofoldlM f e = ofoldlM f e . unpack
+    
+    o_foldrM f e = o_foldrM f e . unpack
+    o_foldlM f e = o_foldlM f e . unpack
 
 instance (Index i, BorderedM1 m rep Int e, SplitM1 m rep e) => SplitM m (AnyBorder rep i e) e
   where
@@ -391,7 +398,7 @@ instance (Index i, Sort (rep e) e) => Sort (AnyBorder rep i e) e
 
 --------------------------------------------------------------------------------
 
-{- Indexed and Shaped instances. -}
+{- Map, Indexed and Shaped instances. -}
 
 instance (Index i, Indexed1 rep Int e) => Map (AnyBorder rep i e) i e
   where
@@ -465,6 +472,9 @@ instance (Index i, MapM1 m rep Int e, LinearM1 m rep e, BorderedM1 m rep Int e) 
     overwrite (AnyBorder l u es) ascs =
       let ies = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
       in  isEmpty (l, u) ? newMap ascs $ AnyBorder l u <$> overwrite es ies
+    
+    kfoldrM f base (AnyBorder l u es) = ofoldrM (f . index (l, u)) base es
+    kfoldlM f base (AnyBorder l u es) = ofoldlM (f . index (l, u)) base es
 
 instance (Index i, IndexedM1 m rep Int e) => IndexedM m (AnyBorder rep i e) i e
   where
@@ -483,14 +493,6 @@ instance (Index i, IndexedM1 m rep Int e) => IndexedM m (AnyBorder rep i e) i e
     
     fromIndexed' = withBounds' <=< fromIndexed'
     fromIndexedM = withBounds' <=< fromIndexedM
-
-instance (Index i, BorderedM1 m rep Int e, KFoldM1 m rep Int e) => KFoldM m (AnyBorder rep i e) i e
-  where
-    ofoldrM f e = kfoldrM f e . unpack
-    ofoldlM f e = kfoldlM f e . unpack
-    
-    k_foldrM f e = k_foldrM f e . unpack
-    k_foldlM f e = k_foldlM f e . unpack
 
 instance (Index i, SortM1 m rep e) => SortM m (AnyBorder rep i e) e
   where
@@ -552,4 +554,7 @@ withBounds rep = uncurry AnyBorder (defaultBounds $ sizeOf rep) rep
 {-# INLINE withBounds' #-}
 withBounds' :: (Index i, BorderedM1 m rep Int e) => rep e -> m (AnyBorder rep i e)
 withBounds' rep = (\ n -> uncurry AnyBorder (defaultBounds n) rep) <$> getSizeOf rep
+
+
+
 

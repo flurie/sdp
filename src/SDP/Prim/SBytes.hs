@@ -59,6 +59,7 @@ import GHC.Exts
     
     sameMutableByteArray#, (+#), (-#), (==#)
   )
+
 import GHC.ST ( ST (..), STRep )
 
 import Data.Typeable
@@ -704,6 +705,22 @@ instance (Unboxed e) => LinearM (ST s) (STBytes# s e) e
         return marr
       where
         n = foldr' ((+) . sizeOf) 0 ess
+    
+    ofoldrM f base = \ arr@(STBytes# n _ _) ->
+      let go i =  n == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f i
+      in  go 0
+    
+    ofoldlM f base = \ arr@(STBytes# n _ _) ->
+      let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ (f i)
+      in  go (n - 1)
+    
+    o_foldrM f base = \ arr@(STBytes# n _ _) ->
+      let go i = n == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f
+      in  go 0
+    
+    o_foldlM f base = \ arr@(STBytes# n _ _) ->
+      let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f
+      in  go (n - 1)
 
 instance (Unboxed e) => SplitM (ST s) (STBytes# s e) e
   where
@@ -738,24 +755,24 @@ instance (Unboxed e) => SplitM (ST s) (STBytes# s e) e
       |  True  = return (STBytes# n (c - n + o) marr#, STBytes# (c - n) o marr#)
     
     prefixM p es@(STBytes# c _ _) =
-      let go i = i >= c ? return i $ do e <- es !#> i; p e ? go (i + 1) $ return i
+      let go i = i >= c ? return c $ do e <- es !#> i; p e ? go (succ i) $ return i
       in  go 0
     
     suffixM p es@(STBytes# c _ _) =
-      let go i = i == 0 ? return c $ do e <- es !#> i; p e ? go (i - 1) $ return (c - i - 1)
+      let go i = i < 0 ? return c $ do e <- es !#> i; p e ? go (pred i) $ return (c - i - 1)
       in  go (max 0 (c - 1))
     
     mprefix p es@(STBytes# c _ _) =
-      let go i = i >= c ? return i $ do e <- es !#> i; p e ?^ go (i + 1) $ return i
+      let go i = i >= c ? return c $ do e <- es !#> i; p e ?^ go (succ 1) $ return i
       in  go 0
     
     msuffix p es@(STBytes# c _ _) =
-      let go i = i == 0 ? return c $ do e <- es !#> i; p e ?^ go (i - 1) $ return (c - i - 1)
+      let go i = i < 0 ? return c $ do e <- es !#> i; p e ?^ go (pred i) $ return (c - i - 1)
       in  go (max 0 (c - 1))
 
 --------------------------------------------------------------------------------
 
-{- MapM, IndexedM, KFoldM and SortM instances. -}
+{- MapM, IndexedM and SortM instances. -}
 
 instance (Unboxed e) => MapM (ST s) (STBytes# s e) Int e
   where
@@ -768,6 +785,9 @@ instance (Unboxed e) => MapM (ST s) (STBytes# s e) Int e
     overwrite es@(STBytes# c _ _) ascs =
       let ies = filter (inRange (0, c - 1) . fst) ascs
       in  mapM_ (uncurry $ writeM es) ies >> return es
+    
+    kfoldrM = ofoldrM
+    kfoldlM = ofoldlM
 
 instance (Unboxed e) => IndexedM (ST s) (STBytes# s e) Int e
   where
@@ -790,27 +810,6 @@ instance (Unboxed e) => IndexedM (ST s) (STBytes# s e) Int e
       copy <- filled_ n
       forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM copy i
       return copy
-
-instance (Unboxed e) => KFoldM (ST s) (STBytes# s e) Int e
-  where
-    kfoldrM = ofoldrM
-    kfoldlM = ofoldlM
-    
-    ofoldrM  f base = \ arr@(STBytes# n _ _) ->
-      let go i =  n == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f i
-      in  go 0
-    
-    ofoldlM  f base = \ arr@(STBytes# n _ _) ->
-      let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ (f i)
-      in  go (n - 1)
-    
-    k_foldrM f base = \ arr@(STBytes# n _ _) ->
-      let go i = n == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f
-      in  go 0
-    
-    k_foldlM f base = \ arr@(STBytes# n _ _) ->
-      let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f
-      in  go (n - 1)
 
 instance (Unboxed e) => SortM (ST s) (STBytes# s e) e where sortMBy = timSortBy
 
@@ -889,6 +888,22 @@ instance (Unboxed e) => LinearM IO (IOBytes# e) e
     filled = pack' ... filled
     
     copyTo src so trg to = stToIO . copyTo (unpack src) so (unpack trg) to
+    
+    ofoldrM f base = \ arr@(IOBytes# (STBytes# n _ _)) ->
+      let go i =  n == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f i
+      in  go 0
+    
+    ofoldlM f base = \ arr@(IOBytes# (STBytes# n _ _)) ->
+      let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ (f i)
+      in  go (n - 1)
+    
+    o_foldrM f base arr =
+      let go i = sizeOf arr == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f
+      in  go 0
+    
+    o_foldlM f base arr =
+      let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f
+      in  go (sizeOf arr - 1)
 
 instance (Unboxed e) => SplitM IO (IOBytes# e) e
   where
@@ -900,21 +915,17 @@ instance (Unboxed e) => SplitM IO (IOBytes# e) e
     prefixM f = stToIO . prefixM f . unpack
     suffixM f = stToIO . suffixM f . unpack
     
-    mprefix p es = go 0
-      where
-        go i = i >= c ? return i $ do e <- es !#> i; p e ?^ go (i + 1) $ return i
-        
-        c = sizeOf es
+    mprefix p es@(IOBytes# (STBytes# c _ _)) =
+      let go i = i >= c ? return c $ do e <- es !#> i; p e ?^ go (succ 1) $ return i
+      in  go 0
     
-    msuffix p es = go (max 0 (c - 1))
-      where
-        go i = i == 0 ? return c $ do e <- es !#> i; p e ?^ go (i - 1) $ return (c - i - 1)
-        
-        c = sizeOf es
+    msuffix p es@(IOBytes# (STBytes# c _ _)) =
+      let go i = i < 0 ? return c $ do e <- es !#> i; p e ?^ go (pred i) $ return (c - i - 1)
+      in  go (max 0 (c - 1))
 
 --------------------------------------------------------------------------------
 
-{- MapM, IndexedM, KFoldM and SortM instances. -}
+{- MapM, IndexedM and SortM instances. -}
 
 instance (Unboxed e) => MapM IO (IOBytes# e) Int e
   where
@@ -924,6 +935,9 @@ instance (Unboxed e) => MapM IO (IOBytes# e) Int e
     (>!) = (!#>)
     
     overwrite = pack' ... overwrite . unpack
+    
+    kfoldrM = ofoldrM
+    kfoldlM = ofoldlM
 
 instance (Unboxed e) => IndexedM IO (IOBytes# e) Int e
   where
@@ -939,24 +953,6 @@ instance (Unboxed e) => IndexedM IO (IOBytes# e) Int e
       copy <- filled n (unreachEx "fromIndexedM")
       forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM copy i
       return copy
-
-instance (Unboxed e) => KFoldM IO (IOBytes# e) Int e
-  where
-    kfoldrM f base arr =
-      let go i = sizeOf arr == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f i
-      in  go 0
-    
-    kfoldlM f base arr =
-      let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f i
-      in  go (sizeOf arr - 1)
-    
-    k_foldrM f base arr =
-      let go i = sizeOf arr == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f
-      in  go 0
-    
-    k_foldlM f base arr =
-      let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f
-      in  go (sizeOf arr - 1)
 
 instance (Unboxed e) => SortM IO (IOBytes# e) e where sortMBy = timSortBy
 
@@ -1170,6 +1166,5 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Prim.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
-
 
 

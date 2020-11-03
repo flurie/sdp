@@ -31,6 +31,7 @@ import SDP.Sort
 import SDP.Scan
 
 import qualified GHC.Exts as E
+
 import GHC.Generics
 
 import Data.Typeable
@@ -340,6 +341,25 @@ instance (BorderedM1 m rep Int e, SplitM1 m rep e) => LinearM m (AnyChunks rep e
     
     -- | Unsafe, returns joined stream of existing chunks.
     merged = return . AnyChunks . foldr (\ (AnyChunks es) ls -> es ++ ls) []
+    
+    ofoldrM f base' = ofoldrCh 0 base' <=< unpack'
+      where
+        ofoldrCh !o base (x : xs) = do
+          n   <- getSizeOf x
+          xs' <- ofoldrCh (o + n) base xs
+          ofoldrM (f . (o +)) xs' x
+        ofoldrCh _ base _ = return base
+    
+    ofoldlM f base' = ofoldlCh 0 base' <=< unpack'
+      where
+        ofoldlCh !o base (x : xs) = do
+          n  <- getSizeOf x
+          x' <- ofoldlM (f . (o +)) base x
+          ofoldlCh (o + n) x' xs
+        ofoldlCh _ base _ = return base
+    
+    o_foldlM f base (AnyChunks es) = foldl (flip $ (=<<) . flip (o_foldlM f)) (return base) es
+    o_foldrM f base (AnyChunks es) = foldr ((=<<) . flip (o_foldrM f)) (return base) es
 
 instance (BorderedM1 m rep Int e, SplitM1 m rep e) => SplitM m (AnyChunks rep e) e
   where
@@ -449,7 +469,7 @@ instance (Indexed1 rep Int e) => Indexed (AnyChunks rep e) Int e
 
 --------------------------------------------------------------------------------
 
-{- MapM, IndexedM and KFoldM instances. -}
+{- MapM and IndexedM instances. -}
 
 instance (SplitM1 m rep e, MapM1 m rep Int e, BorderedM1 m rep Int e) => MapM m (AnyChunks rep e) Int e
   where
@@ -478,6 +498,9 @@ instance (SplitM1 m rep e, MapM1 m rep Int e, BorderedM1 m rep Int e) => MapM m 
           let (as, bs) = partition (\ (i, _) -> i < n + o) ie
           overwrite x as >> go (n + o) xs bs
         go _ _ _ = return ()
+    
+    kfoldrM = ofoldrM
+    kfoldlM = ofoldlM
 
 instance (SplitM1 m rep e, IndexedM1 m rep Int e) => IndexedM m (AnyChunks rep e) Int e
   where
@@ -500,27 +523,6 @@ instance (SplitM1 m rep e, IndexedM1 m rep Int e) => IndexedM m (AnyChunks rep e
     
     fromIndexed' = newLinear  .  listL
     fromIndexedM = newLinear <=< getLeft
-
-instance (BorderedM1 m rep Int e, KFoldM1 m rep Int e) => KFoldM m (AnyChunks rep e) Int e
-  where
-    ofoldrM f base' = ofoldrCh 0 base' <=< unpack'
-      where
-        ofoldrCh !o base (x : xs) = do
-          n   <- getSizeOf x
-          xs' <- ofoldrCh (o + n) base xs
-          kfoldrM (f . (o +)) xs' x
-        ofoldrCh _ base _ = return base
-    
-    ofoldlM f base' = ofoldlCh 0 base' <=< unpack'
-      where
-        ofoldlCh !o base (x : xs) = do
-          n  <- getSizeOf x
-          x' <- kfoldlM (f . (o +)) base x
-          ofoldlCh (o + n) x' xs
-        ofoldlCh _ base _ = return base
-    
-    k_foldlM f base (AnyChunks es) = foldl (flip $ (=<<) . flip (k_foldlM f)) (return base) es
-    k_foldrM f base (AnyChunks es) = foldr ((=<<) . flip (k_foldrM f)) (return base) es
 
 --------------------------------------------------------------------------------
 
@@ -582,4 +584,7 @@ unpack' (AnyChunks es) = go es
 
 lim :: Int
 lim =  1024
+
+
+
 
