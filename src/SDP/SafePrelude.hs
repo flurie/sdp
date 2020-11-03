@@ -1,5 +1,5 @@
-{-# LANGUAGE Safe #-}
 {-# OPTIONS_HADDOCK ignore-exports #-}
+{-# LANGUAGE Safe #-}
 
 {- |
     Module      :  SDP.SafePrelude
@@ -7,8 +7,8 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
-  
-  Module of common definitions.
+    
+    Module of @sdp@ common definitions.
 -}
 module SDP.SafePrelude
 (
@@ -59,47 +59,47 @@ default ()
 
 {- |
   Ternary operator.
-  > odd 1 ? "is True" $ "is False"
-  "is True"
+  
+  > (odd 1 ? "is True" $ "is False") == "is True"
 -}
 {-# INLINE (?) #-}
 (?) :: Bool -> a -> a -> a
-(?) p t = \ e -> if p then t else e
+(?) =  \ p t e -> if p then t else e
 
 -- | @p ?+ f $ a@ returns @'Just' (f a)@ if @(p a)@ and 'Nothing' otherwise.
 {-# INLINE (?+) #-}
 (?+) :: (a -> Bool) -> (a -> b) -> a -> Maybe b
-p ?+ f = \ a -> p a ? Just (f a) $ Nothing
+(?+) =  \ p f a -> p a ? Just (f a) $ Nothing
 
 -- | @p ?- f $ a@ returns 'Nothing' if @(p a)@ and @'Just' (f a)@ otherwise.
 {-# INLINE (?-) #-}
 (?-) :: (a -> Bool) -> (a -> b) -> a -> Maybe b
-p ?- f = \ a -> p a ? Nothing $ Just (f a)
+(?-) =  \ p f a -> p a ? Nothing $ Just (f a)
 
--- | @f ... g@ is just @\ a b -> f (g a b)@
+-- | @f ... g@ is just @\\ a b -> f (g a b)@
 {-# INLINE (...) #-}
 (...) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
-f ... g = \ a b -> f (g a b)
+(...) = \ f g a b -> f (g a b)
 
 --------------------------------------------------------------------------------
 
 {-# INLINE (?^) #-}
--- | Lifted ('?').
+-- | Lifted @('?')@.
 (?^) :: (Monad m) => m Bool -> m a -> m a -> m a
-(?^) mb mt = \ me -> do b <- mb; if b then mt else me
+(?^) =  \ mb mt me -> do b <- mb; if b then mt else me
 
--- | Monadic vesion of ('...') with reversed arguments.
-(>>=>) :: (Monad m) => (a -> b -> m c) -> (c -> m d) -> (a -> b -> m d)
-(>>=>) mf mg = \ a b -> mf a b >>= mg
-
--- | Monadic version of ('...').
+-- | Monadic version of @('...')@.
 (<=<<) :: (Monad m) => (c -> m d) -> (a -> b -> m c) -> (a -> b -> m d)
-(<=<<) mg mf = \ a b -> mf a b >>= mg
+(<=<<) =  \ mg mf a b -> mf a b >>= mg
+
+-- | Monadic vesion of @('...')@ with reversed arguments.
+(>>=>) :: (Monad m) => (a -> b -> m c) -> (c -> m d) -> (a -> b -> m d)
+(>>=>) =  \ mf mg a b -> mf a b >>= mg
 
 -- | @ma >>=<< mb@ is composition of 'join' and 'liftM2'.
 {-# INLINE (>>=<<) #-}
 (>>=<<) :: (Monad m) => m a -> m b -> (a -> b -> m c) -> m c
-ma >>=<< mb = \ f -> join $ liftM2 f ma mb
+(>>=<<) = \ ma mb f -> join $ liftM2 f ma mb
 
 
 

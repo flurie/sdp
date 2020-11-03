@@ -7,7 +7,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
     
-    @SDP.Nullable@ provides 'Nullable' - class of types with empty values.
+    "SDP.Nullable" provides 'Nullable' - class of types with empty values.
 -}
 module SDP.Nullable
 (
@@ -35,7 +35,7 @@ class Nullable e
     -- | Is value empty?
     isNull :: e -> Bool
 
--- | Originally defined in @sdp-ctypes@ (now @sdp-foreign@) same as @Z@ now.
+-- | Originally defined in @sdp-ctypes@ (now @sdp-foreign@), same as @Z@ now.
 pattern NULL :: (Nullable e) => e
 pattern NULL <- (isNull -> True) where NULL = lzero
 

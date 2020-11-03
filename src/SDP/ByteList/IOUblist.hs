@@ -7,7 +7,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
     
-    @SDP.ByteList.IOUblist@ provides 'IOUblist' - mutable strict unboxed
+    "SDP.ByteList.IOUblist" provides 'IOUblist' - mutable strict unboxed
     unrolled linked list.
 -}
 module SDP.ByteList.IOUblist
@@ -37,7 +37,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | IOUblist is mutable version of Ublist.
+-- | 'IOUblist' is mutable version of 'SDP.ByteList.Ublist.Ublist'.
 type IOUblist = AnyChunks IOBytes#
 
 instance (Unboxed e) => SortM IO (IOUblist e) e where sortMBy = timSortBy

@@ -7,8 +7,8 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
     
-    @SDP.Shaped@ provides advanced operations on Indexed structures,
-    generalized by 'Index' type.
+    "SDP.Shaped" provides advanced operations on 'SDP.Indexed.Indexed'
+    structures, generalized by 'Index' type.
 -}
 module SDP.Shaped
 (

@@ -3,10 +3,10 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC Extensions)
+    Portability :  portable
     
-    @SDP.Unrolled.IO@ provides 'IOUnrolled' - mutable strict unboxed unrolled
-    linked list type.
+    "SDP.Unrolled.IO" provides 'IOUnrolled' - mutable lazy boxed unrolled linked
+    list type.
 -}
 module SDP.Unrolled.IO
 (
@@ -31,7 +31,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | 'IOUnrolled' is mutable version of Unrolled.
+-- | 'IOUnrolled' is mutable version of 'SDP.Unrolled.Unrolled'.
 type IOUnrolled = AnyBorder IOUnlist
 
 

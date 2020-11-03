@@ -5,12 +5,11 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC extensions)
+    Portability :  portable
     
-    @SDP.Unrolled.ST@ provides 'STUnrolled' - mutable boxed lazy unrolled linked
+    "SDP.Unrolled.ST" provides 'STUnrolled' - mutable boxed lazy unrolled linked
     list.
 -}
-
 module SDP.Unrolled.ST
 (
   -- * Exports
@@ -34,7 +33,8 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | STUnrolled is mutable version Unrolled.
+-- | 'STUnrolled' is mutable version 'SDP.Unrolled.Unrolled'.
 type STUnrolled s = AnyBorder (STUnlist s)
+
 
 

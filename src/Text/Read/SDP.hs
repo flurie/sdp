@@ -3,9 +3,9 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (requires non-portable modules)
+    Portability :  portable
     
-    @Text.Read.SDP@ provides common 'ReadPrec' parsers and related stuff.
+    "Text.Read.SDP" provides common 'ReadPrec' parsers and related stuff.
 -}
 module Text.Read.SDP
 (
@@ -47,7 +47,7 @@ default ()
 --------------------------------------------------------------------------------
 
 {- |
-  @indexedPrec ident@ is common parser of 'Indexed' structure with name
+  @'indexedPrec' ident@ is common parser of 'Indexed' structure with name
   @ident@:
   
   > read "ident (0,1) [(0,0),(1,1)]" == read "(0,1) [(0,0),(1,1)]" == assoc (0,1) [(0,0),(1,1)]
@@ -56,7 +56,7 @@ indexedPrec :: (Indexed v i e, Read i, Read e) => String -> ReadPrec v
 indexedPrec =  namedPrec readAssocsPrec
 
 {- |
-  @linearPrec ident@ is common parser of 'Linear' structure with name
+  @'linearPrec' ident@ is common parser of 'Linear' structure with name
   @ident@:
   
   > read "Z" == read "[]" == []
@@ -66,7 +66,7 @@ indexedPrec =  namedPrec readAssocsPrec
 linearPrec :: (Linear l e, Read e) => String -> ReadPrec l
 linearPrec =  namedPrec (readZeroPrec +++ readAsList +++ readAsListN)
 
--- | Common 'Linear' and 'Indexed' parser (recommended).
+-- | 'indexedPrec'' is common 'Linear' and 'Indexed' parser (recommended).
 indexedPrec' :: (Indexed v i e, Read i, Read e) => String -> ReadPrec v
 indexedPrec' =  namedPrec (readZeroPrec +++ readAsList +++ readAsListN +++ readAssocsPrec)
 
@@ -86,7 +86,9 @@ readAsList = fromList <$> readListPrec
 readAsListN :: (Linear l e, Read e) => ReadPrec l
 readAsListN = liftA2 fromListN (step readPrec) (step readPrec)
 
--- | 'readAssocsPrec' is SDP recommended format 'ReadPrec' parser for 'Indexed'.
+{- |
+  'readAssocsPrec' is @sdp@ recommended format 'ReadPrec' parser for 'Indexed'.
+-}
 readAssocsPrec :: (Indexed v i e, Read i, Read e) => ReadPrec v
 readAssocsPrec = parens $ liftA2 assoc (step readPrec) (step readPrec)
 
@@ -153,11 +155,11 @@ allPrecWith parser = lift (manyTill reader eof)
   where
     reader = readPrec_to_P parser 0
 
--- | @namedPrec readprec name@ is readPrec with optional @name@ prefix.
+-- | @'namedPrec' readprec name@ is 'readPrec' with optional @name@ prefix.
 namedPrec :: ReadPrec e -> String -> ReadPrec e
-namedPrec parser name = named +++ parser
-  where
-    named = prec appPrec (expectPrec $ Ident name) >> parser
+namedPrec parser name =
+  let named = prec appPrec (expectPrec $ Ident name) >> parser
+  in  named +++ parser
 
 --------------------------------------------------------------------------------
 
@@ -224,7 +226,5 @@ parens' parser = do
   value <- parser
   expectPrec (Punc "]")
   return value
-
-
 
 

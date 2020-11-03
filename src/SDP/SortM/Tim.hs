@@ -5,7 +5,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (requires non-portable modules)
     
-    @SDP.SortM.Tim@ provides @InsertionSort@ and @TimSort@ algorithms.
+    "SDP.SortM.Tim" provides @InsertionSort@ and @TimSort@ algorithms.
 -}
 module SDP.SortM.Tim
 (
@@ -13,9 +13,7 @@ module SDP.SortM.Tim
   insertionSort, insertionSortBy, insertionSortOn,
   
   -- * TimSort
-  timSort, timSortBy, timSortOn,
-  
-  minrunTS
+  timSort, timSortBy, timSortOn, minrunTS
 )
 where
 
@@ -31,21 +29,21 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | insertionSort is just synonym for insertionSortBy compare.
+-- | 'insertionSort' is just synonym for @'insertionSortBy' 'compare'@.
 {-# INLINE insertionSort #-}
 insertionSort :: (LinearM m v e, BorderedM m v i, Ord e) => v -> m ()
 insertionSort =  insertionSortBy compare
 
 {- |
-  insertionSortOn is a version of insertionSortBy that uses a cast function to
-  compare elements.
+  'insertionSortOn' is a version of 'insertionSortBy' that uses a cast function
+  to 'compare' elements.
 -}
 {-# INLINE insertionSortOn #-}
 insertionSortOn :: (LinearM m v e, BorderedM m v i, Ord o) => (e -> o) -> v -> m ()
 insertionSortOn =  insertionSortBy . comparing
 
 {- |
-  insertionSortBy is naive service sorting procedure, that have O(n^2)
+  'insertionSortBy' is naive service sorting procedure, that have @O(n^2)@
   complexity in all cases.
 -}
 {-# INLINE insertionSortBy #-}
@@ -54,22 +52,22 @@ insertionSortBy cmp es =
   let gt = \ x y -> case x `cmp` y of {GT -> True; _ -> False}
   in  do n <- getSizeOf es; insertionSort_ gt es 0 0 (n - 1)
 
--- | timsort is just synonym for timSortBy compare.
+-- | 'timsort' is just synonym for @'timSortBy' 'compare'@.
 {-# INLINE timSort #-}
 timSort :: (LinearM m v e, BorderedM m v i, Ord e) => v -> m ()
 timSort =  timSortBy compare
 
 {- |
-  timSortOn is a version of timSortBy that uses a conversion function to compare
-  elements.
+  'timSortOn' is a version of 'timSortBy' that uses a conversion function to
+  compare elements.
 -}
 {-# INLINE timSortOn #-}
 timSortOn :: (LinearM m v e, BorderedM m v i, Ord o) => (e -> o) -> v -> m ()
 timSortOn =  timSortBy . comparing
 
 {- |
-  timSortBy is a sorting procedure for mutable random access data structures
-  using any comparison function and having O(n * log n) complexity in the worst
+  'timSortBy' is a sorting procedure for mutable random access data structures
+  using any comparison function and having @O(nlogn)@ complexity in the worst
   case.
 -}
 {-# INLINE timSortBy #-}
@@ -80,7 +78,7 @@ timSortBy cmp es =
 
 --------------------------------------------------------------------------------
 
-{- |
+{-
   timSort' is a sorting procedure for mutable random access data structures
   using any comparison function and having O(n * log n) complexity in the worst
   case.
@@ -138,6 +136,8 @@ timSort' gt es = getSizeOf es >>= sort
               else writeM es ic r >> mergeGo (ic + 1) il (ir + 1) left
         rb = by + sy; lb = sx
 
+--------------------------------------------------------------------------------
+
 {-
   insertionSort_ cmp es b s e is internal sorting procedure, where
   @cmp@ - @('>')@, @es@ - data structure, @[b .. s]@ - sorted fragment,
@@ -154,7 +154,7 @@ insertionSort_ gt es b s e' = mapM_ insert_ [s + 1 .. e']
 --------------------------------------------------------------------------------
 
 {-# INLINE minrunTS #-}
--- | minrunTS returns Timsort chunk size.
+-- | 'minrunTS' returns @Timsort@ chunk size.
 minrunTS :: Int -> Int
 minrunTS i = mr i 0 where mr n r = n >= 64 ? mr (shiftR n 1) (n .&. 1) $ n + r
 

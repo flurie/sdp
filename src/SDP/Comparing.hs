@@ -5,7 +5,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
     
-    @SDP.Comparing@ provide common comparators and combinators.
+    "SDP.Comparing" provide common comparators and combinators.
 -}
 module SDP.Comparing
 (
@@ -33,17 +33,17 @@ default ()
 
 {- Type synonyms. -}
 
--- | Equal is just synonym of (e -> e -> Bool)
+-- | 'Equal' is just synonym of @(e -> e -> Bool)@.
 type Equal   e = e -> e -> Bool
 
--- | Compare is just synonym of (e -> e -> Ordering)
+-- | 'Compare' is just synonym of @(e -> e -> Ordering)@.
 type Compare e = e -> e -> Ordering
 
 --------------------------------------------------------------------------------
 
 {- Common comparators. -}
 
--- | "spaceship operator" - infix version of compare.
+-- | Spaceship operator - infix version of compare.
 (<=>) :: (Ord o) => Compare o
 (<=>) = compare
 

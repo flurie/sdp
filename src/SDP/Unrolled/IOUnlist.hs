@@ -5,9 +5,9 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC Extensions)
+    Portability :  portable
     
-    @SDP.Unrolled.IOUnlist@ provides 'IOUnlist' - mutable lazy boxed unrolled
+    "SDP.Unrolled.IOUnlist" provides 'IOUnlist' - mutable lazy boxed unrolled
     linked list.
 -}
 module SDP.Unrolled.IOUnlist
@@ -35,7 +35,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | IOUnlist is mutable version of Unlist.
+-- | 'IOUnlist' is mutable version of 'SDP.Unrolled.Unlist.Unlist'.
 type IOUnlist = AnyChunks IOArray#
 
 instance SortM IO (IOUnlist e) e where sortMBy = timSortBy

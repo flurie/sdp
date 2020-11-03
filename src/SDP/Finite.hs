@@ -8,15 +8,15 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (a lot of GHC extensions)
   
-  @SDP.Finite@ provide generalized finite-dimensional index type (':&') based on
-  @repa@ (:.).
+  "SDP.Finite" provide generalized finite-dimensional index type (':&') based on
+  @repa@ @(:.)@.
   
-  Since sdp-0.2 for (':&') available @Overloaded Indices@ - syntactic sugar
-  based on the @OverloadedLists@ language extension. For example, instead of the
-  inconvenient @es!(ind4 0 1 2 3)@ or just awful @es!(E:&0:&1:&1:&2:&3)@ you can
-  write: @es![0, 1, 2, 3]@.
+  Since @sdp-0.2@, for (':&') available @OverloadedLists@-based syntactic sugar.
+  For example, instead of the inconvenient @es!(ind4 0 1 2 3)@ or just awful
+  @es!(E:&0:&1:&1:&2:&3)@ you can write: @es![0, 1, 2, 3]@.
   
-  Note that @OverloadedIndices@ require a strictly defined number of subindexes.
+  Note that @OverloadedLists@ instances requires a strictly defined number of
+  subindexes.
 -}
 module SDP.Finite
 (
@@ -118,7 +118,7 @@ instance (E.Item (i' :& i) ~~ i, IsList (i' :& i)) => IsList (i' :& i :& i)
 
 {- Type synonyms are declared up to 15 dimensions. -}
 
--- | 1-dimensional index ((E :& i) without TypeOperators)
+-- | 1-dimensional index (@(E :& i)@ without @TypeOperators@).
 type I1  i = E :& i
 -- | 2-dimensional index
 type I2  i = E :& i  :& i

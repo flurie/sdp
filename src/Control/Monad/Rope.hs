@@ -5,7 +5,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
     
-    @Control.Monad.Rope@ provides 'RopeM' - lazy stream of dependent monadic
+    "Control.Monad.Rope" provides 'RopeM' - lazy stream of dependent monadic
     calculations.
 -}
 module Control.Monad.Rope

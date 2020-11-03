@@ -8,7 +8,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
   
-  @SDP.Indexed@ provides 'Indexed' - class of indexed data structures.
+  "SDP.Indexed" provides 'Indexed' and 'Freeze' classes.
 -}
 module SDP.Indexed
 (
@@ -17,13 +17,10 @@ module SDP.Indexed
   module SDP.Map,
   
   -- * Indexed
-  Indexed (..), Indexed1, Indexed2,
+  Indexed (..), Indexed1, Indexed2, binaryContain,
   
   -- * Freeze
-  Freeze (..), Freeze1,
-  
-  -- * Related functions
-  binaryContain
+  Freeze (..), Freeze1
 )
 where
 
@@ -37,7 +34,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | Class of indexed data structures.
+-- | 'Indexed' is class of ordered associative arrays with static bounds.
 class (Linear v e, Bordered v i, Map v i e) => Indexed v i e | v -> i, v -> e
   where
     {-# MINIMAL fromIndexed #-}
@@ -77,9 +74,13 @@ class (Linear v e, Bordered v i, Map v i e) => Indexed v i e | v -> i, v -> e
     imap :: (Map m j e) => (i, i) -> m -> (i -> j) -> v
     imap bnds es f = assoc bnds [ (i, es!f i) | i <- range bnds ]
     
-    -- | Create new structure from old by indexed mapping.
-    (/>) :: v -> (i -> e -> e) -> v
-    (/>) es f = assoc (bounds es) [ (i, f i (es!i)) | i <- indices es ]
+    -- | Update element by given function.
+    update' :: v -> (e -> e) -> i -> v
+    update' es f i = write' es i . f $ es!i
+    
+    -- | Create new structure from old by mapping with index.
+    updates' :: v -> (i -> e -> e) -> v
+    updates' es f = bounds es `assoc` [ (i, f i e) | (i, e) <- assocs es ]
 
 --------------------------------------------------------------------------------
 
@@ -135,6 +136,10 @@ binaryContain f e es =
         j = u - l `div` 2 + l
   in  f e (head es) /= LT && f e (last es) /= GT && contain 0 (sizeOf es - 1)
 
+--------------------------------------------------------------------------------
+
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.Indexed."
+
+
 

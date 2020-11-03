@@ -4,13 +4,13 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
-  
-  Zip is a very useful class for parallel application of functions data streams.
+    
+    "SDP.Zip" provides 'Zip' - class of 'Control.Applicative.ZipList"-like
+    structures.
 -}
 module SDP.Zip ( Zip (..) ) where
 
-import Prelude ()
-import SDP.SafePrelude
+import Prelude ( Functor, ($) )
 
 default ()
 

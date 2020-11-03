@@ -9,7 +9,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
   
-    @SDP.Set@ provides 'Set' - class for basic set operations.
+    "SDP.Set" provides 'Set' - class for basic set operations.
 -}
 module SDP.Set
 (
@@ -33,23 +33,18 @@ default ()
 --------------------------------------------------------------------------------
 
 {- |
-  'SetWith' is a class of data structures, that can represent ordered sets.
+  'SetWith' is a class of data structures, that can represent sets.
   
-  SetWith doesn't provide data protection/validation before each first action.
+  'SetWith' doesn't provide data protection/validation before each first action.
   All functions (except 'setWith') works correctly only with correct sets.
-  'SetWith' guarantee only that the returned data is correct.
-  * If you need maximum reliability and security, go to @containers@ or write
-  @newtype@.
-  * If you want simplicity, openness and a lot of non-set functions without
-  extra conversions, then you are at the right place.
+  'SetWith' guarantee only that the returned data is correct. So if you need
+  maximum reliability and security, use @containers@. But if you want
+  simplicity, openness and a lot of non-set functions without extra conversions,
+  then you are at the right place.
   
-  Note that function of type @Compare o@ must follow 'Ord' rules. If you use the
-  wrong comparator, the result will depend on the implementation of the
-  function.
-  
-  Example: by default, 'lookupLEWith' and 'lookupGEWith' functions use
-  'isContainedIn' to search for an equal element in the set - if such an element
-  is found, then the result is the given element (since they are equal).
+  Note that function of type @Compare o@ must follow total order laws
+  (antisymmetry, transitivity and connexity). If you use the wrong comparator,
+  the result may become implementation-dependent.
 -}
 class (Nullable s) => SetWith s o | s -> o
   where
@@ -97,19 +92,19 @@ class (Nullable s) => SetWith s o | s -> o
     
     {- Generalization of basic set operations on foldable. -}
     
-    -- | Fold by intersectionWith.
+    -- | Fold by 'intersectionWith'.
     intersectionsWith :: (Foldable f) => Compare o -> f s -> s
     intersectionsWith =  (`foldl` Z) . intersectionWith
     
-    -- | Fold by differenceWith.
+    -- | Fold by 'differenceWith'.
     differencesWith :: (Foldable f) => Compare o -> f s -> s
     differencesWith =  (`foldl` Z) . differenceWith
     
-    -- | Fold by unionWith.
+    -- | Fold by 'unionWith'.
     unionsWith :: (Foldable f) => Compare o -> f s -> s
     unionsWith =  (`foldl` Z) . unionWith
     
-    -- | Fold by symdiffWith.
+    -- | Fold by 'symdiffWith'.
     symdiffsWith :: (Foldable f) => Compare o -> f s -> s
     symdiffsWith =  (`foldl` Z) . symdiffWith
     
@@ -140,34 +135,29 @@ class (Nullable s) => SetWith s o | s -> o
     
     {- Lookups. -}
     
-    -- | lookupLTWith trying to find lesser element in set.
+    -- | 'lookupLTWith' trying to find lesser element in set.
     lookupLTWith :: Compare o -> o -> s -> Maybe o
     
-    -- | lookupGTWith trying to find greater element in set.
+    -- | 'lookupGTWith' trying to find greater element in set.
     lookupGTWith :: Compare o -> o -> s -> Maybe o
     
-    -- | lookupGEWith trying to find greater or equal element in set.
+    -- | 'lookupGEWith' trying to find greater or equal element in set.
     lookupGEWith :: Compare o -> o -> s -> Maybe o
     lookupGEWith f e es = memberWith f e es ? Just e $ lookupGTWith f e es
     
-    -- | lookupLEWith trying to find lesser or equal element in set.
+    -- | 'lookupLEWith' trying to find lesser or equal element in set.
     lookupLEWith :: Compare o -> o -> s -> Maybe o
     lookupLEWith f e es = memberWith f e es ? Just e $ lookupLTWith f e es
 
 --------------------------------------------------------------------------------
 
 {- |
-  'Set' is a class of data structures, that can represent any sets.
+  'Set' is a class of data structures, that can represent any sets. 'Set' is
+  intended for more specific sets than ordered linear structures. In particular,
+  it may not work with an arbitrary comparator, and also (unlike the early
+  implementation) does not impose restrictions on the element type.
   
-  'Set' is intended for more specific sets than ordered linear structures. In
-  particular, it doesn't require you to explicitly pass a comparator and (unlike
-  the earlier implementation) doesn't impose restrictions on the type of the set
-  element.
-  
-  'Set' doesn't provide data protection/validation before each first action.
-  All functions (except 'set') works correctly only with correct sets. 'Set'
-  guarantee only that the returned data is correct. So everything said about
-  'SetWith' is also true for 'Set'.
+  'Set', as well as 'SetWith', doesn't provide data protection/validation.
 -}
 class (Nullable s) => Set s o | s -> o
   where
@@ -268,10 +258,10 @@ class (Nullable s) => Set s o | s -> o
 
 --------------------------------------------------------------------------------
 
--- | Kind (* -> *) 'Set'.
+-- | Kind @(* -> *)@ 'Set'.
 type Set1 s o = Set (s o) o
 
--- | Kind (* -> *) 'SetWith'.
+-- | Kind @(* -> *)@ 'SetWith'.
 type SetWith1 s o = SetWith (s o) o
 
 --------------------------------------------------------------------------------

@@ -5,9 +5,9 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC extensions)
+    Portability :  portable
     
-    @SDP.Array@ provides 'Array' - immutable lazy boxed array type.
+    "SDP.Array" provides 'Array' - immutable lazy boxed array type.
 -}
 module SDP.Array
 (
@@ -39,7 +39,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | Array - boxed array.
+-- | 'Array' - lazy boxed array.
 type Array = AnyBorder SArray#
 
 instance {-# OVERLAPPABLE #-} (Index i, Show i, Show e) => Show (Array i e)

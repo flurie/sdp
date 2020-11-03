@@ -7,7 +7,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
     
-    @SDP.Unboxed.WordAs@ provides additional 'Word' instances for 'Unboxed'.
+    "SDP.Unboxed.WordAs" provides additional 'Word' instances for 'Unboxed'.
 -}
 module SDP.Unboxed.WordAs
 (

@@ -7,7 +7,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
     
-    @SDP.ByteList.Ublist@ provides 'Ublist' - strict boxed unrolled linked list.
+    "SDP.ByteList.Ublist" provides 'Ublist' - strict boxed unrolled linked list.
 -}
 module SDP.ByteList.Ublist
 (

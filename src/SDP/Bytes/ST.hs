@@ -7,7 +7,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
     
-    @SDP.Bytes.ST@ provides 'STBytes' - mutable lazy boxed array type.
+    "SDP.Bytes.ST" provides 'STBytes' - mutable lazy boxed array type.
 -}
 module SDP.Bytes.ST
 (
@@ -32,7 +32,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | STBytes is mutable version of Bytes.
+-- | 'STBytes' is mutable version of 'SDP.Bytes.Bytes'.
 type STBytes s = AnyBorder (STBytes# s)
 
 

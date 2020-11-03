@@ -3,9 +3,9 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (requires non-portable modules)
+    Portability :  portable
     
-    @Text.Show.SDP@ provides common 'ShowS' stuff.
+    "Text.Show.SDP" provides common 'ShowS' stuff.
 -}
 module Text.Show.SDP
 (
@@ -33,9 +33,10 @@ assocsPrec name = \ p es -> showParen (p > appPrec) $ showString name
 
 {- |
   'showsRaw' is a primitive list-to-string conversion pattern.
+  
   Note that attempting to parse the resulting string with standard @ReadS@-based
   functions will cause an error (ambiguous parse). To properly parse a string,
-  use the @readRawSequence@ function from the @SDP.Internal.Read@ module.
+  use the @readRawSequence@ function from the "SDP.Text.Read" module.
 -}
 showsRaw :: (Show e) => Int -> [e] -> ShowS
 showsRaw _    []    = id
@@ -46,5 +47,4 @@ showsRaw p (x : xs) = showParen (p > appPrec) stream
 -- | Just 'showsRaw' version for 'Linear'.
 showsRawLinear :: (Linear l e, Show e) => Int -> l -> ShowS
 showsRawLinear p = showsRaw p . listL
-
 

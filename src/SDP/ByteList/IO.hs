@@ -5,7 +5,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
     
-    @SDP.ByteList.IO@ provides 'IOByteList' - mutable strict unboxed unrolled
+    "SDP.ByteList.IO" provides 'IOByteList' - mutable strict unboxed unrolled
     linked list type.
 -}
 module SDP.ByteList.IO
@@ -33,7 +33,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | IOByteList is mutable version of ByteList.
+-- | 'IOByteList' is mutable version of 'SDP.ByteList.ByteList'.
 type IOByteList = AnyBorder IOUblist
 
 

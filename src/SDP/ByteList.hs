@@ -7,7 +7,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
     
-    @SDP.ByteList@ provides 'ByteList' - strict unboxed unrolled linked list.
+    "SDP.ByteList" provides 'ByteList' - strict unboxed unrolled linked list.
 -}
 module SDP.ByteList
 (
@@ -44,7 +44,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | ByteList is bordered strict unboxed unrolled linked list.
+-- | 'ByteList' is bordered strict unboxed unrolled linked list.
 type ByteList = AnyBorder Ublist
 
 instance {-# OVERLAPPABLE #-} (Index i, Show i, Unboxed e, Show e) => Show (ByteList i e)

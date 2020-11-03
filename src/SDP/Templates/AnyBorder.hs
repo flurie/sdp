@@ -9,8 +9,8 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
     
-    @SDP.Plate.AnyBorder@ provides 'AnyBorder' - template of generalized by
-    index type structure, based on int-indexed primitive.
+    "SDP.Plate.AnyBorder" provides 'AnyBorder' - template of generalized by
+    index type structure, based on 'Int'-indexed primitive.
 -}
 module SDP.Templates.AnyBorder
 (
@@ -45,7 +45,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | AnyBorder is template, that appends arbitrary bounds to any structure.
+-- | 'AnyBorder' is template, that appends arbitrary bounds to any structure.
 data AnyBorder rep i e = AnyBorder !i !i !(rep e)
   deriving ( Typeable, Data, Generic )
 
@@ -254,7 +254,7 @@ instance (Index i, Split1 rep e, Bordered1 rep Int e) => Split (AnyBorder rep i 
     chunks ns = fmap withBounds . chunks ns . unpack
     parts  ns = fmap withBounds . parts  ns . unpack
     
-    complement n e = withBounds . complement n e . unpack
+    supplement n e = withBounds . supplement n e . unpack
     
     isPrefixOf xs ys = xs .<=. ys && on isPrefixOf unpack xs ys
     isSuffixOf xs ys = xs .<=. ys && on isSuffixOf unpack xs ys

@@ -7,8 +7,8 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
-  
-  @SDP.Shape@ module provides 'Shape' - class of generalized indices.
+    
+    "SDP.Shape" module provides 'Shape' - class of generalized indices.
 -}
 module SDP.Shape
 (
@@ -53,7 +53,7 @@ type family GIndex i
 --------------------------------------------------------------------------------
 
 {- |
-  'Shape' is service class that constraints "Index".
+  'Shape' is service class that constraints 'SDP.Index.Index'.
   
   Rules:
   
@@ -76,7 +76,7 @@ class Shape i
     
     {- |
       The type of subspace of 'rank' @n - 1@, where @n@ is the 'rank' of the
-      space specified by this "Index" type.
+      space specified by this 'SDP.Index.Index' type.
     -}
     type DimInit i :: *
     type DimInit i =  E

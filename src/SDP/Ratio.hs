@@ -7,7 +7,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
     
-    @SDP.Ratio@ provides (':%') pattern for 'Ratio'.
+    "SDP.Ratio" provides @(':%')@ pattern for 'Ratio'.
 -}
 module SDP.Ratio
 (
@@ -31,10 +31,5 @@ default ()
 
 -- | Crutch pattern: real (':%') is closed 'Ratio' constructor.
 pattern (:%) :: (Integral a) => a -> a -> Ratio a
-pattern n :% d <- ((\ r -> (numerator r, denominator r)) -> (n, d))
-  where
-    (:%) = (%)
-
-
-
+pattern n :% d <- ((\ r -> (numerator r, denominator r)) -> (n, d)) where (:%) = (%)
 

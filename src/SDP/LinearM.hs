@@ -7,26 +7,23 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
-  
-  @SDP.LinearM@ is a module that provides 'BorderedM' and 'LinearM' classes.
+    
+    "SDP.LinearM" is a module that provides 'BorderedM' and 'LinearM' classes.
 -}
 module SDP.LinearM
-  (
-    -- * Exports
-    module SDP.Linear,
-    
-    -- * BorderedM class
-    BorderedM (..), BorderedM1, BorderedM2,
-    
-    -- * LinearM class
-    LinearM (..), LinearM1,
-    
-    -- * SplitM class
-    SplitM (..), SplitM1,
-    
-    -- * Related section
-    sortedM, swapM
-  )
+(
+  -- * Exports
+  module SDP.Linear,
+  
+  -- * BorderedM class
+  BorderedM (..), BorderedM1, BorderedM2,
+  
+  -- * LinearM class
+  LinearM (..), LinearM1, sortedM,
+  
+  -- * SplitM class
+  SplitM (..), SplitM1
+)
 where
 
 import Prelude ()
@@ -124,7 +121,7 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
       Like most size-changing operations, @append@ doesn't guarantee the
       correctness of the original structure after conversion.
     -}
-    append  :: l -> e -> m l
+    append :: l -> e -> m l
     append es e = newLinear . (:< e) =<< getLeft es
     
     -- | Monadic 'fromList'.
@@ -219,6 +216,10 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     -- | 'o_foldlM'' is strict version of 'o_foldlM'.
     o_foldlM' :: (r -> e -> m r) -> r -> l -> m r
     o_foldlM' f = o_foldlM (\ !r e -> f r e)
+    
+    -- | Just swap two elements.
+    swapM :: l -> Int -> Int -> m ()
+    swapM es i j = do ei <- es !#> i; writeM es i =<< es !#> j; writeM es j ei
 
 --------------------------------------------------------------------------------
 
@@ -328,16 +329,16 @@ class (LinearM m s e) => SplitM m s e
 
 --------------------------------------------------------------------------------
 
--- | Kind (* -> *) 'SplitM' structure.
+-- | Kind @(* -> *)@ 'SplitM' structure.
 type SplitM1 m l e = SplitM m (l e) e
 
--- | Kind (* -> *) 'LinearM' structure.
+-- | Kind @(* -> *)@ 'LinearM' structure.
 type LinearM1 m l e = LinearM m (l e) e
 
--- | Kind (* -> *) 'BorderedM' structure.
+-- | Kind @(* -> *)@ 'BorderedM' structure.
 type BorderedM1 m l i e = BorderedM m (l e) i
 
--- | Kind (* -> * -> *) 'BorderedM' structure.
+-- | Kind @(* -> * -> *)@ 'BorderedM' structure.
 type BorderedM2 m l i e = BorderedM m (l i e) i
 
 --------------------------------------------------------------------------------
@@ -345,11 +346,5 @@ type BorderedM2 m l i e = BorderedM m (l i e) i
 -- | sortedM checks if structure is sorted.
 sortedM :: (LinearM m l e, Ord e) => l -> m Bool
 sortedM =  fmap (\ es -> null es || and (zipWith (<=) es (tail es))) . getLeft
-
--- | Just swap two elements.
-{-# INLINE swapM #-}
-swapM :: (LinearM m v e) => v -> Int -> Int -> m ()
-swapM es i j = do ei <- es !#> i; writeM es i =<< es !#> j; writeM es j ei
-
 
 

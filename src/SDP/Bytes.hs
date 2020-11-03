@@ -7,7 +7,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
     
-    SDP.Bytes provides 'Bytes' - immutable strict unboxed array type.
+    "SDP.Bytes" provides 'Bytes' - immutable strict unboxed array type.
 -}
 module SDP.Bytes
 (
@@ -41,7 +41,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | Bytes - unboxed array.
+-- | 'Bytes' - unboxed array.
 type Bytes = AnyBorder SBytes#
 
 instance {-# OVERLAPPABLE #-} (Index i, Unboxed e, Show i, Show e) => Show (Bytes i e)

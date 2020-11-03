@@ -8,9 +8,9 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
-  
-  @SDP.Linear@ is a module that provides several convenient interfaces for
-  working with various linear data structures.
+    
+    "SDP.Linear" is a module that provides several convenient interfaces for
+    working with various linear data structures.
 -}
 module SDP.Linear
 (
@@ -31,7 +31,7 @@ module SDP.Linear
   Split (..), Split1,
   
   -- * Patterns
-  -- | SDP.Linear also provides three overloaded patterns: 'Z', (':>') and (':<').
+  -- $patternDoc
   pattern (:>), pattern (:<), pattern Z,
   
   -- * Related functions
@@ -67,45 +67,45 @@ class (Index i, Estimate b) => Bordered b i | b -> i
     
     {-# INLINE bounds #-}
     {- |
-      bounds is a function that returns the exact upper and lower bounds of a
-      structure. If the structure doesn't have explicitly defined boundaries
-      (list, for example), use the @'defaultBounds' ('sizeOf' es)@.
+      Returns the exact 'upper' and 'lower' bounds of given structure. If the
+      structure doesn't have explicitly defined boundaries (list, for example),
+      use the @'defaultBounds' . 'sizeOf'@.
     -}
     bounds :: b -> (i, i)
     bounds es = (lower es, upper es)
     
     {-# INLINE lower #-}
-    -- | lower bound of structure
+    -- | Returns lower bound of structure
     lower :: b -> i
     lower =  fst . bounds
     
     {-# INLINE upper #-}
-    -- | upper bound of structure
+    -- | Returns upper bound of structure
     upper :: b -> i
     upper =  snd . bounds
     
     {-# INLINE sizeOf #-}
-    -- | actual size of structure.
+    -- | Returns actual size of structure.
     sizeOf :: b -> Int
     sizeOf =  size . bounds
     
     {-# INLINE indexIn #-}
-    -- | checks if an index falls within the boundaries of the structure.
+    -- | Checks if an index falls within the boundaries of the structure.
     indexIn :: b -> i -> Bool
     indexIn =  inRange . bounds
     
     {-# INLINE indices #-}
-    -- | index range list.
+    -- | Returns index range list.
     indices :: b -> [i]
     indices =  range . bounds
     
     {-# INLINE indexOf #-}
-    -- | index by offset in structure.
+    -- | Returns index by offset in structure.
     indexOf :: b -> Int -> i
     indexOf =  index . bounds
     
     {-# INLINE offsetOf #-}
-    -- | index offset in structure bounds.
+    -- | Returns index offset in structure bounds.
     offsetOf :: b -> i -> Int
     offsetOf =  offset . bounds
 
@@ -144,7 +144,7 @@ instance Bordered [e] Int
   'partitions', 'select', 'select'', 'extract', 'extract'', 'selects' and
   'selects''
   
-  select and extract are needed to combine filtering and mapping, simplifying
+  Select and extract are needed to combine filtering and mapping, simplifying
   lambdas and case-expressions in complex cases.
   
   > select' (p ?+ f) == fmap f . filter p
@@ -178,15 +178,15 @@ class (Nullable l) => Linear l e | l -> e
     uncons' :: l -> Maybe (e, l)
     uncons' =  isNull ?- uncons
     
-    -- | Adds element to line as 'head', constructor for ':>' pattern.
+    -- | Prepends element to line, constructor for ':>' pattern.
     toHead :: e -> l -> l
     toHead =  (++) . single
     
-    -- | Returns first element of line. May fail.
+    -- | Returns first element of line, may fail.
     head :: l -> e
     head =  fst . uncons
     
-    -- | Returns line, except 'head'. May fail.
+    -- | Returns line except first, may fail.
     tail :: l -> l
     tail =  snd . uncons
     
@@ -198,19 +198,19 @@ class (Nullable l) => Linear l e | l -> e
     unsnoc' :: l -> Maybe (l, e)
     unsnoc' =  isNull ?- unsnoc
     
-    -- | Adds element to line as 'last', constructor for ':<' pattern.
+    -- | Appends element to line, constructor for ':<' pattern.
     toLast :: l -> e -> l
     toLast es =  (es ++) . single
     
-    -- | Returns line, except 'last'. May fail.
+    -- | Returns line except 'last' element, may fail.
     init :: l -> l
     init =  fst . unsnoc
     
-    -- | Returns last element of line. May fail.
+    -- | Returns last element, may fail.
     last :: l -> e
     last =  snd . unsnoc
     
-    -- | Singleton.
+    -- | Just singleton.
     single :: e -> l
     single =  fromList . pure
     
@@ -243,12 +243,12 @@ class (Nullable l) => Linear l e | l -> e
     fromFoldable =  fromList . toList
     
     {- |
-      Returns the element of a sequence by number (from 0), may be completely
-      unsafe. This is an optimistic unsafe read function and shouldn't perform
-      checks for efficiency reasons.
+      Returns the element of a sequence by offset, may be completely unsafe.
+      This is an optimistic read function and shouldn't perform checks for
+      efficiency reasons.
       
       If you need safety, use (!) or (!?). The generalization of this function
-      for an arbitrary index is (.!).
+      by index type (.!).
       
       > es !^ i = listL es !! i
     -}
@@ -352,9 +352,9 @@ class (Nullable l) => Linear l e | l -> e
         go es = case es of {(x :> xs) -> single x : foldr (\ ys r -> ys : (x :> ys) : r) [] (go xs); _ -> Z}
     
     {- |
-      @iterate n f x@ returns an list of repeated applications of @f@ to @x@.
+      @iterate n f x@ returns sequence of @n@ applications of @f@ to @x@.
       
-      Note that @iterate@ returns finite list, instead "Prelude" prototype.
+      Note that @iterate@ returns finite sequence, instead "Prelude" prototype.
     -}
     iterate :: Int -> (e -> e) -> e -> l
     iterate n = fromListN n ... iterate n
@@ -487,10 +487,10 @@ class (Linear s e) => Split s e | s -> e
     {- |
       Splits structures into parts by given offsets.
       
-      > parts [0,5,6,12,26] ['a'..'z'] = ["",['a'..'e'],"f",['g'..'l'],['m'..'z'],""]
+      > parts [0,5,6,12,26] ['a'..'z'] = ["","abcde","f","ghijkl","mnopqrstuvwxyz",""]
       > -- if previous offset is equal or greater, subline is empty and next
       > begins from previous:
-      > parts [0, 5, 4, 12, 26] ['a' .. 'z']
+      > parts [0, 5, 4, 12, 26] ['a' .. 'z'] = ["","abcde","","fghijklm","nopqrstuvwxyz",""]
     -}
     parts :: (Foldable f) => f Int -> s -> [s]
     parts =  splits . go . toList where go is = zipWith (-) is (0 : is)
@@ -577,9 +577,12 @@ class (Linear s e) => Split s e | s -> e
     combo :: Equal e -> s -> Int
     combo f = combo f . listL
     
-    -- | @complement n e es@ shrinks @es@ to @n@ elements, pad with @e@ if shorter.
-    complement :: Int -> e -> s -> s
-    complement n e = take n . (++ replicate n e)
+    {- |
+      @supplement n e es@ appends @e@ elements if the @es@ is shorter than @n@,
+      takes @n@ elements if longer.
+    -}
+    supplement :: Int -> e -> s -> s
+    supplement n e = take n . (++ replicate n e)
     
     {- |
       @each n es@ returns each nth element of structure.
@@ -715,30 +718,37 @@ class (Linear s e) => Split s e | s -> e
 
 --------------------------------------------------------------------------------
 
--- | Pattern Z is overloaded empty (or incorrect) line. Same as 'isNull' and 'lzero'.
+{- $patternDoc
+  "SDP.Linear" also provides three overloaded patterns: 'Z', (':>') and (':<').
+-}
+
+{- |
+  'Z' is overloaded empty ('lzero') value constant. Pattern 'Z' corresponds to
+  all empty ('isNull') values.
+-}
 pattern Z :: (Nullable e) => e
 pattern Z <- (isNull -> True) where Z = lzero
 
--- | Pattern (:>) is left-size view of line. Same as 'uncons' and 'toHead'.
+-- | Pattern @(':>')@ is left-size view of line. Same as 'uncons' and 'toHead'.
 pattern  (:>)   :: (Linear l e) => e -> l -> l
 pattern x :> xs <- (uncons' -> Just (x, xs)) where (:>) = toHead
 
--- | Pattern (:<) is right-size view of line. Same as 'unsnoc' and 'toLast'.
+-- | Pattern @(':<')@ is right-size view of line. Same as 'unsnoc' and 'toLast'.
 pattern   (:<)  :: (Linear l e) => l -> e -> l
 pattern xs :< x <- (unsnoc' -> Just (xs, x)) where (:<) = toLast
 
 --------------------------------------------------------------------------------
 
--- | Kind (* -> *) 'Linear' structure.
+-- | Kind @(* -> *)@ 'Linear' structure.
 type Linear1 l e = Linear (l e) e
 
--- | Kind (* -> *) 'Split' structure.
+-- | Kind @(* -> *)@ 'Split' structure.
 type Split1 s e = Split (s e) e
 
--- | Kind (* -> *) 'Bordered' structure.
+-- | Kind @(* -> *)@ 'Bordered' structure.
 type Bordered1 l i e = Bordered (l e) i
 
--- | Kind (* -> * -> *) 'Bordered' structure.
+-- | Kind @(* -> * -> *)@ 'Bordered' structure.
 type Bordered2 l i e = Bordered (l i e) i
 
 --------------------------------------------------------------------------------
@@ -858,7 +868,7 @@ stripSuffix' :: (Split s e, Bordered s i, Eq e) => s -> s -> Maybe s
 stripSuffix' sub = isSuffixOf sub ?+ sans (sizeOf sub)
 
 -- | intercalate is generalization of intercalate
-intercalate :: (Foldable f, Linear (f l) l, Linear l e) => l -> f l -> l
+intercalate :: (Foldable f, Linear1 f l, Linear l e) => l -> f l -> l
 intercalate =  concat ... intersperse
 
 -- | @tails es@ returns sequence of @es@ tails.

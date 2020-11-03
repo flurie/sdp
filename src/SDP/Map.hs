@@ -8,7 +8,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
     
-    @SDP.Map@ provides 'Map' - class of immutable dictionaries.
+    "SDP.Map" provides 'Map' - class of immutable associative arrays.
 -}
 module SDP.Map
 (
@@ -38,29 +38,24 @@ infixl 9 .!, !, !?
   'Map' is a class of dictionaries, simple associative arrays with an arbitrary
   (implementation-dependent) key.
   
-  In the current implementation, Map (since sdp-0.2) is a superclass of Indexed.
-  Map provides a set of operations on associative arrays that are not specific
-  to linear data structures and are not limited by the Bordered context (doesn't
-  impose significant restrictions on the type of the key, its properties).
-  
-  The disadvantage of this implementation is the impossibility of simultaneous
-  implementation of associative arrays of the form:
-  
-  > instance Map [e] Int e          -- current implementation
-  > instance (Eq k) => Map [(k, e)] -- previous implementation
+  In the current implementation, 'Map' (since @sdp-0.2@) is a superclass of
+  'SDP.Indexed.Indexed'. 'Map' provides a set of operations on associative
+  arrays that aren't specific to 'Linear' data structures and aren't limited by
+  the 'Bordered' context (doesn't restrict key type).
 -}
-class (Nullable map, Eq key) => Map map key e | map -> key, map -> e
+class (Nullable map) => Map map key e | map -> key, map -> e
   where
-    {-# MINIMAL toMap', kfoldl, kfoldr, ((.!) | (!?)) #-}
+    {-# MINIMAL toMap', ((.!) | (!?)) #-}
     
-    -- | List of associations (index, element).
+    -- | Returns list of associations @(index, element)@.
     default assocs :: (Bordered map key, Linear map e) => map -> [(key, e)]
     assocs :: map -> [(key, e)]
     assocs es = indices es `zip` listL es
     
     {- |
-      A less specific version of @assoc@ that creates a new associative array.
-      For 'Linear' structures without gaps, it may be less effective.
+      A less specific version of "SDP.Indexed.Indexed.assoc" that creates a new
+      associative array. For 'Linear' structures without gaps, it may be less
+      effective.
       
       > Z // ascs = toMap -- forall ascs
     -}
@@ -70,14 +65,15 @@ class (Nullable map, Eq key) => Map map key e | map -> key, map -> e
     {- |
       Strict version of 'toMap' with default value.
       
-      Note that the default value is only set for uninitialized elements in
-      structures with gaps. When new gaps appear, their elements may be
-      overwritten with the other values.
+      Note that the default value is set only for elements included in the range
+      of the created structure and will not be set for values outside its range
+      (when expanding, concatenating, etc.) for most structures since they don't
+      store it.
     -}
     toMap' :: e -> [(key, e)] -> map
     
     {- |
-      @insert' key e map@ inserts @e@ with @key@ to @map@. If @map@ already
+      @'insert'' key e map@ inserts @e@ with @key@ to @map@. If @map@ already
       contains an element with @key@, the element will be overwritten.
       
       If @map@ doesn't allow gaps, then the missing elements should be filled
@@ -88,7 +84,7 @@ class (Nullable map, Eq key) => Map map key e | map -> key, map -> e
     insert' k e es = toMap $ assocs es :< (k, e)
     
     {- |
-      delete' removes element with given key.
+      'delete'' removes element with given key.
       
       If the structure has boundaries, when removed from the beginning (end),
       they should change accordingly. If the structure doesn't allow gaps, then
@@ -96,9 +92,10 @@ class (Nullable map, Eq key) => Map map key e | map -> key, map -> e
       default value.
     -}
     delete' :: key -> map -> map
+    default delete' :: (Eq key) => key -> map -> map
     delete' k = toMap . except ((== k) . fst) . assocs
     
-    -- | @member' k map@ checks if there is an element with key @k@ in @map@.
+    -- | @'member'' key map@ checks if @key@ in @map@.
     default member' :: (Bordered map key) => key -> map -> Bool
     member' :: key -> map -> Bool
     member' =  flip indexIn
@@ -107,14 +104,14 @@ class (Nullable map, Eq key) => Map map key e | map -> key, map -> e
     (//) :: map -> [(key, e)] -> map
     (//) =  toMap ... (++) . assocs
     
-    -- | (.!) is unsafe reader, can be faster ('!') by skipping checks.
+    -- | @('.!')@ is unsafe reader, can be faster @('!')@ by skipping checks.
     {-# INLINE (.!) #-}
     (.!) :: map -> key -> e
     (.!) =  fromMaybe (undEx "(.!)") ... (!?)
     
-    -- | (!) is well-safe reader. Must 'throw' 'IndexException'.
-    default (!) :: (Bordered map key) => map -> key -> e
+    -- | @('!')@ is well-safe reader, may 'throw' 'IndexException'.
     (!) :: map -> key -> e
+    default (!) :: (Bordered map key) => map -> key -> e
     (!) es i = case inBounds (bounds es) i of
         IN -> es .! i
         ER -> empEx   msg
@@ -123,7 +120,7 @@ class (Nullable map, Eq key) => Map map key e | map -> key, map -> e
       where
         msg = "(!) {default}"
     
-    -- | (!?) is completely safe, but very boring function.
+    -- | @('!?')@ is completely safe, but very boring function.
     (!?) :: map -> key -> Maybe e
     (!?) es = not . flip member' es ?- (es .!)
     
@@ -156,8 +153,8 @@ class (Nullable map, Eq key) => Map map key e | map -> key, map -> e
     intersection' :: (e -> e -> e) -> m -> m -> m
     -}
     -- | Update function, by default uses ('!') and may throw 'IndexException'.
-    update :: map -> [key] -> (key -> e -> e) -> map
-    update es is f = es // [ (i, f i (es!i)) | i <- is ]
+    update :: map -> (key -> e -> e) -> map
+    update es f = es // [ (i, f i e) | (i, e) <- assocs es ]
     
     {- |
       @lookupLT' k map@ finds pair @(key, value)@ with smallest @key@, where
@@ -187,26 +184,27 @@ class (Nullable map, Eq key) => Map map key e | map -> key, map -> e
     lookupGE' :: (Ord key) => key -> map -> Maybe (key, e)
     lookupGE' k me = (,) k <$> (me !? k) <|> lookupGEWith cmpfst (k, unreachEx "lookupGE'") (assocs me)
     
-    -- | Keys of map elements.
-    default keys :: (Bordered map key) => map -> [key]
+    -- | Returns list of map keys.
     keys :: map -> [key]
-    keys =  indices
+    keys =  fsts . assocs
     
-    -- | Searches the index of first matching element.
+    -- | Searches the key of first matching element.
     (.$) :: (e -> Bool) -> map -> Maybe key
     (.$) =  null ?- head ... (*$)
     
-    -- | Searches the indices of all matching elements.
+    -- | Searches the keys of all matching elements.
     (*$) :: (e -> Bool) -> map -> [key]
     (*$) f = select (f . snd ?+ fst) . assocs
     
-    {- Folds with index. -}
+    {- Folds with key. -}
     
-    -- | 'kfoldr' is right fold with key.
+    -- | 'kfoldr' is 'foldr' with key.
     kfoldr :: (key -> e -> b -> b) -> b -> map -> b
+    kfoldr f base = foldr (uncurry f) base . assocs
     
-    -- | 'kfoldl' is left  fold with key.
+    -- | 'kfoldl' is 'foldl' with key.
     kfoldl :: (key -> b -> e -> b) -> b -> map -> b
+    kfoldl f base = foldl (\ acc (i, e) -> f i acc e) base . assocs
     
     -- | 'kfoldr'' is strict version of 'kfoldr'.
     kfoldr' :: (key -> e -> b -> b) -> b -> map -> b
@@ -289,7 +287,4 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Map."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Map."
-
-
-
 

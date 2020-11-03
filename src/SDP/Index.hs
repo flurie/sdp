@@ -9,8 +9,8 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
   
-  The 'Index' class is a fork of @Ix@ with a richer interface, more convenient
-  function names and generalized indexes.
+  The 'Index' class is a fork of 'Data.Ix.Ix' with a richer interface, more
+  convenient function names and generalized indexes.
 -}
 module SDP.Index
 (
@@ -22,11 +22,8 @@ module SDP.Index
   -- * Indices
   Index (..),
   
-  -- * Service types
-  InBounds (..), Bounds,
-  
-  -- * Helpers
-  offsetIntegral, defaultBoundsUnsign
+  -- ** Helpers
+  InBounds (..), offsetIntegral, defaultBoundsUnsign
 )
 where
 
@@ -43,15 +40,6 @@ default ()
 
 --------------------------------------------------------------------------------
 
-{- Service types. -}
-
-{- |
-  Type synonym for very long type annotation, e.g. @Bounds (Int, Int, Int, Int)@
-  is same as @((Int, Int, Int, Int), (Int, Int, Int, Int))@.
--}
-{-# DEPRECATED Bounds "in favour tuple type synonyms" #-}
-type Bounds i = (i, i)
-
 -- | InBounds - service type that specifies index and bounds status.
 data InBounds = ER {- ^ Empty Range     -}
               | UR {- ^ Underflow Range -}
@@ -61,49 +49,46 @@ data InBounds = ER {- ^ Empty Range     -}
 
 --------------------------------------------------------------------------------
 
--- Note: SubIndex is constraint that hide 'Sub' class.
-
-{- |
-  The constraint @SubIndex i j@ matches if upper subspaces of @i@ and @j@ have
-  equivalent types, and rank @i@ isn't less than rank @j@.
--}
-type SubIndex = Sub
-
--- | (:|:) is closed type family of shape differences.
+-- | @(':|:')@ is closed type family of shape differences.
 type family i :|: j
   where
     i :|: E = i
     i :|: j = DimInit i :|: DimInit j
 
+{- |
+  'SubIndex' is service constraint that corresponds closed (internal) class
+  @Sub@. @'SubIndex' i j @ matches if 'Index' type @i@ is subspace of 'Index'
+  type @j@.
+-}
+type SubIndex = Sub
+
 -- Internal class of shape differences.
 class (Index i, Index j, Index (i :|: j)) => Sub i j
   where
-    _takeDim :: i -> j
-    
-    -- | dropDim returns shape difference.
     _dropDim :: i -> j -> i :|: j
+    _takeDim :: i -> j
 
 instance {-# OVERLAPS #-} (Index i, E ~~ (i :|: i)) => Sub i i
   where
-    _takeDim = id
     _dropDim = \ _ _ -> E
+    _takeDim = id
 
 instance {-# OVERLAPPING #-} (Sub (DimInit i) j, ij ~~ (i :|: j), Index i, Index j, Index ij, DimInit ij ~~ (DimInit i :|: j), DimLast ij ~~ DimLast i) => Sub i j
   where
-    _takeDim = _takeDim . initDim
     _dropDim i' j' = let (is, i) = unconsDim i' in consDim (_dropDim is j') i
+    _takeDim = _takeDim . initDim
 
--- | takeDim returns subshape.
+-- | 'takeDim' returns subshape.
 takeDim :: (SubIndex i j) => i -> j
 takeDim =  _takeDim
 
--- | dropDim returns shape difference.
+-- | 'dropDim' returns shape difference.
 dropDim :: (SubIndex i j) => i -> j -> i :|: j
 dropDim =  _dropDim
 
--- | splitDim returns pair of shape difference and subshape.
+-- | 'splitDim' returns pair of shape difference and subshape.
 splitDim :: (SubIndex i j) => i -> (i :|: j, j)
-splitDim i = (dropDim i j, j) where j = takeDim i
+splitDim i = let j = takeDim i in (dropDim i j, j)
 
 --------------------------------------------------------------------------------
 
@@ -127,12 +112,13 @@ splitDim i = (dropDim i j, j) where j = takeDim i
   > inRange bnds i == (safeElem bnds i == i)
   
   Note:
-  * E is (and should remain) the one and only one index of rank 0.
-  * Index is a generalization of Enum, so all rank 1 indices must satisfy Enum
-  laws.
+  
+  * 'E' is (and should remain) the one and only one index of @rank 0@.
+  * 'Index' is a generalization of 'Enum', so all @rank 1@ indices must satisfy
+  'Enum' laws.
   * The cardinality of the set of permissible values for indices mustn't
-  exceed 1 (cardinality of a series of natural numbers). This is a purely
-  practical limitation.
+  exceed 1 (cardinality of a series of natural numbers), so 'Fractional' types
+  cannot be indices.
 -}
 class (Ord i, Shape i, Shape (DimLast i), Shape (DimInit i), Shape (GIndex i)) => Index i
   where
@@ -140,14 +126,14 @@ class (Ord i, Shape i, Shape (DimLast i), Shape (DimInit i), Shape (GIndex i)) =
     
     -- | Returns the size of range.
     {-# INLINE size #-}
-    default size :: (Enum i) => (i, i) -> Int
     size :: (i, i) -> Int
+    default size :: (Enum i) => (i, i) -> Int
     size bnds@(l, u) = isEmpty bnds ? 0 $ u -. l + 1
     
     -- | Returns the sizes of range dimensionwise.
     {-# INLINE sizes #-}
-    default sizes :: (Index (GIndex i)) => (i, i) -> [Int]
     sizes :: (i, i) -> [Int]
+    default sizes :: (Index (GIndex i)) => (i, i) -> [Int]
     sizes =  sizes . toGBounds
     
     -- | Returns the index belonging to the given range.
@@ -155,14 +141,14 @@ class (Ord i, Shape i, Shape (DimLast i), Shape (DimInit i), Shape (GIndex i)) =
     safeElem :: (i, i) -> i -> i
     safeElem (l, u) = min u . max l
     
-    -- | Returns bounds of nonempty range.
+    -- | Returns bounds of nonempty range (swaps bounds in each empty subshape).
     {-# INLINE ordBounds #-}
     ordBounds :: (i, i) -> (i, i)
     ordBounds = \ bs -> isEmpty bs ? swap bs $ bs
     
-    -- | Size of biggest range, that may be represented by this type of index.
-    default defLimit :: (Integral i, Bounded i) => i -> Integer
+    -- | Returns size of biggest range, that may be represented by this type.
     defLimit :: i -> Integer
+    default defLimit :: (Integral i, Bounded i) => i -> Integer
     defLimit i = toInteger (maxBound `asTypeOf` i) + 1
     
     -- | Returns default range by size.
@@ -172,8 +158,8 @@ class (Ord i, Shape i, Shape (DimLast i), Shape (DimInit i), Shape (GIndex i)) =
     
     -- | Returns index by offset in default range.
     {-# INLINE unsafeIndex #-}
-    default unsafeIndex :: (Enum i) => Int -> i
     unsafeIndex :: Int -> i
+    default unsafeIndex :: (Enum i) => Int -> i
     unsafeIndex =  toEnum
     
     {- Checkers -}
@@ -197,16 +183,16 @@ class (Ord i, Shape i, Shape (DimLast i), Shape (DimInit i), Shape (GIndex i)) =
     isUnderflow :: (i, i) -> i -> Bool
     isUnderflow (l, u) i = i < l || l > u
     
-    -- | Checks if the index is in range.
+    -- | Checks if the index is in 'range'.
     {-# INLINE inRange #-}
     inRange :: (i, i) -> i -> Bool
     inRange (l, u) i = l <= i && i <= u
     
     {- Enum-like operations -}
     
-    -- | Returns previous index in range.
-    default prev  :: (Enum i) => (i, i) -> i -> i
+    -- | Returns previous index in 'range'.
     prev :: (i, i) -> i -> i
+    default prev  :: (Enum i) => (i, i) -> i -> i
     prev (l, u) i | isEmpty (l, u) = e | i <= l = l | i > u = u | True = pred i
       where
         e = emptyEx "prev {default}"
@@ -218,24 +204,24 @@ class (Ord i, Shape i, Shape (DimLast i), Shape (DimInit i), Shape (GIndex i)) =
       where
         e = emptyEx "next {default}"
     
-    -- | Returns offset (indent) of index in this bounds.
+    -- | Returns 'offset' (indent) of 'index' in 'range'.
     {-# INLINE offset #-}
-    default offset :: (Enum i) => (i, i) -> i -> Int
     offset :: (i, i) -> i -> Int
+    default offset :: (Enum i) => (i, i) -> i -> Int
     offset bnds@(l, _) i = checkBounds bnds i (i -. l) "offset {default}"
     
-    -- | Returns index by this offset (indent) in range.
+    -- | Returns 'index' by this 'offset' (indent) in 'range'.
     {-# INLINE index #-}
-    default index :: (Enum i) => (i, i) -> Int -> i
     index :: (i, i) -> Int -> i
-    index bnds@(l, _) n = checkBounds (0, size bnds - 1) n res "index {default}"
-      where
-        res = toEnum $ n + fromEnum l
+    default index :: (Enum i) => (i, i) -> Int -> i
+    index bnds@(l, _) n =
+      let res = toEnum $ n + fromEnum l
+      in  checkBounds (0, size bnds - 1) n res "index {default}"
     
     -- | Returns the ordered list of indices in this range.
     {-# INLINE range #-}
-    default range :: (Enum i) => (i, i) -> [i]
     range :: (i, i) -> [i]
+    default range :: (Enum i) => (i, i) -> [i]
     range =  uncurry enumFromTo
     
     {- |
@@ -370,9 +356,7 @@ instance Index CUIntMax   where offset = offsetIntegral; defaultBounds = default
 
 instance (Index i, Enum i, Bounded i) => Index (E :& i)
   where
-    defLimit = lim undefined
-      where
-        lim = const . defLimit :: (Index i) => i -> (E :& i) -> Integer
+    defLimit = (const . defLimit :: (Index i) => i -> (E :& i) -> Integer) undefined
     
     size  = \ ([l], [u]) ->  size (l, u)
     sizes = \ ([l], [u]) -> [size (l, u)]
@@ -525,6 +509,7 @@ checkBounds bnds i res = case inBounds bnds i of
 
 emptyEx :: String -> a
 emptyEx =  throw . EmptyRange . showString "in SDP.Index."
+
 
 
 

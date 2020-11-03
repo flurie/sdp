@@ -7,7 +7,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
     
-    @SDP.Bytes.IO@ provides 'IOBytes' - mutable strict unboxed array type.
+    "SDP.Bytes.IO" provides 'IOBytes' - mutable strict unboxed array type.
 -}
 module SDP.Bytes.IO
 (
@@ -34,7 +34,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | 'IOBytes' is mutable version of Bytes.
+-- | 'IOBytes' is mutable version of 'SDP.Bytes.Bytes'.
 type IOBytes = AnyBorder IOBytes#
 
 

@@ -6,9 +6,9 @@
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
-  
-  @SDP.Unboxed@ provide service class 'Unboxed', that needed for "SDP.Bytes",
-  "SDP.ByteList" and "SDP.ByteList.Ublist".
+    
+    "SDP.Unboxed" provide service class 'Unboxed', that needed for
+    "SDP.Prim.SBytes"-based structures.
 -}
 module SDP.Unboxed
   (
@@ -43,11 +43,8 @@ default ()
 --------------------------------------------------------------------------------
 
 {- |
-  Unboxed is a service class that provides a basic interface for reading,
-  writing and copying unboxed data.
-  
-  Unboxed is created as a layer between untyped raw data and parameterized
-  unboxed data structures. Also it prevents direct interaction with primitives.
+  'Unboxed' is a layer between untyped raw data and parameterized unboxed data
+  structures. Also it prevents direct interaction with primitives.
 -}
 class (Eq e) => Unboxed e
   where
@@ -59,13 +56,13 @@ class (Eq e) => Unboxed e
     -}
     sizeof :: e -> Int -> Int
     
-    -- | Unsafe ByteArray\# reader with overloaded result type.
+    -- | Unsafe 'ByteArray#' reader with overloaded result type.
     (!#) :: ByteArray# -> Int# -> e
     
-    -- | Unsafe MutableByteArray\# reader with overloaded result type.
+    -- | Unsafe 'MutableByteArray#' reader with overloaded result type.
     (!>#) :: MutableByteArray# s -> Int# -> State# s -> (# State# s, e #)
     
-    -- | Unsafe MutableByteArray\# writer.
+    -- | Unsafe 'MutableByteArray#' writer.
     writeByteArray# :: MutableByteArray# s -> Int# -> e -> State# s -> State# s
     
     {-# INLINE fillByteArray# #-}
@@ -76,15 +73,15 @@ class (Eq e) => Unboxed e
         s2# -> fillByteArray# mbytes# (n# -# 1#) e s2#
     
     {- |
-      newUnboxed creates new MutableByteArray\# of given count of elements.
+      'newUnboxed' creates new 'MutableByteArray#' of given count of elements.
       First argument used as type variable.
     -}
     newUnboxed :: e -> Int# -> State# s -> (# State# s, MutableByteArray# s #)
     
     {-# INLINE newUnboxed' #-}
     {- |
-      new Unboxed' is strict version of array, that use first argument as initial
-      value. May fail when trying to write error or undefined.
+      'newUnboxed'' is version of 'newUnboxed', that use first argument as
+      initial value. May fail when trying to write 'error' or 'undefined'.
     -}
     newUnboxed' :: e -> Int# -> State# s -> (# State# s, MutableByteArray# s #)
     newUnboxed' e n# = \ s1# -> case newUnboxed e n# s1# of
@@ -92,21 +89,17 @@ class (Eq e) => Unboxed e
         s3# -> (# s3#, mbytes# #)
     
     {- |
-      @copyUnboxed\# e bytes\# o1\# mbytes\# o2\# n\#@ writes elements from
-      @bytes\#@ to @mbytes\#@, where o1\# and o2\# - offsets (element count),
-      @n\#@ - count of elements to copy.
-      
-      Note that copyUnboxed\# is unsafe.
+      @'copyUnboxed#' e bytes\# o1\# mbytes\# o2\# n\#@ unsafely writes elements
+      from @bytes\#@ to @mbytes\#@, where o1\# and o2\# - offsets (element
+      count), @n\#@ - count of elements to copy.
     -}
     copyUnboxed# :: e -> ByteArray# -> Int# -> MutableByteArray# s -> Int# -> Int# -> State# s -> State# s
     copyUnboxed# e bytes# o1# mbytes# o2# n# = copyByteArray# bytes# (sizeof# e o1#) mbytes# (sizeof# e o2#) (sizeof# e n#)
     
     {- |
-      @copyUnboxedM\# e msrc\# o1\# mbytes\# o2\# n\#@ writes elements from
-      @msrc\#@ to @mbytes\#@, where o1\# and o2\# - offsets (element count),
-      @n\#@ - count of elements to copy.
-      
-      Note that copyUnboxedM\# is unsafe.
+      @'copyUnboxedM#' e msrc\# o1\# mbytes\# o2\# n\#@ unsafely writes elements
+      from @msrc\#@ to @mbytes\#@, where o1\# and o2\# - offsets (element
+      count), @n\#@ - count of elements to copy.
     -}
     copyUnboxedM# :: e -> MutableByteArray# s -> Int# -> MutableByteArray# s -> Int# -> Int# -> State# s -> State# s
     copyUnboxedM# e msrc# o1# mbytes# o2# n# = copyMutableByteArray# msrc# (sizeof# e o1#) mbytes# (sizeof# e o2#) (sizeof# e n#)
@@ -606,11 +599,12 @@ sizeof# =  \ e c# -> case sizeof e (I# c#) of I# n# -> n#
 --------------------------------------------------------------------------------
 
 {- |
-  newUnboxedByteArray is service function for ordinary newUnboxed decrarations.
+  'newUnboxedByteArray' is service function for ordinary 'newUnboxed'
+  decrarations.
   
-  @newUnboxedByteArray f i\#@ creates new MutableByteArray\# of real
+  @'newUnboxedByteArray' f i\#@ creates new 'MutableByteArray#' of real
   length (f i\#), where i\# - count of element, f - non-negative function
-  (e.g. @newUnboxedByteArray double_scale == newUnboxed@ for 'Float').
+  (e.g. @'newUnboxedByteArray' double_scale == 'newUnboxed'@ for 'Float').
 -}
 {-# INLINE newUnboxedByteArray #-}
 {-# DEPRECATED newUnboxedByteArray "use newByteArray# and sizeof# instead" #-}
@@ -618,7 +612,7 @@ newUnboxedByteArray :: (Int# -> Int#) -> Int# -> State# s -> (# State# s, Mutabl
 newUnboxedByteArray f n# = newByteArray# (f n#)
 
 {- |
-  safe_scale is a service function that converts the scale and number of
+  'safe_scale' is a service function that converts the scale and number of
   elements to length in bytes.
 -}
 {-# INLINE safe_scale #-}
@@ -632,4 +626,5 @@ safe_scale scale# n# = if isTrue# (mb# `divInt#` scale# <# n#)
 
 unpackUndefined :: b -> (a -> b) -> a
 unpackUndefined =  \ _ _ -> undefined
+
 

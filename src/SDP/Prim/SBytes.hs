@@ -8,8 +8,8 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
     
-    @SDP.Prim.SBytes@ is internal module, that represent lazy boxed
-    array pseudo-primitive types 'SBytes\#' and 'STBytes\#'.
+    "SDP.Prim.SBytes" provides strict unboxed array pseudo-primitive types
+    'SBytes#', 'STBytes#' and 'IOBytes#'.
 -}
 module SDP.Prim.SBytes
 (
@@ -80,13 +80,11 @@ default ()
 --------------------------------------------------------------------------------
 
 {- |
-  SBytes\# - pseudo-primitive strict unboxed immutable type.
+  'SBytes#' is immutable pseudo-primitive 'Int'-indexed strict unboxed array
+  type.
   
-  SBytes\# isn't real Haskell primitive (like "GHC.Exts" types) but for
+  'SBytes#' isn't real Haskell primitive (like "GHC.Exts" types) but for
   reliability and stability, I made it inaccessible to direct work.
-  
-  If you need a primitive type (ByteArray\#), then you can get it only by
-  copying fromPseudoBytes\# function.
 -}
 data SBytes# e = SBytes#
                         {-# UNPACK #-} !Int -- ^ Element count (not a real size)
@@ -324,7 +322,7 @@ instance (Unboxed e) => Split (SBytes# e) e
         
         n = sizeOf es
     
-    complement n@(I# n#) e es@(SBytes# c@(I# c#) (I# o#) src#) = case c <=> n of
+    supplement n@(I# n#) e es@(SBytes# c@(I# c#) (I# o#) src#) = case c <=> n of
       EQ -> es
       GT -> take n es
       LT -> runST $ ST $ \ s1# -> case newUnboxed' e n# s1# of
@@ -376,7 +374,7 @@ instance Bordered (SBytes# e) Int
 
 --------------------------------------------------------------------------------
 
-{- Set and Sort instances. -}
+{- Set, SetWith and Sort instances. -}
 
 instance (Unboxed e, Ord e) => Set (SBytes# e) e
 
@@ -522,7 +520,7 @@ instance (Unboxed e) => Sort (SBytes# e) e
 
 --------------------------------------------------------------------------------
 
-{- Indexed instance. -}
+{- Map and Indexed instances. -}
 
 instance (Unboxed e) => Map (SBytes# e) Int e
   where
@@ -572,7 +570,7 @@ instance (Unboxed e) => Freeze (ST s) (STBytes# s e) (SBytes# e)
 
 --------------------------------------------------------------------------------
 
--- | Primitive mutable byte array type for internal use.
+-- | 'STBytes#' is mutable pseudo-primitive 'Int'-indexed strict unboxed array type.
 data STBytes# s e = STBytes#
                             {-# UNPACK #-} !Int    -- ^ Element count (not a real size)
                             {-# UNPACK #-} !Int    -- ^ Offset (in elements)
@@ -815,7 +813,7 @@ instance (Unboxed e) => SortM (ST s) (STBytes# s e) e where sortMBy = timSortBy
 
 --------------------------------------------------------------------------------
 
--- | Primitive int-indexed unboxed array in monad 'IO'.
+-- | 'IOBytes#' is mutable pseudo-primitive 'Int'-indexed strict unboxed array type.
 newtype IOBytes# e = IOBytes# (STBytes# RealWorld e) deriving ( Eq )
 
 unpack :: IOBytes# e -> STBytes# RealWorld e
@@ -991,19 +989,19 @@ instance (Storable e, Unboxed e) => Thaw IO (SBytes# e) (Int, Ptr e)
 
 --------------------------------------------------------------------------------
 
--- | unpackSBytes\# returns ByteArray\# field of SBytes\#.
+-- | 'unpackSBytes#' returns 'ByteArray#' field of 'SBytes#'.
 unpackSBytes# :: (Unboxed e) => SBytes# e -> ByteArray#
 unpackSBytes# = \ (SBytes# _ _ marr#) -> marr#
 
--- | offsetSBytes\# returns byte offset of SBytes\#.
+-- | 'offsetSBytes#' returns 'SBytes#' offset in bytes.
 offsetSBytes# :: (Unboxed e) => SBytes# e -> Int#
 offsetSBytes# =  \ es@(SBytes# _ o _) -> case psizeof es o of I# o# -> o#
 
--- | packSBytes\# creates new SBytes\# from sized ByteArray\#.
+-- | 'packSBytes#' creates new 'SBytes#' from sized 'ByteArray#'.
 packSBytes# :: (Unboxed e) => Int -> ByteArray# -> SBytes# e
 packSBytes# n marr# = SBytes# (max 0 n) 0 marr#
 
--- | fromSBytes\# returns new ByteArray\#.
+-- | 'fromSBytes#' returns new 'ByteArray#'.
 fromSBytes# :: (Unboxed e) => SBytes# e -> ByteArray#
 fromSBytes# es = case clone err es of (SBytes# _ _ arr#) -> arr#
   where
@@ -1016,8 +1014,8 @@ fromSBytes# es = case clone err es of (SBytes# _ _ arr#) -> arr#
     err = unreachEx "fromSBytes#"
 
 {- |
-  Unsafe low-lowel coerce of an array with recounting the number of elements and
-  offset (with possible rounding).
+  'unsafeCoerceSBytes#' is unsafe low-lowel coerce of an array with recounting
+  the number of elements and offset (with possible rounding).
 -}
 unsafeCoerceSBytes# :: (Unboxed a, Unboxed b) => SBytes# a -> SBytes# b
 unsafeCoerceSBytes# =  go Proxy Proxy
@@ -1028,18 +1026,19 @@ unsafeCoerceSBytes# =  go Proxy Proxy
         n' = n * s1 `div` s2; s1 = psizeof pa 1
         o' = o * s1 `div` s2; s2 = psizeof pb 1
 
--- | unpackSTBytes# returns MutableByteArray\# field of STBytes\#.
+-- | 'unpackSTBytes#' returns 'MutableByteArray#' field of 'STBytes#'.
 unpackSTBytes# :: (Unboxed e) => STBytes# s e -> MutableByteArray# s
 unpackSTBytes# =  \ (STBytes# _ _ marr#) -> marr#
 
+-- | 'offsetSTBytes#' returns 'STBytes#' offset in bytes.
 offsetSTBytes# :: (Unboxed e) => STBytes# s e -> Int#
 offsetSTBytes# =  \ (STBytes# _ (I# o#) _) -> o#
 
--- | packSTBytes\# creates new STBytes\# from sized MutableByteArray\#.
+-- | 'packSTBytes#' creates new 'STBytes#' from sized 'MutableByteArray#'.
 packSTBytes# :: (Unboxed e) => Int -> MutableByteArray# s -> STBytes# s e
 packSTBytes# n marr# = STBytes# (max 0 n) 0 marr#
 
--- | fromSTBytes\# returns new MutableByteArray\#
+-- | 'fromSTBytes#' returns new 'MutableByteArray#'.
 fromSTBytes# :: (Unboxed e) => STBytes# s e -> State# s -> (# State# s, MutableByteArray# s #)
 fromSTBytes# es = \ s1# -> case clone es s1# of
     (# s2#, (STBytes# _ _ marr#) #) -> (# s2#, marr# #)
@@ -1048,8 +1047,8 @@ fromSTBytes# es = \ s1# -> case clone es s1# of
     clone es' = \ s1# -> case cloneSTBytes# es' of ST rep -> rep s1#
 
 {- |
-  Unsafe low-lowel coerce of an mutable array with recounting the number of
-  elements and offset (with possible rounding).
+  'unsafeCoerceSTBytes#' is unsafe low-lowel coerce of an mutable array with
+  recounting the number of elements and offset (with possible rounding).
 -}
 unsafeCoerceSTBytes# :: (Unboxed a, Unboxed b) => STBytes# s a -> STBytes# s b
 unsafeCoerceSTBytes# =  go Proxy Proxy
@@ -1061,7 +1060,7 @@ unsafeCoerceSTBytes# =  go Proxy Proxy
         o' = o * s1 `div` s2; s2 = psizeof pb 1
 
 {- |
-  @unsafeSBytesToPtr\# es@ byte-wise stores 'SBytes#' content to 'Ptr'. Returns
+  @'unsafeSBytesToPtr#' es@ byte-wise stores 'SBytes#' content to 'Ptr'. Returns
   the number of overwritten elements and a pointer to @psizeof es (sizeOf es)@
   bytes of allocated memory.
 -}
@@ -1079,12 +1078,14 @@ unsafeSBytesToPtr# es@(SBytes# c (I# o#) marr#) = do
   return (n, ptr)
 
 {- |
-  @unsafePtrToSBytes\# n ptr@ byte-wise stores @n@ elements of 'Ptr' @ptr@ to
+  @'unsafePtrToSBytes#' n ptr@ byte-wise stores @n@ elements of 'Ptr' @ptr@ to
   'SBytes#'.
 -}
 unsafePtrToSBytes# :: (Unboxed e) => (Int, Ptr e) -> IO (SBytes# e)
 unsafePtrToSBytes# (c, ptr) = do
   let
+    err = undEx "unsafePtrToSBytes#" `asProxyTypeOf` ptr
+    
     peekByte :: Ptr a -> Int -> IO Word8
     peekByte =  peekByteOff
     
@@ -1102,8 +1103,6 @@ unsafePtrToSBytes# (c, ptr) = do
         s2# -> (# s2#, () #)
   
   stToIO (done es)
-  where
-    err = undEx "unsafePtrToSBytes#" `asProxyTypeOf` ptr
 
 --------------------------------------------------------------------------------
 
@@ -1155,6 +1154,8 @@ nubSorted f es = fromList $ foldr fun [last es] ((es !^) <$> [0 .. sizeOf es - 2
   where
     fun = \ e ls -> e `f` head ls == EQ ? ls $ e : ls
 
+--------------------------------------------------------------------------------
+
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.Prim.SBytes."
 
@@ -1166,5 +1167,4 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Prim.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
-
 

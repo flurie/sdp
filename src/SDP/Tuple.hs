@@ -5,7 +5,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
     
-    @SDP.Tuple@ provides tuple type synonyms.
+    "SDP.Tuple" provides tuple type synonyms.
 -}
 module SDP.Tuple
 (

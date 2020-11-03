@@ -5,9 +5,9 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC extensions)
+    Portability :  portable
     
-    @SDP.Array.ST@ provides 'STArray' - mutable lazy boxed array type.
+    "SDP.Array.ST" provides 'STArray' - mutable lazy boxed array type.
 -}
 module SDP.Array.ST
 (
@@ -32,7 +32,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | STArray is mutable version of Array.
+-- | 'STArray' is mutable version of 'SDP.Array.Array'.
 type STArray s = AnyBorder (STArray# s)
 
 

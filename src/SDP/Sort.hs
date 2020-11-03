@@ -7,15 +7,12 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
     
-    @SDP.Sort@ provides 'Sort' - class of sortable immutable structures.
+    "SDP.Sort" provides 'Sort' - class of sortable immutable structures.
 -}
 module SDP.Sort
   (
     -- * Sort
-    Sort (..),
-    
-    -- * Related functions
-    sort, sortOn, mathsort, mathsortOn
+    Sort (..), sort, sortOn, mathsort, mathsortOn
   )
 where
 
@@ -28,22 +25,26 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | Sort - is class of types that can be sorted.
+-- | 'Sort' is class of types that can be sorted.
 class Sort s e | s -> e
   where
     {-# MINIMAL sortBy #-}
     
-    -- | sortBy function is common sorting algorithm.
+    -- | 'sortBy' function is common sorting algorithm.
     sortBy :: Compare e -> s -> s
     
     {- |
-      mathsortBy is sortBy modiffication, that which is optimized for sorting
-      data with a lot of repetitions.
+      'mathsortBy' is 'sortBy' modiffication, that which is optimized for
+      sorting data with a lot of repetitions.
     -}
     mathsortBy :: Compare e -> s -> s
     mathsortBy =  sortBy
 
--- | sort is just synonym for @sortBy compare@
+instance Sort [a] a where sortBy = L.sortBy
+
+--------------------------------------------------------------------------------
+
+-- | 'sort' is just @'sortBy' 'compare'@
 sort :: (Sort s e, Ord e) => s -> s
 sort =  sortBy compare
 
@@ -51,7 +52,7 @@ sort =  sortBy compare
 sortOn :: (Sort s e, Ord o) => (e -> o) -> s -> s
 sortOn =  sortBy . comparing
 
--- | mathsort is just synonym for @mathsortBy compare@
+-- | 'mathsort' is just @'mathsortBy' 'compare'@
 mathsort :: (Sort s e, Ord e) => s -> s
 mathsort =  mathsortBy compare
 
@@ -59,7 +60,6 @@ mathsort =  mathsortBy compare
 mathsortOn :: (Sort s e, Ord o) => (e -> o) -> s -> s
 mathsortOn =  mathsortBy . comparing
 
---------------------------------------------------------------------------------
 
-instance Sort [a] a where sortBy = L.sortBy
+
 

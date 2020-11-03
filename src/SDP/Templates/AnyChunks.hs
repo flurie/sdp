@@ -9,7 +9,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
     
-    @SDP.Templates.AnyChunks@ provides 'AnyChunks' - list of data chunks.
+    "SDP.Templates.AnyChunks" provides 'AnyChunks' - list of data chunks.
 -}
 module SDP.Templates.AnyChunks
 (
@@ -41,7 +41,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | AnyChunks is list of data chunks.
+-- | 'AnyChunks' is list of data chunks.
 data AnyChunks rep e = AnyChunks [rep e] deriving ( Typeable, Data, Generic )
 
 --------------------------------------------------------------------------------
@@ -532,10 +532,7 @@ instance {-# OVERLAPPABLE #-} (Linear1 imm e, Thaw1 m imm mut e) => Thaw m (AnyC
     unsafeThaw (AnyChunks es) = unsafeThaw (concat es)
     thaw       (AnyChunks es) = unsafeThaw (concat es)
 
-{- |
-  Creates one-chunk mutable stream. Works without 'Split' and 'SplitM', but may
-  be memory inefficient.
--}
+-- | Creates one-chunk mutable stream, may be memory inefficient.
 instance {-# OVERLAPPABLE #-} (Thaw1 m imm mut e) => Thaw m (imm e) (AnyChunks mut e)
   where
     unsafeThaw = fmap (AnyChunks . single) . unsafeThaw
@@ -546,12 +543,13 @@ instance {-# OVERLAPS #-} (Thaw1 m imm mut e) => Thaw m (AnyChunks imm e) (AnyCh
     unsafeThaw (AnyChunks imm) = AnyChunks <$> mapM unsafeThaw imm
     thaw       (AnyChunks imm) = AnyChunks <$> mapM thaw imm
 
--- | Creates one-chunk immutable stream. May be memory inefficient.
+-- | Creates one-chunk immutable stream, may be memory inefficient.
 instance {-# OVERLAPPABLE #-} (Freeze1 m mut imm e) => Freeze m (mut e) (AnyChunks imm e)
   where
     unsafeFreeze = fmap (AnyChunks . single) . unsafeFreeze
     freeze       = fmap (AnyChunks . single) . freeze
 
+-- | Creates new immutable structure using 'merged'.
 instance {-# OVERLAPPABLE #-} (LinearM1 m mut e, Freeze1 m mut imm e) => Freeze m (AnyChunks mut e) (imm e)
   where
     unsafeFreeze (AnyChunks es) = unsafeFreeze =<< merged es
@@ -564,14 +562,14 @@ instance {-# OVERLAPS #-} (Freeze1 m mut imm e) => Freeze m (AnyChunks mut e) (A
 
 --------------------------------------------------------------------------------
 
-pfailEx :: String -> a
-pfailEx =  throw . PatternMatchFail . showString "in SDP.Templates.AnyChunks."
-
 overEx :: String -> a
 overEx =  throw . IndexOverflow . showString "in SDP.Templates.AnyChunks."
 
 underEx :: String -> a
 underEx =  throw . IndexUnderflow . showString "in SDP.Templates.AnyChunks."
+
+pfailEx :: String -> a
+pfailEx =  throw . PatternMatchFail . showString "in SDP.Templates.AnyChunks."
 
 unpack :: (Linear1 rep e) => AnyChunks rep e -> [rep e]
 unpack =  \ (AnyChunks es) -> except isNull es
@@ -584,7 +582,4 @@ unpack' (AnyChunks es) = go es
 
 lim :: Int
 lim =  1024
-
-
-
 

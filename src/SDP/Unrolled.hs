@@ -5,9 +5,9 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC extensions)
+    Portability :  portable
     
-    @SDP.Unrolled@ provides 'Unrolled' - lazy boxed unrolled linked list.
+    "SDP.Unrolled" provides 'Unrolled' - lazy boxed unrolled linked list.
 -}
 module SDP.Unrolled
 (
@@ -42,7 +42,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | Unrolled is bordered unrolled linked list.
+-- | 'Unrolled' is bordered unrolled linked list.
 type Unrolled = AnyBorder Unlist
 
 instance {-# OVERLAPPABLE #-} (Index i, Show i, Show e) => Show (Unrolled i e)

@@ -8,8 +8,8 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
     
-    @SDP.Prim.SArray@ is internal module, that represent lazy boxed
-    array pseudo-primitive types 'SArray\#' and 'STArray\#'.
+    "SDP.Prim.SArray" provides lazy boxed array pseudo-primitive types
+    'SArray#', 'STArray#' and 'IOArray#'.
 -}
 module SDP.Prim.SArray
 (
@@ -75,13 +75,10 @@ default ()
 --------------------------------------------------------------------------------
 
 {- |
-  SArray\# - pseudo-primitive lazy boxed immutable type.
+  'SArray#' is immutable pseudo-primitive 'Int'-indexed lazy boxed array type.
   
-  SArray\# isn't real Haskell primitive (like "GHC.Exts" types) but for
+  'SArray#' isn't real Haskell primitive (like "GHC.Exts" types) but for
   reliability and stability, I made it inaccessible to direct work.
-  
-  If you need a primitive type (Array\#), then you can get it only by
-  fromSArray\# (copying function).
 -}
 data SArray# e = SArray#
                         {-# UNPACK #-} !Int -- ^ Element count (not a real size)
@@ -378,7 +375,7 @@ instance Split (SArray# e) e
     
     splitsBy f es = dropWhile f <$> f *$ es `parts` es
     
-    complement n@(I# n#) e es@(SArray# c@(I# c#) (I# o#) src#) = case c <=> n of
+    supplement n@(I# n#) e es@(SArray# c@(I# c#) (I# o#) src#) = case c <=> n of
       EQ -> es
       GT -> take n es
       LT -> runST $ ST $ \ s1# -> case newArray# n# e s1# of
@@ -437,7 +434,7 @@ instance Bordered (SArray# e) Int
 
 --------------------------------------------------------------------------------
 
-{- Set, Scan and Sort instances. -}
+{- Set, SetWith, Scan and Sort instances. -}
 
 instance (Ord e) => Set (SArray# e) e
 
@@ -633,7 +630,7 @@ instance Freeze (ST s) (STArray# s e) (SArray# e)
 
 --------------------------------------------------------------------------------
 
--- | Primitive mutable array type for internal use.
+-- | 'STArray#' is mutable preudo-primitive 'Int'-indexed lazy boxed array type.
 data STArray# s e = STArray#
                             {-# UNPACK #-} !Int  -- ^ Element count (not a real size)
                             {-# UNPACK #-} !Int  -- ^ Offset (in elements)
@@ -866,7 +863,7 @@ instance SortM (ST s) (STArray# s e) e where sortMBy = timSortBy
 
 --------------------------------------------------------------------------------
 
--- | Primitive int-indexed unboxed array in monad 'IO'.
+-- | 'IOArray#' is mutable preudo-primitive 'Int'-indexed lazy boxed array type.
 newtype IOArray# e = IOArray# (STArray# RealWorld e) deriving ( Eq )
 
 unpack :: IOArray# e -> STArray# RealWorld e
@@ -1041,43 +1038,43 @@ instance (Storable e) => Thaw IO (SArray# e) (Int, Ptr e)
 
 --------------------------------------------------------------------------------
 
--- | unpackSArray\# returns ByteArray\# field of SArray\#.
+-- | 'unpackSArray#' returns 'MutableArray#' field of 'SArray#'.
 unpackSArray# :: SArray# e -> Array# e
 unpackSArray# = \ (SArray# _ _ arr#) -> arr#
 
--- | offsetSArray\# returns SArray\# offset in elements.
+-- | 'offsetSArray#' returns 'SArray#' offset in elements.
 offsetSArray# :: SArray# e -> Int#
 offsetSArray# =  \ (SArray# _ (I# o#) _) -> o#
 
--- | packSArray\# creates new SArray\# from sized Array\#.
+-- | 'packSArray#' creates new 'SArray#' from sized 'Array#'.
 packSArray# :: Int -> Array# e -> SArray# e
 packSArray# n arr# = SArray# (max 0 n) 0 arr#
 
--- | fromSArray\# returns new Array\# (uses cloneArray\#).
+-- | 'fromSArray#' returns new 'Array#' (uses 'cloneArray#').
 fromSArray# :: SArray# e -> Array# e
 fromSArray# (SArray# (I# c#) (I# o#) arr#) = cloneArray# arr# o# c#
 
--- | coerceSArray\# is 'coerce' alias.
+-- | 'coerceSArray#' is 'coerce' alias.
 coerceSArray# :: (Coercible a b) => SArray# a -> SArray# b
 coerceSArray# =  coerce
 
--- | unpackSTArray# returns ByteArray\# field of STArray\# or fails.
+-- | 'unpackSTArray#' returns 'MutableArray#' field of 'STArray#' or fails.
 unpackSTArray# :: STArray# s e -> MutableArray# s e
 unpackSTArray# =  \ (STArray# _ _ marr#) -> marr#
 
--- | offsetSTArray\# returns STArray\# offset in elements.
+-- | 'offsetSTArray#' returns 'STArray#' offset in elements.
 offsetSTArray# :: STArray# s e -> Int#
 offsetSTArray# =  \ (STArray# _ (I# o#) _) -> o#
 
--- | packSTArray\# creates new STArray\# from sized MutableArray\#.
+-- | 'packSTArray#' creates new 'STArray#' from sized 'MutableArray#'.
 packSTArray# :: Int -> MutableArray# s e -> STArray# s e
 packSTArray# n marr# = STArray# (max 0 n) 0 marr#
 
--- | fromSTArray\# returns new MutableArray\#.
+-- | 'fromSTArray#' returns new 'MutableArray#'.
 fromSTArray# :: STArray# s e -> State# s -> (# State# s, MutableArray# s e #)
 fromSTArray# (STArray# (I# c#) (I# o#) marr#) = cloneMutableArray# marr# o# c#
 
--- | coerceSTArray\# is 'coerce' alias.
+-- | 'coerceSTArray#' is 'coerce' alias.
 coerceSTArray# :: (Coercible a b) => STArray# s a -> STArray# s b
 coerceSTArray# =  coerce
 
@@ -1129,7 +1126,5 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
-
-
 
 

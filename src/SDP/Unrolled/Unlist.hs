@@ -5,9 +5,9 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC extensions)
+    Portability :  portable
     
-    @SDP.Unrolled.Unlist@ provides 'Unlist' - lazy boxed unrolled linked list.
+    "SDP.Unrolled.Unlist" provides 'Unlist' - lazy boxed unrolled linked list.
 -}
 module SDP.Unrolled.Unlist
 (

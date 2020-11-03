@@ -7,7 +7,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
     
-    @SDP.ByteList.STUblist@ provides 'STUblist' - mutable unboxed strict
+    "SDP.ByteList.STUblist" provides 'STUblist' - mutable unboxed strict
     unrolled linked list.
 -}
 module SDP.ByteList.STUblist
@@ -39,7 +39,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | This STUblist is mutable version of Ublist.
+-- | This 'STUblist' is mutable version of 'SDP.ByteList.Ublist.Ublist'.
 type STUblist s = AnyChunks (STBytes# s)
 
 instance (Unboxed e) => SortM (ST s) (STUblist s e) e where sortMBy = timSortBy

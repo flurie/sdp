@@ -5,8 +5,8 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
   
-  @Control.Exception.SDP@ - service module that provide some useful exceptions.
-  Note that @SDP.SafePrelude@ doesn't export this module.
+  "Control.Exception.SDP" - service module that provide some useful exceptions.
+  Note that "SDP.SafePrelude" doesn't export this module.
 -}
 module Control.Exception.SDP
 (
@@ -39,7 +39,7 @@ default ()
   * 'IndexOverflow' - occurs if index overflows range
   * 'IndexUnderflow' - occurs if index underflows range
   
-  Exception constructors are specified in the order of definition, this is the
+  'Exception' constructors are specified in the order of definition, this is the
   recommended check order.
   
   If the error type may depend on the check order, then it should be indicated

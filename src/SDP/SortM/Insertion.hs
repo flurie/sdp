@@ -3,9 +3,9 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (requires non-portable modules)
+    Portability :  portable
     
-    SDP.SortM.Insertion provides insertion sort - simple sorting algorithm.
+    "SDP.SortM.Insertion" provides insertion sort - simple sorting algorithm.
 -}
 module SDP.SortM.Insertion
 (
@@ -14,7 +14,7 @@ module SDP.SortM.Insertion
 )
 where
 
-import Prelude ()
-
 import SDP.SortM.Tim
+
+
 

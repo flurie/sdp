@@ -7,7 +7,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
     
-    @SDP.ByteList.ST@ provides 'STByteList' - mutable unboxed strict unrolled
+    "SDP.ByteList.ST" provides 'STByteList' - mutable unboxed strict unrolled
     linked list.
 -}
 module SDP.ByteList.ST
@@ -35,6 +35,6 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | STByteList is mutable version of ByteList.
+-- | 'STByteList' is mutable version of 'SDP.ByteList.ByteList'.
 type STByteList s = AnyBorder (STUblist s)
 

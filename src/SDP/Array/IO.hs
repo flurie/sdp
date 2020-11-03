@@ -5,9 +5,9 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC Extensions)
+    Portability :  portable
     
-    @SDP.Array.IO@ provides 'IOArray' - mutable lazy boxed array type.
+    "SDP.Array.IO provides 'IOArray' - mutable lazy boxed array type.
 -}
 module SDP.Array.IO
 (
@@ -32,7 +32,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | 'IOArray' is mutable version of Array.
+-- | 'IOArray' is mutable version of 'SDP.Array.Array'.
 type IOArray = AnyBorder IOArray#
 
 

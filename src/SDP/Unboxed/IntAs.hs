@@ -7,7 +7,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
     
-    @SDP.Unboxed.IntAs@ provides additional 'Int' instances for 'Unboxed'.
+    "SDP.Unboxed.IntAs" provides additional 'Int' instances for 'Unboxed'.
 -}
 module SDP.Unboxed.IntAs
 (

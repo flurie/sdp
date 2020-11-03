@@ -8,7 +8,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
     
-    @SDP.MapM@ provides 'MapM' - class of mutable dictionaries.
+    "SDP.MapM" provides 'MapM' - class of mutable associative arrays.
 -}
 module SDP.MapM
 (
@@ -28,29 +28,29 @@ infixl 5 >!, !>, !?>
 
 --------------------------------------------------------------------------------
 
--- | Class for work with mutable indexed structures.
+-- | 'MapM' is class of mutable associative arrays.
 class (Monad m) => MapM m map key e | map -> m, map -> key, map -> e
   where
     {-# MINIMAL newMap', overwrite, ((>!)|(!?>)), kfoldrM, kfoldlM #-}
     
-    -- | Create new mutable map from list of associations.
+    -- | Create new mutable map from list of @(key, element)@ associations.
     newMap :: [(key, e)] -> m map
     newMap =  newMap' (undEx "newMap {default}")
     
-    -- | Create new mutable map from list of associations.
+    -- | Create new mutable map from list of @(key, element)@ associations.
     newMap' :: e -> [(key, e)] -> m map
     
-    -- | getAssocs returns 'assocs' of mutable data structure.
+    -- | 'getAssocs' is version of 'assocs' for mutable maps.
     default getAssocs :: (LinearM m map e) => map -> m [(key, e)]
     getAssocs :: map -> m [(key, e)]
     getAssocs es = liftA2 zip (getKeys es) (getLeft es)
     
-    -- | (>!) is unsafe monadic reader.
+    -- | @('>!')@ is unsafe monadic reader.
     {-# INLINE (>!) #-}
     (>!) :: map -> key -> m e
     (>!) =  fmap (fromMaybe $ undEx "(!) {default}") ... (!?>)
     
-    -- | (!>) is well-safe monadic reader.
+    -- | @('!>')@ is well-safe monadic reader.
     {-# INLINE (!>) #-}
     default (!>) :: (BorderedM m map key) => map -> key -> m e
     (!>) :: map -> key -> m e
@@ -63,22 +63,21 @@ class (Monad m) => MapM m map key e | map -> m, map -> key, map -> e
         OR -> overEx  msg
         UR -> underEx msg
     
-    -- | (!?>) is completely safe monadic reader.
+    -- | @('!?>')@ is completely safe monadic reader.
     (!?>) :: map -> key -> m (Maybe e)
-    es !?> i = do b <- memberM' es i; b ? Just <$> (es >! i) $ return empty
+    es !?> i = do b <- memberM' es i; b ? Just <$> (es >! i) $ pure empty
     
     {- |
       This function designed to overwrite large enough fragments of the
-      structure (unlike 'writeM' and 'writeM_')
+      structure (unlike 'writeM' and 'SDP.IndexedM.writeM'')
       
-      In addition to write operations, 'overwrite' can perform move and cleanup
-      operations, various optimization of data presentation, depending on the
-      implementation of a particular structure. Since the reference to the
-      original structure may not be the same as reference to the result (which
-      implementation is undesirable, but acceptable), the original reference
-      (argument) shouldn't be used after 'overwrite'.
+      In addition to write operations, 'overwrite' can move and clean, optimize
+      data presentation, etc. of a particular structure. Since the reference to
+      the original structure may not be the same as reference to the result
+      (which implementation is undesirable, but acceptable), the original
+      reference (argument) shouldn't be used after 'overwrite'.
       
-      All standard SDP structures support secure in-place 'overwrite'.
+      All standard @sdp@ structures support safe in-place 'overwrite'.
       
       If the structure uses unmanaged memory, then all unused fragments in the
       resulting structure must be deallocated, regardless of reachability by
@@ -111,9 +110,11 @@ class (Monad m) => MapM m map key e | map -> m, map -> key, map -> e
     
     -- | 'kfoldrM' is right monadic fold with key.
     kfoldrM :: (key -> e -> acc -> m acc) -> acc -> map -> m acc
+    kfoldrM f base = foldr ((=<<) . uncurry f) (pure base) <=< getAssocs
     
     -- | 'kfoldlM' is left monadic fold with key.
     kfoldlM :: (key -> acc -> e -> m acc) -> acc -> map -> m acc
+    kfoldlM f base = foldl (flip $ \ (i, e) -> (flip (f i) e =<<)) (pure base) <=< getAssocs
     
     -- | 'kfoldrM'' is strict version of 'kfoldrM'.
     kfoldrM' :: (key -> e -> acc -> m acc) -> acc -> map -> m acc
@@ -144,7 +145,6 @@ overEx =  throw . IndexOverflow . showString "in SDP.MapM."
 
 underEx :: String -> a
 underEx =  throw . IndexUnderflow . showString "in SDP.MapM."
-
 
 
 

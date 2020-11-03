@@ -5,7 +5,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
     
-    @SDP.Estimate@ provides 'Estimate' class, type synonyms and some common
+    "SDP.Estimate" provides 'Estimate' class, type synonyms and some common
     comparators. This module is exported by "SDP.SafePrelude".
 -}
 module SDP.Estimate
@@ -14,10 +14,7 @@ module SDP.Estimate
   module Data.Functor.Classes,
   
   -- * Estimate
-  Estimate (..),
-  
-  -- * Right-size versions of Estimate functions
-  (<=.>), (<.), (>.), (<=.), (>=.), (==.), (/=.)
+  Estimate (..), (<=.>), (<.), (>.), (<=.), (>=.), (==.), (/=.)
 )
 where
 
@@ -35,37 +32,54 @@ default ()
 --------------------------------------------------------------------------------
 
 {- |
-  Estimate class allows the lazy comparsion structures by length.
+  'Estimate' class provides the lazy comparsion structures by length.
   
-  For some types (for example, lists), this allows you to speed up the
-  comparison or make it finite. For others (e.g., arrays), it may be convenient
-  abbreviation.
+  For some types (e.g., lists), this allows you to speed up the comparison or
+  make it finite. For others (e.g., arrays), it may be convenient abbreviation.
 -}
 class Estimate e
   where
     {-# MINIMAL (<.=>), (<==>) #-}
     
+    -- | Left-side structure length with number comparison.
     (<.=>) :: e -> Int -> Ordering
+    
+    -- | Two structures by length comparison.
     (<==>) :: Compare e
     
-    (.<),  (.>),  (.<=),  (.>=),  (.==),  (./=)  :: e -> Int -> Bool
-    (.<.), (.>.), (.<=.), (.>=.), (.==.), (./=.) :: Equal e
+    -- | Left-side structure length with number comparison.
+    (.==), (./=), (.<=), (.>=), (.<), (.>) :: e -> Int -> Bool
+    
+    -- | Two structures comparison by length.
+    (.<.), (.>.), (.<=.), (.>=.), (.==.), (./=.) :: e -> e -> Bool
     
     e .<  i = case e <.=> i of {LT -> True; _ -> False}
     e .>  i = case e <.=> i of {GT -> True; _ -> False}
-    e .== i = case e <.=> i of {EQ -> True; _ -> False}
-    
     e .<= i = case e <.=> i of {GT -> False; _ -> True}
     e .>= i = case e <.=> i of {LT -> False; _ -> True}
+    e .== i = case e <.=> i of {EQ -> True; _ -> False}
     e ./= i = case e <.=> i of {EQ -> False; _ -> True}
     
     e1 .<.  e2 = case e1 <==> e2 of {LT -> True; _ -> False}
     e1 .>.  e2 = case e1 <==> e2 of {GT -> True; _ -> False}
-    e1 .==. e2 = case e1 <==> e2 of {EQ -> True; _ -> False}
-    
     e1 .<=. e2 = case e1 <==> e2 of {GT -> False; _ -> True}
     e1 .>=. e2 = case e1 <==> e2 of {LT -> False; _ -> True}
+    e1 .==. e2 = case e1 <==> e2 of {EQ -> True; _ -> False}
     e1 ./=. e2 = case e1 <==> e2 of {EQ -> False; _ -> True}
+
+-- | Right-side number with structure length comparison.
+(<=.>) :: (Estimate e) => Int -> e -> Ordering
+i <=.> e = case e <.=> i of {LT -> GT; EQ -> EQ; GT -> LT}
+
+-- | Right-side number with structure length comparison.
+(==.), (/=.), (<=.), (>=.), (<.), (>.) :: (Estimate e) => Int -> e -> Bool
+
+(==.) = flip (.==)
+(/=.) = flip (./=)
+(<=.) = flip (.>=)
+(>=.) = flip (.<=)
+(<.)  = flip (.>)
+(>.)  = flip (.<)
 
 --------------------------------------------------------------------------------
 
@@ -81,35 +95,6 @@ instance Estimate [a]
       where
         go xs c | c == 0 = GT | null xs = 0 <=> c | True = tail xs `go` (c - 1)
 
---------------------------------------------------------------------------------
 
-{- Right-side versions of Estimate functions. -}
 
--- | Right-side version of (<.=>).
-(<=.>) :: (Estimate e) => Int -> e -> Ordering
-i <=.> e = case e <.=> i of {LT -> GT; EQ -> EQ; GT -> LT}
-
--- | Right-side version of (.<).
-(<.) :: (Estimate e) => Int -> e -> Bool
-(<.) = flip (.>)
-
--- | Right-side version of (.>).
-(>.) :: (Estimate e) => Int -> e -> Bool
-(>.) = flip (.<)
-
--- | Right-side version of (.<=).
-(<=.) :: (Estimate e) => Int -> e -> Bool
-(<=.) = flip (.>=)
-
--- | Right-side version of (.>=).
-(>=.) :: (Estimate e) => Int -> e -> Bool
-(>=.) = flip (.<=)
-
--- | Right-side version of (.==).
-(==.) :: (Estimate e) => Int -> e -> Bool
-(==.) = flip (.==)
-
--- | Right-side version of (./=).
-(/=.) :: (Estimate e) => Int -> e -> Bool
-(/=.) = flip (./=)
 

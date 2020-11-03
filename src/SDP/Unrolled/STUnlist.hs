@@ -5,9 +5,9 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC extensions)
+    Portability :  portable
     
-    @SDP.Unrolled.STUnlist@ provides 'STUnlist' - mutable boxed lazy unrolled
+    "SDP.Unrolled.STUnlist" provides 'STUnlist' - mutable boxed lazy unrolled
     linked list.
 -}
 module SDP.Unrolled.STUnlist
@@ -36,7 +36,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | This STUnlist is mutable version of Unlist.
+-- | 'STUnlist' is mutable version of 'SDP.Unrolled.Unlist.Unlist'.
 type STUnlist s = AnyChunks (STArray# s)
 
 instance SortM (ST s) (STUnlist s e) e where sortMBy = timSortBy
