@@ -233,37 +233,21 @@ instance (Bordered1 rep Int e, Linear1 rep e) => Linear (AnyChunks rep e) e
 
 instance (Bordered1 rep Int e, Split1 rep e) => Split (AnyChunks rep e) e
   where
-    -- TODO: new take, drop, keep and sans
-    
-    take n es
-        |  n < 1 = Z
-        | s <= n = es
-        |  True  = AnyChunks $ take' n (unpack es)
+    take n = AnyChunks . go n . unpack
       where
-        take' c (x : xs) = case c <=> sizeOf x of
-          GT -> x : take' (c - sizeOf x) xs
+        go c (x : xs) = let s = sizeOf x in case c <=> s of
+          GT -> x : go (c - s) xs
           LT -> [take c x]
           EQ -> [x]
-        take' _ _ = Z
-        
-        s = sizeOf es
-    
-    drop n es
-        |  n < 1 = es
-        | s <= n = Z
-        |  True  = AnyChunks $ drop' n (unpack es)
+        go _    []    = []
+
+    drop n = AnyChunks . go n . unpack
       where
-        drop' c (x : xs) = case c <=> sizeOf x of
-          GT -> drop' (c - sizeOf x) xs
+        go c (x : xs) = let s = sizeOf x in case c <=> s of
+          GT -> go (c - s) xs
           LT -> drop c x : xs
           EQ -> xs
-        drop' _ _ = Z
-        
-        s = sizeOf es
-    
-    -- isPrefixOf xs ys = xs == take (sizeOf xs) ys
-    -- isSuffixOf xs ys = xs == keep (sizeOf xs) ys
-    -- isInfixOf = on isInfixOf listL
+        go _    []    = []
     
     prefix f (AnyChunks es) = foldr' (\ e c -> let p = prefix f e in p == sizeOf e ? p + c $ p) 0 es
     suffix f (AnyChunks es) = foldl' (\ c e -> let s = prefix f e in s == sizeOf e ? c + s $ s) 0 es
@@ -285,17 +269,17 @@ instance (BorderedM1 m rep Int e) => BorderedM m (AnyChunks rep e) Int
 
 instance (BorderedM1 m rep Int e, SplitM1 m rep e) => LinearM m (AnyChunks rep e) e
   where
-    nowNull = fmap null . unpack'
+    nowNull = fmap null . unpackM
     newNull = return (AnyChunks [])
-    getHead = getHead . head <=< unpack'
-    getLast = getLast . last <=< unpack'
+    getHead = getHead . head <=< unpackM
+    getLast = getLast . last <=< unpackM
     
-    prepend e' es' = fmap AnyChunks . go e' =<< unpack' es'
+    prepend e' es' = fmap AnyChunks . go e' =<< unpackM es'
       where
         go e es@(x : xs) = do n <- getSizeOf x; n < lim ? (: xs) <$> prepend e x $ (: es) <$> newLinear [e]
         go e _ = pure <$> newLinear [e]
     
-    append es' e' = fmap AnyChunks . go e' =<< unpack' es'
+    append es' e' = fmap AnyChunks . go e' =<< unpackM es'
       where
         go e es@(xs :< x) = do n <- getSizeOf x; n < lim ? (xs :<) <$> append x e $ (es :<) <$> newLinear [e]
         go e _ = pure <$> newLinear [e]
@@ -342,7 +326,7 @@ instance (BorderedM1 m rep Int e, SplitM1 m rep e) => LinearM m (AnyChunks rep e
     -- | Unsafe, returns joined stream of existing chunks.
     merged = return . AnyChunks . foldr (\ (AnyChunks es) ls -> es ++ ls) []
     
-    ofoldrM f base' = ofoldrCh 0 base' <=< unpack'
+    ofoldrM f base' = ofoldrCh 0 base' <=< unpackM
       where
         ofoldrCh !o base (x : xs) = do
           n   <- getSizeOf x
@@ -350,7 +334,7 @@ instance (BorderedM1 m rep Int e, SplitM1 m rep e) => LinearM m (AnyChunks rep e
           ofoldrM (f . (o +)) xs' x
         ofoldrCh _ base _ = return base
     
-    ofoldlM f base' = ofoldlCh 0 base' <=< unpack'
+    ofoldlM f base' = ofoldlCh 0 base' <=< unpackM
       where
         ofoldlCh !o base (x : xs) = do
           n  <- getSizeOf x
@@ -571,15 +555,16 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Templates.AnyChunks."
 pfailEx :: String -> a
 pfailEx =  throw . PatternMatchFail . showString "in SDP.Templates.AnyChunks."
 
-unpack :: (Linear1 rep e) => AnyChunks rep e -> [rep e]
+unpack :: (Nullable (rep e)) => AnyChunks rep e -> [rep e]
 unpack =  \ (AnyChunks es) -> except isNull es
 
-unpack' :: (BorderedM1 m rep Int e) => AnyChunks rep e -> m [rep e]
-unpack' (AnyChunks es) = go es
+unpackM :: (BorderedM1 m rep Int e) => AnyChunks rep e -> m [rep e]
+unpackM (AnyChunks es) = go es
   where
     go (x : xs) = do n <- getSizeOf x; n < 1 ? go xs $ (x :) <$> go xs
     go _ = return []
 
 lim :: Int
 lim =  1024
+
 
