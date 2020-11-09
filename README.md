@@ -30,8 +30,8 @@ All predefined structures are based on **pseudo-primitive** types `SArray#`,
 encapsulate real primitives.
 
 `sdp` uses **templates** to define more complex structures:
-* `AnyBorder` adds explicit boundaries of arbitrary type.
-* `AnyChunks` defines an unrolled list with structure elements.
+* `AnyChunks` defines an unrolled list with structure elements
+* `AnyBorder` adds explicit boundaries of arbitrary type
 
 Based on pseudo-primitives and templates, the following are defined:
 * immutable arrays `Array` and `Bytes`
@@ -66,17 +66,14 @@ length calculation is more difficult than `O(1)` and you don't need to know the
 exact size.
 
 `Unboxed` is a service class that simplifies interacting with data stored in
-`ByteArray#` and `MutableArray#`. Used in containers that based on
-`SBytes#`, `STBytes#` or `IOBytes#`.
+`ByteArray#` and `MutableArray#`. Used in containers that based on `SBytes#`,
+`STBytes#` or `IOBytes#`.
 
-`Shape` is a service class for dimension operations and finite-dimensional
-index transformations.
+`Shape` is a service class for dimension operations and finite-dimensional index
+transformations.
 
 `Index` is a service class that generalizes enumeration and membership
 operations interval. It is an improved version of `Ix`.
-
-`IFold` is a service class to fold indexed sequences. Provides
-`Foldable`-like functions for structures with value type constraints.
 
 `Linear` is a class of linear structures that generalizes the standard list
 functions.
@@ -100,8 +97,8 @@ subsequences.
 
 `Sort` is a sorting class for immutable structures.
 
-`BorderedM`, `LinearM`, `SplitM`, `IndexedM`, `IFoldM`, `SortM` - classes of
-operations on mutable containers.
+`BorderedM`, `LinearM`, `SplitM`, `IndexedM`, `SortM` - classes of operations on
+mutable containers.
 
 ## Versions
 
@@ -116,43 +113,48 @@ of `sdp` with which it's compatible.
 
 ## Differences from other similar projects
 
-* **Internal consistency.** Unfortunately, not all Haskell libraries are
-self-consistent, even in the `Haskell Platform`. The current version
-`sdp-0.2` is much better than the preliminary ones.
-* **Not another rebase.** `sdp` works **with** `base`, generalizes and extends
-it.
-* **Maximum functionality with minimum size**. The `sdp` is comparable in size
-to `containers`, and it only requires 3 simple dependencies (including `base`).
-`sdp` and its dependencies do not require `array`, `containers` or `vector`, it
-is completely independent of them.
-* **Good extensibility.** Since SDP is based on typeclasses, I can easily add
-new function without updating derived components. For SDP compatibility, it is
-enough to implement several open and universal interfaces.
-* **Targeting other libraries.** Although SDP was created as `array`
-replacement, its main purpose was to eliminate name conflicts with other
-libraries and (partially) between them. The library generalizes standard
-functions and thus hides many qualified imports. SDP wrappers also improves code
-readability. For example, you can work with text and binary streams (`Text` and
-`ByteString`) in one module without unnecessary qualifiers.
+* **Not another ((re)re)base.** `sdp` works **with** `base`, generalizes and
+extends it.
+* **Maximum functionality with minimal size**. The `sdp` requires only 3 simple
+dependencies including `base` and comparable with some common packages by size:
+
+| package    | version  | compiler   | .so  | lines | code |
+|------------|----------|------------|------|-------|------|
+| sdp        | 0.2      | ghc-8.4.4  | 5.5M | 10.5k | 5.7k |
+| vector     | 0.12.1.2 | ghc-8.10.2 | 4.3M | 16k   | 6.9k |
+| containers | 0.6.2.1  | ghc-8.10.2 | 3.5M | 24k   | 6.5k |
+
+* **Good extensibility.** `sdp` is a well-extensible library that allows you to
+easily integrate new components, simplifies interlibrary communication. The
+functionality of `sdp` is also easy to extend with the flexibility that type
+classes provide.
+* **Orientation to other libraries.** Originally `sdp` was created as `array`
+replacement, now its main purpose was to eliminate name conflicts with other
+libraries and between them. The library generalizes standard functions and thus
+hides many qualified imports. `sdp` wrappers also improves code readability. For
+example, you can work with text and binary streams (`Text` and `ByteString`) in
+one module without unnecessary qualifiers.
+* **Modern design.** `sdp` is what array would look like if it were written now.
+`sdp` has a good balance between openness, reliability, and performance. `sdp`
+doesn't impose significant restrictions on the implementation and doesn't go too
+far with the complexity of the definitions, trying to be both understandable and
+universal. But also `sdp` tries to keep up with the times, providing support for
+many non-standard features of the language, if they are appropriate.
 
 ## Using the SDP category
 
-The SDP category can be used for:
-* `sdp` type classes and extensions.
-* Types based on pseudo-primitives and `sdp` templates.
-* Wrapper modules, to avoid a more than 3-level hierarchy. For example,
-`SDP.ByteString.Lazy` instead of `Data.ByteString.Lazy.SDP`.
-
-If other categories (`Control`, `Foreign`, `System`, etc.) can be used, they
-must be used.
+The `SDP` category is intended for classes and structures whose names are
+already taken in the `Data` category. It shouldn't be used instead of `System`,
+`Control`, `Foreign`, etc.
 
 ## Contributing
 For details of the process for submitting pull requests, please read
 [CONTRIBUTING.md](https://github.com/andreymulik/sdp/blob/master/CONTRIBUTING.md).
 
 ## License
-`sdp` is free software, you can redistribute it and/or modify it under the terms
-of the BSD3 license. `sdp` is distributed in the hope that it will be useful,
-but without any warranty, without even the implied warranty of merchantability
-or fitness for a particular purpose. See the BSD3 license for more details.
+`sdp` is FOSS (free and open source software), you can redistribute it and/or
+modify it under the terms of the BSD3 license. `sdp` is distributed in the hope
+that it will be useful, but without any warranty, without even the implied
+warranty of merchantability or fitness for a particular purpose. See the BSD3
+license for more details.
 
