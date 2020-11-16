@@ -1,4 +1,4 @@
-{-# LANGUAGE Unsafe, FlexibleInstances #-}
+{-# LANGUAGE Unsafe #-}
 
 {- |
     Module      :  SDP.Unrolled
@@ -25,8 +25,6 @@ module SDP.Unrolled
 )
 where
 
-import Prelude ()
-import SDP.SafePrelude
 import SDP.Indexed
 import SDP.Sort
 import SDP.Scan
@@ -35,26 +33,8 @@ import SDP.Set
 import SDP.Templates.AnyBorder
 import SDP.Unrolled.Unlist
 
-import Text.Show.SDP
-import Text.Read.SDP
-
-default ()
-
---------------------------------------------------------------------------------
-
 -- | 'Unrolled' is bordered unrolled linked list.
 type Unrolled = AnyBorder Unlist
 
-instance {-# OVERLAPPABLE #-} (Index i, Show i, Show e) => Show (Unrolled i e)
-  where
-    showsPrec = assocsPrec "unrolled "
 
-instance (Index i, Show i) => Show (Unrolled i Char)
-  where
-    showsPrec = shows ... const listL
-
-instance (Index i, Read i, Read e) => Read (Unrolled i e)
-  where
-    readList = readListDefault
-    readPrec = indexedPrec' "unrolled"
 

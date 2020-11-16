@@ -1,4 +1,4 @@
-{-# LANGUAGE Unsafe, MagicHash, FlexibleInstances #-}
+{-# LANGUAGE Unsafe, MagicHash #-}
 
 {- |
     Module      :  SDP.Bytes
@@ -23,8 +23,6 @@ module SDP.Bytes
 )
 where
 
-import Prelude ()
-import SDP.SafePrelude
 import SDP.Indexed
 import SDP.Unboxed
 import SDP.Sort
@@ -34,27 +32,9 @@ import SDP.Set
 import SDP.Templates.AnyBorder
 import SDP.Prim.SBytes
 
-import Text.Show.SDP
-import Text.Read.SDP
-
-default ()
-
---------------------------------------------------------------------------------
-
 -- | 'Bytes' - unboxed array.
 type Bytes = AnyBorder SBytes#
 
-instance {-# OVERLAPPABLE #-} (Index i, Unboxed e, Show i, Show e) => Show (Bytes i e)
-  where
-    showsPrec = assocsPrec "bytes "
 
-instance (Index i, Show i) => Show (Bytes i Char)
-  where
-    showsPrec = shows ... const listL
-
-instance (Index i, Unboxed e, Read i, Read e) => Read (Bytes i e)
-  where
-    readList = readListDefault
-    readPrec = indexedPrec' "bytes"
 
 

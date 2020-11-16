@@ -22,8 +22,6 @@ module SDP.ByteList.IOUblist
 )
 where
 
-import Prelude ()
-import SDP.SafePrelude
 import SDP.IndexedM
 import SDP.Unboxed
 import SDP.SortM
@@ -31,15 +29,12 @@ import SDP.SortM
 import SDP.Templates.AnyChunks
 import SDP.Prim.SBytes
 
-import SDP.SortM.Tim
-
-default ()
-
 --------------------------------------------------------------------------------
 
 -- | 'IOUblist' is mutable version of 'SDP.ByteList.Ublist.Ublist'.
 type IOUblist = AnyChunks IOBytes#
 
-instance (Unboxed e) => SortM IO (IOUblist e) e where sortMBy = timSortBy
+
+
 
 

@@ -21,25 +21,15 @@ module SDP.Unrolled.IOUnlist
 )
 where
 
-import Prelude ()
-import SDP.SafePrelude
 import SDP.IndexedM
 import SDP.SortM
 
 import SDP.Templates.AnyChunks
 import SDP.Prim.SArray
 
-import SDP.SortM.Tim
-
-default ()
-
 --------------------------------------------------------------------------------
 
 -- | 'IOUnlist' is mutable version of 'SDP.Unrolled.Unlist.Unlist'.
 type IOUnlist = AnyChunks IOArray#
-
-instance SortM IO (IOUnlist e) e where sortMBy = timSortBy
-
-
 
 

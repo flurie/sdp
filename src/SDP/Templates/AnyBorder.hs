@@ -41,6 +41,9 @@ import GHC.Generics
 import Data.Typeable
 import Data.Data
 
+import Text.Read.SDP
+import Text.Show.SDP
+
 default ()
 
 --------------------------------------------------------------------------------
@@ -53,7 +56,9 @@ data AnyBorder rep i e = AnyBorder !i !i !(rep e)
 
 {- Eq ad Eq1 instances. -}
 
-instance (Index i, Eq (rep e)) => Eq (AnyBorder rep i e) where (==) = on (==) unpack
+instance (Index i, Eq (rep e)) => Eq (AnyBorder rep i e)
+  where
+    (==) = on (==) unpack
 
 instance (Index i, Eq1 rep) => Eq1 (AnyBorder rep i)
   where
@@ -70,6 +75,23 @@ instance (Index i, Ord (rep e)) => Ord (AnyBorder rep i e)
 instance (Index i, Ord1 rep) => Ord1 (AnyBorder rep i)
   where
     liftCompare f xs ys = liftCompare f (unpack xs) (unpack ys)
+
+--------------------------------------------------------------------------------
+
+{- Show and Read instances. -}
+
+instance {-# OVERLAPPABLE #-} (Indexed1 rep Int e, Index i, Show i, Show e) => Show (AnyBorder rep i e)
+  where
+    showsPrec = assocsPrec "array "
+
+instance (Indexed1 rep Int Char, Index i, Show i) => Show (AnyBorder rep i Char)
+  where
+    showsPrec = shows ... const listL
+
+instance (Index i, Read i, Read e, Indexed1 rep Int e) => Read (AnyBorder rep i e)
+  where
+    readPrec = indexedPrec' "array"
+    readList = readListDefault
 
 --------------------------------------------------------------------------------
 
@@ -554,7 +576,5 @@ withBounds rep = uncurry AnyBorder (defaultBounds $ sizeOf rep) rep
 {-# INLINE withBounds' #-}
 withBounds' :: (Index i, BorderedM1 m rep Int e) => rep e -> m (AnyBorder rep i e)
 withBounds' rep = (\ n -> uncurry AnyBorder (defaultBounds n) rep) <$> getSizeOf rep
-
-
 
 

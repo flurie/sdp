@@ -34,9 +34,6 @@ import SDP.Prim.SArray
 
 import SDP.SortM.Tim
 
-import Text.Show.SDP
-import Text.Read.SDP
-
 import Control.Monad.ST
 
 default ()
@@ -64,35 +61,14 @@ instance Eq1 Unlist
 instance Ord1 Unlist
   where
     liftCompare _ Z Z = EQ
-    liftCompare _ Z _ = LT
-    liftCompare _ _ Z = GT
-    liftCompare f xs@(AnyChunks ~(x : xs')) ys@(AnyChunks ~(y : ys')) = if n1 > n2
+    liftCompare f xs@(AnyChunks (x : xs')) ys@(AnyChunks (y : ys')) = if n1 > n2
         then liftCompare f (take n2 x) y <> liftCompare f (drop n2 xs) (AnyChunks ys')
         else liftCompare f x (take n1 y) <> liftCompare f (AnyChunks xs') (drop n1 ys)
       where
         n1 = sizeOf x
         n2 = sizeOf y
-
---------------------------------------------------------------------------------
-
-{- Show instance. -}
-
-instance {-# OVERLAPPABLE #-} (Show e) => Show (Unlist e)
-  where
-    showsPrec = assocsPrec "unlist "
-
-instance Show (Unlist Char)
-  where
-    showsPrec = shows ... const listL
-
-instance (Read e) => Read (Unlist e)
-  where
-    readPrec = indexedPrec' "ublist"
-    readList = readListDefault
-
---------------------------------------------------------------------------------
-
-{- Zip and Applicative instances. -}
+    liftCompare _ Z _ = LT
+    liftCompare _ _ _ = GT
 
 instance Zip Unlist
   where
@@ -101,10 +77,6 @@ instance Zip Unlist
     zipWith4 f as bs cs ds       = fromList $ zipWith4 f (toList as) (toList bs) (toList cs) (toList ds)
     zipWith5 f as bs cs ds es    = fromList $ zipWith5 f (toList as) (toList bs) (toList cs) (toList ds) (toList es)
     zipWith6 f as bs cs ds es fs = fromList $ zipWith6 f (toList as) (toList bs) (toList cs) (toList ds) (toList es) (toList fs)
-
---------------------------------------------------------------------------------
-
-{- Sort instance. -}
 
 instance Sort (Unlist e) e
   where
@@ -115,6 +87,4 @@ instance Sort (Unlist e) e
 {-# INLINE done #-}
 done :: STArray# s e -> ST s (Unlist e)
 done =  unsafeFreeze
-
-
 

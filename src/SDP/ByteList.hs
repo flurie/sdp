@@ -1,4 +1,4 @@
-{-# LANGUAGE Unsafe, FlexibleInstances #-}
+{-# LANGUAGE Unsafe #-}
 
 {- |
     Module      :  SDP.ByteList
@@ -26,8 +26,6 @@ module SDP.ByteList
 )
 where
 
-import Prelude ()
-import SDP.SafePrelude
 import SDP.Indexed
 import SDP.Unboxed
 import SDP.Sort
@@ -37,29 +35,6 @@ import SDP.Set
 import SDP.Templates.AnyBorder
 import SDP.ByteList.Ublist
 
-import Text.Show.SDP
-import Text.Read.SDP
-
-default ()
-
---------------------------------------------------------------------------------
-
 -- | 'ByteList' is bordered strict unboxed unrolled linked list.
 type ByteList = AnyBorder Ublist
-
-instance {-# OVERLAPPABLE #-} (Index i, Show i, Unboxed e, Show e) => Show (ByteList i e)
-  where
-    showsPrec = assocsPrec "bytelist "
-
-instance (Index i, Show i) => Show (ByteList i Char)
-  where
-    showsPrec = shows ... const listL
-
-instance (Index i, Read i, Unboxed e, Read e) => Read (ByteList i e)
-  where
-    readList = readListDefault
-    readPrec = indexedPrec' "bytelist"
-
-
-
 

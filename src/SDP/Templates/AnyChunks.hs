@@ -15,7 +15,6 @@ module SDP.Templates.AnyChunks
 (
   -- * Export
   module SDP.IndexedM,
-  module SDP.Sort,
   module SDP.Scan,
   
   -- * Chunk list
@@ -27,7 +26,7 @@ import Prelude ()
 import SDP.SafePrelude
 import SDP.IndexedM
 import SDP.Internal
-import SDP.Sort
+import SDP.SortM
 import SDP.Scan
 
 import qualified GHC.Exts as E
@@ -36,6 +35,11 @@ import GHC.Generics
 
 import Data.Typeable
 import Data.Data
+
+import Text.Read.SDP
+import Text.Show.SDP
+
+import SDP.SortM.Tim
 
 default ()
 
@@ -70,6 +74,23 @@ instance (Ord (rep e), Bordered1 rep Int e, Split1 rep e) => Ord (AnyChunks rep 
       where
         n1 = sizeOf x
         n2 = sizeOf y
+
+--------------------------------------------------------------------------------
+
+{- Show and Read instances. -}
+
+instance {-# OVERLAPPABLE #-} (Indexed1 rep Int e, Show e) => Show (AnyChunks rep e)
+  where
+    showsPrec = assocsPrec "unlist "
+
+instance (Indexed1 rep Int Char) => Show (AnyChunks rep Char)
+  where
+    showsPrec = shows ... const listL
+
+instance (Indexed1 rep Int e, Read e) => Read (AnyChunks rep e)
+  where
+    readPrec = indexedPrec' "ublist"
+    readList = readListDefault
 
 --------------------------------------------------------------------------------
 
@@ -453,7 +474,7 @@ instance (Indexed1 rep Int e) => Indexed (AnyChunks rep e) Int e
 
 --------------------------------------------------------------------------------
 
-{- MapM and IndexedM instances. -}
+{- MapM, IndexedM and SortM instances. -}
 
 instance (SplitM1 m rep e, MapM1 m rep Int e, BorderedM1 m rep Int e) => MapM m (AnyChunks rep e) Int e
   where
@@ -507,6 +528,10 @@ instance (SplitM1 m rep e, IndexedM1 m rep Int e) => IndexedM m (AnyChunks rep e
     
     fromIndexed' = newLinear  .  listL
     fromIndexedM = newLinear <=< getLeft
+
+instance (BorderedM1 m rep Int e, SplitM1 m rep e, LinearM1 m rep e) => SortM m (AnyChunks rep e) e
+  where
+    sortMBy = timSortBy
 
 --------------------------------------------------------------------------------
 
@@ -566,5 +591,7 @@ unpackM (AnyChunks es) = go es
 
 lim :: Int
 lim =  1024
+
+
 
 
