@@ -19,7 +19,7 @@ module SDP.Prim.SArray
   module SDP.Sort,
   
   -- * Pseudo-primitive types
-  IOArray# ( IOArray# ), STArray#, SArray#,
+  IOArray# (..), STArray#, SArray#,
   
   -- ** Safe (copy) unpack
   fromSArray#, fromSTArray#,
@@ -81,9 +81,9 @@ default ()
   reliability and stability, I made it inaccessible to direct work.
 -}
 data SArray# e = SArray#
-                        {-# UNPACK #-} !Int -- ^ Element count (not a real size)
-                        {-# UNPACK #-} !Int -- ^ Offset (is elements)
-                        !(Array# e)         -- ^ Real primitive array
+          {-# UNPACK #-} !Int -- ^ Element count (not a real size)
+          {-# UNPACK #-} !Int -- ^ Offset (is elements)
+          !(Array# e)         -- ^ Real primitive array
   deriving ( Typeable )
 
 type role SArray# representational
@@ -96,9 +96,9 @@ instance (Eq e) => Eq (SArray# e) where (==) = eq1
 
 instance Eq1 SArray#
   where
-    liftEq eq xs@(SArray# c1 _ _) ys@(SArray# c2 _ _) = c1 == c2 && eq' 0
-      where
-        eq' i = i == c1 || eq (xs !^ i) (ys !^ i) && eq' (i + 1)
+    liftEq eq xs@(SArray# c1 _ _) ys@(SArray# c2 _ _) =
+      let eq' i = i == c1 || eq (xs !^ i) (ys !^ i) && eq' (i + 1)
+      in  c1 == c2 && eq' 0
 
 --------------------------------------------------------------------------------
 
@@ -108,9 +108,9 @@ instance (Ord e) => Ord (SArray# e) where compare = compare1
 
 instance Ord1 SArray#
   where
-    liftCompare cmp xs@(SArray# c1 _ _) ys@(SArray# c2 _ _) = cmp' 0
-      where
-        cmp' i = i == (c1 `min` c2) ? c1 <=> c2 $ (xs!^i) `cmp` (ys!^i) <> cmp' (i + 1)
+    liftCompare f xs@(SArray# c1 _ _) ys@(SArray# c2 _ _) =
+      let f' i = i == (c1`min`c2) ? c1 <=> c2 $ (xs!^i) `f` (ys!^i) <> f' (i+1)
+      in  f' 0
 
 --------------------------------------------------------------------------------
 
@@ -141,7 +141,7 @@ instance E.IsList (SArray# e)
 instance Nullable (SArray# e)
   where
     lzero  = runST $ filled 0 (unreachEx "lzero") >>= done
-    isNull = \ (SArray# c _ _) -> c < 1
+    isNull = \ (SArray# c _ _) -> c == 0
 
 instance Semigroup (SArray# e) where (<>) = (++)
 instance Monoid    (SArray# e) where mempty = Z
@@ -237,9 +237,8 @@ instance Foldable SArray#
       let go i = 0 == i ? e $ f (go $ i - 1) e where e = arr !^ i
       in  null arr ? pfailEx "foldl1" $ go (sizeOf arr - 1)
     
-    toList = foldr (:) []
+    null es = case es of {(SArray# 0 _ _) -> True; _ -> False}
     
-    null   (SArray# c _ _) = c == 0
     length (SArray# c _ _) = c
 
 instance Traversable SArray#
@@ -255,27 +254,23 @@ instance Linear (SArray# e) e
     single      e = runST $ filled 1 e >>= done
     replicate n e = runST $ filled n e >>= done
     
-    toHead e (SArray# (I# c#) (I# o#) arr#) = runST $ ST $
-        \ s1# -> case newArray# n# e s1# of
-          (# s2#, marr# #) -> case copyArray# arr# o# marr# 1# c# s2# of
-            s3# -> case unsafeFreezeArray# marr# s3# of
-              (# s4#, res# #) -> (# s4#, SArray# (I# n#) 0 res# #)
-      where
-        n# = c# +# 1#
+    toHead e (SArray# (I# c#) (I# o#) arr#) = let n# = c# +# 1# in runST $ ST $
+      \ s1# -> case newArray# n# e s1# of
+        (# s2#, marr# #) -> case copyArray# arr# o# marr# 1# c# s2# of
+          s3# -> case unsafeFreezeArray# marr# s3# of
+            (# s4#, res# #) -> (# s4#, SArray# (I# n#) 0 res# #)
     
-    toLast (SArray# (I# c#) (I# o#) arr#) e = runST $ ST $
-        \ s1# -> case newArray# n# e s1# of
-          (# s2#, marr# #) -> case copyArray# arr# o# marr# 0# c# s2# of
-            s3# -> case unsafeFreezeArray# marr# s3# of
-              (# s4#, res# #) -> (# s4#, SArray# (I# n#) 0 res# #)
-      where
-        n# = c# +# 1#
+    toLast (SArray# (I# c#) (I# o#) arr#) e = let n# = c# +# 1# in runST $ ST $
+      \ s1# -> case newArray# n# e s1# of
+        (# s2#, marr# #) -> case copyArray# arr# o# marr# 0# c# s2# of
+          s3# -> case unsafeFreezeArray# marr# s3# of
+            (# s4#, res# #) -> (# s4#, SArray# (I# n#) 0 res# #)
     
     head es = es !^ 0
     last es@(SArray# c _ _) = es !^ (c - 1)
     
-    tail (SArray# c o arr#) = SArray# (c - 1) (o + 1) arr#
-    init (SArray# c o arr#) = SArray# (c - 1) o arr#
+    tail (SArray# c o arr#) = SArray# (max 1 c - 1) (o + 1) arr#
+    init (SArray# c o arr#) = SArray# (max 1 c - 1) o arr#
     
     fromList = fromFoldable
     
@@ -304,17 +299,16 @@ instance Linear (SArray# e) e
     reverse es = runST $ fromIndexed' es >>= reversed >>= done
     
     concat ess = runST $ do
-        marr@(STArray# _ _ marr#) <- filled s (unreachEx "concat")
-        
-        let write# (SArray# c@(I# c#) (I# o#) arr#) i@(I# i#) = ST $
-              \ s2# -> case copyArray# arr# o# marr# i# c# s2# of
-                s3# -> (# s3#, i + c #)
-        
-        void $ foldl (\ b a -> write# a =<< b) (return 0) ess
-        
-        done marr
-      where
-        s = foldr' ((+) . sizeOf) 0 ess
+      let n = foldr' ((+) . sizeOf) 0 ess
+      marr@(STArray# _ _ marr#) <- filled n (unreachEx "concat")
+      
+      let
+        write# (SArray# c@(I# c#) (I# o#) arr#) i@(I# i#) = ST $
+          \ s2# -> case copyArray# arr# o# marr# i# c# s2# of
+            s3# -> (# s3#, i + c #)
+      
+      void $ foldl (\ b a -> write# a =<< b) (return 0) ess
+      done marr
     
     select  f = foldr (\ o es -> case f o of {Just e -> e : es; _ -> es}) []
     
@@ -375,10 +369,10 @@ instance Split (SArray# e) e
     
     splitsBy f es = dropWhile f <$> f *$ es `parts` es
     
-    supplement n@(I# n#) e es@(SArray# c@(I# c#) (I# o#) src#) = case c <=> n of
+    supplement n@(I# n#) e es@(SArray# c@(I# c#) (I# o#) src#) = case n <=> c of
       EQ -> es
-      GT -> take n es
-      LT -> runST $ ST $ \ s1# -> case newArray# n# e s1# of
+      LT -> take n es
+      GT -> runST $ ST $ \ s1# -> case newArray# n# e s1# of
         (# s2#, marr# #) -> case copyArray# src# o# marr# 0# c# s2# of
           s3# -> case unsafeFreezeArray# marr# s3# of
             (# s4#, arr# #) -> (# s4#, SArray# n 0 arr# #)
@@ -632,9 +626,9 @@ instance Freeze (ST s) (STArray# s e) (SArray# e)
 
 -- | 'STArray#' is mutable preudo-primitive 'Int'-indexed lazy boxed array type.
 data STArray# s e = STArray#
-                            {-# UNPACK #-} !Int  -- ^ Element count (not a real size)
-                            {-# UNPACK #-} !Int  -- ^ Offset (in elements)
-                            !(MutableArray# s e) -- ^ Real primitive array
+              {-# UNPACK #-} !Int  -- ^ Element count (not a real size)
+              {-# UNPACK #-} !Int  -- ^ Offset (in elements)
+              !(MutableArray# s e) -- ^ Real primitive array
   deriving ( Typeable )
 
 type role STArray# nominal representational
@@ -749,11 +743,9 @@ instance LinearM (ST s) (STArray# s e) e
     
     merged ess = do
         marr <- filled n (unreachEx "merged")
-        
         let writer arr@(STArray# c _ _) i = (i + c) <$ copyTo arr 0 marr i c
         
         void $ foldr ((=<<) . writer) (return 0) ess
-        
         return marr
       where
         n = foldr' ((+) . sizeOf) 0 ess
@@ -876,17 +868,16 @@ unpack =  \ (IOArray# arr#) -> arr#
 instance Estimate (IOArray# e)
   where
     (<==>) = on (<=>) sizeOf
-    
-    (.>.)  = on (>)  sizeOf
-    (.<.)  = on (<)  sizeOf
-    (.<=.) = on (<=) sizeOf
-    (.>=.) = on (>=) sizeOf
+    (.<=.) = on (<=)  sizeOf
+    (.>=.) = on (>=)  sizeOf
+    (.>.)  = on (>)   sizeOf
+    (.<.)  = on (<)   sizeOf
     
     (<.=>) = (<=>) . sizeOf
-    (.>)   = (>)   . sizeOf
-    (.<)   = (<)   . sizeOf
     (.>=)  = (>=)  . sizeOf
     (.<=)  = (<=)  . sizeOf
+    (.>)   = (>)   . sizeOf
+    (.<)   = (<)   . sizeOf
 
 instance Bordered (IOArray# e) Int
   where
@@ -1040,7 +1031,7 @@ instance (Storable e) => Thaw IO (SArray# e) (Int, Ptr e)
 
 -- | 'unpackSArray#' returns 'MutableArray#' field of 'SArray#'.
 unpackSArray# :: SArray# e -> Array# e
-unpackSArray# = \ (SArray# _ _ arr#) -> arr#
+unpackSArray# =  \ (SArray# _ _ arr#) -> arr#
 
 -- | 'offsetSArray#' returns 'SArray#' offset in elements.
 offsetSArray# :: SArray# e -> Int#
@@ -1126,5 +1117,4 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
-
 

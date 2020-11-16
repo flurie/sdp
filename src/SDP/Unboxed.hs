@@ -5,7 +5,7 @@
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC Extensions)
+    Portability :  portable
     
     "SDP.Unboxed" provide service class 'Unboxed', that needed for
     "SDP.Prim.SBytes"-based structures.
@@ -13,10 +13,14 @@
 module SDP.Unboxed
   (
     -- * Unboxed
-    Unboxed (..), cloneUnboxed#,
+    Unboxed (..), cloneUnboxed#, sizeof#,
     
-    -- * Related
-    newUnboxedByteArray, safe_scale, sizeof#, psizeof
+    -- ** Proxy
+    psizeof, pnewUnboxed, pcopyUnboxed, pcopyUnboxedM,
+    pnewUnboxed1, pcopyUnboxed1, pcopyUnboxedM1,
+    
+    -- *** Proxy helpers
+    fromProxy, fromProxy1
   )
 where
 
@@ -32,7 +36,6 @@ import GHC.Ptr
 import GHC.ST
 
 import Data.Complex
-import Data.Proxy
 
 import Foreign.C.Types
 
@@ -103,6 +106,48 @@ class (Eq e) => Unboxed e
     -}
     copyUnboxedM# :: e -> MutableByteArray# s -> Int# -> MutableByteArray# s -> Int# -> Int# -> State# s -> State# s
     copyUnboxedM# e msrc# o1# mbytes# o2# n# = copyMutableByteArray# msrc# (sizeof# e o1#) mbytes# (sizeof# e o2#) (sizeof# e n#)
+
+--------------------------------------------------------------------------------
+
+-- | 'sizeof#' is unboxed 'sizeof'.
+{-# INLINE sizeof# #-}
+sizeof# :: (Unboxed e) => e -> Int# -> Int#
+sizeof# =  \ e c# -> case sizeof e (I# c#) of I# n# -> n#
+
+-- | 'psizeof' is 'Proxy' 'sizeof'.
+{-# INLINE psizeof #-}
+psizeof :: (Unboxed e) => proxy e -> Int -> Int
+psizeof =  sizeof . fromProxy
+
+-- | @(* -> *)@ kind proxy version of 'newUnboxed'.
+pnewUnboxed :: (Unboxed e) => proxy e -> Int# -> State# s -> (# State# s, MutableByteArray# s #)
+pnewUnboxed =  newUnboxed . fromProxy
+
+-- | @(* -> *)@ kind proxy version if 'copyUnboxed#'.
+pcopyUnboxed :: (Unboxed e) => proxy e -> ByteArray# -> Int# -> MutableByteArray# s -> Int# -> Int# -> State# s -> State# s
+pcopyUnboxed =  copyUnboxed# . fromProxy
+
+-- | Proxy version if 'copyUnboxedM1'.
+pcopyUnboxedM :: (Unboxed e) => proxy e -> MutableByteArray# s -> Int# -> MutableByteArray# s -> Int# -> Int# -> State# s -> State# s
+pcopyUnboxedM =  copyUnboxedM# . fromProxy
+
+fromProxy :: proxy e -> e
+fromProxy =  const undefined
+
+-- | @(* -> * -> *)@ kind proxy version of 'newUnboxed'.
+pnewUnboxed1 :: (Unboxed e) => m (proxy e) -> Int# -> State# s -> (# State# s, MutableByteArray# s #)
+pnewUnboxed1 =  newUnboxed . fromProxy1
+
+-- | @(* -> * -> *)@ kind proxy version if 'copyUnboxed#'.
+pcopyUnboxed1 :: (Unboxed e) => m (proxy e) -> ByteArray# -> Int# -> MutableByteArray# s -> Int# -> Int# -> State# s -> State# s
+pcopyUnboxed1 =  copyUnboxed# . fromProxy1
+
+-- | @(* -> * -> *)@ kind proxy version if 'copyUnboxedM1'.
+pcopyUnboxedM1 :: (Unboxed e) => m (proxy e) -> MutableByteArray# s -> Int# -> MutableByteArray# s -> Int# -> Int# -> State# s -> State# s
+pcopyUnboxedM1 =  copyUnboxedM# . fromProxy1
+
+fromProxy1 :: m (proxy e) -> e
+fromProxy1 =  const undefined
 
 --------------------------------------------------------------------------------
 
@@ -509,7 +554,7 @@ instance Unboxed Double
 
 instance (Unboxed a, Integral a) => Unboxed (Ratio a)
   where
-    sizeof e n = 2 * sizeof (undefined `asProxyTypeOf` e) n
+    sizeof e n = 2 * psizeof e n
     
     bytes# !# i# = bytes# !# i2# :% (bytes# !# (i2# +# 1#)) where i2# = 2# *# i#
     
@@ -527,7 +572,7 @@ instance (Unboxed a, Integral a) => Unboxed (Ratio a)
 
 instance (Unboxed a, Num a) => Unboxed (Complex a)
   where
-    sizeof e n = 2 * sizeof (undefined `asProxyTypeOf` e) n
+    sizeof e n = 2 * psizeof e n
     
     bytes# !# i# = bytes# !# i2# :+ (bytes# !# (i2# +# 1#)) where i2# = 2# *# i#
     
@@ -561,16 +606,14 @@ cloneUnboxed# e bytes# o# c# = unwrap $ runST $ ST $
 
 --------------------------------------------------------------------------------
 
-{- Bool operations -}
-
 {-# INLINE bool_scale #-}
-bool_scale   :: Int# -> Int#
-bool_scale   n# = (n# +# 7#) `uncheckedIShiftRA#` 3#
+bool_scale :: Int# -> Int#
+bool_scale n# = (n# +# 7#) `uncheckedIShiftRA#` 3#
 
 {-# INLINE bool_bit #-}
-bool_bit        :: Int# -> Word#
-bool_bit n#     =  case (SIZEOF_HSWORD * 8 - 1) of
-  !(W# mask#) -> int2Word# 1# `uncheckedShiftL#` (word2Int# (int2Word# n# `and#` mask#))
+bool_bit :: Int# -> Word#
+bool_bit n# =  case (SIZEOF_HSWORD * 8 - 1) of
+  !(W# mask#) -> int2Word# 1# `uncheckedShiftL#` word2Int# (int2Word# n# `and#` mask#)
 
 {-# INLINE bool_not_bit #-}
 bool_not_bit    :: Int# -> Word#
@@ -579,52 +622,14 @@ bool_not_bit n# =  case maxBound of !(W# mb#) -> bool_bit n# `xor#` mb#
 {-# INLINE bool_index #-}
 bool_index :: Int# -> Int#
 #if   SIZEOF_HSWORD == 4
-bool_index = (`uncheckedIShiftRA#` 5#)
+bool_index =  (`uncheckedIShiftRA#` 5#)
 #elif SIZEOF_HSWORD == 8
-bool_index = (`uncheckedIShiftRA#` 6#)
+bool_index =  (`uncheckedIShiftRA#` 6#)
 #endif
-
---------------------------------------------------------------------------------
-
--- | 'psizeof' is 'Proxy' 'sizeof'.
-{-# INLINE psizeof #-}
-psizeof :: (Unboxed e) => proxy e -> Int -> Int
-psizeof =  sizeof . asProxyTypeOf undefined
-
--- | 'sizeof#' is unboxed 'sizeof'.
-{-# INLINE sizeof# #-}
-sizeof# :: (Unboxed e) => e -> Int# -> Int#
-sizeof# =  \ e c# -> case sizeof e (I# c#) of I# n# -> n#
-
---------------------------------------------------------------------------------
-
-{- |
-  'newUnboxedByteArray' is service function for ordinary 'newUnboxed'
-  decrarations.
-  
-  @'newUnboxedByteArray' f i\#@ creates new 'MutableByteArray#' of real
-  length (f i\#), where i\# - count of element, f - non-negative function
-  (e.g. @'newUnboxedByteArray' double_scale == 'newUnboxed'@ for 'Float').
--}
-{-# INLINE newUnboxedByteArray #-}
-{-# DEPRECATED newUnboxedByteArray "use newByteArray# and sizeof# instead" #-}
-newUnboxedByteArray :: (Int# -> Int#) -> Int# -> State# s -> (# State# s, MutableByteArray# s #)
-newUnboxedByteArray f n# = newByteArray# (f n#)
-
-{- |
-  'safe_scale' is a service function that converts the scale and number of
-  elements to length in bytes.
--}
-{-# INLINE safe_scale #-}
-{-# DEPRECATED safe_scale "use sizeof instead" #-}
-safe_scale :: Int# -> (Int# -> Int#)
-safe_scale scale# n# = if isTrue# (mb# `divInt#` scale# <# n#)
-    then error "in SDP.Unboxed.safe_scale"
-    else scale# *# n#
-  where
-    !(I# mb#) = maxBound
 
 unpackUndefined :: b -> (a -> b) -> a
 unpackUndefined =  \ _ _ -> undefined
+
+
 
 
