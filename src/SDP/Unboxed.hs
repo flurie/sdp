@@ -11,17 +11,14 @@
     "SDP.Prim.SBytes"-based structures.
 -}
 module SDP.Unboxed
-  (
-    -- * Unboxed
-    Unboxed (..), cloneUnboxed#, sizeof#,
-    
-    -- ** Proxy
-    psizeof, pnewUnboxed, pcopyUnboxed, pcopyUnboxedM,
-    pnewUnboxed1, pcopyUnboxed1, pcopyUnboxedM1,
-    
-    -- *** Proxy helpers
-    fromProxy, fromProxy1
-  )
+(
+  -- * Unboxed
+  Unboxed (..), cloneUnboxed#,
+  
+  -- ** Proxy
+  psizeof, pnewUnboxed, pcopyUnboxed, pcopyUnboxedM, fromProxy,
+  pnewUnboxed1, pcopyUnboxed1, pcopyUnboxedM1, fromProxy1
+)
 where
 
 import Prelude ()
@@ -51,13 +48,20 @@ default ()
 -}
 class (Eq e) => Unboxed e
   where
-    {-# MINIMAL sizeof, (!#), (!>#), writeByteArray#, newUnboxed #-}
+    {-# MINIMAL (sizeof#|sizeof), (!#), (!>#), writeByteArray#, newUnboxed #-}
     
     {- |
       @sizeof e n@ returns the length (in bytes) of primitive, where @n@ - count
       of elements, @e@ - type parameter.
     -}
+    {-# INLINE sizeof #-}
     sizeof :: e -> Int -> Int
+    sizeof e (I# c#) = I# (sizeof# e c#)
+    
+    -- | 'sizeof#' is unboxed 'sizeof'.
+    {-# INLINE sizeof# #-}
+    sizeof# :: e -> Int# -> Int#
+    sizeof# e c# = case sizeof e (I# c#) of I# n# -> n#
     
     -- | Unsafe 'ByteArray#' reader with overloaded result type.
     (!#) :: ByteArray# -> Int# -> e
@@ -106,16 +110,28 @@ class (Eq e) => Unboxed e
     -}
     copyUnboxedM# :: e -> MutableByteArray# s -> Int# -> MutableByteArray# s -> Int# -> Int# -> State# s -> State# s
     copyUnboxedM# e msrc# o1# mbytes# o2# n# = copyMutableByteArray# msrc# (sizeof# e o1#) mbytes# (sizeof# e o2#) (sizeof# e n#)
+    
+    {- |
+      @'hashUnboxedWith' e len# off# bytes# salt@ returns 'bytes#' @FNV-1@ hash,
+      where @off#@ and @len#@ is offset and length (in elements).
+      
+      Note: the standard definition of this function is written in Haskell using
+      low-level functions, but this implementation mayn't be as efficient as the
+      foreign procedure in the @hashable@ package.
+    -}
+    hashUnboxedWith :: e -> Int# -> Int# -> ByteArray# -> Int# -> Int#
+    hashUnboxedWith e len# off# bytes# = go (sizeof# e off#) (sizeof# e len#)
+      where
+        go _  0# salt# = salt#
+        go o# n# salt# = go (o# +# 1#) (n# -# 1#) (word2Int# hash#)
+          where
+            prod# = int2Word# (salt# *# 16777619#)
+            elem# = indexWord8Array# bytes# o#
+            hash# = prod# `xor#` elem#
 
 --------------------------------------------------------------------------------
 
--- | 'sizeof#' is unboxed 'sizeof'.
-{-# INLINE sizeof# #-}
-sizeof# :: (Unboxed e) => e -> Int# -> Int#
-sizeof# =  \ e c# -> case sizeof e (I# c#) of I# n# -> n#
-
 -- | 'psizeof' is 'Proxy' 'sizeof'.
-{-# INLINE psizeof #-}
 psizeof :: (Unboxed e) => proxy e -> Int -> Int
 psizeof =  sizeof . fromProxy
 
@@ -131,6 +147,7 @@ pcopyUnboxed =  copyUnboxed# . fromProxy
 pcopyUnboxedM :: (Unboxed e) => proxy e -> MutableByteArray# s -> Int# -> MutableByteArray# s -> Int# -> Int# -> State# s -> State# s
 pcopyUnboxedM =  copyUnboxedM# . fromProxy
 
+-- | Returns 'undefined' of suitable type.
 fromProxy :: proxy e -> e
 fromProxy =  const undefined
 
@@ -146,6 +163,7 @@ pcopyUnboxed1 =  copyUnboxed# . fromProxy1
 pcopyUnboxedM1 :: (Unboxed e) => m (proxy e) -> MutableByteArray# s -> Int# -> MutableByteArray# s -> Int# -> Int# -> State# s -> State# s
 pcopyUnboxedM1 =  copyUnboxedM# . fromProxy1
 
+-- | Returns 'undefined' of suitable type.
 fromProxy1 :: m (proxy e) -> e
 fromProxy1 =  const undefined
 
@@ -405,7 +423,7 @@ nullStablePtr =  StablePtr (unsafeCoerce# 0#)
 #define SDP_DERIVE_FOREIGN_UNBOXED(Type)\
 instance Unboxed Type where\
 {\
-  sizeof e = sizeof (unpackUndefined e Type);\
+  sizeof e = sizeof (consSizeof Type e);\
   arr# !# i# = Type ( arr# !# i# );\
   marr# !># i# = \ s1# -> case (!>#) marr# i# s1# of {(# s2#, e #) -> (# s2#, Type e #)};\
   writeByteArray# marr# i# (Type e) = writeByteArray# marr# i# e;\
@@ -486,9 +504,8 @@ instance Unboxed Bool
       (# s2#, mbytes# #) -> case fillByteArray# mbytes# n# False s2# of
         s3# -> (# s3#, mbytes# #)
     
-    fillByteArray# mbytes# n# e = setByteArray# mbytes# 0# (bool_scale n#) byte#
-      where
-        byte# = if e then 0xff# else 0#
+    fillByteArray# mbytes# n# e =
+      setByteArray# mbytes# 0# (bool_scale n#) (if e then 0xff# else 0#)
     
     copyUnboxed# e bytes# o1# mbytes# o2# c# = isTrue# (c# <# 1#) ? (\ s1# -> s1#) $
       \ s1# -> case writeByteArray# mbytes# o2# ((bytes# !# o1#) `asTypeOf` e) s1# of
@@ -497,6 +514,32 @@ instance Unboxed Bool
     copyUnboxedM# e src# o1# mbytes# o2# n# = \ s1# -> case (!>#) src# o1# s1# of
       (# s2#, x #) -> case writeByteArray# mbytes# o2# (x `asTypeOf` e) s2# of
         s3# -> copyUnboxedM# e src# (o1# +# 1#) mbytes# (o2# +# 1#) (n# -# 1#) s3#
+    
+    hashUnboxedWith e len# off# bytes#
+        | isTrue#   (len# <# 1#)    = \ salt# -> salt#
+        | isTrue#   (off# <# 0#)    = hashUnboxedWith e len# 0# bytes#
+        | isTrue# (bit_off# ==# 0#) = go0 byte_cnt# byte_off#
+        |            True           = goo byte_cnt# (byte_off# +# 1#) (indexWord8Array# bytes# byte_off#)
+      where
+        go0 0# _  salt# = salt#
+        go0 1# o# salt# = hash# salt# (indexWord8Array# bytes# o# `and#` mask#)
+        go0 n# o# salt# = go0 (n# -# 1#) (o# +# 1#) (salt# `hash#` indexWord8Array# bytes# o#)
+        
+        goo 0# _    _   salt# = salt#
+        goo 1# _  temp# salt# = hash# salt# (shiftRL# temp# bit_off# `and#` mask#)
+        goo n# o# temp# salt# = goo (n# -# 1#) (o# +# 1#) byte# (hash# salt# curr#)
+          where
+            curr# = shiftRL# temp# bit_off# `or#` shiftL# byte# (8# -# bit_off#)
+            byte# = indexWord8Array# bytes# o#
+        
+        hash# = \ s# v# -> word2Int# (int2Word# (s# *# 16777619#) `xor#` v#)
+        mask# = int2Word# 0xff# `shiftRL#` bit_rest#
+        
+        !(I# byte_off#, I# bit_off#) = I# off# `divMod` 8
+        !(I# bit_len#) = I# len# `mod` 8
+        
+        bit_rest# = if isTrue# (bit_len# ==# 0#) then 0# else 8# -# bit_len#
+        byte_cnt# = sizeof# e len#
 
 instance Unboxed Char
   where
@@ -612,12 +655,11 @@ bool_scale n# = (n# +# 7#) `uncheckedIShiftRA#` 3#
 
 {-# INLINE bool_bit #-}
 bool_bit :: Int# -> Word#
-bool_bit n# =  case (SIZEOF_HSWORD * 8 - 1) of
-  !(W# mask#) -> int2Word# 1# `uncheckedShiftL#` word2Int# (int2Word# n# `and#` mask#)
+bool_bit n# = case (SIZEOF_HSWORD * 8 - 1) of !(W# mask#) -> int2Word# 1# `uncheckedShiftL#` word2Int# (int2Word# n# `and#` mask#)
 
 {-# INLINE bool_not_bit #-}
-bool_not_bit    :: Int# -> Word#
-bool_not_bit n# =  case maxBound of !(W# mb#) -> bool_bit n# `xor#` mb#
+bool_not_bit :: Int# -> Word#
+bool_not_bit n# = case maxBound of !(W# mb#) -> bool_bit n# `xor#` mb#
 
 {-# INLINE bool_index #-}
 bool_index :: Int# -> Int#
@@ -627,9 +669,7 @@ bool_index =  (`uncheckedIShiftRA#` 5#)
 bool_index =  (`uncheckedIShiftRA#` 6#)
 #endif
 
-unpackUndefined :: b -> (a -> b) -> a
-unpackUndefined =  \ _ _ -> undefined
-
-
+consSizeof :: (a -> b) -> b -> a
+consSizeof =  \ _ _ -> undefined
 
 

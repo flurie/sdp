@@ -35,7 +35,10 @@ module SDP.Prim.SBytes
   unsafeCoerceSBytes#, unsafeCoerceSTBytes#,
   
   -- ** Unsafe pointer conversions
-  unsafeSBytesToPtr#, unsafePtrToSBytes#
+  unsafeSBytesToPtr#, unsafePtrToSBytes#,
+  
+  -- ** Hash
+  hashSBytesWith#
 )
 where
 
@@ -522,7 +525,7 @@ instance (Unboxed e) => Map (SBytes# e) Int e
     (.!) = (!^)
     
     Z  // ascs = toMap ascs
-    es // ascs = runST $ thaw es >>= (`overwrite` ascs) >>= done
+    es // ascs = runST $ thaw es >>= flip overwrite ascs >>= done
     
     (*$) p = ofoldr (\ i e is -> p e ? (i : is) $ is) []
     
@@ -967,9 +970,9 @@ instance (Storable e, Unboxed e) => Thaw IO (SBytes# e) (Int, Ptr e)
 unpackSBytes# :: (Unboxed e) => SBytes# e -> ByteArray#
 unpackSBytes# = \ (SBytes# _ _ marr#) -> marr#
 
--- | 'offsetSBytes#' returns 'SBytes#' offset in bytes.
-offsetSBytes# :: (Unboxed e) => SBytes# e -> Int#
-offsetSBytes# =  \ es@(SBytes# _ o _) -> case psizeof es o of I# o# -> o#
+-- | 'offsetSBytes#' returns 'SBytes#' offset in elements.
+offsetSBytes# :: (Unboxed e) => SBytes# e -> Int
+offsetSBytes# =  \ (SBytes# _ o _) -> o
 
 -- | 'packSBytes#' creates new 'SBytes#' from sized 'ByteArray#'.
 packSBytes# :: (Unboxed e) => Int -> ByteArray# -> SBytes# e
@@ -1061,6 +1064,10 @@ unsafePtrToSBytes# (c, ptr) = do
   
   stToIO (done es)
 
+hashSBytesWith# :: (Unboxed e) => Int -> SBytes# e -> Int
+hashSBytesWith# (I# salt#) es@(SBytes# (I# c#) (I# o#) bytes#) =
+  I# (hashUnboxedWith (fromProxy es) c# o# bytes# salt#)
+
 --------------------------------------------------------------------------------
 
 {-# INLINE pack' #-}
@@ -1117,4 +1124,7 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Prim.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
+
+
+
 
