@@ -144,22 +144,18 @@ instance (Unboxed e) => E.IsList (SBytes# e)
 
 instance Nullable (SBytes# e)
   where
-    lzero = runST $ zero >>= done
-      where
-        zero = ST $ \ s1# -> case newByteArray# 0# s1# of
-          (# s2#, marr# #) -> (# s2#, STBytes# 0 0 marr# #)
+    lzero = runST $ (done =<<) $ ST $ \ s1# -> case newByteArray# 0# s1# of
+      (# s2#, marr# #) -> (# s2#, STBytes# 0 0 marr# #)
     
-    isNull = \ (SBytes# c _ _) -> c < 1
+    isNull es = case es of {(SBytes# 0 _ _) -> True; _ -> False}
 
 instance (Unboxed e) => Semigroup (SBytes# e) where (<>) = (++)
 instance (Unboxed e) => Monoid    (SBytes# e) where mempty = Z
 
 instance Default (SBytes# e)
   where
-    def = runST $ empty' >>= done
-      where
-        empty' = ST $ \ s1# -> case newByteArray# 0# s1# of
-          (# s2#, marr# #) -> (# s2#, STBytes# 0 0 marr# #)
+    def = runST $ (done =<<) $ ST $ \ s1# -> case newByteArray# 0# s1# of
+      (# s2#, marr# #) -> (# s2#, STBytes# 0 0 marr# #)
 
 instance Estimate (SBytes# e)
   where
@@ -181,21 +177,17 @@ instance Estimate (SBytes# e)
 
 instance (Unboxed e) => Linear (SBytes# e) e
   where
-    toHead e (SBytes# (I# c#) (I# o#) bytes#) = runST $ ST $
-        \ s1# -> case newUnboxed' e n# s1# of
-          (# s2#, marr# #) -> case copyUnboxed# e bytes# o# marr# 1# c# s2# of
-            s3# -> case unsafeFreezeByteArray# marr# s3# of
-              (# s4#, res# #) -> (# s4#, SBytes# (I# n#) 0 res# #)
-      where
-        n# = c# +# 1#
+    toHead e (SBytes# (I# c#) (I# o#) arr#) = let n# = c# +# 1# in runST $ ST $
+      \ s1# -> case newUnboxed' e n# s1# of
+        (# s2#, marr# #) -> case copyUnboxed# e arr# o# marr# 1# c# s2# of
+          s3# -> case unsafeFreezeByteArray# marr# s3# of
+            (# s4#, res# #) -> (# s4#, SBytes# (I# n#) 0 res# #)
     
-    toLast (SBytes# (I# c#) (I# o#) arr#) e = runST $ ST $
-        \ s1# -> case newUnboxed' e n# s1# of
-          (# s2#, marr# #) -> case copyUnboxed# e arr# o# marr# 0# c# s2# of
-            s3# -> case unsafeFreezeByteArray# marr# s3# of
-              (# s4#, res# #) -> (# s4#, SBytes# (I# n#) 0 res# #)
-      where
-        n# = c# +# 1#
+    toLast (SBytes# (I# c#) (I# o#) arr#) e = let n# = c# +# 1# in runST $ ST $
+      \ s1# -> case newUnboxed' e n# s1# of
+        (# s2#, marr# #) -> case copyUnboxed# e arr# o# marr# 0# c# s2# of
+          s3# -> case unsafeFreezeByteArray# marr# s3# of
+            (# s4#, res# #) -> (# s4#, SBytes# (I# n#) 0 res# #)
     
     head es = es !^ 0
     last es@(SBytes# c _ _) = es !^ (c - 1)
@@ -210,14 +202,12 @@ instance (Unboxed e) => Linear (SBytes# e) e
     
     single e = runST $ filled 1 e >>= done
     
-    SBytes# (I# n1#) (I# o1#) arr1# ++ SBytes# (I# n2#) (I# o2#) arr2# = es
-      where
-        es = runST $ ST $ \ s1# -> case pnewUnboxed es n# s1# of
-          (# s2#, marr# #) -> case pcopyUnboxed es arr1# o1# marr# 0# n1# s2# of
-            s3# -> case pcopyUnboxed es arr2# o2# marr# n1# n2# s3# of
-              s4# -> case unsafeFreezeByteArray# marr# s4# of
-                (# s5#, arr# #) -> (# s5#, SBytes# (I# n#) 0 arr# #)
-        n# = n1# +# n2#
+    xs@(SBytes# (I# n1#) (I# o1#) arr1#) ++ SBytes# (I# n2#) (I# o2#) arr2# =
+      let n# = n1# +# n2# in runST $ ST $ \ s1# -> case pnewUnboxed xs n# s1# of
+        (# s2#, marr# #) -> case pcopyUnboxed xs arr1# o1# marr# 0# n1# s2# of
+          s3# -> case pcopyUnboxed xs arr2# o2# marr# n1# n2# s3# of
+            s4# -> case unsafeFreezeByteArray# marr# s4# of
+              (# s5#, arr# #) -> (# s5#, SBytes# (I# n#) 0 arr# #)
     
     {-# INLINE (!^) #-}
     (!^) (SBytes# _ (I# o#) arr#) = \ (I# i#) -> arr# !# (i# +# o#)
@@ -233,7 +223,7 @@ instance (Unboxed e) => Linear (SBytes# e) e
     listR = flip (:) `o_foldl` []
     
     concat ess = runST $ do
-      marr@(STBytes# _ _ marr#) <- filled_ $ foldr' ((+) . sizeOf) 0 ess
+      marr@(STBytes# _ _ marr#) <- alloc $ foldr' ((+) . sizeOf) 0 ess
       
       let
         write# (SBytes# c@(I# c#) (I# o#) arr#) i@(I# i#) = ST $
@@ -246,10 +236,9 @@ instance (Unboxed e) => Linear (SBytes# e) e
     reverse es = runST $ fromIndexed' es >>= reversed >>= done
     
     select  f = o_foldr (\ o es -> case f o of {Just e -> e : es; _ -> es}) []
-    
-    extract f = second fromList . o_foldr g ([], [])
-      where
-        g = \ o -> case f o of {Just e -> first (e :); _ -> second (o :)}
+    extract f =
+      let g o = second (o :) `maybe` (first . (:)) $ f o
+      in  second fromList . o_foldr g ([], [])
     
     selects fs = second fromList . selects fs . listL
     
@@ -539,7 +528,7 @@ instance (Unboxed e) => Indexed (SBytes# e) Int e
     
     fromIndexed es = runST $ do
       let n = sizeOf es
-      copy <- filled_ n
+      copy <- alloc n
       forM_ [0 .. n - 1] $ \ i -> writeM copy i (es !^ i)
       done copy
 
@@ -548,7 +537,7 @@ instance (Unboxed e) => Indexed (SBytes# e) Int e
 instance (Unboxed e) => Thaw (ST s) (SBytes# e) (STBytes# s e)
   where
     thaw es@(SBytes# c@(I# c#) (I# o#) arr#) = do
-      marr@(STBytes# _ _ marr#) <- filled_ c
+      marr@(STBytes# _ _ marr#) <- alloc c
       ST $ \ s1# -> case pcopyUnboxed es arr# o# marr# 0# c# s1# of
         s2# -> (# s2#, () #)
       return marr
@@ -619,7 +608,7 @@ instance (Unboxed e) => LinearM (ST s) (STBytes# s e) e
     
     getHead es = es >! 0
     getLast es = es >! upper es
-    nowNull es = return (sizeOf es < 1)
+    nowNull es = return (sizeOf es == 0)
     
     newLinear = fromFoldableM
     
@@ -650,12 +639,12 @@ instance (Unboxed e) => LinearM (ST s) (STBytes# s e) e
     writeM = writeM'
     
     copied es@(STBytes# n _ _) = do
-      copy <- filled_ n
+      copy <- alloc n
       forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM copy i
       return copy
     
     copied' es l n = do
-      copy <- filled_ n
+      copy <- alloc n
       forM_ [0 .. n - 1] $ \ i -> es !#> (l + i) >>= writeM copy i
       return copy
     
@@ -679,7 +668,7 @@ instance (Unboxed e) => LinearM (ST s) (STBytes# s e) e
         !(STBytes# n2 o2 trg#) = trg; !(I# to#) = o2 + tc
     
     merged ess = do
-        marr <- filled_ n
+        marr <- alloc n
         let writer arr@(STBytes# c _ _) i = (i + c) <$ copyTo arr 0 marr i c
         marr <$ foldr ((=<<) . writer) (return 0) ess
       where
@@ -770,7 +759,7 @@ instance (Unboxed e) => MapM (ST s) (STBytes# s e) Int e
 
 instance (Unboxed e) => IndexedM (ST s) (STBytes# s e) Int e
   where
-    fromAssocs  bnds ascs = filled_ (size bnds) >>= (`overwrite` ascs)
+    fromAssocs  bnds ascs = alloc (size bnds) >>= flip overwrite ascs
     fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
     
     {-# INLINE writeM' #-}
@@ -780,13 +769,13 @@ instance (Unboxed e) => IndexedM (ST s) (STBytes# s e) Int e
     
     fromIndexed' es = do
         let n = sizeOf es
-        copy <- filled_ n
+        copy <- alloc n
         forM_ [0 .. n - 1] $ \ i -> writeM copy i (es !^ i)
         return copy
     
     fromIndexedM es = do
       n    <- getSizeOf es
-      copy <- filled_ n
+      copy <- alloc n
       forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM copy i
       return copy
 
@@ -1083,16 +1072,16 @@ done (STBytes# n o marr#) = ST $ \ s1# -> case unsafeFreezeByteArray# marr# s1# 
 done' :: Int -> MutableByteArray# s -> STRep s (STBytes# s e)
 done' n marr# = \ s1# -> (# s1#, STBytes# n 0 marr# #)
 
--- | filled_ creates filled by default value pseudo-primitive.
-filled_ :: (Unboxed e) => Int -> ST s (STBytes# s e)
-filled_ c@(I# c#) =
+-- | alloc creates filled by default value pseudo-primitive.
+alloc :: (Unboxed e) => Int -> ST s (STBytes# s e)
+alloc c@(I# c#) =
   let res = ST $ \ s1# -> case pnewUnboxed1 res c# s1# of
         (# s2#, marr# #) -> (# s2#, (STBytes# c 0 marr#) #)
   in  res
 
 cloneSTBytes# :: (Unboxed e) => STBytes# s e -> ST s (STBytes# s e)
 cloneSTBytes# es@(STBytes# c@(I# c#) (I# o#) marr#) = do
-  marr@(STBytes# _ _ marr'#) <- filled_ c
+  marr@(STBytes# _ _ marr'#) <- alloc c
   ST $ \ s1# -> case pcopyUnboxedM es marr# o# marr'# 0# c# s1# of
     s2# -> (# s2#, () #)
   return marr
@@ -1124,6 +1113,7 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Prim.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
+
 
 
 

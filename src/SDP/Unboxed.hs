@@ -75,9 +75,10 @@ class (Eq e) => Unboxed e
     {-# INLINE fillByteArray# #-}
     -- | Procedure for filling the array with the default value (like calloc).
     fillByteArray# :: MutableByteArray# s -> Int# -> e -> State# s -> State# s
-    fillByteArray# mbytes# n# e = isTrue# (n# <# 1#) ? (\ s1# -> s1#) $
-      \ s1# -> case writeByteArray# mbytes# (n# -# 1#) e s1# of
-        s2# -> fillByteArray# mbytes# (n# -# 1#) e s2#
+    fillByteArray# mbytes# n# e = I# n# > 0 ? go (n# -# 1#) $ \ s1# -> s1#
+      where
+        go 0# s2# = writeByteArray# mbytes# 0# e s2#
+        go c# s2# = go (c# -# 1#) (writeByteArray# mbytes# c# e s2#)
     
     {- |
       'newUnboxed' creates new 'MutableByteArray#' of given count of elements.
@@ -671,5 +672,4 @@ bool_index =  (`uncheckedIShiftRA#` 6#)
 
 consSizeof :: (a -> b) -> b -> a
 consSizeof =  \ _ _ -> undefined
-
 
