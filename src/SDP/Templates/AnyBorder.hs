@@ -467,9 +467,13 @@ instance (Bordered1 rep Int e, Split1 rep e) => Shaped (AnyBorder rep) e
         o = offset num ij * s
         s = size sub
     
-    slicesOf es =
+    slices es =
       let bnds = both takeDim (bounds es)
       in  uncurry AnyBorder bnds <$> size bnds `chunks` unpack es
+    
+    unslice ess =
+      let bnds = defaultBounds (foldr' ((+) . sizeOf) 0 ess)
+      in  uncurry AnyBorder bnds (concatMap unpack ess)
 
 --------------------------------------------------------------------------------
 
@@ -576,5 +580,6 @@ withBounds rep = uncurry AnyBorder (defaultBounds $ sizeOf rep) rep
 {-# INLINE withBounds' #-}
 withBounds' :: (Index i, BorderedM1 m rep Int e) => rep e -> m (AnyBorder rep i e)
 withBounds' rep = (\ n -> uncurry AnyBorder (defaultBounds n) rep) <$> getSizeOf rep
+
 
 

@@ -47,7 +47,9 @@ class (LinearM m v e, BorderedM m v i, MapM m v i e) => IndexedM m v i e
       match with the result bounds (not always possible).
     -}
     fromAssocs :: (i, i) -> [(i, e)] -> m v
-    fromAssocs =  flip fromAssocs' (undEx "fromAssocs {default}")
+    fromAssocs =
+      let err = throw $ UndefinedValue "in SDP.IndexedM.fromAssocs {default}"
+      in  flip fromAssocs' err
     
     {- |
       @fromAssocs' bnds defvalue ascs@ creates new structure from list of
@@ -92,10 +94,6 @@ class (LinearM m v e, BorderedM m v i, MapM m v i e) => IndexedM m v i e
     -- | Update element by given function.
     updateM' :: v -> (e -> e) -> i -> m ()
     updateM' es f i = writeM' es i . f =<< es >! i
-    
-    -- | Update elements by mapping with indices.
-    updatesM' :: v -> (i -> e -> e) -> m v
-    updatesM' es f = kfoldrM (\ i e go -> go <$ writeM' es i (f i e)) es es
 
 --------------------------------------------------------------------------------
 
@@ -128,8 +126,5 @@ type IndexedM2 m v i e = IndexedM m (v i e) i e
 -- | Kind @(* -> *)@ 'Thaw'.
 type Thaw1 m v v' e = Thaw m (v e) (v' e)
 
---------------------------------------------------------------------------------
 
-undEx :: String -> a
-undEx =  throw . UndefinedValue . showString "in SDP.IndexedM."
 

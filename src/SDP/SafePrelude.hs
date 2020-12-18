@@ -21,7 +21,7 @@ module SDP.SafePrelude
   
   module Prelude,
   
-  (?), (?+), (?-), (...), (?^), (<=<<), (>>=>), (>>=<<)
+  (?), (?+), (?-), (?^), (?:), (+?), (...), (<=<<), (>>=>), (>>=<<)
 )
 where
 
@@ -76,7 +76,17 @@ default ()
 (?-) :: (a -> Bool) -> (a -> b) -> a -> Maybe b
 (?-) =  \ p f a -> p a ? Nothing $ Just (f a)
 
--- | @f ... g@ is just @(.) . (.)@
+-- | Prepends 'Maybe' to list.
+{-# INLINE (?:) #-}
+(?:) :: Maybe a -> [a] -> [a]
+(?:) =  \ mx xs -> case mx of {(Just x) -> x : xs; _ -> xs}
+
+-- | Short version of 'fromMaybe'.
+{-# INLINE (+?) #-}
+(+?) :: a -> Maybe a -> a
+(+?) =  \ x' mx -> case mx of {(Just x) -> x; _ -> x'}
+
+-- | @(...) = (.) . (.)@.
 {-# INLINE (...) #-}
 (...) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
 (...) =  (.) . (.)

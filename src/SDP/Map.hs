@@ -107,7 +107,7 @@ class (Nullable map) => Map map key e | map -> key, map -> e
     -- | @('.!')@ is unsafe reader, can be faster @('!')@ by skipping checks.
     {-# INLINE (.!) #-}
     (.!) :: map -> key -> e
-    (.!) =  fromMaybe (undEx "(.!)") ... (!?)
+    (.!) =  (undEx "(.!)" +?) ... (!?)
     
     -- | @('!')@ is well-safe reader, may 'throw' 'IndexException'.
     (!) :: map -> key -> e
@@ -127,31 +127,53 @@ class (Nullable map) => Map map key e | map -> key, map -> e
     -- | Filter with key.
     filter' :: (key -> e -> Bool) -> map -> map
     filter' f = toMap . filter (uncurry f) . assocs
-    {-
+    
     {- |
       'union'' is 'groupSetWith' for maps but works with real groups of
       elements, not with consequentive equal elements.
       
       'union'' merges/chooses elements with equal keys from two maps.
     -}
-    union' :: (e -> e -> e) -> m -> m -> m
+    union' :: (Ord key) => (e -> e -> e) -> map -> map -> map
+    union' f = toMap ... on go assocs
+      where
+        go xs'@(x'@(i, x) : xs) ys'@(y'@(j, y) : ys) = case i <=> j of
+          LT -> x' : go xs ys'
+          EQ -> (i, f x y) : go xs ys
+          GT -> y' : go xs' ys
+        go xs'   Z = xs'
+        go Z   ys' = ys'
     
     {- |
-      @'difference'' comb mx my@ applies @comb@ to values with equal keys.
-      If @comp x y@ (where @(k1, x) <- mx@, @(k2, y) <- my@, @k1 == k2@) is
+      @'difference'' f mx my@ applies @comb@ to values with equal keys.
+      If @f x y@ (where @(k1, x) <- mx@, @(k2, y) <- my@, @k1 == k2@) is
       'Nothing', element isn't included to result map.
       
       Note that 'diffenence'' is poorer than a similar functions in containers.
     -}
-    difference' :: (e -> e -> Maybe e) -> m -> m -> m
+    difference' :: (Ord key) => (e -> e -> Maybe e) -> map -> map -> map
+    difference' f = toMap ... on go assocs
+      where
+        go xs'@(x'@(i, x) : xs) ys'@((j, y) : ys) = case i <=> j of
+          GT -> go xs' ys
+          LT -> x' : go xs ys'
+          EQ -> case f x y of {(Just e) -> (i, e) : go xs ys; _ -> go xs ys}
+        go xs' _ = xs'
     
     {- |
       @'intersection'' f mx my@ combines elements of 'intersection'' by @f@:
       if @'isJust' (f x y)@ (where @(k1, x) <- mx, (k2, y) <- my, k1 == k2@),
       then element is added to result map.
     -}
-    intersection' :: (e -> e -> e) -> m -> m -> m
-    -}
+    intersection' :: (Ord key) => (e -> e -> e) -> map -> map -> map
+    intersection' f = toMap ... on go assocs
+      where
+        go xs'@((i, x) : xs) ys'@((j, y) : ys) = case i <=> j of
+          LT -> go xs ys'
+          GT -> go xs' ys
+          EQ -> (i, f x y) : go xs ys
+        go _ _ = []
+    
     -- | Update function, by default uses ('!') and may throw 'IndexException'.
     update :: map -> (key -> e -> e) -> map
     update es f = es // [ (i, f i e) | (i, e) <- assocs es ]
@@ -287,4 +309,7 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Map."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Map."
+
+
+
 

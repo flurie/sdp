@@ -48,7 +48,7 @@ class (Monad m) => MapM m map key e | map -> m, map -> key, map -> e
     -- | @('>!')@ is unsafe monadic reader.
     {-# INLINE (>!) #-}
     (>!) :: map -> key -> m e
-    (>!) =  fmap (fromMaybe $ undEx "(!) {default}") ... (!?>)
+    (>!) =  fmap (undEx "(!) {default}" +?) ... (!?>)
     
     -- | @('!>')@ is well-safe monadic reader.
     {-# INLINE (!>) #-}
@@ -66,6 +66,10 @@ class (Monad m) => MapM m map key e | map -> m, map -> key, map -> e
     -- | @('!?>')@ is completely safe monadic reader.
     (!?>) :: map -> key -> m (Maybe e)
     es !?> i = do b <- memberM' es i; b ? Just <$> (es >! i) $ pure empty
+    
+    -- | Update elements by mapping with indices.
+    updateM :: map -> (key -> e -> e) -> m map
+    updateM es f = do ascs <- getAssocs es; es `overwrite` [ (i, f i e) | (i, e) <- ascs ]
     
     {- |
       This function designed to overwrite large enough fragments of the
@@ -145,6 +149,7 @@ overEx =  throw . IndexOverflow . showString "in SDP.MapM."
 
 underEx :: String -> a
 underEx =  throw . IndexUnderflow . showString "in SDP.MapM."
+
 
 
 

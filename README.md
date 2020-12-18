@@ -116,14 +116,7 @@ of `sdp` with which it's compatible.
 * **Not another ((re)re)base.** `sdp` works **with** `base`, generalizes and
 extends it.
 * **Maximum functionality with minimal size**. The `sdp` requires only 3 simple
-dependencies including `base` and comparable with some common packages by size:
-
-| package    | version  | compiler   | .so  | lines | code |
-|------------|----------|------------|------|-------|------|
-| sdp        | 0.2      | ghc-8.4.4  | 5.5M | 10.5k | 5.7k |
-| vector     | 0.12.1.2 | ghc-8.10.2 | 4.3M | 16k   | 6.9k |
-| containers | 0.6.2.1  | ghc-8.10.2 | 3.5M | 24k   | 6.5k |
-
+dependencies (including `base`).
 * **Good extensibility.** `sdp` is a well-extensible library that allows you to
 easily integrate new components, simplifies interlibrary communication. The
 functionality of `sdp` is also easy to extend with the flexibility that type

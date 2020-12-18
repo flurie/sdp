@@ -17,7 +17,7 @@ module SDP.Index
   -- * Shapes
   module SDP.Shape,
   
-  (:|:), SubIndex, takeDim, dropDim, splitDim,
+  (:|:), SubIndex, takeDim, dropDim, joinDim, splitDim,
   
   -- * Indices
   Index (..),
@@ -65,21 +65,50 @@ type SubIndex = Sub
 -- Internal class of shape differences.
 class (Index i, Index j, Index (i :|: j)) => Sub i j
   where
+    {- |
+      Drop some dimensions (second argument used as type variable).
+      
+      >>> dropDim ([1, 2, 3, 4] :: I4 Int) ([] :: E)
+      [1, 2, 3, 4]
+      >>> dropDim ([1, 2, 3, 4] :: I4 Int) ([1, 2] :: I2 Int)
+      [3, 4]
+    -}
     dropDim :: i -> j -> i :|: j
+    
+    {- |
+      Join some dimensions.
+      
+      >>> joinDim ([1, 2] :: I2 Int) [3] :: I3 Int
+      [1, 2, 3]
+      >>> joinDim ([1, 2] :: I2 Int) [3, 4] :: I4 Int
+      [1, 2, 3, 4]
+    -}
+    joinDim :: j -> i :|: j -> i
+    
+    {- |
+      Take some dimensions.
+      
+      >>> takeDim ([1, 2, 3, 4] :: I4 Int) :: I1 Int
+      [1]
+      >>> takeDim ([1, 2, 3, 4] :: I4 Int) :: E
+      E
+    -}
     takeDim :: i -> j
 
 instance {-# OVERLAPS #-} (Index i, E ~~ (i :|: i)) => Sub i i
   where
     dropDim = \ _ _ -> E
+    joinDim = const
     takeDim = id
 
-instance {-# OVERLAPPING #-}
+instance
   (
-    Index i, Index j, Index ij, ij ~~ (i :|: j), Sub (DimInit i) j,
-    DimInit ij ~~ (DimInit i :|: j), DimLast ij ~~ DimLast i
+    ij ~~ (i :|: j), DimInit ij ~~ (DimInit i :|: j), DimLast ij ~~ DimLast i,
+    Index i, Index j, Index ij, Sub (DimInit i) j
   ) => Sub i j
   where
     dropDim i' j' = let (is, i) = unconsDim i' in consDim (dropDim is j') i
+    joinDim j' ij = let (is, i) = unconsDim ij in consDim (joinDim j' is) i
     takeDim = takeDim . initDim
 
 -- | 'splitDim' returns pair of shape difference and subshape.
@@ -505,6 +534,7 @@ checkBounds bnds i res = case inBounds bnds i of
 
 emptyEx :: String -> a
 emptyEx =  throw . EmptyRange . showString "in SDP.Index."
+
 
 
 

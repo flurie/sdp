@@ -17,7 +17,7 @@ module SDP.Shaped
 )
 where
 
-import SDP.Index
+import SDP.Linear
 
 default ()
 
@@ -29,7 +29,11 @@ default ()
 -}
 class Shaped s e
   where
-    {-# MINIMAL reshape, (!!), slicesOf #-}
+    {-# MINIMAL reshape, (!!), slices, unslice #-}
+    
+    -- | 'rebound' with 'defaultBounds'.
+    defaultRebound :: (Index i, Index j, Bordered2 s i e) => s i e -> s j e
+    defaultRebound es = es `reshape` defaultBounds (sizeOf es)
     
     -- | Set new bounds of same type, may shrink.
     rebound :: (Index i) => s i e -> (i, i) -> s i e
@@ -42,9 +46,10 @@ class Shaped s e
     (!!) :: (SubIndex i j) => s i e -> i :|: j -> s j e
     
     -- | Returns list of @es@ subshapes.
-    slicesOf :: (SubIndex i j) => s i e -> [s j e]
-
-
+    slices :: (SubIndex i j) => s i e -> [s j e]
+    
+    -- | Unslice subshapes.
+    unslice :: (Foldable f, SubIndex i j) => f (s j e) -> s i e
 
 
 

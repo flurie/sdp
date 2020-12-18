@@ -165,11 +165,11 @@ namedPrec parser name =
 
 -- | 'read' with implicit default value.
 readDef :: (Read e, Default e) => String -> e
-readDef =  fromMaybe def . readMaybe
+readDef =  (def +?) . readMaybe
 
 -- | 'readBy' with implicit default value.
 readDefBy :: (Default e) => ReadPrec e -> String -> e
-readDefBy =  fromMaybe def ... readMaybeBy
+readDefBy =  (def +?) ... readMaybeBy
 
 -- | 'readBy' is generalized 'read'.
 readBy :: ReadPrec e -> String -> e

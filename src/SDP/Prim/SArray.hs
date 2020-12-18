@@ -443,41 +443,41 @@ instance SetWith (SArray# e) e
     deleteWith f e es = memberWith f e es ? except (\ x -> f e x == EQ) es $ es
     
     {-# INLINE intersectionWith #-}
-    intersectionWith f xs ys = fromList $ intersection' 0 0
+    intersectionWith f xs ys = fromList $ go 0 0
       where
         n1 = sizeOf xs; n2 = sizeOf ys
-        intersection' i j = i == n1 || j == n2 ? [] $ case x `f` y of
-            LT -> intersection' (i + 1) j
-            EQ -> x : intersection' (i + 1) (j + 1)
-            GT -> intersection' i (j + 1)
+        go i j = i == n1 || j == n2 ? [] $ case x `f` y of
+            LT -> go (i + 1) j
+            EQ -> x : go (i + 1) (j + 1)
+            GT -> go i (j + 1)
           where
             x = xs !^ i; y = ys !^ j
     
     {-# INLINE unionWith #-}
-    unionWith f xs ys = fromList $ union' 0 0
+    unionWith f xs ys = fromList $ go 0 0
       where
         n1 = sizeOf xs; n2 = sizeOf ys
-        union' i j
+        go i j
           | i == n1 = (ys !^) <$> [j .. n2 - 1]
           | j == n2 = (xs !^) <$> [i .. n1 - 1]
           |  True   = case x `f` y of
-            LT -> x : union' (i + 1) j
-            EQ -> x : union' (i + 1) (j + 1)
-            GT -> y : union' i (j + 1)
+            LT -> x : go (i + 1) j
+            EQ -> x : go (i + 1) (j + 1)
+            GT -> y : go i (j + 1)
           where
             x = xs !^ i; y = ys !^ j
     
     {-# INLINE differenceWith #-}
-    differenceWith f xs ys = fromList $ difference' 0 0
+    differenceWith f xs ys = fromList $ go 0 0
       where
         n1 = sizeOf xs; n2 = sizeOf ys
-        difference' i j
+        go i j
             | i == n1 = []
             | j == n2 = (xs !^) <$> [i .. n1 - 1]
             |  True   = case x `f` y of
-              LT -> x : difference' (i + 1) j
-              EQ -> difference' (i + 1) (j + 1)
-              GT -> difference' i (j + 1)
+              LT -> x : go (i + 1) j
+              EQ -> go (i + 1) (j + 1)
+              GT -> go i (j + 1)
           where
             x = xs !^ i; y = ys !^ j
     
