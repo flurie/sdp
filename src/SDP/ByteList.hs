@@ -35,6 +35,11 @@ import SDP.Set
 import SDP.Templates.AnyBorder
 import SDP.ByteList.Ublist
 
+default ()
+
+--------------------------------------------------------------------------------
+
 -- | 'ByteList' is bordered strict unboxed unrolled linked list.
 type ByteList = AnyBorder Ublist
+
 

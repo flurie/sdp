@@ -255,7 +255,7 @@ class (Ord i, Shape i, Shape (DimLast i), Shape (DimInit i), Shape (GIndex i)) =
       Checks if @ij@ in @bnds@ subshape, may 'throw' 'IndexException'.
     -}
     subshape :: (Sub i j, Index (i :|: j)) => (i, i) -> i :|: j -> (j, j)
-    subshape (l, u) ij = checkBounds (l', u') ij (lj, uj) "shape {default}"
+    subshape (l, u) ij = checkBounds (l', u') ij (lj, uj) "subshape {default}"
       where
         (l', lj) = splitDim l
         (u', uj) = splitDim u

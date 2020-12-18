@@ -91,9 +91,9 @@ instance Estimate [a]
     xs <==> ys = tail xs <==> tail ys
     
     [] <.=> n = 0 <=> n
-    es <.=> n = if n < 0 then LT else go es n
-      where
-        go xs c | c == 0 = GT | null xs = 0 <=> c | True = tail xs `go` (c - 1)
+    es <.=> n =
+      let go xs c | c == 0 = GT | null xs = 0 <=> c | True = tail xs `go` (c - 1)
+      in  if n < 0 then LT else go es n
 
 
 

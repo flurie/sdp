@@ -33,8 +33,13 @@ import SDP.Set
 import SDP.Templates.AnyBorder
 import SDP.Unrolled.Unlist
 
+default ()
+
+--------------------------------------------------------------------------------
+
 -- | 'Unrolled' is bordered unrolled linked list.
 type Unrolled = AnyBorder Unlist
+
 
 
 

@@ -30,6 +30,11 @@ import SDP.Set
 import SDP.Templates.AnyBorder
 import SDP.Prim.SArray
 
+default ()
+
+--------------------------------------------------------------------------------
+
 -- | 'Array' - lazy boxed array.
 type Array = AnyBorder SArray#
+
 

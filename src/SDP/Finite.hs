@@ -55,10 +55,8 @@ instance IsList E
   where
     type Item E = E
     
-    fromList [] = E
-    fromList _  = throw $ UnexpectedRank "in SDP.Finite.fromList"
-    
-    toList E = []
+    fromList = const E
+    toList   = const []
 
 --------------------------------------------------------------------------------
 
@@ -199,7 +197,4 @@ unsnoc :: [i] -> ([i], i)
 unsnoc    [i]   = ([], i)
 unsnoc (i : is) = (i :) `first` unsnoc is
 unsnoc     _    = throw $ UnexpectedRank "in SDP.Finite.fromList"
-
-
-
 

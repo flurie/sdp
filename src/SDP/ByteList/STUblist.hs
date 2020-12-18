@@ -29,12 +29,12 @@ import SDP.SortM
 import SDP.Templates.AnyChunks
 import SDP.Prim.SBytes
 
+default ()
+
 --------------------------------------------------------------------------------
 
 -- | This 'STUblist' is mutable version of 'SDP.ByteList.Ublist.Ublist'.
 type STUblist s = AnyChunks (STBytes# s)
-
-
 
 
 
