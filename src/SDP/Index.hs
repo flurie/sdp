@@ -65,26 +65,22 @@ type SubIndex = Sub
 -- Internal class of shape differences.
 class (Index i, Index j, Index (i :|: j)) => Sub i j
   where
-    _dropDim :: i -> j -> i :|: j
-    _takeDim :: i -> j
+    dropDim :: i -> j -> i :|: j
+    takeDim :: i -> j
 
 instance {-# OVERLAPS #-} (Index i, E ~~ (i :|: i)) => Sub i i
   where
-    _dropDim = \ _ _ -> E
-    _takeDim = id
+    dropDim = \ _ _ -> E
+    takeDim = id
 
-instance {-# OVERLAPPING #-} (Sub (DimInit i) j, ij ~~ (i :|: j), Index i, Index j, Index ij, DimInit ij ~~ (DimInit i :|: j), DimLast ij ~~ DimLast i) => Sub i j
+instance {-# OVERLAPPING #-}
+  (
+    Index i, Index j, Index ij, ij ~~ (i :|: j), Sub (DimInit i) j,
+    DimInit ij ~~ (DimInit i :|: j), DimLast ij ~~ DimLast i
+  ) => Sub i j
   where
-    _dropDim i' j' = let (is, i) = unconsDim i' in consDim (_dropDim is j') i
-    _takeDim = _takeDim . initDim
-
--- | 'takeDim' returns subshape.
-takeDim :: (SubIndex i j) => i -> j
-takeDim =  _takeDim
-
--- | 'dropDim' returns shape difference.
-dropDim :: (SubIndex i j) => i -> j -> i :|: j
-dropDim =  _dropDim
+    dropDim i' j' = let (is, i) = unconsDim i' in consDim (dropDim is j') i
+    takeDim = takeDim . initDim
 
 -- | 'splitDim' returns pair of shape difference and subshape.
 splitDim :: (SubIndex i j) => i -> (i :|: j, j)
@@ -225,17 +221,17 @@ class (Ord i, Shape i, Shape (DimLast i), Shape (DimInit i), Shape (GIndex i)) =
     range =  uncurry enumFromTo
     
     {- |
-      @shape bnds ij@ returns subshape of @bnds@.
+      @subshape bnds ij@ returns subshape of @bnds@.
       
       Checks if @ij@ in @bnds@ subshape, may 'throw' 'IndexException'.
     -}
-    shape :: (Sub i j, Index (i :|: j)) => (i, i) -> i :|: j -> (j, j)
-    shape (l, u) ij = checkBounds (l', u') ij (lj, uj) "shape {default}"
+    subshape :: (Sub i j, Index (i :|: j)) => (i, i) -> i :|: j -> (j, j)
+    subshape (l, u) ij = checkBounds (l', u') ij (lj, uj) "shape {default}"
       where
         (l', lj) = splitDim l
         (u', uj) = splitDim u
     
-    slice :: (Sub i j, Index (i :|: j)) => (i, i) -> i :|: j -> ((i :|: j, i :|: j), (j, j))
+    slice :: (Sub i j, ij ~ (i :|: j), Index j) => (i, i) -> ij -> ((ij, ij), (j, j))
     slice (l, u) ij = checkBounds (ls, us) ij ((ls, us), (lj, uj)) "slice {default}"
       where
         (ls, lj) = splitDim l
@@ -509,7 +505,6 @@ checkBounds bnds i res = case inBounds bnds i of
 
 emptyEx :: String -> a
 emptyEx =  throw . EmptyRange . showString "in SDP.Index."
-
 
 
 

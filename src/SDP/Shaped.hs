@@ -41,7 +41,7 @@ class Shaped s e
     -- | @es !! ij@ returns subshape @ij@ of @es@.
     (!!) :: (SubIndex i j) => s i e -> i :|: j -> s j e
     
-    -- | @slicesOf es@ returns list of @es@ subshapes.
+    -- | Returns list of @es@ subshapes.
     slicesOf :: (SubIndex i j) => s i e -> [s j e]
 
 
