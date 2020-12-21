@@ -15,6 +15,7 @@
 module SDP.Index
 (
   -- * Shapes
+  module SDP.Nullable,
   module SDP.Shape,
   
   (:|:), SubIndex, takeDim, dropDim, joinDim, splitDim,
@@ -30,6 +31,7 @@ where
 import Prelude ( (++) )
 import SDP.SafePrelude
 import SDP.Internal
+import SDP.Nullable
 import SDP.Shape
 
 import Data.Tuple
@@ -281,6 +283,11 @@ instance (Index i) => Estimate (i, i)
     (.<)   = (<)   . size
     (.>=)  = (>=)  . size
     (.<=)  = (<=)  . size
+
+instance (Index i) => Nullable (i, i)
+  where
+    isNull = isEmpty
+    lzero  = defaultBounds 0
 
 --------------------------------------------------------------------------------
 
@@ -534,7 +541,5 @@ checkBounds bnds i res = case inBounds bnds i of
 
 emptyEx :: String -> a
 emptyEx =  throw . EmptyRange . showString "in SDP.Index."
-
-
 
 
