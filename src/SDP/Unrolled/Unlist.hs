@@ -72,11 +72,23 @@ instance Ord1 Unlist
 
 instance Zip Unlist
   where
-    zipWith  f as bs             = fromList $ zipWith  f (toList as) (toList bs)
-    zipWith3 f as bs cs          = fromList $ zipWith3 f (toList as) (toList bs) (toList cs)
-    zipWith4 f as bs cs ds       = fromList $ zipWith4 f (toList as) (toList bs) (toList cs) (toList ds)
-    zipWith5 f as bs cs ds es    = fromList $ zipWith5 f (toList as) (toList bs) (toList cs) (toList ds) (toList es)
-    zipWith6 f as bs cs ds es fs = fromList $ zipWith6 f (toList as) (toList bs) (toList cs) (toList ds) (toList es) (toList fs)
+    all2 f as bs             = all2 f (listL as) (listL bs)
+    all3 f as bs cs          = all3 f (listL as) (listL bs) (listL cs)
+    all4 f as bs cs ds       = all4 f (listL as) (listL bs) (listL cs) (listL ds)
+    all5 f as bs cs ds es    = all5 f (listL as) (listL bs) (listL cs) (listL ds) (listL es)
+    all6 f as bs cs ds es fs = all6 f (listL as) (listL bs) (listL cs) (listL ds) (listL es) (listL fs)
+    
+    any2 f as bs             = any2 f (listL as) (listL bs)
+    any3 f as bs cs          = any3 f (listL as) (listL bs) (listL cs)
+    any4 f as bs cs ds       = any4 f (listL as) (listL bs) (listL cs) (listL ds)
+    any5 f as bs cs ds es    = any5 f (listL as) (listL bs) (listL cs) (listL ds) (listL es)
+    any6 f as bs cs ds es fs = any6 f (listL as) (listL bs) (listL cs) (listL ds) (listL es) (listL fs)
+    
+    zipWith  f as bs             = fromList $ zipWith  f (listL as) (listL bs)
+    zipWith3 f as bs cs          = fromList $ zipWith3 f (listL as) (listL bs) (listL cs)
+    zipWith4 f as bs cs ds       = fromList $ zipWith4 f (listL as) (listL bs) (listL cs) (listL ds)
+    zipWith5 f as bs cs ds es    = fromList $ zipWith5 f (listL as) (listL bs) (listL cs) (listL ds) (listL es)
+    zipWith6 f as bs cs ds es fs = fromList $ zipWith6 f (listL as) (listL bs) (listL cs) (listL ds) (listL es) (listL fs)
 
 instance Sort (Unlist e) e
   where
@@ -87,4 +99,7 @@ instance Sort (Unlist e) e
 {-# INLINE done #-}
 done :: STArray# s e -> ST s (Unlist e)
 done =  unsafeFreeze
+
+
+
 

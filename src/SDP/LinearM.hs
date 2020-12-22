@@ -55,9 +55,13 @@ class (Monad m, Index i) => BorderedM m b i | b -> m, b -> i
     getUpper :: b -> m i
     getUpper =  snds . getBounds
     
-    -- | 'getSizeOf' returns size of mutable data structure.
+    -- | 'getSizeOf' returns 'size' of mutable data structure.
     getSizeOf :: b -> m Int
     getSizeOf =  fmap size . getBounds
+    
+    -- | 'getSizesOf' returns 'sizes' of mutable data structure.
+    getSizesOf :: b -> m [Int]
+    getSizesOf =  fmap sizes . getBounds
     
     -- | 'nowIndexIn' is 'indexIn' version for mutable structures.
     nowIndexIn :: b -> i -> m Bool
@@ -346,5 +350,6 @@ type BorderedM2 m l i e = BorderedM m (l i e) i
 -- | sortedM checks if structure is sorted.
 sortedM :: (LinearM m l e, Ord e) => l -> m Bool
 sortedM =  fmap (\ es -> null es || and (zipWith (<=) es (tail es))) . getLeft
+
 
 

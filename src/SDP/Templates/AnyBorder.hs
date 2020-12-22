@@ -146,6 +146,18 @@ instance (Index i, Functor rep) => Functor (AnyBorder rep i)
 
 instance (Index i, Zip rep) => Zip (AnyBorder rep i)
   where
+    all2 f as bs             = all2 f (unpack as) (unpack bs)
+    all3 f as bs cs          = all3 f (unpack as) (unpack bs) (unpack cs)
+    all4 f as bs cs ds       = all4 f (unpack as) (unpack bs) (unpack cs) (unpack ds)
+    all5 f as bs cs ds es    = all5 f (unpack as) (unpack bs) (unpack cs) (unpack ds) (unpack es)
+    all6 f as bs cs ds es fs = all6 f (unpack as) (unpack bs) (unpack cs) (unpack ds) (unpack es) (unpack fs)
+    
+    any2 f as bs             = any2 f (unpack as) (unpack bs)
+    any3 f as bs cs          = any3 f (unpack as) (unpack bs) (unpack cs)
+    any4 f as bs cs ds       = any4 f (unpack as) (unpack bs) (unpack cs) (unpack ds)
+    any5 f as bs cs ds es    = any5 f (unpack as) (unpack bs) (unpack cs) (unpack ds) (unpack es)
+    any6 f as bs cs ds es fs = any6 f (unpack as) (unpack bs) (unpack cs) (unpack ds) (unpack es) (unpack fs)
+    
     zipWith f as bs =
       let (l, u) = defaultBounds $ minimum [sizeOf as, sizeOf bs]
       in  AnyBorder l u $ zipWith f (unpack as) (unpack bs)
@@ -580,6 +592,4 @@ withBounds rep = uncurry AnyBorder (defaultBounds $ sizeOf rep) rep
 {-# INLINE withBounds' #-}
 withBounds' :: (Index i, BorderedM1 m rep Int e) => rep e -> m (AnyBorder rep i e)
 withBounds' rep = (\ n -> uncurry AnyBorder (defaultBounds n) rep) <$> getSizeOf rep
-
-
 

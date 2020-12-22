@@ -10,7 +10,8 @@
 -}
 module SDP.Zip ( Zip (..) ) where
 
-import Prelude ( Functor, ($) )
+import Prelude ()
+import SDP.SafePrelude
 
 default ()
 
@@ -19,7 +20,29 @@ default ()
 -- | Zip is generalization of ZipList applicative semantics (but without pure).
 class (Functor z) => Zip z
   where
-    {-# MINIMAL zipWith #-}
+    {-# MINIMAL all2, any2, zipWith #-}
+    
+    all2 :: (a -> b -> Bool)                     -> z a -> z b -> Bool
+    all3 :: (a -> b -> c -> Bool)                -> z a -> z b -> z c -> Bool
+    all4 :: (a -> b -> c -> d -> Bool)           -> z a -> z b -> z c -> z d -> Bool
+    all5 :: (a -> b -> c -> d -> e -> Bool)      -> z a -> z b -> z c -> z d -> z e -> Bool
+    all6 :: (a -> b -> c -> d -> e -> f -> Bool) -> z a -> z b -> z c -> z d -> z e -> z f -> Bool
+    
+    all3 f          = all2 ($) ... zipWith f
+    all4 f as       = all2 ($) ... zipWith3 f as
+    all5 f as bs    = all2 ($) ... zipWith4 f as bs
+    all6 f as bs cs = all2 ($) ... zipWith5 f as bs cs
+    
+    any2 :: (a -> b -> Bool)                     -> z a -> z b -> Bool
+    any3 :: (a -> b -> c -> Bool)                -> z a -> z b -> z c -> Bool
+    any4 :: (a -> b -> c -> d -> Bool)           -> z a -> z b -> z c -> z d -> Bool
+    any5 :: (a -> b -> c -> d -> e -> Bool)      -> z a -> z b -> z c -> z d -> z e -> Bool
+    any6 :: (a -> b -> c -> d -> e -> f -> Bool) -> z a -> z b -> z c -> z d -> z e -> z f -> Bool
+    
+    any3 f          = any2 ($) ... zipWith f
+    any4 f as       = any2 ($) ... zipWith3 f as
+    any5 f as bs    = any2 ($) ... zipWith4 f as bs
+    any6 f as bs cs = any2 ($) ... zipWith5 f as bs cs
     
     zip  :: z a -> z b                             -> z (a, b)
     zip3 :: z a -> z b -> z c                      -> z (a, b, c)
@@ -39,27 +62,59 @@ class (Functor z) => Zip z
     zipWith5 :: (a -> b -> c -> d -> e -> f)      -> z a -> z b -> z c -> z d -> z e -> z f
     zipWith6 :: (a -> b -> c -> d -> e -> f -> g) -> z a -> z b -> z c -> z d -> z e -> z f -> z g
     
-    zipWith3 f as bs          = zipWith ($) $ zipWith  f as bs
-    zipWith4 f as bs cs       = zipWith ($) $ zipWith3 f as bs cs
-    zipWith5 f as bs cs ds    = zipWith ($) $ zipWith4 f as bs cs ds
-    zipWith6 f as bs cs ds es = zipWith ($) $ zipWith5 f as bs cs ds es
+    zipWith3 f          = zipWith ($) ... zipWith  f
+    zipWith4 f as       = zipWith ($) ... zipWith3 f as
+    zipWith5 f as bs    = zipWith ($) ... zipWith4 f as bs
+    zipWith6 f as bs cs = zipWith ($) ... zipWith5 f as bs cs
 
 --------------------------------------------------------------------------------
 
 instance Zip []
   where
-    zipWith f (a : as) (b : bs) = f a b : zipWith f as bs
+    all2 f (a:as) (b:bs) = f a b && all2 f as bs
+    all2 _ _ _ = True
+    
+    all3 f (a:as) (b:bs) (c:cs) = f a b c && all3 f as bs cs
+    all3 _ _ _ _ = True
+    
+    all4 f (a:as) (b:bs) (c:cs) (d:ds) = f a b c d && all4 f as bs cs ds
+    all4 _ _ _ _ _ = True
+    
+    all5 f (a:as) (b:bs) (c:cs) (d:ds) (e:es) = f a b c d e && all5 f as bs cs ds es
+    all5 _ _ _ _ _ _ = True
+    
+    all6 f (a:as) (b:bs) (c:cs) (d:ds) (e:es) (g:gs) = f a b c d e g && all6 f as bs cs ds es gs
+    all6 _ _ _ _ _ _ _ = True
+    
+    any2 f (a:as) (b:bs) = f a b || any2 f as bs
+    any2 _ _ _ = False
+    
+    any3 f (a:as) (b:bs) (c:cs) = f a b c || any3 f as bs cs
+    any3 _ _ _ _ = False
+    
+    any4 f (a:as) (b:bs) (c:cs) (d:ds) = f a b c d || any4 f as bs cs ds
+    any4 _ _ _ _ _ = False
+    
+    any5 f (a:as) (b:bs) (c:cs) (d:ds) (e:es) = f a b c d e || any5 f as bs cs ds es
+    any5 _ _ _ _ _ _ = False
+    
+    any6 f (a:as) (b:bs) (c:cs) (d:ds) (e:es) (g:gs) = f a b c d e g || any6 f as bs cs ds es gs
+    any6 _ _ _ _ _ _ _ = False
+    
+    zipWith f (a:as) (b:bs) = f a b:zipWith f as bs
     zipWith _ _ _ = []
     
-    zipWith3 f (a : as) (b : bs) (c : cs) = f a b c : zipWith3 f as bs cs
+    zipWith3 f (a:as) (b:bs) (c:cs) = f a b c:zipWith3 f as bs cs
     zipWith3 _ _ _ _ = []
     
-    zipWith4 f (a : as) (b : bs) (c : cs) (d : ds) = f a b c d : zipWith4 f as bs cs ds
+    zipWith4 f (a:as) (b:bs) (c:cs) (d:ds) = f a b c d:zipWith4 f as bs cs ds
     zipWith4 _ _ _ _ _ = []
     
-    zipWith5 f (a : as) (b : bs) (c : cs) (d : ds) (e : es) = f a b c d e : zipWith5 f as bs cs ds es
+    zipWith5 f (a:as) (b:bs) (c:cs) (d:ds) (e:es) = f a b c d e:zipWith5 f as bs cs ds es
     zipWith5 _ _ _ _ _ _ = []
     
-    zipWith6 f (a : as) (b : bs) (c : cs) (d : ds) (e : es) (g : gs) = f a b c d e g : zipWith6 f as bs cs ds es gs
+    zipWith6 f (a:as) (b:bs) (c:cs) (d:ds) (e:es) (g:gs) = f a b c d e g:zipWith6 f as bs cs ds es gs
     zipWith6 _ _ _ _ _ _ _ = []
+
+
 

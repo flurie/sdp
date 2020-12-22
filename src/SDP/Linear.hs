@@ -640,6 +640,10 @@ class (Linear s e) => Split s e | s -> e
     infixes :: (Eq e) => s -> s -> [Int]
     infixes =  on infixes listL
     
+    -- | @dropSide f = dropWhile f . dropEnd f@.
+    dropSide :: (e -> Bool) -> s -> s
+    dropSide f = dropWhile f . dropEnd f
+    
     -- | Takes the longest init by predicate.
     takeWhile :: (e -> Bool) -> s -> s
     takeWhile p es = take (prefix p es) es
@@ -891,5 +895,6 @@ sorted es = combo (<=) es ==. es
 -}
 ascending :: (Split s e, Bordered s i, Ord e) => s -> [Int] -> Bool
 ascending =  all sorted ... flip splits
+
 
 

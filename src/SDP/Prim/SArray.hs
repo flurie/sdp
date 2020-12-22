@@ -177,6 +177,76 @@ instance Functor SArray#
 
 instance Zip SArray#
   where
+    all2 f as bs = go (minimum [sizeOf as, sizeOf bs])
+      where
+        apply i = f (as!^i) (bs!^i)
+        
+        go 0 = True
+        go i = let i' = i - 1 in apply i' || go i'
+    
+    all3 f as bs cs = go (minimum [sizeOf as, sizeOf bs, sizeOf cs])
+      where
+        apply i = f (as!^i) (bs!^i) (cs!^i)
+        
+        go 0 = True
+        go i = let i' = i - 1 in apply i' || go i'
+    
+    all4 f as bs cs ds = go (minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds])
+      where
+        apply i = f (as!^i) (bs!^i) (cs!^i) (ds!^i)
+        
+        go 0 = True
+        go i = let i' = i - 1 in apply i' || go i'
+    
+    all5 f as bs cs ds es = go (minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds, sizeOf es])
+      where
+        apply i = f (as!^i) (bs!^i) (cs!^i) (ds!^i) (es!^i)
+        
+        go 0 = True
+        go i = let i' = i - 1 in apply i' || go i'
+    
+    all6 f as bs cs ds es fs = go (minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds, sizeOf es, sizeOf fs])
+      where
+        apply i = f (as!^i) (bs!^i) (cs!^i) (ds!^i) (es!^i) (fs!^i)
+        
+        go 0 = True
+        go i = let i' = i - 1 in apply i' || go i'
+    
+    any2 f as bs = go (minimum [sizeOf as, sizeOf bs])
+      where
+        apply i = f (as!^i) (bs!^i)
+        
+        go 0 = False
+        go i = let i' = i - 1 in apply i' || go i'
+    
+    any3 f as bs cs = go (minimum [sizeOf as, sizeOf bs, sizeOf cs])
+      where
+        apply i = f (as!^i) (bs!^i) (cs!^i)
+        
+        go 0 = False
+        go i = let i' = i - 1 in apply i' || go i'
+    
+    any4 f as bs cs ds = go (minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds])
+      where
+        apply i = f (as!^i) (bs!^i) (cs!^i) (ds!^i)
+        
+        go 0 = False
+        go i = let i' = i - 1 in apply i' || go i'
+    
+    any5 f as bs cs ds es = go (minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds, sizeOf es])
+      where
+        apply i = f (as!^i) (bs!^i) (cs!^i) (ds!^i) (es!^i)
+        
+        go 0 = False
+        go i = let i' = i - 1 in apply i' || go i'
+    
+    any6 f as bs cs ds es fs = go (minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds, sizeOf es, sizeOf fs])
+      where
+        apply i = f (as!^i) (bs!^i) (cs!^i) (ds!^i) (es!^i) (fs!^i)
+        
+        go 0 = False
+        go i = let i' = i - 1 in apply i' || go i'
+    
     zipWith f as bs = fromListN sz $ apply <$> range (0, sz - 1)
       where
         apply i = f (as !^ i) (bs !^ i)
