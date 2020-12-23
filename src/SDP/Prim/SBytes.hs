@@ -768,10 +768,10 @@ instance (Unboxed e) => IndexedM (ST s) (STBytes# s e) Int e
         s2# -> (# s2#, () #)
     
     fromIndexed' es = do
-        let n = sizeOf es
-        copy <- alloc n
-        forM_ [0 .. n - 1] $ \ i -> writeM copy i (es !^ i)
-        return copy
+      let n = sizeOf es
+      copy <- alloc n
+      forM_ [0 .. n - 1] $ \ i -> writeM copy i (es !^ i)
+      return copy
     
     fromIndexedM es = do
       n    <- getSizeOf es
@@ -809,8 +809,15 @@ instance Estimate (IOBytes# e)
 
 instance Bordered (IOBytes# e) Int
   where
-    sizeOf (IOBytes# es) = sizeOf es
-    bounds (IOBytes# es) = bounds es
+    lower = const 0
+    
+    sizeOf   (IOBytes# (STBytes# c _ _)) = c
+    upper    (IOBytes# (STBytes# c _ _)) = c - 1
+    bounds   (IOBytes# (STBytes# c _ _)) = (0, c - 1)
+    indices  (IOBytes# (STBytes# c _ _)) = [0 .. c - 1]
+    indexOf  (IOBytes# (STBytes# c _ _)) = index (0, c - 1)
+    offsetOf (IOBytes# (STBytes# c _ _)) = offset (0, c - 1)
+    indexIn  (IOBytes# (STBytes# c _ _)) = \ i -> i >= 0 && i < c
 
 instance BorderedM IO (IOBytes# e) Int
   where
@@ -1113,8 +1120,6 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Prim.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
-
-
 
 
 

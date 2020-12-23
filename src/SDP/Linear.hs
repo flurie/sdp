@@ -117,18 +117,18 @@ instance (Index i) => Bordered (i, i) i
     lower  = fst
     upper  = snd
     
-    indexIn = inRange
     indices = range
+    indexIn = inRange
     
-    offsetOf = offset
-    indexOf  = index
     sizeOf   = size
+    indexOf  = index
+    offsetOf = offset
 
 instance Bordered [e] Int
   where
     sizeOf = length
+    lower  = const 0
     
-    lower _  = 0
     upper es = length es - 1
 
 --------------------------------------------------------------------------------
@@ -288,9 +288,9 @@ class (Nullable l) => Linear l e | l -> e
     
     -- | Generalization of partition, that select sublines by predicates.
     partitions :: (Foldable f) => f (e -> Bool) -> l -> [l]
-    partitions ps es = reverse $ foldl f [es] ps
-      where
-        f = \ (x : xs) -> (\ (y, ys) -> (ys : y : xs)) . (`partition` x)
+    partitions ps es =
+      let f = \ (x : xs) -> (\ (y, ys) -> (ys : y : xs)) . (`partition` x)
+      in  reverse $ foldl f [es] ps
     
     -- | @select f es@ is selective map of @es@ elements to new list.
     select :: (e -> Maybe a) -> l -> [a]
@@ -305,9 +305,9 @@ class (Nullable l) => Linear l e | l -> e
       the remaining elements of the line.
     -}
     extract :: (e -> Maybe a) -> l -> ([a], l)
-    extract f = fmap fromList . foldr g ([], []) . listL
-      where
-        g = \ b -> second (b :) `maybe` (first . (:)) $ f b
+    extract f =
+      let g = \ b -> second (b :) `maybe` (first . (:)) $ f b
+      in  fmap fromList . foldr g ([], []) . listL
     
     {- |
       @extract' f es@ returns a selective map of @es@ elements to new line and
@@ -322,9 +322,9 @@ class (Nullable l) => Linear l e | l -> e
       last selection.
     -}
     selects :: (Foldable f) => f (e -> Maybe a) -> l -> ([[a]], l)
-    selects fs es = foldl g ([], es) fs
-      where
-        g = uncurry $ \ as -> first (: as) ... flip extract
+    selects fs es =
+      let g = \ as -> first (: as) ... flip extract
+      in  foldl (uncurry g) ([], es) fs
     
     {- |
       @selects' fs es@ sequentially applies the functions from @fs@ to the
@@ -349,7 +349,8 @@ class (Nullable l) => Linear l e | l -> e
     subsequences :: l -> [l]
     subsequences =  (Z :) . go
       where
-        go es = case es of {(x :> xs) -> single x : foldr (\ ys r -> ys : (x :> ys) : r) [] (go xs); _ -> Z}
+        go (x :> xs) = single x : foldr (\ ys r -> ys : (x :> ys) : r) [] (go xs)
+        go     _     = Z
     
     {- |
       @iterate n f x@ returns sequence of @n@ applications of @f@ to @x@.
@@ -474,7 +475,9 @@ class (Linear s e) => Split s e | s -> e
       > splits [5, 3, 12] ['a'..'z'] = ["abcde","fgh","ijklmnopqrst","uvwxyz"]
     -}
     splits :: (Foldable f) => f Int -> s -> [s]
-    splits ns es = reverse $ foldl (\ (r : ds) n -> let (d, r') = split n r in r' : d : ds) [es] ns
+    splits ns es =
+      let f = \ (r : ds) n -> let (d, r') = split n r in r' : d : ds
+      in  reverse $ foldl f [es] ns
     
     {- |
       Splits line into sequences of given sizes (right to left).
@@ -482,7 +485,9 @@ class (Linear s e) => Split s e | s -> e
       > divides [5,3,12] ['a'..'z'] == ["abcdef","ghijk","lmn","opqrstuvwxyz"]
     -}
     divides :: (Foldable f) => f Int -> s -> [s]
-    divides ns es = foldr (\ n (r : ds) -> let (r', d) = divide n r in r' : d : ds) [es] ns
+    divides ns es =
+      let f = \ n (r : ds) -> let (r', d) = divide n r in r' : d : ds
+      in  foldr f [es] ns
     
     {- |
       Splits structures into parts by given offsets.
@@ -621,12 +626,12 @@ class (Linear s e) => Split s e | s -> e
     -- | prefix gives length of init, satisfying preducate.
     prefix :: (e -> Bool) -> s -> Int
     default prefix :: (Foldable t, t e ~~ s) => (e -> Bool) -> s -> Int
-    prefix p = foldr (\ e c -> p e ? succ c $ 0) 0
+    prefix p = foldr' (\ e c -> p e ? succ c $ 0) 0
     
     -- | suffix gives length of tail, satisfying predicate.
     suffix :: (e -> Bool) -> s -> Int
     default suffix :: (Foldable t, t e ~~ s) => (e -> Bool) -> s -> Int
-    suffix p = foldl (\ c e -> p e ? succ c $ 0) 0
+    suffix p = foldl' (\ c e -> p e ? succ c $ 0) 0
     
     {- |
       @infixes inf es@ returns a list of @inf@ positions in @es@, without

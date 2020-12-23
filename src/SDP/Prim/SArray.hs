@@ -307,13 +307,12 @@ instance Foldable SArray#
       let go i = 0 == i ? e $ f (go $ i - 1) e where e = arr !^ i
       in  null arr ? pfailEx "foldl1" $ go (sizeOf arr - 1)
     
-    null es = case es of {(SArray# 0 _ _) -> True; _ -> False}
-    
-    length (SArray# c _ _) = c
+    null   = isNull
+    length = sizeOf
 
 instance Traversable SArray#
   where
-    traverse f = fmap fromList . foldr (\ x ys -> liftA2 (:) (f x) ys) (pure [])
+    traverse f = fmap fromList . foldr (liftA2 (:) . f) (pure [])
 
 --------------------------------------------------------------------------------
 
@@ -493,8 +492,8 @@ instance Bordered (SArray# e) Int
     bounds   (SArray# c _ _) = (0, c - 1)
     indices  (SArray# c _ _) = [0 .. c - 1]
     indexOf  (SArray# c _ _) = index (0, c - 1)
-    indexIn  (SArray# c _ _) = \ i -> i >= 0 && i < c
     offsetOf (SArray# c _ _) = offset (0, c - 1)
+    indexIn  (SArray# c _ _) = \ i -> i >= 0 && i < c
 
 --------------------------------------------------------------------------------
 
@@ -567,7 +566,7 @@ instance SetWith (SArray# e) e
     
     memberWith = binaryContain
     
-    lookupLTWith _ _ Z  = Nothing
+    lookupLTWith _ _ Z = Nothing
     lookupLTWith f o es
         | GT <- o `f` last' = Just last'
         | GT <- o `f` head' = look' head' 0 u'
@@ -585,7 +584,7 @@ instance SetWith (SArray# e) e
             j = l + (u - l) `div` 2
             e = es !^ j
     
-    lookupLEWith _ _ Z  = Nothing
+    lookupLEWith _ _ Z = Nothing
     lookupLEWith f o es
         | GT <- o `f` last' = Just last'
         | LT <- o `f` head' = Nothing
@@ -602,7 +601,7 @@ instance SetWith (SArray# e) e
             j = l + (u - l) `div` 2
             e = es !^ j
     
-    lookupGTWith _ _ Z  = Nothing
+    lookupGTWith _ _ Z = Nothing
     lookupGTWith f o es
         | LT <- o `f` head' = Just head'
         | LT <- o `f` last' = look' last' 0 u'
@@ -620,7 +619,7 @@ instance SetWith (SArray# e) e
             j = l + (u - l) `div` 2
             e = es !^ j
     
-    lookupGEWith _ _ Z  = Nothing
+    lookupGEWith _ _ Z = Nothing
     lookupGEWith f o es
         | GT <- o `f` last' = Nothing
         | GT <- o `f` head' = look' last' 0 u'
@@ -719,11 +718,10 @@ instance Eq (STArray# s e)
 instance Estimate (STArray# s e)
   where
     (<==>) = on (<=>) sizeOf
-    
-    (.>.)  = on (>)  sizeOf
-    (.<.)  = on (<)  sizeOf
-    (.<=.) = on (<=) sizeOf
-    (.>=.) = on (>=) sizeOf
+    (.>.)  = on (>)   sizeOf
+    (.<.)  = on (<)   sizeOf
+    (.<=.) = on (<=)  sizeOf
+    (.>=.) = on (>=)  sizeOf
     
     (<.=>) = (<=>) . sizeOf
     (.>)   = (>)   . sizeOf
@@ -733,8 +731,15 @@ instance Estimate (STArray# s e)
 
 instance Bordered (STArray# s e) Int
   where
-    bounds (STArray# c _ _) = (0, c - 1)
-    sizeOf (STArray# c _ _) = c
+    lower _ = 0
+    
+    sizeOf   (STArray# c _ _) = c
+    upper    (STArray# c _ _) = c - 1
+    bounds   (STArray# c _ _) = (0, c - 1)
+    indices  (STArray# c _ _) = [0 .. c - 1]
+    indexOf  (STArray# c _ _) = index (0, c - 1)
+    offsetOf (STArray# c _ _) = offset (0, c - 1)
+    indexIn  (STArray# c _ _) = \ i -> i >= 0 && i < c
 
 instance BorderedM (ST s) (STArray# s e) Int
   where
@@ -910,10 +915,10 @@ instance IndexedM (ST s) (STArray# s e) Int e
       \ s1# -> case writeArray# marr# (o# +# i#) e s1# of s2# -> (# s2#, () #)
     
     fromIndexed' es = do
-        let n = sizeOf es
-        copy <- filled n (unreachEx "fromIndexed'")
-        forM_ [0 .. n - 1] $ \ i -> writeM copy i (es !^ i)
-        return copy
+      let n = sizeOf es
+      copy <- filled n (unreachEx "fromIndexed'")
+      forM_ [0 .. n - 1] $ \ i -> writeM copy i (es !^ i)
+      return copy
     
     fromIndexedM es = do
       n    <- getSizeOf es
@@ -951,8 +956,15 @@ instance Estimate (IOArray# e)
 
 instance Bordered (IOArray# e) Int
   where
-    sizeOf (IOArray# es) = sizeOf es
-    bounds (IOArray# es) = bounds es
+    lower _ = 0
+    
+    sizeOf   (IOArray# (STArray# c _ _)) = c
+    upper    (IOArray# (STArray# c _ _)) = c - 1
+    bounds   (IOArray# (STArray# c _ _)) = (0, c - 1)
+    indices  (IOArray# (STArray# c _ _)) = [0 .. c - 1]
+    indexOf  (IOArray# (STArray# c _ _)) = index (0, c - 1)
+    offsetOf (IOArray# (STArray# c _ _)) = offset (0, c - 1)
+    indexIn  (IOArray# (STArray# c _ _)) = \ i -> i >= 0 && i < c
 
 instance BorderedM IO (IOArray# e) Int
   where
@@ -1187,4 +1199,7 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
+
+
+
 

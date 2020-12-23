@@ -70,7 +70,7 @@ instance (Index i, Eq1 rep) => Eq1 (AnyBorder rep i)
 
 instance (Index i, Ord (rep e)) => Ord (AnyBorder rep i e)
   where
-    compare xs ys = unpack xs <=> unpack ys
+    compare = on (<=>) unpack
 
 instance (Index i, Ord1 rep) => Ord1 (AnyBorder rep i)
   where
@@ -219,11 +219,10 @@ instance (Index i) => Bordered (AnyBorder rep i e) i
     lower  (AnyBorder l _ _) = l
     upper  (AnyBorder _ u _) = u
     
-    indexIn (AnyBorder l u _) = inRange (l, u)
-    indices (AnyBorder l u _) = range   (l, u)
-    
-    indexOf  (AnyBorder l u _) = index  (l, u)
-    offsetOf (AnyBorder l u _) = offset (l, u)
+    indices  (AnyBorder l u _) = range   (l, u)
+    indexOf  (AnyBorder l u _) = index   (l, u)
+    indexIn  (AnyBorder l u _) = inRange (l, u)
+    offsetOf (AnyBorder l u _) = offset  (l, u)
 
 instance (Index i, Linear1 rep e, Bordered1 rep Int e) => Linear (AnyBorder rep i e) e
   where
@@ -254,8 +253,8 @@ instance (Index i, Linear1 rep e, Bordered1 rep Int e) => Linear (AnyBorder rep 
     
     write (AnyBorder l u es) n e = AnyBorder l u (write es n e)
     
-    concatMap f = withBounds . concatMap (unpack . f)
-    concat      = withBounds . concatMap unpack
+    concatMap = withBounds ... concatMap . (unpack .)
+    concat    = withBounds  .  concatMap unpack
     
     partitions  f = fmap fromList . partitions f . listL
     intersperse e = withBounds . intersperse e . unpack
@@ -592,4 +591,5 @@ withBounds rep = uncurry AnyBorder (defaultBounds $ sizeOf rep) rep
 {-# INLINE withBounds' #-}
 withBounds' :: (Index i, BorderedM1 m rep Int e) => rep e -> m (AnyBorder rep i e)
 withBounds' rep = (\ n -> uncurry AnyBorder (defaultBounds n) rep) <$> getSizeOf rep
+
 

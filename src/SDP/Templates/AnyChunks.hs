@@ -66,14 +66,14 @@ instance (Eq (rep e), Bordered1 rep Int e, Split1 rep e) => Eq (AnyChunks rep e)
 instance (Ord (rep e), Bordered1 rep Int e, Split1 rep e) => Ord (AnyChunks rep e)
   where
     compare Z Z = EQ
-    compare Z _ = LT
-    compare _ Z = GT
-    compare xs@(AnyChunks ~(x : xs')) ys@(AnyChunks ~(y : ys')) = if n1 > n2
+    compare xs@(AnyChunks (x : xs')) ys@(AnyChunks (y : ys')) = if n1 > n2
         then (take n2 x <=> y) <> (drop n2 xs <=> AnyChunks ys')
         else (x <=> take n1 y) <> (AnyChunks xs' <=> drop n1 ys)
       where
         n1 = sizeOf x
         n2 = sizeOf y
+    compare Z _ = LT
+    compare _ _ = GT
 
 --------------------------------------------------------------------------------
 
@@ -198,15 +198,15 @@ instance (Bordered1 rep Int e, Linear1 rep e) => Linear (AnyChunks rep e) e
     toLast (AnyChunks (xs :< x)) e = isNull x ? AnyChunks xs :< e $ AnyChunks (xs :< (x :< e))
     toLast _ e = single e
     
-    uncons = uncons_ . unpack
+    uncons = go . unpack
       where
-        uncons_ ((x :> xs) : xss) = (x, AnyChunks (xs : xss))
-        uncons_ _ = pfailEx "(:>)"
+        go ((x :> xs) : xss) = (x, AnyChunks (xs : xss))
+        go _ = pfailEx "(:>)"
     
-    unsnoc = unsnoc_ . unpack
+    unsnoc = go . unpack
       where
-        unsnoc_ (xss :< (xs :< x)) = (AnyChunks (xss :< xs), x)
-        unsnoc_ _ = pfailEx "(:<)"
+        go (xss :< (xs :< x)) = (AnyChunks (xss :< xs), x)
+        go _ = pfailEx "(:<)"
     
     fromList = AnyChunks . fmap fromList . chunks lim
     listL    = foldr ((++) . listL) [] . unpack
@@ -270,9 +270,9 @@ instance (Bordered1 rep Int e, Split1 rep e) => Split (AnyChunks rep e) e
           EQ -> xs
         go _    []    = []
     
-    prefix f (AnyChunks es) = foldr' (\ e c -> let p = prefix f e in p == sizeOf e ? p + c $ p) 0 es
-    suffix f (AnyChunks es) = foldl' (\ c e -> let s = prefix f e in s == sizeOf e ? c + s $ s) 0 es
-    combo  f (AnyChunks es) = foldr' (\ e n -> let c = combo  f e in c == sizeOf e ? c + n $ c) 0 es
+    prefix f = foldr' (\ e n -> let p = prefix f e in p ==. e ? p + n $ p) 0 . unpack
+    suffix f = foldl' (\ n e -> let s = suffix f e in s ==. e ? s + n $ s) 0 . unpack
+    combo  f = foldr' (\ e n -> let c = combo  f e in c ==. e ? c + n $ c) 0 . unpack
 
 --------------------------------------------------------------------------------
 
@@ -591,7 +591,5 @@ unpackM (AnyChunks es) = go es
 
 lim :: Int
 lim =  1024
-
-
 
 
