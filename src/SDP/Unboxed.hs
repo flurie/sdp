@@ -113,7 +113,7 @@ class (Eq e) => Unboxed e
     copyUnboxedM# e msrc# o1# mbytes# o2# n# = copyMutableByteArray# msrc# (sizeof# e o1#) mbytes# (sizeof# e o2#) (sizeof# e n#)
     
     {- |
-      @'hashUnboxedWith' e len# off# bytes# salt@ returns 'bytes#' @FNV-1@ hash,
+      @'hashUnboxedWith' e len# off# bytes# salt@ returns @bytes#@ @FNV-1@ hash,
       where @off#@ and @len#@ is offset and length (in elements).
       
       Note: the standard definition of this function is written in Haskell using
@@ -132,7 +132,7 @@ class (Eq e) => Unboxed e
 
 --------------------------------------------------------------------------------
 
--- | 'psizeof' is 'Proxy' 'sizeof'.
+-- | 'psizeof' is @Proxy 'sizeof'@.
 psizeof :: (Unboxed e) => proxy e -> Int -> Int
 psizeof =  sizeof . fromProxy
 
@@ -144,7 +144,7 @@ pnewUnboxed =  newUnboxed . fromProxy
 pcopyUnboxed :: (Unboxed e) => proxy e -> ByteArray# -> Int# -> MutableByteArray# s -> Int# -> Int# -> State# s -> State# s
 pcopyUnboxed =  copyUnboxed# . fromProxy
 
--- | Proxy version if 'copyUnboxedM1'.
+-- | Proxy version if 'copyUnboxedM#'.
 pcopyUnboxedM :: (Unboxed e) => proxy e -> MutableByteArray# s -> Int# -> MutableByteArray# s -> Int# -> Int# -> State# s -> State# s
 pcopyUnboxedM =  copyUnboxedM# . fromProxy
 
@@ -160,7 +160,7 @@ pnewUnboxed1 =  newUnboxed . fromProxy1
 pcopyUnboxed1 :: (Unboxed e) => m (proxy e) -> ByteArray# -> Int# -> MutableByteArray# s -> Int# -> Int# -> State# s -> State# s
 pcopyUnboxed1 =  copyUnboxed# . fromProxy1
 
--- | @(* -> * -> *)@ kind proxy version if 'copyUnboxedM1'.
+-- | @(* -> * -> *)@ kind proxy version if 'copyUnboxedM#'.
 pcopyUnboxedM1 :: (Unboxed e) => m (proxy e) -> MutableByteArray# s -> Int# -> MutableByteArray# s -> Int# -> Int# -> State# s -> State# s
 pcopyUnboxedM1 =  copyUnboxedM# . fromProxy1
 

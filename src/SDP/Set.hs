@@ -1,6 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 {-# LANGUAGE TypeOperators, TypeFamilies, ConstraintKinds, DefaultSignatures #-}
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE Trustworthy #-}
 
 {- |
     Module      :  SDP.Set
@@ -23,10 +23,12 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-import SDP.Internal
 import SDP.Linear
 
-import Data.List ( sortBy, groupBy )
+import Data.Maybe ( isJust )
+import Data.List  ( sortBy, groupBy )
+
+import GHC.Types
 
 default ()
 
@@ -342,4 +344,7 @@ instance SetWith [o] o
     lookupGEWith _ _ _ = Nothing
     
     groupSetWith cmp f = map (foldr1 f) . groupBy ((== EQ) ... cmp) . sortBy cmp
+
+
+
 

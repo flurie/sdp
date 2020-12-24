@@ -22,16 +22,11 @@ module SDP.Prim.SBytes
   -- * Preudo-primitive types
   IOBytes# (..), STBytes#, SBytes#,
   
-  -- ** Safe (copy) unpack
-  fromSBytes#, fromSTBytes#,
+  -- ** Unpack unboxed arrays
+  fromSBytes#, packSBytes#, unpackSBytes#, offsetSBytes#,
+  fromSTBytes#, packSTBytes#, unpackSTBytes#, offsetSTBytes#,
   
-  -- ** Unsafe unpack
-  unpackSBytes#, offsetSBytes#, unpackSTBytes#, offsetSTBytes#,
-  
-  -- ** Unsafe pack
-  packSBytes#, packSTBytes#,
-  
-  -- ** Unsafe coerce
+  -- ** Coerce unboxed arrays
   unsafeCoerceSBytes#, unsafeCoerceSTBytes#,
   
   -- ** Unsafe pointer conversions
@@ -45,7 +40,6 @@ where
 import Prelude ()
 import SDP.SafePrelude
 import SDP.IndexedM
-import SDP.Internal
 import SDP.Unboxed
 import SDP.SortM
 import SDP.Sort
@@ -63,9 +57,13 @@ import GHC.Exts
     sameMutableByteArray#, (+#), (-#), (==#)
   )
 
+import GHC.Types
 import GHC.ST ( ST (..), STRep )
 
+import Data.Default.Class
 import Data.Typeable
+import Data.Coerce
+import Data.String
 import Text.Read
 
 import Foreign
@@ -75,6 +73,7 @@ import Foreign
   )
 
 import Control.Monad.ST
+import Control.Exception.SDP
 
 default ()
 
@@ -1060,6 +1059,7 @@ unsafePtrToSBytes# (c, ptr) = do
   
   stToIO (done es)
 
+-- | Calculate hash 'SBytes#' using 'hashUnboxedWith'.
 hashSBytesWith# :: (Unboxed e) => Int -> SBytes# e -> Int
 hashSBytesWith# (I# salt#) es@(SBytes# (I# c#) (I# o#) bytes#) =
   I# (hashUnboxedWith (fromProxy es) c# o# bytes# salt#)
@@ -1072,8 +1072,9 @@ pack' =  stToIO . coerce
 
 {-# INLINE done #-}
 done :: STBytes# s e -> ST s (SBytes# e)
-done (STBytes# n o marr#) = ST $ \ s1# -> case unsafeFreezeByteArray# marr# s1# of
-  (# s2#, arr# #) -> (# s2#, SBytes# n o arr# #)
+done (STBytes# n o marr#) = ST $
+  \ s1# -> case unsafeFreezeByteArray# marr# s1# of
+    (# s2#, arr# #) -> (# s2#, SBytes# n o arr# #)
 
 {-# INLINE done' #-}
 done' :: Int -> MutableByteArray# s -> STRep s (STBytes# s e)
@@ -1110,6 +1111,9 @@ nubSorted f es =
   let fun = \ e ls -> e `f` head ls == EQ ? ls $ e : ls
   in  fromList $ foldr fun [last es] ((es !^) <$> [0 .. sizeOf es - 2])
 
+ascsBounds :: (Ord a) => [(a, b)] -> (a, a)
+ascsBounds =  \ ((x, _) : xs) -> foldr (\ (e, _) (mn, mx) -> (min mn e, max mx e)) (x, x) xs
+
 --------------------------------------------------------------------------------
 
 overEx :: String -> a
@@ -1120,6 +1124,7 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Prim.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
+
 
 
 

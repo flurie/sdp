@@ -38,7 +38,6 @@ where
 import Prelude ()
 import SDP.SafePrelude
 import SDP.IndexedM
-import SDP.Internal
 import SDP.SortM
 import SDP.Sort
 import SDP.Scan
@@ -59,9 +58,13 @@ import GHC.Exts
     sameMutableArray#, (+#), (-#), (==#)
   )
 
+import GHC.Types
 import GHC.ST ( ST (..), STRep )
 
+import Data.Default.Class
 import Data.Typeable
+import Data.Coerce
+import Data.String
 import Data.Proxy
 
 import Text.Read
@@ -69,6 +72,7 @@ import Text.Read
 import Foreign ( Ptr, Storable, callocArray, peekElemOff, pokeElemOff )
 
 import Control.Monad.ST
+import Control.Exception.SDP
 
 default ()
 
@@ -1183,6 +1187,9 @@ before n@(I# n#) e es@(SArray# c@(I# c#) (I# o#) arr#)
         s4# -> case unsafeFreezeArray# marr# s4# of
           (# s5#, res# #) -> (# s5#, SArray# (c + 1) 0 res# #)
 
+ascsBounds :: (Ord a) => [(a, b)] -> (a, a)
+ascsBounds =  \ ((x, _) : xs) -> foldr (\ (e, _) (mn, mx) -> (min mn e, max mx e)) (x, x) xs
+
 --------------------------------------------------------------------------------
 
 undEx :: String -> a
@@ -1199,7 +1206,5 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
-
-
 
 

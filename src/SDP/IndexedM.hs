@@ -27,10 +27,11 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-import SDP.Internal
 import SDP.LinearM
 import SDP.Indexed
 import SDP.MapM
+
+import Control.Exception.SDP
 
 default ()
 
@@ -125,6 +126,5 @@ type IndexedM2 m v i e = IndexedM m (v i e) i e
 
 -- | Kind @(* -> *)@ 'Thaw'.
 type Thaw1 m v v' e = Thaw m (v e) (v' e)
-
 
 

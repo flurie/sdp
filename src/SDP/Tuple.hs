@@ -9,11 +9,31 @@
 -}
 module SDP.Tuple
 (
-  T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15
+  -- * Tuple synonyms
+  T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15,
+  
+  -- * Related combinators
+  fsts, snds, both
 )
 where
 
+import Data.Function ( on )
+
 default ()
+
+--------------------------------------------------------------------------------
+
+-- | Return all first elements in pairs.
+fsts :: (Functor f) => f (a, b) -> f a
+fsts =  fmap fst
+
+-- | Return all first elements in pairs.
+snds :: (Functor f) => f (a, b) -> f b
+snds =  fmap snd
+
+-- | Applies function to both elements of pair.
+both :: (a -> b) -> (a, a) -> (b, b)
+both =  uncurry . on (,)
 
 --------------------------------------------------------------------------------
 

@@ -25,7 +25,6 @@ where
 import Prelude ()
 import SDP.SafePrelude
 import SDP.IndexedM
-import SDP.Internal
 import SDP.SortM
 import SDP.Scan
 
@@ -33,13 +32,17 @@ import qualified GHC.Exts as E
 
 import GHC.Generics
 
+import Data.Default.Class
 import Data.Typeable
+import Data.String
 import Data.Data
 
 import Text.Read.SDP
 import Text.Show.SDP
 
 import SDP.SortM.Tim
+
+import Control.Exception.SDP
 
 default ()
 
@@ -571,6 +574,9 @@ instance {-# OVERLAPS #-} (Freeze1 m mut imm e) => Freeze m (AnyChunks mut e) (A
 
 --------------------------------------------------------------------------------
 
+ascsBounds :: (Ord a) => [(a, b)] -> (a, a)
+ascsBounds =  \ ((x, _) : xs) -> foldr (\ (e, _) (mn, mx) -> (min mn e, max mx e)) (x, x) xs
+
 overEx :: String -> a
 overEx =  throw . IndexOverflow . showString "in SDP.Templates.AnyChunks."
 
@@ -591,5 +597,4 @@ unpackM (AnyChunks es) = go es
 
 lim :: Int
 lim =  1024
-
 

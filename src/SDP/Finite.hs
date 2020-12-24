@@ -34,11 +34,16 @@ where
 
 import Prelude ( (++) )
 import SDP.SafePrelude
-import SDP.Internal
+
+import Data.Default.Class
+
+import GHC.Types
+import GHC.Read
 
 import qualified GHC.Exts as E
 import GHC.Exts ( IsList )
-import GHC.Read
+
+import Control.Exception.SDP
 
 default ()
 

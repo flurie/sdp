@@ -49,7 +49,7 @@ sortM =  sortMBy compare
 sortMOn :: (SortM m s e, Ord o) => (e -> o) -> s -> m ()
 sortMOn =  sortMBy . comparing
 
--- | 'mathsort' is just @'mathsortBy' 'compare'@
+-- | 'mathsortM' is just @'mathsortMBy' 'compare'@
 mathsortM :: (SortM m s e, Ord e) => s -> m ()
 mathsortM =  mathsortMBy compare
 

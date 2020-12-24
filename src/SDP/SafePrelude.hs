@@ -12,16 +12,21 @@
 -}
 module SDP.SafePrelude
 (
-  -- Exports
+  -- * Exports
   module Control.Applicative,
   module Control.Monad,
+  
+  module Data.Functor.Classes,
+  module Data.Bifunctor,
   module Data.Foldable,
+  
   module SDP.Comparing,
   module SDP.Estimate,
   
   module Prelude,
   
-  (?), (?+), (?-), (?^), (?:), (+?), (...), (<=<<), (>>=>), (>>=<<)
+  -- * Combinators
+  on, (?), (?+), (?-), (?^), (?:), (+?), (...), (<=<<), (>>=>), (>>=<<)
 )
 where
 
@@ -41,13 +46,16 @@ import Prelude hiding
     readFile, writeFile, appendFile, getContents, getLine, putStr, putStrLn
   )
 
-import Control.Applicative
-import Control.Monad
-
-import Data.Foldable hiding ( concat, concatMap )
-
 import SDP.Comparing
 import SDP.Estimate
+
+import Data.Functor.Classes
+import Data.Bifunctor
+import Data.Foldable hiding ( concat, concatMap )
+import Data.Function ( on )
+
+import Control.Applicative
+import Control.Monad
 
 infixl 8 ?+, ?-
 infixr 1  ?  -- Lowest priority, compatible with infixr 0 $
@@ -81,10 +89,11 @@ default ()
 (?:) :: Maybe a -> [a] -> [a]
 (?:) =  \ mx xs -> case mx of {(Just x) -> x : xs; _ -> xs}
 
--- | Short version of 'fromMaybe'.
+-- | Short version of 'Data.Maybe.fromMaybe'.
 {-# INLINE (+?) #-}
 (+?) :: a -> Maybe a -> a
-(+?) =  \ x' mx -> case mx of {(Just x) -> x; _ -> x'}
+_ +?  Just x = x
+x +? Nothing = x
 
 -- | @(...) = (.) . (.)@.
 {-# INLINE (...) #-}
@@ -110,6 +119,7 @@ default ()
 {-# INLINE (>>=<<) #-}
 (>>=<<) :: (Monad m) => m a -> m b -> (a -> b -> m c) -> m c
 (>>=<<) = \ ma mb f -> join $ liftM2 f ma mb
+
 
 
 

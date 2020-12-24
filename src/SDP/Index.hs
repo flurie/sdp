@@ -30,13 +30,17 @@ where
 
 import Prelude ( (++) )
 import SDP.SafePrelude
-import SDP.Internal
 import SDP.Nullable
 import SDP.Shape
 
 import Data.Tuple
+import Data.Char ( ord )
+
+import GHC.Types
 
 import Foreign.C.Types
+
+import Control.Exception.SDP
 
 default ()
 
@@ -541,5 +545,6 @@ checkBounds bnds i res = case inBounds bnds i of
 
 emptyEx :: String -> a
 emptyEx =  throw . EmptyRange . showString "in SDP.Index."
+
 
 

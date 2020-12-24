@@ -26,9 +26,10 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-import SDP.Internal
 import SDP.Linear
 import SDP.Map
+
+import Control.Exception.SDP
 
 default ()
 
@@ -140,6 +141,5 @@ binaryContain f e es =
 
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.Indexed."
-
 
 

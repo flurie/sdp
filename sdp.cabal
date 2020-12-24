@@ -121,10 +121,5 @@ Library
     
     Text.Show.SDP
     Text.Read.SDP
-  
-  other-modules:
-    SDP.Internal
-
-
 
 

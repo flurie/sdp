@@ -28,7 +28,6 @@ where
 import Prelude ()
 import SDP.SafePrelude
 import SDP.IndexedM
-import SDP.Internal
 import SDP.Shaped
 import SDP.SortM
 import SDP.Sort
@@ -38,11 +37,15 @@ import qualified GHC.Exts as E
 
 import GHC.Generics
 
+import Data.Default.Class
 import Data.Typeable
+import Data.String
 import Data.Data
 
 import Text.Read.SDP
 import Text.Show.SDP
+
+import Control.Exception.SDP
 
 default ()
 
@@ -580,6 +583,9 @@ instance {-# OVERLAPS #-} (Index i, Freeze1 m mut imm e) => Freeze m (AnyBorder 
 expEx :: String -> a
 expEx =  throw . UnacceptableExpansion . showString "in SDP.Templates.AnyBorder."
 
+ascsBounds :: (Ord a) => [(a, b)] -> (a, a)
+ascsBounds =  \ ((x, _) : xs) -> foldr (\ (e, _) (mn, mx) -> (min mn e, max mx e)) (x, x) xs
+
 {-# INLINE unpack #-}
 unpack :: AnyBorder rep i e -> rep e
 unpack =  \ (AnyBorder _ _ es) -> es
@@ -591,5 +597,4 @@ withBounds rep = uncurry AnyBorder (defaultBounds $ sizeOf rep) rep
 {-# INLINE withBounds' #-}
 withBounds' :: (Index i, BorderedM1 m rep Int e) => rep e -> m (AnyBorder rep i e)
 withBounds' rep = (\ n -> uncurry AnyBorder (defaultBounds n) rep) <$> getSizeOf rep
-
 

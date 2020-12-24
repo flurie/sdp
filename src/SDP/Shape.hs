@@ -30,12 +30,13 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-import SDP.Internal
 import SDP.Finite
 import SDP.Tuple
 
 import Data.Word
 import Data.Int
+
+import GHC.Types
 
 import Foreign.C.Types
 
@@ -254,7 +255,6 @@ type DimLast (Type i) = i;\
 rank = const RANK;\
 initDim = fst . unconsDim;\
 lastDim = snd . unconsDim;
--- incomplete definition, fromGIndex, toGIndex, unconsDim and consDim needed.
 
 SHAPE_INSTANCE(T2, I1, 2)
 fromGIndex = \ [a,b] -> (a,b);

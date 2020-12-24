@@ -19,8 +19,11 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-import SDP.Internal
 import SDP.LinearM
+
+import Data.Maybe ( listToMaybe )
+
+import Control.Exception.SDP
 
 default ()
 
@@ -40,7 +43,7 @@ class (Monad m) => MapM m map key e | map -> m, map -> key, map -> e
     -- | Create new mutable map from list of @(key, element)@ associations.
     newMap' :: e -> [(key, e)] -> m map
     
-    -- | 'getAssocs' is version of 'assocs' for mutable maps.
+    -- | 'getAssocs' is version of 'SDP.Map.assocs' for mutable maps.
     default getAssocs :: (LinearM m map e) => map -> m [(key, e)]
     getAssocs :: map -> m [(key, e)]
     getAssocs es = liftA2 zip (getKeys es) (getLeft es)
@@ -149,7 +152,4 @@ overEx =  throw . IndexOverflow . showString "in SDP.MapM."
 
 underEx :: String -> a
 underEx =  throw . IndexUnderflow . showString "in SDP.MapM."
-
-
-
 

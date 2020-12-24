@@ -43,12 +43,17 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-import SDP.Internal
 import SDP.Nullable
 import SDP.Index
 import SDP.Zip
 
 import qualified Data.List as L
+
+import Data.Maybe ( catMaybes )
+
+import GHC.Types
+
+import Control.Exception.SDP
 
 default ()
 

@@ -52,7 +52,7 @@ insertionSortBy cmp es =
   let gt = \ x y -> case x `cmp` y of {GT -> True; _ -> False}
   in  do n <- getSizeOf es; insertionSort_ gt es 0 0 (n - 1)
 
--- | 'timsort' is just synonym for @'timSortBy' 'compare'@.
+-- | 'timSort' is just synonym for @'timSortBy' 'compare'@.
 {-# INLINE timSort #-}
 timSort :: (LinearM m v e, BorderedM m v i, Ord e) => v -> m ()
 timSort =  timSortBy compare

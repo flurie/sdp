@@ -28,7 +28,6 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-import SDP.Internal
 import SDP.Linear
 import SDP.Map
 
@@ -350,6 +349,7 @@ type BorderedM2 m l i e = BorderedM m (l i e) i
 -- | sortedM checks if structure is sorted.
 sortedM :: (LinearM m l e, Ord e) => l -> m Bool
 sortedM =  fmap (\ es -> null es || and (zipWith (<=) es (tail es))) . getLeft
+
 
 
 

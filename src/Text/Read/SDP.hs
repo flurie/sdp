@@ -33,8 +33,9 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-import SDP.Internal
 import SDP.Indexed
+
+import Data.Default.Class
 
 import Text.ParserCombinators.ReadP ( eof, manyTill, skipSpaces )
 import Text.Read.Lex ( expect )
@@ -226,5 +227,4 @@ parens' parser = do
   value <- parser
   expectPrec (Punc "]")
   return value
-
 

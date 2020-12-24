@@ -22,11 +22,12 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-import SDP.Internal
 import SDP.Linear
 import SDP.Set
 
 import Data.List ( findIndex, findIndices )
+
+import Control.Exception.SDP
 
 default ()
 
@@ -149,7 +150,7 @@ class (Nullable map) => Map map key e | map -> key, map -> e
       If @f x y@ (where @(k1, x) <- mx@, @(k2, y) <- my@, @k1 == k2@) is
       'Nothing', element isn't included to result map.
       
-      Note that 'diffenence'' is poorer than a similar functions in containers.
+      Note that 'difference'' is poorer than a similar functions in containers.
     -}
     difference' :: (Ord key) => (e -> e -> Maybe e) -> map -> map -> map
     difference' f = toMap ... on go assocs
@@ -162,7 +163,7 @@ class (Nullable map) => Map map key e | map -> key, map -> e
     
     {- |
       @'intersection'' f mx my@ combines elements of 'intersection'' by @f@:
-      if @'isJust' (f x y)@ (where @(k1, x) <- mx, (k2, y) <- my, k1 == k2@),
+      if @isJust (f x y)@ (where @(k1, x) <- mx, (k2, y) <- my, k1 == k2@),
       then element is added to result map.
     -}
     intersection' :: (Ord key) => (e -> e -> e) -> map -> map -> map
@@ -309,7 +310,6 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Map."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Map."
-
 
 
 
