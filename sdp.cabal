@@ -43,7 +43,6 @@ Library
     -- Commons
     
     Control.Exception.SDP
-    Control.Monad.Rope
     
     SDP.SafePrelude
     SDP.Comparing
@@ -121,5 +120,6 @@ Library
     
     Text.Show.SDP
     Text.Read.SDP
-
+  other-modules:
+    Control.Monad.Rope
 

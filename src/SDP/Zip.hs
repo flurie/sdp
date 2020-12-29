@@ -8,7 +8,11 @@
     "SDP.Zip" provides 'Zip' - class of 'Control.Applicative.ZipList"-like
     structures.
 -}
-module SDP.Zip ( Zip (..) ) where
+module SDP.Zip
+(
+  Zip (..)
+)
+where
 
 import Prelude ()
 import SDP.SafePrelude
@@ -20,7 +24,11 @@ default ()
 -- | Zip is generalization of ZipList applicative semantics (but without pure).
 class (Functor z) => Zip z
   where
-    {-# MINIMAL all2, any2, zipWith #-}
+    {-# MINIMAL (zap | zipWith), all2, any2 #-}
+    
+    -- | ZipList-like '<*>'
+    zap :: z (a -> b) -> z a -> z b
+    zap =  zipWith ($)
     
     all2 :: (a -> b -> Bool)                     -> z a -> z b -> Bool
     all3 :: (a -> b -> c -> Bool)                -> z a -> z b -> z c -> Bool
@@ -62,15 +70,19 @@ class (Functor z) => Zip z
     zipWith5 :: (a -> b -> c -> d -> e -> f)      -> z a -> z b -> z c -> z d -> z e -> z f
     zipWith6 :: (a -> b -> c -> d -> e -> f -> g) -> z a -> z b -> z c -> z d -> z e -> z f -> z g
     
-    zipWith3 f          = zipWith ($) ... zipWith  f
-    zipWith4 f as       = zipWith ($) ... zipWith3 f as
-    zipWith5 f as bs    = zipWith ($) ... zipWith4 f as bs
-    zipWith6 f as bs cs = zipWith ($) ... zipWith5 f as bs cs
+    zipWith             = zap ... fmap
+    zipWith3 f          = zap ... zipWith  f
+    zipWith4 f as       = zap ... zipWith3 f as
+    zipWith5 f as bs    = zap ... zipWith4 f as bs
+    zipWith6 f as bs cs = zap ... zipWith5 f as bs cs
 
 --------------------------------------------------------------------------------
 
 instance Zip []
   where
+    zap (f : fs) (x : xs) = f x : zap fs xs
+    zap    _        _     = []
+    
     all2 f (a:as) (b:bs) = f a b && all2 f as bs
     all2 _ _ _ = True
     
@@ -115,6 +127,4 @@ instance Zip []
     
     zipWith6 f (a:as) (b:bs) (c:cs) (d:ds) (e:es) (g:gs) = f a b c d e g:zipWith6 f as bs cs ds es gs
     zipWith6 _ _ _ _ _ _ _ = []
-
-
 

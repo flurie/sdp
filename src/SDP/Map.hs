@@ -123,7 +123,7 @@ class (Nullable map) => Map map key e | map -> key, map -> e
     
     -- | @('!?')@ is completely safe, but very boring function.
     (!?) :: map -> key -> Maybe e
-    (!?) es = not . flip member' es ?- (es .!)
+    (!?) es = flip member' es ?+ (es .!)
     
     -- | Filter with key.
     filter' :: (key -> e -> Bool) -> map -> map

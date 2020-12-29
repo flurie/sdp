@@ -57,7 +57,7 @@ class (Nullable s) => SetWith s o | s -> o
     -- | Creates ordered set from linear structure.
     default setWith :: (Linear s o) => Compare o -> s -> s
     setWith :: Compare o -> s -> s
-    setWith f = fromList . setWith f. listL
+    setWith f = fromList . setWith f . listL
     
     {- |
       Creates set from linear structure using additional function for
