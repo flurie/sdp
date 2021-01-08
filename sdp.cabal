@@ -80,7 +80,7 @@ Library
     SDP.Templates.AnyBorder
     SDP.Templates.AnyChunks
     
-    -- Types
+    -- Primitives
     
     SDP.Unboxed.WordAs
     SDP.Unboxed.IntAs
@@ -88,33 +88,35 @@ Library
     SDP.Prim.SArray
     SDP.Prim.SBytes
     
-    -- General structures
+    SDP.Prim.TArray
+    
+    -- Template-based structures
     
     SDP.Array
+    SDP.Array.ST
+    SDP.Array.IO
+    
     SDP.Unrolled
+    SDP.Unrolled.ST
+    SDP.Unrolled.IO
     SDP.Unrolled.Unlist
+    SDP.Unrolled.STUnlist
+    SDP.Unrolled.IOUnlist
     
     SDP.Bytes
-    SDP.ByteList
-    SDP.ByteList.Ublist
-    
-    -- service structures
-    
-    SDP.Array.ST
-    SDP.Unrolled.ST
-    SDP.Unrolled.STUnlist
-    
     SDP.Bytes.ST
-    SDP.ByteList.ST
-    SDP.ByteList.STUblist
+    SDP.Bytes.IO
     
-    SDP.Array.IO
+    SDP.ByteList
+    SDP.ByteList.ST
     SDP.ByteList.IO
+    SDP.ByteList.Ublist
+    SDP.ByteList.STUblist
     SDP.ByteList.IOUblist
     
-    SDP.Bytes.IO
-    SDP.Unrolled.IO
-    SDP.Unrolled.IOUnlist
+    Control.Concurent.SDP.TArray
+    Control.Concurent.SDP.TUnlist
+    Control.Concurent.SDP.TUnrolled
     
     -- Service definitions
     
@@ -122,4 +124,7 @@ Library
     Text.Read.SDP
   other-modules:
     Control.Monad.Rope
+
+
+
 
