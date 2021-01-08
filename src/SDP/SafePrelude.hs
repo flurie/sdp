@@ -13,8 +13,8 @@
 module SDP.SafePrelude
 (
   -- * Exports
-  module Control.Applicative,
-  module Control.Monad,
+  module Control.Applicative, liftA4, liftA5, liftA6,
+  module Control.Monad, liftM6,
   
   module Data.Functor.Classes,
   module Data.Bifunctor,
@@ -120,6 +120,21 @@ x +? Nothing = x
 (>>=<<) :: (Monad m) => m a -> m b -> (a -> b -> m c) -> m c
 (>>=<<) = \ ma mb f -> join $ liftM2 f ma mb
 
+--------------------------------------------------------------------------------
 
+-- | Very useful combinator.
+liftA4 :: (Applicative t) => (a -> b -> c -> d -> e) -> t a -> t b -> t c -> t d -> t e
+liftA4 g as bs cs ds = g <$> as <*> bs <*> cs <*> ds
 
+-- | Very very useful combinator
+liftA5 :: (Applicative t) => (a -> b -> c -> d -> e -> f) -> t a -> t b -> t c -> t d -> t e -> t f
+liftA5 g as bs cs ds es = g <$> as <*> bs <*> cs <*> ds <*> es
+
+-- | An even more useful combinator.
+liftA6 :: (Applicative t) => (a -> b -> c -> d -> e -> f -> g) -> t a -> t b -> t c -> t d -> t e -> t f -> t g
+liftA6 g as bs cs ds es fs = g <$> as <*> bs <*> cs <*> ds <*> es <*> fs
+
+-- | An absolutely irreplaceable combinator.
+liftM6 :: (Monad m) => (a -> b -> c -> d -> e -> f -> g) -> m a -> m b -> m c -> m d -> m e -> m f -> m g
+liftM6 g as bs cs ds es fs = do a <- as; b <- bs; c <- cs; d <- ds; e <- es; f <- fs; return $ g a b c d e f
 

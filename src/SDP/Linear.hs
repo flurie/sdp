@@ -94,6 +94,10 @@ class (Index i, Estimate b) => Bordered b i | b -> i
     sizeOf :: b -> Int
     sizeOf =  size . bounds
     
+    -- | Returns actual sizes of structure.
+    sizesOf :: b -> [Int]
+    sizesOf =  sizes . bounds
+    
     {-# INLINE indexIn #-}
     -- | Checks if an index falls within the boundaries of the structure.
     indexIn :: b -> i -> Bool
@@ -905,6 +909,7 @@ sorted es = combo (<=) es ==. es
 -}
 ascending :: (Split s e, Bordered s i, Ord e) => s -> [Int] -> Bool
 ascending =  all sorted ... flip splits
+
 
 
 

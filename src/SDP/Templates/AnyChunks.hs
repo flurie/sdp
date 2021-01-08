@@ -49,7 +49,7 @@ default ()
 --------------------------------------------------------------------------------
 
 -- | 'AnyChunks' is list of data chunks.
-data AnyChunks rep e = AnyChunks [rep e] deriving ( Typeable, Data, Generic )
+newtype AnyChunks rep e = AnyChunks [rep e] deriving ( Typeable, Data, Generic )
 
 --------------------------------------------------------------------------------
 

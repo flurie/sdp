@@ -41,7 +41,6 @@ Library
   
   exposed-modules:
     -- Commons
-    
     Control.Exception.SDP
     
     SDP.SafePrelude
@@ -56,13 +55,11 @@ Library
     SDP.Ratio
     
     -- Sorting
-    
     SDP.SortM.Insertion
     SDP.SortM.Tim
     SDP.SortM
     
-    -- General classes
-    
+    -- Classes
     SDP.IndexedM
     SDP.LinearM
     SDP.Indexed
@@ -76,22 +73,18 @@ Library
     SDP.Zip
     
     -- Templates
-    
     SDP.Templates.AnyBorder
     SDP.Templates.AnyChunks
     
     -- Primitives
-    
     SDP.Unboxed.WordAs
     SDP.Unboxed.IntAs
     
     SDP.Prim.SArray
     SDP.Prim.SBytes
-    
     SDP.Prim.TArray
     
     -- Template-based structures
-    
     SDP.Array
     SDP.Array.ST
     SDP.Array.IO
@@ -119,12 +112,9 @@ Library
     Control.Concurent.SDP.TUnrolled
     
     -- Service definitions
-    
     Text.Show.SDP
     Text.Read.SDP
   other-modules:
     Control.Monad.Rope
-
-
 
 
