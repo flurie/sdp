@@ -1,11 +1,11 @@
-{-# LANGUAGE Unsafe, MagicHash #-}
+{-# LANGUAGE Safe, MagicHash #-}
 
 {- |
     Module      :  SDP.Bytes
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC extensions)
+    Portability :  portable
     
     "SDP.Bytes" provides 'Bytes' - immutable strict unboxed array type.
 -}

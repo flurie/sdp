@@ -1,6 +1,6 @@
+{-# LANGUAGE Trustworthy, OverloadedLists, ConstraintKinds, TypeOperators #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts #-}
-{-# LANGUAGE TypeFamilies, UndecidableInstances, DefaultSignatures #-}
-{-# LANGUAGE CPP, OverloadedLists, ConstraintKinds, TypeOperators #-}
+{-# LANGUAGE TypeFamilies, UndecidableInstances, DefaultSignatures, CPP #-}
 
 {- |
     Module      :  SDP.Index

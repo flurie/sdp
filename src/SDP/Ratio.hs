@@ -1,4 +1,4 @@
-{-# LANGUAGE ViewPatterns, PatternSynonyms #-}
+{-# LANGUAGE Safe, ViewPatterns, PatternSynonyms #-}
 
 {- |
     Module      :  SDP.Ratio

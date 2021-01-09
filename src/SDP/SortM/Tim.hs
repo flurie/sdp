@@ -1,3 +1,5 @@
+{-# LANGUAGE Safe #-}
+
 {- |
     Module      :  SDP.SortM.Tim
     Copyright   :  (c) Andrey Mulik 2019
@@ -157,4 +159,7 @@ insertionSort_ gt es b s e' = mapM_ insert_ [s + 1 .. e']
 -- | 'minrunTS' returns @Timsort@ chunk size.
 minrunTS :: Int -> Int
 minrunTS i = mr i 0 where mr n r = n >= 64 ? mr (shiftR n 1) (n .&. 1) $ n + r
+
+
+
 

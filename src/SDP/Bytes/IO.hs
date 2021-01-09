@@ -1,11 +1,11 @@
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, MagicHash #-}
+{-# LANGUAGE Safe, MagicHash #-}
 
 {- |
     Module      :  SDP.Bytes.IO
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC Extensions)
+    Portability :  portable
     
     "SDP.Bytes.IO" provides 'IOBytes' - mutable strict unboxed array type.
 -}

@@ -1,3 +1,5 @@
+{-# LANGUAGE Safe #-}
+
 {- |
     Module      :  SDP.Zip
     Copyright   :  (c) Andrey Mulik 2019
@@ -8,11 +10,7 @@
     "SDP.Zip" provides 'Zip' - class of 'Control.Applicative.ZipList"-like
     structures.
 -}
-module SDP.Zip
-(
-  Zip (..)
-)
-where
+module SDP.Zip ( Zip (..) ) where
 
 import Prelude ()
 import SDP.SafePrelude
@@ -127,4 +125,6 @@ instance Zip []
     
     zipWith6 f (a:as) (b:bs) (c:cs) (d:ds) (e:es) (g:gs) = f a b c d e g:zipWith6 f as bs cs ds es gs
     zipWith6 _ _ _ _ _ _ _ = []
+
+
 

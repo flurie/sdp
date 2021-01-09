@@ -1,5 +1,6 @@
 {-# LANGUAGE TypeFamilies, TypeOperators, DefaultSignatures, ConstraintKinds #-}
 {-# LANGUAGE CPP, FlexibleInstances, UndecidableInstances, OverloadedLists #-}
+{-# LANGUAGE Trustworthy #-}
 
 {- |
     Module      :  SDP.Shape
@@ -22,7 +23,7 @@ module SDP.Shape
   -- * Shapes
   Shape (..), GIndex, toGBounds, fromGBounds,
   
-  -- * Rank constraints
+  -- ** Rank constraints
   RANK0, RANK1, RANK2,  RANK3,  RANK4,  RANK5,  RANK6,  RANK7,
   RANK8, RANK9, RANK10, RANK11, RANK12, RANK13, RANK14, RANK15
 )
@@ -160,13 +161,7 @@ type RANK15 i = GIndex i ~~ I15 i
 
 {- Basic instances. -}
 
-instance Shape E
-  where
-    rank = const 0
-    
-    toGIndex   = id
-    fromGIndex = id
-
+instance Shape E where rank = const 0; toGIndex = id; fromGIndex = id
 instance Shape ()
 instance Shape Char
 

@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE DefaultSignatures, ConstraintKinds #-}
+{-# LANGUAGE Safe, DefaultSignatures, ConstraintKinds #-}
 
 {- |
     Module      :  SDP.Indexed

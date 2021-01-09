@@ -1,3 +1,5 @@
+{-# LANGUAGE Safe #-}
+
 {- |
     Module      :  SDP.Comparing
     Copyright   :  (c) Andrey Mulik 2019
@@ -25,9 +27,9 @@ import Data.Function
 import Data.Ord
 import Data.Eq
 
-infixl 4 <=>
-
 default ()
+
+infixl 4 <=>
 
 --------------------------------------------------------------------------------
 
@@ -40,8 +42,6 @@ type Equal   e = e -> e -> Bool
 type Compare e = e -> e -> Ordering
 
 --------------------------------------------------------------------------------
-
-{- Common comparators. -}
 
 -- | Spaceship operator - infix version of compare.
 (<=>) :: (Ord o) => Compare o

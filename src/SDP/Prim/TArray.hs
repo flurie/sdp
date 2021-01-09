@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, MagicHash #-}
+{-# LANGUAGE Trustworthy, MagicHash, MultiParamTypeClasses, FlexibleInstances #-}
 
 {- |
     Module      :  SDP.Prim.TArray

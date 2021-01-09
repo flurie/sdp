@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, TypeOperators #-}
+{-# LANGUAGE Safe, MultiParamTypeClasses, TypeOperators #-}
 
 {- |
     Module      :  SDP.Shaped

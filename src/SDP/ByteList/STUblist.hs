@@ -1,11 +1,11 @@
-{-# LANGUAGE Unsafe, MagicHash, MultiParamTypeClasses, FlexibleInstances #-}
+{-# LANGUAGE Safe, MagicHash #-}
 
 {- |
     Module      :  SDP.ByteList.STUblist
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC extensions)
+    Portability :  portable
     
     "SDP.ByteList.STUblist" provides 'STUblist' - mutable unboxed strict
     unrolled linked list.

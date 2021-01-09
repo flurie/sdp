@@ -1,3 +1,5 @@
+{-# LANGUAGE Safe #-}
+
 {- |
     Module      :  Text.Read.SDP
     Copyright   :  (c) Andrey Mulik 2019
@@ -199,25 +201,31 @@ readEitherBy parser string = case readPrec_to_S read' minPrec string of
 
 fromPrec_ :: (Read e, Enum e) => ReadPrec [e]
 fromPrec_ =  do
-  fr <- parens (step readPrec); expectPrec (Punc "..")
+  fr <- parens (step readPrec)
+  expectPrec (Punc "..")
   return (enumFrom fr)
 
 fromToPrec_ :: (Read e, Enum e) => ReadPrec [e]
 fromToPrec_ =  do
-  fr <- parens (step readPrec); expectPrec (Punc "..")
+  fr <- parens (step readPrec)
+  expectPrec (Punc "..")
   to <- parens (step readPrec)
   return (enumFromTo fr to)
 
 fromThenPrec_ :: (Read e, Enum e) => ReadPrec [e]
 fromThenPrec_ =  do
-  fr <- parens (step readPrec); expectPrec (Punc  ",")
-  th <- parens (step readPrec); expectPrec (Punc "..")
+  fr <- parens (step readPrec)
+  expectPrec (Punc  ",")
+  th <- parens (step readPrec)
+  expectPrec (Punc "..")
   return (enumFromThen fr th)
 
 fromThenToPrec_ :: (Read e, Enum e) => ReadPrec [e]
 fromThenToPrec_ =  do
-  fr <- parens (step readPrec); expectPrec (Punc  ",")
-  th <- parens (step readPrec); expectPrec (Punc "..")
+  fr <- parens (step readPrec)
+  expectPrec (Punc  ",")
+  th <- parens (step readPrec)
+  expectPrec (Punc "..")
   to <- parens (step readPrec)
   return (enumFromThenTo fr th to)
 
@@ -227,4 +235,6 @@ parens' parser = do
   value <- parser
   expectPrec (Punc "]")
   return value
+
+
 

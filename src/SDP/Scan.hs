@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
+{-# LANGUAGE Safe, MultiParamTypeClasses, FlexibleInstances #-}
 
 {- |
     Module      :  SDP.Scan

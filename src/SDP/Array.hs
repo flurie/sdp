@@ -1,4 +1,4 @@
-{-# LANGUAGE Unsafe, MagicHash #-}
+{-# LANGUAGE Safe, MagicHash #-}
 
 {- |
     Module      :  SDP.Array

@@ -1,4 +1,4 @@
-{-# LANGUAGE Unsafe, CPP, MagicHash, UnboxedTuples, BangPatterns #-}
+{-# LANGUAGE Trustworthy, CPP, MagicHash, UnboxedTuples, BangPatterns #-}
 
 {- |
     Module      :  SDP.Unboxed

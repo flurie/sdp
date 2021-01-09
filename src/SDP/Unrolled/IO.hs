@@ -1,3 +1,5 @@
+{-# LANGUAGE Safe #-}
+
 {- |
     Module      :  SDP.Unrolled.IO
     Copyright   :  (c) Andrey Mulik 2019
@@ -33,8 +35,6 @@ default ()
 
 -- | 'IOUnrolled' is mutable version of 'SDP.Unrolled.Unrolled'.
 type IOUnrolled = AnyBorder IOUnlist
-
-
 
 
 

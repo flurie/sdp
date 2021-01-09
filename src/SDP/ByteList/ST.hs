@@ -1,11 +1,11 @@
-{-# LANGUAGE Unsafe #-}
+{-# LANGUAGE Safe #-}
 
 {- |
     Module      :  SDP.ByteList.ST
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC extensions)
+    Portability :  portable
     
     "SDP.ByteList.ST" provides 'STByteList' - mutable unboxed strict unrolled
     linked list.

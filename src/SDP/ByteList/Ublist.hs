@@ -1,11 +1,11 @@
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, MagicHash, Unsafe #-}
+{-# LANGUAGE Safe, MagicHash, MultiParamTypeClasses, FlexibleInstances #-}
 
 {- |
     Module      :  SDP.ByteList.Ublist
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (GHC extensions)
+    Portability :  portable
     
     "SDP.ByteList.Ublist" provides 'Ublist' - strict boxed unrolled linked list.
 -}

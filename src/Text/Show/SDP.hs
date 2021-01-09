@@ -1,3 +1,5 @@
+{-# LANGUAGE Safe #-}
+
 {- |
     Module      :  Text.Show.SDP
     Copyright   :  (c) Andrey Mulik 2019
@@ -47,4 +49,7 @@ showsRaw p (x : xs) = showParen (p > appPrec) stream
 -- | Just 'showsRaw' version for 'Linear'.
 showsRawLinear :: (Linear l e, Show e) => Int -> l -> ShowS
 showsRawLinear p = showsRaw p . listL
+
+
+
 

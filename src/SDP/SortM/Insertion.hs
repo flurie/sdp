@@ -1,3 +1,5 @@
+{-# LANGUAGE Safe #-}
+
 {- |
     Module      :  SDP.SortM.Insertion
     Copyright   :  (c) Andrey Mulik 2019
@@ -15,6 +17,4 @@ module SDP.SortM.Insertion
 where
 
 import SDP.SortM.Tim
-
-
 

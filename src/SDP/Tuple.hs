@@ -1,3 +1,5 @@
+{-# LANGUAGE Safe #-}
+
 {- |
     Module      :  SDP.Tuple
     Copyright   :  (c) Andrey Mulik 2019
@@ -65,6 +67,4 @@ type T13 i = (i,i,i,i,i,i,i,i,i,i,i,i,i)
 type T14 i = (i,i,i,i,i,i,i,i,i,i,i,i,i,i)
 -- | Tuple synonym
 type T15 i = (i,i,i,i,i,i,i,i,i,i,i,i,i,i,i)
-
-
 

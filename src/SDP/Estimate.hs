@@ -1,3 +1,5 @@
+{-# LANGUAGE Safe #-}
+
 {- |
     Module      :  SDP.Estimate
     Copyright   :  (c) Andrey Mulik 2019
@@ -22,12 +24,12 @@ import Data.Functor.Classes
 
 import SDP.Comparing
 
+default ()
+
 infixl 4 <==>, .<., .>., .<=., .>=., .==., ./=.
 
 infixl 4 <.=>, .<, .>, .<=, .>=, .==, ./=
 infixl 4 <=.>, <., >., <=., >=., ==., /=.
-
-default ()
 
 --------------------------------------------------------------------------------
 
@@ -94,7 +96,5 @@ instance Estimate [a]
     es <.=> n =
       let go xs c | c == 0 = GT | null xs = 0 <=> c | True = tail xs `go` (c - 1)
       in  if n < 0 then LT else go es n
-
-
 
 

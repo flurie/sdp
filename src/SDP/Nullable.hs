@@ -1,4 +1,4 @@
-{-# LANGUAGE PatternSynonyms, ViewPatterns, MagicHash #-}
+{-# LANGUAGE Trustworthy, PatternSynonyms, ViewPatterns, MagicHash #-}
 
 {- |
     Module      :  SDP.Nullable

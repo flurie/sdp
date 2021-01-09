@@ -1,4 +1,4 @@
-{-# LANGUAGE Unsafe, MagicHash, MultiParamTypeClasses, FlexibleInstances #-}
+{-# LANGUAGE Safe, MagicHash #-}
 
 {- |
     Module      :  SDP.Unrolled.STUnlist

@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE DefaultSignatures, ConstraintKinds, BangPatterns #-}
+{-# LANGUAGE Safe, DefaultSignatures, ConstraintKinds, BangPatterns #-}
 
 {- |
     Module      :  SDP.MapM

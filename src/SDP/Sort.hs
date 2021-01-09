@@ -1,4 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
+{-# LANGUAGE Safe #-}
 
 {- |
     Module      :  SDP.Index
@@ -59,7 +60,6 @@ mathsort =  mathsortBy compare
 -- | Math sort by comparing the results of a key function applied to each element.
 mathsortOn :: (Sort s e, Ord o) => (e -> o) -> s -> s
 mathsortOn =  mathsortBy . comparing
-
 
 
 

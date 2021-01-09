@@ -1,11 +1,12 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, ConstraintKinds #-}
+{-# LANGUAGE Safe #-}
 
 {- |
     Module      :  SDP.SortM
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  portable
+    Portability :  non-portable (GHC extensions)
     
     "SDP.SortM" provides 'SortM' - class of sortable mutable structures.
 -}
@@ -56,5 +57,4 @@ mathsortM =  mathsortMBy compare
 -- | Math sort by comparing the results of a key function applied to each element.
 mathsortMOn :: (SortM m s e, Ord o) => (e -> o) -> s -> m ()
 mathsortMOn =  mathsortMBy . comparing
-
 

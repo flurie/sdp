@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, MagicHash, UnboxedTuples, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE CPP, MagicHash, UnboxedTuples, Trustworthy, GeneralizedNewtypeDeriving #-}
 
 {- |
     Module      :  SDP.Unboxed.WordAs

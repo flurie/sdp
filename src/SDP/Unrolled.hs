@@ -1,4 +1,4 @@
-{-# LANGUAGE Unsafe #-}
+{-# LANGUAGE Safe #-}
 
 {- |
     Module      :  SDP.Unrolled

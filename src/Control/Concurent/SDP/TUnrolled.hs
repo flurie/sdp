@@ -1,9 +1,11 @@
+{-# LANGUAGE Safe #-}
+
 {- |
     Module      :  Control.Concurent.SDP.TUnrolled
     Copyright   :  (c) Andrey Mulik 2020
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable
+    Portability :  portable
     
     "Control.Concurent.SDP.TUnrolled" provides lazy boxed unrolled linked list
     of @stm@ 'TVar's.
@@ -24,7 +26,5 @@ default ()
 
 -- | Lazy boxed unrolled libked list.
 type TUnrolled = AnyBorder TUnlist
-
-
 
 

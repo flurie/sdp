@@ -1,3 +1,5 @@
+{-# LANGUAGE Safe #-}
+
 {- |
     Module      :  Control.Exception.SDP
     Copyright   :  (c) Andrey Mulik 2019
@@ -80,6 +82,4 @@ instance Show UnreachableException
     show (UnreachableException s) = "unreachable exception " ++ s
 
 instance Exception UnreachableException
-
-
 

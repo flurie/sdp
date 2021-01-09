@@ -1,5 +1,5 @@
 {-# LANGUAGE UndecidableInstances, FlexibleInstances, FlexibleContexts #-}
-{-# LANGUAGE TypeFamilies, TypeOperators, OverloadedLists #-}
+{-# LANGUAGE Trustworthy, TypeFamilies, TypeOperators, OverloadedLists #-}
 
 {- |
     Module      :  SDP.Finite

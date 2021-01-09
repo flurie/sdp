@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, BangPatterns #-}
-{-# LANGUAGE ConstraintKinds, DefaultSignatures #-}
+{-# LANGUAGE Safe, ConstraintKinds, DefaultSignatures #-}
 
 {- |
     Module      :  SDP.LinearM
