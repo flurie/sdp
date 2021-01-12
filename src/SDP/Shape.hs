@@ -164,6 +164,7 @@ type RANK15 i = GIndex i ~~ I15 i
 instance Shape E where rank = const 0; toGIndex = id; fromGIndex = id
 instance Shape ()
 instance Shape Char
+instance Shape Integer
 
 instance Shape Int
 instance Shape Int8
@@ -209,7 +210,7 @@ instance Shape CSigAtomic
 
 {- N-dimensional instances. -}
 
-instance (Shape i, Enum i, Bounded i) => Shape (E :& i)
+instance (Shape i) => Shape (E :& i)
   where
     type DimInit (E :& i) = E
     type DimLast (E :& i) = i
@@ -227,7 +228,7 @@ instance (Shape i, Enum i, Bounded i, Shape (i' :& i)) => Shape (i' :& i :& i)
     type DimInit (i' :& i :& i) = i' :& i
     type DimLast (i' :& i :& i) = i
     
-    rank = (const . succ . rank :: (Shape i') => i' -> (i' :& i) -> Int) undefined
+    rank = (const . succ . rank :: Shape i' => i' -> (i' :& i) -> Int) undefined
     
     fromGIndex = id
     toGIndex   = id
@@ -348,7 +349,6 @@ toGIndex       (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o) =  [a,b,c,d,e,f,g,h,i,j,k,l,m,n,o
 consDim        (a,b,c,d,e,f,g,h,i,j,k,l,m,n) o =  (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o);
 unconsDim      (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o) =  ((a,b,c,d,e,f,g,h,i,j,k,l,m,n),o);
 }
-
 #undef SHAPE_INSTANCE
 
 --------------------------------------------------------------------------------

@@ -47,10 +47,10 @@ default ()
 --------------------------------------------------------------------------------
 
 -- | InBounds - service type that specifies index and bounds status.
-data InBounds = ER {- ^ Empty Range     -}
-              | UR {- ^ Underflow Range -}
-              | IN {- ^ Index IN range  -}
-              | OR {- ^ Overflow Range  -}
+data InBounds = ER -- ^ Empty range
+              | UR -- ^ Underflow range
+              | IN -- ^ Index in range
+              | OR -- ^ Overflow range
   deriving ( Eq, Show, Read, Enum )
 
 --------------------------------------------------------------------------------
@@ -346,6 +346,16 @@ instance Index Char
     defaultBounds = defaultBoundsUnsign
     defLimit      = const $ toInteger (ord maxBound)
 
+{- |
+  Note that 'Integer' isn't 'Bounded', so it can't be used in multidimensional
+  indices.
+-}
+instance Index Integer
+  where
+    -- | Undefined.
+    defLimit = error "in SDP.Index.defLimit: Integer has no upper bound"
+    offset   = offsetIntegral
+
 instance Index Int     where offset = offsetIntegral
 instance Index Int8    where offset = offsetIntegral
 instance Index Int16   where offset = offsetIntegral
@@ -390,7 +400,7 @@ instance Index CUIntMax   where offset = offsetIntegral; defaultBounds = default
 
 {- N-dimensional index instances. -}
 
-instance (Index i, Enum i, Bounded i) => Index (E :& i)
+instance (Index i) => Index (E :& i)
   where
     defLimit = (const . defLimit :: (Index i) => i -> (E :& i) -> Integer) undefined
     
