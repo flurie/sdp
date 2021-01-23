@@ -49,8 +49,6 @@ import SDP.Zip
 
 import qualified Data.List as L
 
-import Data.Maybe ( catMaybes )
-
 import GHC.Types
 
 import Control.Exception.SDP
@@ -303,7 +301,7 @@ class (Nullable l) => Linear l e | l -> e
     
     -- | @select f es@ is selective map of @es@ elements to new list.
     select :: (e -> Maybe a) -> l -> [a]
-    select f = catMaybes . map f . listL
+    select f = foldr (\ x es -> case f x of {(Just e) -> e : es; _ -> es}) [] . listL
     
     -- | @select' f es@ is selective map of @es@ elements to new line.
     select' :: (t e ~ l, Linear1 t a) => (e -> Maybe a) -> l -> t a
@@ -592,11 +590,18 @@ class (Linear s e) => Split s e | s -> e
     combo f = combo f . listL
     
     {- |
-      @supplement n e es@ appends @e@ elements if the @es@ is shorter than @n@,
+      @justifyL n e es@ appends @e@ elements if the @es@ is shorter than @n@,
       takes @n@ elements if longer.
     -}
-    supplement :: Int -> e -> s -> s
-    supplement n e = take n . (++ replicate n e)
+    justifyL :: Int -> e -> s -> s
+    justifyL n e = take n . (++ replicate n e)
+    
+    {- |
+      @justifyR n e es@ prepends @e@ elements if the @es@ is shorter than @n@,
+      takes @n@ elements if longer.
+    -}
+    justifyR :: Int -> e -> s -> s
+    justifyR n e = keep n . (replicate n e ++)
     
     {- |
       @each n es@ returns each nth element of structure.

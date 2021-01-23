@@ -33,10 +33,6 @@ import SDP.SortM
 import SDP.Sort
 import SDP.Scan
 
-import qualified GHC.Exts as E
-
-import GHC.Generics
-
 import Data.Default.Class
 import Data.Typeable
 import Data.String
@@ -44,6 +40,9 @@ import Data.Data
 
 import Text.Read.SDP
 import Text.Show.SDP
+
+import GHC.Generics
+import qualified GHC.Exts as E
 
 import Control.Exception.SDP
 
@@ -290,7 +289,8 @@ instance (Index i, Split1 rep e, Bordered1 rep Int e) => Split (AnyBorder rep i 
     chunks ns = fmap withBounds . chunks ns . unpack
     parts  ns = fmap withBounds . parts  ns . unpack
     
-    supplement n e = withBounds . supplement n e . unpack
+    justifyL n e = withBounds . justifyL n e . unpack
+    justifyR n e = withBounds . justifyR n e . unpack
     
     isPrefixOf xs ys = xs .<=. ys && on isPrefixOf unpack xs ys
     isSuffixOf xs ys = xs .<=. ys && on isSuffixOf unpack xs ys
