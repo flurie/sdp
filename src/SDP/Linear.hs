@@ -49,8 +49,6 @@ import SDP.Zip
 
 import qualified Data.List as L
 
-import GHC.Types
-
 import Control.Exception.SDP
 
 default ()
@@ -585,7 +583,6 @@ class (Linear s e) => Split s e | s -> e
       > combo (<) [7, 4, 12] == 1
       > combo (<) [1, 7, 3, 12] == 2
     -}
-    default combo :: (Bordered s i) => Equal e -> s -> Int
     combo :: Equal e -> s -> Int
     combo f = combo f . listL
     
@@ -639,13 +636,11 @@ class (Linear s e) => Split s e | s -> e
     
     -- | prefix gives length of init, satisfying preducate.
     prefix :: (e -> Bool) -> s -> Int
-    default prefix :: (Foldable t, t e ~~ s) => (e -> Bool) -> s -> Int
-    prefix p = foldr' (\ e c -> p e ? succ c $ 0) 0
+    prefix p = o_foldr' (\ e c -> p e ? succ c $ 0) 0
     
     -- | suffix gives length of tail, satisfying predicate.
     suffix :: (e -> Bool) -> s -> Int
-    default suffix :: (Foldable t, t e ~~ s) => (e -> Bool) -> s -> Int
-    suffix p = foldl' (\ c e -> p e ? succ c $ 0) 0
+    suffix p = o_foldl' (\ c e -> p e ? succ c $ 0) 0
     
     {- |
       @infixes inf es@ returns a list of @inf@ positions in @es@, without

@@ -471,14 +471,6 @@ instance Split (SArray# e) e
         
         s = sizeOf es
     
-    prefix p xs@(SArray# c _ _) =
-      let go i = i < c && p (xs !^ i) ? go (i + 1) $ i
-      in  go 0
-    
-    suffix p xs@(SArray# c _ _) =
-      let go i = i > 0 && p (xs !^ i) ? go (i - 1) $ i
-      in  c - go (c - 1) - 1
-    
     isPrefixOf xs@(SArray# c1 _ _) ys@(SArray# c2 _ _) =
       let eq i = i == c1 || (xs !^ i) == (ys !^ i) && eq (i + 1)
       in  c1 <= c2 && eq 0
@@ -1214,7 +1206,5 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
-
-
 
 

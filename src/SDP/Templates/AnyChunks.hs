@@ -18,7 +18,7 @@ module SDP.Templates.AnyChunks
   module SDP.Scan,
   
   -- * Chunk list
-  AnyChunks (..)
+  AnyChunks (..), fromChunks, toChunks, toChunksM
 )
 where
 
@@ -50,6 +50,18 @@ default ()
 
 -- | 'AnyChunks' is list of data chunks.
 newtype AnyChunks rep e = AnyChunks [rep e] deriving ( Typeable, Data, Generic )
+
+-- | Construct immutable 'AnyChunks' safely.
+fromChunks :: (Nullable (rep e)) => [rep e] -> AnyChunks rep e
+fromChunks =  AnyChunks . except isNull
+
+-- | Extract immutable 'AnyChunks' chunks safely.
+toChunks :: (Nullable (rep e)) => AnyChunks rep e -> [rep e]
+toChunks =  unpack
+
+-- | Extract mutable 'AnyChunks' chunks safely.
+toChunksM :: (BorderedM1 m rep Int e) => AnyChunks rep e -> m [rep e]
+toChunksM =  unpackM
 
 --------------------------------------------------------------------------------
 
@@ -597,4 +609,7 @@ unpackM (AnyChunks es) = go es
 
 lim :: Int
 lim =  1024
+
+
+
 
