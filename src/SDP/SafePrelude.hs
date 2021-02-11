@@ -46,7 +46,9 @@ import Prelude hiding
     concat, concatMap, replicate, takeWhile, dropWhile, iterate,
     
     -- defined in SDP.IO (sdp-io extension) and System.IO
-    readFile, writeFile, appendFile, getContents, getLine, putStr, putStrLn
+    readFile, writeFile, appendFile, getContents,
+    
+    getChar, putChar, getLine, putStr, putStrLn
   )
 
 import SDP.Comparing
@@ -140,11 +142,14 @@ liftA5 g as bs cs ds es = g <$> as <*> bs <*> cs <*> ds <*> es
 liftA6 :: (Applicative t) => (a -> b -> c -> d -> e -> f -> g) -> t a -> t b -> t c -> t d -> t e -> t f -> t g
 liftA6 g as bs cs ds es fs = g <$> as <*> bs <*> cs <*> ds <*> es <*> fs
 
--- | An absolutely irreplaceable combinator.
+-- | See 'liftA6'.
 liftM6 :: (Monad m) => (a -> b -> c -> d -> e -> f -> g) -> m a -> m b -> m c -> m d -> m e -> m f -> m g
 liftM6 g as bs cs ds es fs = do a <- as; b <- bs; c <- cs; d <- ds; e <- es; f <- fs; return $ g a b c d e f
+
+--------------------------------------------------------------------------------
 
 -- | 'stToMIO' is just @'liftIO' . 'stToIO'@.
 stToMIO :: (MonadIO io) => ST RealWorld e -> io e
 stToMIO =  liftIO . stToIO
+
 
