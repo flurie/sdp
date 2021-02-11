@@ -20,13 +20,10 @@ module SDP.Array.ST
 )
 where
 
-import Prelude ()
-import SDP.SafePrelude
-import SDP.IndexedM
-import SDP.SortM
-
 import SDP.Templates.AnyBorder
 import SDP.Prim.SArray
+import SDP.IndexedM
+import SDP.SortM
 
 default ()
 
@@ -34,7 +31,5 @@ default ()
 
 -- | 'STArray' is mutable version of 'SDP.Array.Array'.
 type STArray s = AnyBorder (STArray# s)
-
-
 
 

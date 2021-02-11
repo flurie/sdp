@@ -16,23 +16,23 @@ module SDP.Bytes.IO
   module SDP.Unboxed,
   module SDP.SortM,
   
-  -- * IOBytes
-  IOBytes
+  -- * MonadIO and IO Bytes
+  MIOBytes, IOBytes
 )
 where
 
-import Prelude ()
-import SDP.SafePrelude
+import SDP.Templates.AnyBorder
+import SDP.Prim.SBytes
 import SDP.IndexedM
 import SDP.Unboxed
 import SDP.SortM
 
-import SDP.Templates.AnyBorder
-import SDP.Prim.SBytes
-
 default ()
 
 --------------------------------------------------------------------------------
+
+-- | 'MIOBytes' is mutable version of 'SDP.Bytes.Bytes'.
+type MIOBytes io = AnyBorder (MIOBytes# io)
 
 -- | 'IOBytes' is mutable version of 'SDP.Bytes.Bytes'.
 type IOBytes = AnyBorder IOBytes#

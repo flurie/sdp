@@ -17,23 +17,23 @@ module SDP.ByteList.IO
   module SDP.Unboxed,
   module SDP.SortM,
   
-  -- * IOByteList
-  IOByteList
+  -- * MonadIO and IO ByteLists
+  MIOByteList, IOByteList
 )
 where
 
-import Prelude ()
-import SDP.SafePrelude
+import SDP.Templates.AnyBorder
+import SDP.ByteList.IOUblist
 import SDP.IndexedM
 import SDP.Unboxed
 import SDP.SortM
 
-import SDP.Templates.AnyBorder
-import SDP.ByteList.IOUblist
-
 default ()
 
 --------------------------------------------------------------------------------
+
+-- | 'MIOByteList' is mutable version of 'SDP.ByteList.ByteList'.
+type MIOByteList io = AnyBorder (MIOUblist io)
 
 -- | 'IOByteList' is mutable version of 'SDP.ByteList.ByteList'.
 type IOByteList = AnyBorder IOUblist

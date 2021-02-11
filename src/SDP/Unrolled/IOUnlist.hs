@@ -16,25 +16,25 @@ module SDP.Unrolled.IOUnlist
   module SDP.IndexedM,
   module SDP.SortM,
   
-  -- * IOUnlist
-  IOUnlist
+  -- * MonadIO and IO Unlists
+  MIOUnlist, IOUnlist
 )
 where
 
-import SDP.IndexedM
-import SDP.SortM
-
 import SDP.Templates.AnyChunks
 import SDP.Prim.SArray
+import SDP.IndexedM
+import SDP.SortM
 
 default ()
 
 --------------------------------------------------------------------------------
 
+-- | 'MIOUnlist' is mutable version of 'SDP.Unrolled.Unlist.Unlist'.
+type MIOUnlist io = AnyChunks (MIOArray# io)
+
 -- | 'IOUnlist' is mutable version of 'SDP.Unrolled.Unlist.Unlist'.
 type IOUnlist = AnyChunks IOArray#
-
-
 
 
 

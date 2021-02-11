@@ -16,22 +16,22 @@ module SDP.Unrolled.IO
   module SDP.IndexedM,
   module SDP.SortM,
   
-  -- * IOUnrolled
-  IOUnrolled
+  -- * MonadIO and IO Unrolled
+  MIOUnrolled, IOUnrolled
 )
 where
 
-import Prelude ()
-import SDP.SafePrelude
-import SDP.IndexedM
-import SDP.SortM
-
 import SDP.Templates.AnyBorder
 import SDP.Unrolled.IOUnlist
+import SDP.IndexedM
+import SDP.SortM
 
 default ()
 
 --------------------------------------------------------------------------------
+
+-- | 'MIOUnrolled' is mutable version of 'SDP.Unrolled.Unrolled'.
+type MIOUnrolled io = AnyBorder (MIOUnlist io)
 
 -- | 'IOUnrolled' is mutable version of 'SDP.Unrolled.Unrolled'.
 type IOUnrolled = AnyBorder IOUnlist

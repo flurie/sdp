@@ -17,24 +17,24 @@ module SDP.ByteList.IOUblist
   module SDP.Unboxed,
   module SDP.SortM,
   
-  -- * IOUblist
-  IOUblist
+  -- * MonadIO and IO Ublists
+  MIOUblist, IOUblist
 )
 where
 
+import SDP.Templates.AnyChunks
+import SDP.Prim.SBytes
 import SDP.IndexedM
 import SDP.Unboxed
 import SDP.SortM
-
-import SDP.Templates.AnyChunks
-import SDP.Prim.SBytes
 
 default ()
 
 --------------------------------------------------------------------------------
 
+-- | 'MIOUblist' is mutable version of 'SDP.ByteList.Ublist.Ublist'.
+type MIOUblist io = AnyChunks (MIOBytes# io)
+
 -- | 'IOUblist' is mutable version of 'SDP.ByteList.Ublist.Ublist'.
 type IOUblist = AnyChunks IOBytes#
-
-
 

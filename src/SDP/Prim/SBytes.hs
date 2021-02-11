@@ -20,7 +20,7 @@ module SDP.Prim.SBytes
   module SDP.Sort,
   
   -- * Preudo-primitive types
-  IOBytes# (..), STBytes#, SBytes#,
+  MIOBytes# (..), IOBytes#, STBytes#, SBytes#,
   
   -- ** Unpack unboxed arrays
   fromSBytes#, packSBytes#, unpackSBytes#, offsetSBytes#,
@@ -72,7 +72,6 @@ import Foreign
     mallocBytes, callocArray
   )
 
-import Control.Monad.ST
 import Control.Exception.SDP
 
 default ()
@@ -782,17 +781,24 @@ instance (Unboxed e) => SortM (ST s) (STBytes# s e) e where sortMBy = timSortBy
 
 --------------------------------------------------------------------------------
 
--- | 'IOBytes#' is mutable pseudo-primitive 'Int'-indexed strict unboxed array type.
-newtype IOBytes# e = IOBytes# (STBytes# RealWorld e) deriving ( Eq )
+-- | 'MIOBytes#' is mutable pseudo-primitive 'Int'-indexed strict unboxed array.
+newtype MIOBytes# (io :: * -> *) e = MIOBytes# (STBytes# RealWorld e) deriving ( Eq )
 
-unpack :: IOBytes# e -> STBytes# RealWorld e
-unpack =  \ (IOBytes# arr#) -> arr#
+-- | 'IOBytes#' is mutable pseudo-primitive 'Int'-indexed strict unboxed array.
+type IOBytes# = MIOBytes# IO
+
+unpack :: MIOBytes# io e -> STBytes# RealWorld e
+unpack =  \ (MIOBytes# arr#) -> arr#
+
+{-# INLINE pack #-}
+pack :: (MonadIO io) => ST RealWorld (STBytes# RealWorld e) -> io (MIOBytes# io e)
+pack =  stToMIO . coerce
 
 --------------------------------------------------------------------------------
 
 {- Estimate, Bordered and BorderedM instances. -}
 
-instance Estimate (IOBytes# e)
+instance Estimate (MIOBytes# io e)
   where
     (<==>) = on (<=>) sizeOf
     (.<=.) = on (<=)  sizeOf
@@ -806,67 +812,67 @@ instance Estimate (IOBytes# e)
     (.>)   = (>)   . sizeOf
     (.<)   = (<)   . sizeOf
 
-instance Bordered (IOBytes# e) Int
+instance Bordered (MIOBytes# io e) Int
   where
     lower = const 0
     
-    sizeOf   (IOBytes# (STBytes# c _ _)) = c
-    upper    (IOBytes# (STBytes# c _ _)) = c - 1
-    bounds   (IOBytes# (STBytes# c _ _)) = (0, c - 1)
-    indices  (IOBytes# (STBytes# c _ _)) = [0 .. c - 1]
-    indexOf  (IOBytes# (STBytes# c _ _)) = index (0, c - 1)
-    offsetOf (IOBytes# (STBytes# c _ _)) = offset (0, c - 1)
-    indexIn  (IOBytes# (STBytes# c _ _)) = \ i -> i >= 0 && i < c
+    sizeOf   (MIOBytes# (STBytes# c _ _)) = c
+    upper    (MIOBytes# (STBytes# c _ _)) = c - 1
+    bounds   (MIOBytes# (STBytes# c _ _)) = (0, c - 1)
+    indices  (MIOBytes# (STBytes# c _ _)) = [0 .. c - 1]
+    indexOf  (MIOBytes# (STBytes# c _ _)) = index (0, c - 1)
+    offsetOf (MIOBytes# (STBytes# c _ _)) = offset (0, c - 1)
+    indexIn  (MIOBytes# (STBytes# c _ _)) = \ i -> i >= 0 && i < c
 
-instance BorderedM IO (IOBytes# e) Int
+instance (MonadIO io) => BorderedM io (MIOBytes# io e) Int
   where
-    getIndexOf = stToIO ... getIndexOf . unpack
-    getIndices = stToIO . getIndices . unpack
-    getBounds  = stToIO . getBounds . unpack
-    getSizeOf  = stToIO . getSizeOf . unpack
-    getUpper   = stToIO . getUpper . unpack
+    getIndexOf = return ... indexOf . unpack
+    getIndices = return . indices . unpack
+    getSizeOf  = return . sizeOf . unpack
+    getBounds  = return . bounds . unpack
+    getUpper   = return . upper . unpack
     getLower _ = return 0
 
 --------------------------------------------------------------------------------
 
 {- LinearM and SplitM instances. -}
 
-instance (Unboxed e) => LinearM IO (IOBytes# e) e
+instance (MonadIO io, Unboxed e) => LinearM io (MIOBytes# io e) e
   where
-    newNull = pack' newNull
-    singleM = pack'  . singleM
-    nowNull = stToIO . nowNull . unpack
-    getHead = stToIO . getHead . unpack
-    getLast = stToIO . getLast . unpack
+    newNull = pack newNull
+    singleM = pack . singleM
+    nowNull = stToMIO . nowNull . unpack
+    getHead = stToMIO . getHead . unpack
+    getLast = stToMIO . getLast . unpack
     
-    prepend e = pack' . prepend e . unpack
-    append es = pack' . append (unpack es)
+    prepend e = pack . prepend e . unpack
+    append es = pack . append (unpack es)
     
-    newLinear     = pack' . newLinear
-    newLinearN    = pack' ... newLinearN
-    fromFoldableM = pack' . fromFoldableM
+    newLinear     = pack . newLinear
+    newLinearN    = pack ... newLinearN
+    fromFoldableM = pack . fromFoldableM
     
-    (!#>) = stToIO ... (!#>) . unpack
+    (!#>) = stToMIO ... (!#>) . unpack
     
-    writeM es = stToIO ... writeM (unpack es)
+    writeM es = stToMIO ... writeM (unpack es)
     
-    copied   = pack'  . copied   . unpack
-    getLeft  = stToIO . getLeft  . unpack
-    getRight = stToIO . getRight . unpack
-    reversed = pack'  . reversed . unpack
+    copied   = pack  . copied   . unpack
+    getLeft  = stToMIO . getLeft  . unpack
+    getRight = stToMIO . getRight . unpack
+    reversed = pack  . reversed . unpack
     
-    copied' es = pack' ... copied' (unpack es)
+    copied' es = pack ... copied' (unpack es)
     
-    merged = pack'  .  merged . foldr ((:) . unpack) []
-    filled = pack' ... filled
+    merged = pack  .  merged . foldr ((:) . unpack) []
+    filled = pack ... filled
     
-    copyTo src so trg to = stToIO . copyTo (unpack src) so (unpack trg) to
+    copyTo src so trg to = stToMIO . copyTo (unpack src) so (unpack trg) to
     
-    ofoldrM f base = \ arr@(IOBytes# (STBytes# n _ _)) ->
+    ofoldrM f base = \ arr@(MIOBytes# (STBytes# n _ _)) ->
       let go i =  n == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f i
       in  go 0
     
-    ofoldlM f base = \ arr@(IOBytes# (STBytes# n _ _)) ->
+    ofoldlM f base = \ arr@(MIOBytes# (STBytes# n _ _)) ->
       let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ (f i)
       in  go (n - 1)
     
@@ -878,21 +884,21 @@ instance (Unboxed e) => LinearM IO (IOBytes# e) e
       let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f
       in  go (sizeOf arr - 1)
 
-instance (Unboxed e) => SplitM IO (IOBytes# e) e
+instance (MonadIO io, Unboxed e) => SplitM io (MIOBytes# io e) e
   where
-    takeM n = pack' . takeM n . unpack
-    dropM n = pack' . dropM n . unpack
-    keepM n = pack' . keepM n . unpack
-    sansM n = pack' . sansM n . unpack
+    takeM n = pack . takeM n . unpack
+    dropM n = pack . dropM n . unpack
+    keepM n = pack . keepM n . unpack
+    sansM n = pack . sansM n . unpack
     
-    prefixM f = stToIO . prefixM f . unpack
-    suffixM f = stToIO . suffixM f . unpack
+    prefixM f = stToMIO . prefixM f . unpack
+    suffixM f = stToMIO . suffixM f . unpack
     
-    mprefix p es@(IOBytes# (STBytes# c _ _)) =
+    mprefix p es@(MIOBytes# (STBytes# c _ _)) =
       let go i = i >= c ? return c $ do e <- es !#> i; p e ?^ go (succ 1) $ return i
       in  go 0
     
-    msuffix p es@(IOBytes# (STBytes# c _ _)) =
+    msuffix p es@(MIOBytes# (STBytes# c _ _)) =
       let go i = i < 0 ? return c $ do e <- es !#> i; p e ?^ go (pred i) $ return (c - i - 1)
       in  go (max 0 (c - 1))
 
@@ -900,26 +906,26 @@ instance (Unboxed e) => SplitM IO (IOBytes# e) e
 
 {- MapM, IndexedM and SortM instances. -}
 
-instance (Unboxed e) => MapM IO (IOBytes# e) Int e
+instance (MonadIO io, Unboxed e) => MapM io (MIOBytes# io e) Int e
   where
-    newMap' = pack' ... newMap'
-    newMap  = pack'  .  newMap
+    newMap' = pack ... newMap'
+    newMap  = pack  .  newMap
     
     (>!) = (!#>)
     
-    overwrite = pack' ... overwrite . unpack
+    overwrite = pack ... overwrite . unpack
     
     kfoldrM = ofoldrM
     kfoldlM = ofoldlM
 
-instance (Unboxed e) => IndexedM IO (IOBytes# e) Int e
+instance (MonadIO io, Unboxed e) => IndexedM io (MIOBytes# io e) Int e
   where
-    fromAssocs  bnds = pack'  .  fromAssocs  bnds
-    fromAssocs' bnds = pack' ... fromAssocs' bnds
+    fromAssocs  bnds = pack  .  fromAssocs  bnds
+    fromAssocs' bnds = pack ... fromAssocs' bnds
     
-    writeM' es = stToIO ... writeM' (unpack es)
+    writeM' es = stToMIO ... writeM' (unpack es)
     
-    fromIndexed' = pack' . fromIndexed'
+    fromIndexed' = pack . fromIndexed'
     
     fromIndexedM es = do
       n    <- getSizeOf es
@@ -927,19 +933,19 @@ instance (Unboxed e) => IndexedM IO (IOBytes# e) Int e
       forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM copy i
       return copy
 
-instance (Unboxed e) => SortM IO (IOBytes# e) e where sortMBy = timSortBy
+instance (MonadIO io, Unboxed e) => SortM io (MIOBytes# io e) e where sortMBy = timSortBy
 
 --------------------------------------------------------------------------------
 
-instance (Unboxed e) => Thaw IO (SBytes# e) (IOBytes# e)
+instance (MonadIO io, Unboxed e) => Thaw io (SBytes# e) (MIOBytes# io e)
   where
-    unsafeThaw = pack' . unsafeThaw
-    thaw       = pack' . thaw
+    unsafeThaw = pack . unsafeThaw
+    thaw       = pack . thaw
 
-instance (Unboxed e) => Freeze IO (IOBytes# e) (SBytes# e)
+instance (MonadIO io, Unboxed e) => Freeze io (MIOBytes# io e) (SBytes# e)
   where
-    unsafeFreeze = stToIO . unsafeFreeze . unpack
-    freeze       = stToIO . freeze . unpack
+    unsafeFreeze = stToMIO . unsafeFreeze . unpack
+    freeze       = stToMIO . freeze . unpack
 
 --------------------------------------------------------------------------------
 
@@ -948,7 +954,7 @@ instance (Storable e, Unboxed e) => Freeze IO (Int, Ptr e) (SBytes# e)
     freeze (n, ptr) = do
       let !n'@(I# n#) = max 0 n
       es' <- stToIO . ST $ \ s1# -> case pnewUnboxed ptr n# s1# of
-        (# s2#, marr# #) -> (# s2#, IOBytes# (STBytes# n' 0 marr#) #)
+        (# s2#, marr# #) -> (# s2#, MIOBytes# (STBytes# n' 0 marr#) #)
       forM_ [0 .. n' - 1] $ \ i -> peekElemOff ptr i >>= writeM es' i
       freeze es'
 
@@ -1066,10 +1072,6 @@ hashSBytesWith# (I# salt#) es@(SBytes# (I# c#) (I# o#) bytes#) =
 
 --------------------------------------------------------------------------------
 
-{-# INLINE pack' #-}
-pack' :: ST RealWorld (STBytes# RealWorld e) -> IO (IOBytes# e)
-pack' =  stToIO . coerce
-
 {-# INLINE done #-}
 done :: STBytes# s e -> ST s (SBytes# e)
 done (STBytes# n o marr#) = ST $
@@ -1124,7 +1126,5 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Prim.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
-
-
 
 

@@ -23,16 +23,14 @@ module SDP.ByteList.Ublist
 )
 where
 
+import SDP.Templates.AnyChunks
+import SDP.Prim.SBytes
+import SDP.SortM.Tim
 import SDP.Indexed
 import SDP.Unboxed
 import SDP.Sort
 import SDP.Scan
 import SDP.Set
-
-import SDP.Templates.AnyChunks
-import SDP.Prim.SBytes
-
-import SDP.SortM.Tim
 
 import Control.Monad.ST
 
@@ -54,7 +52,4 @@ instance (Unboxed e) => Sort (Ublist e) e
 {-# INLINE done #-}
 done :: (Unboxed e) => STBytes# s e -> ST s (Ublist e)
 done =  unsafeFreeze
-
-
-
 

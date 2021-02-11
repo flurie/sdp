@@ -20,13 +20,10 @@ module SDP.Bytes.ST
 )
 where
 
-import Prelude ()
-import SDP.SafePrelude
-import SDP.IndexedM
-import SDP.SortM
-
 import SDP.Templates.AnyBorder
 import SDP.Prim.SBytes
+import SDP.IndexedM
+import SDP.SortM
 
 default ()
 
@@ -34,7 +31,5 @@ default ()
 
 -- | 'STBytes' is mutable version of 'SDP.Bytes.Bytes'.
 type STBytes s = AnyBorder (STBytes# s)
-
-
 
 

@@ -38,9 +38,9 @@
       since: 0.1
       upto: 0.2
 
-    - package: QuickCheck
-      since: 2.12
-      upto: 3
+    - package: base
+      since: 4.8
+      upto: 5
 
   fixes:
     - prevTest and nextTest memory leak
@@ -50,14 +50,11 @@
     - unsafeIndex definition for unsigned numeric types
     - test suite for Sort, new generate Medium structures
     - tails and inits, now returns [Z] if structure is empty
-    - copied' for Array and Bytes and related segfault in timSort
-
-  deprecations:
-    - Bounds in favour tuple type synonyms
-    - newUnboxedByteArray and safe_scale functions
+    - copied' for Array/Bytes and related segfault in timSort
 
   improvements:
-    - structures: size and offset encapsulation by template-based structures
+    - structures: size and offset encapsulation by pseudo-primive types
+    - templates: bordered and chunk structures generalized by templates
     - tests: moved to sdp-quickcheck package
 
   # news
@@ -74,8 +71,8 @@
     - SDP.Array.IO: see IOArray
     - SDP.Bytes.IO: see IOBytes
 
-    - SDP.Prim.SArray: boxed pseudo-primitives SArray#, STArray# and IOArray#
-    - SDP.Prim.SBytes: unboxed pseudo-primitives SBytes#, STBytes# and IOBytes#
+    - SDP.Prim.SArray: boxed pseudo-primitives SArray#, STArray# and MIOArray#
+    - SDP.Prim.SBytes: unboxed pseudo-primitives SBytes#, STBytes# and MIOBytes#
 
     - SDP.SortM.Insertion: InsertionSort for mutable structures
     - SDP.SortM.Tim: TimSort for mutable structures
@@ -100,14 +97,15 @@
         - "(<=<<)"
         - "(>>=>)"
         - "(>>=<<)"
+        - stToMIO
     - SDP.Estimate:
-        - (<=.>)
-        - (<=.)
-        - (>=.)
-        - (==.)
-        - (/=.)
-        - (<.)
-        - (>.)
+        - "(<=.>)"
+        - "(<=.)"
+        - "(>=.)"
+        - "(==.)"
+        - "(/=.)"
+        - "(<.)"
+        - "(>.)"
     - SDP.Unboxed:
         - sizeof#
         - psizeof

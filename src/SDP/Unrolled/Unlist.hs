@@ -31,10 +31,7 @@ import SDP.Set
 
 import SDP.Templates.AnyChunks
 import SDP.Prim.SArray
-
 import SDP.SortM.Tim
-
-import Control.Monad.ST
 
 default ()
 
@@ -99,7 +96,5 @@ instance Sort (Unlist e) e
 {-# INLINE done #-}
 done :: STArray# s e -> ST s (Unlist e)
 done =  unsafeFreeze
-
-
 
 

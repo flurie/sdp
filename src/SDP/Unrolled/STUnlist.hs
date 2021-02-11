@@ -21,11 +21,10 @@ module SDP.Unrolled.STUnlist
 )
 where
 
-import SDP.IndexedM
-import SDP.SortM
-
 import SDP.Templates.AnyChunks
 import SDP.Prim.SArray
+import SDP.IndexedM
+import SDP.SortM
 
 default ()
 
@@ -33,8 +32,4 @@ default ()
 
 -- | 'STUnlist' is mutable version of 'SDP.Unrolled.Unlist.Unlist'.
 type STUnlist s = AnyChunks (STArray# s)
-
-
-
-
 

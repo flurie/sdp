@@ -19,7 +19,7 @@ module SDP.Prim.SArray
   module SDP.Sort,
   
   -- * Pseudo-primitive types
-  IOArray# (..), STArray#, SArray#,
+  MIOArray# (..), IOArray#, STArray#, SArray#,
   
   -- ** Safe (copy) unpack
   fromSArray#, fromSTArray#,
@@ -71,7 +71,6 @@ import Text.Read
 
 import Foreign ( Ptr, Storable, callocArray, peekElemOff, pokeElemOff )
 
-import Control.Monad.ST
 import Control.Exception.SDP
 
 default ()
@@ -722,16 +721,16 @@ instance Eq (STArray# s e)
 instance Estimate (STArray# s e)
   where
     (<==>) = on (<=>) sizeOf
-    (.>.)  = on (>)   sizeOf
-    (.<.)  = on (<)   sizeOf
     (.<=.) = on (<=)  sizeOf
     (.>=.) = on (>=)  sizeOf
+    (.>.)  = on (>)   sizeOf
+    (.<.)  = on (<)   sizeOf
     
     (<.=>) = (<=>) . sizeOf
-    (.>)   = (>)   . sizeOf
-    (.<)   = (<)   . sizeOf
     (.>=)  = (>=)  . sizeOf
     (.<=)  = (<=)  . sizeOf
+    (.>)   = (>)   . sizeOf
+    (.<)   = (<)   . sizeOf
 
 instance Bordered (STArray# s e) Int
   where
@@ -934,17 +933,25 @@ instance SortM (ST s) (STArray# s e) e where sortMBy = timSortBy
 
 --------------------------------------------------------------------------------
 
--- | 'IOArray#' is mutable preudo-primitive 'Int'-indexed lazy boxed array type.
-newtype IOArray# e = IOArray# (STArray# RealWorld e) deriving ( Eq )
+-- | 'MIOArray#' is mutable preudo-primitive 'Int'-indexed lazy boxed array.
+newtype MIOArray# (io :: * -> *) e = MIOArray# (STArray# RealWorld e) deriving ( Eq )
 
-unpack :: IOArray# e -> STArray# RealWorld e
-unpack =  \ (IOArray# arr#) -> arr#
+-- | 'IOArray#' is mutable preudo-primitive 'Int'-indexed lazy boxed array.
+type IOArray# = MIOArray# IO
+
+{-# INLINE unpack #-}
+unpack :: MIOArray# io e -> STArray# RealWorld e
+unpack =  \ (MIOArray# arr#) -> arr#
+
+{-# INLINE pack #-}
+pack :: (MonadIO io) => ST RealWorld (STArray# RealWorld e) -> io (MIOArray# io e)
+pack =  stToMIO . coerce
 
 --------------------------------------------------------------------------------
 
 {- Estimate, Bordered and BorderedM instances. -}
 
-instance Estimate (IOArray# e)
+instance Estimate (MIOArray# io e)
   where
     (<==>) = on (<=>) sizeOf
     (.<=.) = on (<=)  sizeOf
@@ -958,67 +965,67 @@ instance Estimate (IOArray# e)
     (.>)   = (>)   . sizeOf
     (.<)   = (<)   . sizeOf
 
-instance Bordered (IOArray# e) Int
+instance Bordered (MIOArray# io e) Int
   where
     lower _ = 0
     
-    sizeOf   (IOArray# (STArray# c _ _)) = c
-    upper    (IOArray# (STArray# c _ _)) = c - 1
-    bounds   (IOArray# (STArray# c _ _)) = (0, c - 1)
-    indices  (IOArray# (STArray# c _ _)) = [0 .. c - 1]
-    indexOf  (IOArray# (STArray# c _ _)) = index (0, c - 1)
-    offsetOf (IOArray# (STArray# c _ _)) = offset (0, c - 1)
-    indexIn  (IOArray# (STArray# c _ _)) = \ i -> i >= 0 && i < c
+    sizeOf   (MIOArray# (STArray# c _ _)) = c
+    upper    (MIOArray# (STArray# c _ _)) = c - 1
+    bounds   (MIOArray# (STArray# c _ _)) = (0, c - 1)
+    indices  (MIOArray# (STArray# c _ _)) = [0 .. c - 1]
+    indexOf  (MIOArray# (STArray# c _ _)) = index (0, c - 1)
+    offsetOf (MIOArray# (STArray# c _ _)) = offset (0, c - 1)
+    indexIn  (MIOArray# (STArray# c _ _)) = \ i -> i >= 0 && i < c
 
-instance BorderedM IO (IOArray# e) Int
+instance (MonadIO io) => BorderedM io (MIOArray# io e) Int
   where
-    getIndexOf = stToIO ... getIndexOf . unpack
-    getIndices = stToIO . getIndices . unpack
-    getBounds  = stToIO . getBounds . unpack
-    getSizeOf  = stToIO . getSizeOf . unpack
-    getUpper   = stToIO . getUpper . unpack
+    getIndexOf = return ... indexOf . unpack
+    getIndices = return . indices . unpack
+    getSizeOf  = return . sizeOf . unpack
+    getBounds  = return . bounds . unpack
+    getUpper   = return . upper . unpack
     getLower _ = return 0
 
 --------------------------------------------------------------------------------
 
 {- LinearM and SplitM instances. -}
 
-instance LinearM IO (IOArray# e) e
+instance (MonadIO io) => LinearM io (MIOArray# io e) e
   where
-    newNull = pack' newNull
-    singleM = pack' . singleM
-    nowNull = stToIO . nowNull . unpack
-    getHead = stToIO . getHead . unpack
-    getLast = stToIO . getLast . unpack
+    newNull = pack newNull
+    singleM = pack . singleM
+    nowNull = stToMIO . nowNull . unpack
+    getHead = stToMIO . getHead . unpack
+    getLast = stToMIO . getLast . unpack
     
-    prepend e = pack' . prepend e . unpack
-    append es = pack' . append (unpack es)
+    prepend e = pack . prepend e . unpack
+    append es = pack . append (unpack es)
     
-    newLinear     = pack' . newLinear
-    newLinearN    = pack' ... newLinearN
-    fromFoldableM = pack' . fromFoldableM
+    newLinear     = pack . newLinear
+    newLinearN    = pack ... newLinearN
+    fromFoldableM = pack . fromFoldableM
     
-    (!#>) = stToIO ... (!#>) . unpack
+    (!#>) = stToMIO ... (!#>) . unpack
     
     writeM = writeM'
     
-    copied   = pack'  . copied   . unpack
-    getLeft  = stToIO . getLeft  . unpack
-    getRight = stToIO . getRight . unpack
-    reversed = pack'  . reversed . unpack
+    copied   = pack  . copied   . unpack
+    getLeft  = stToMIO . getLeft  . unpack
+    reversed = pack  . reversed . unpack
+    getRight = stToMIO . getRight . unpack
     
-    copied' es = pack' ... copied' (unpack es)
+    copied' es = pack ... copied' (unpack es)
     
-    merged = pack' . merged . foldr ((:) . unpack) []
-    filled = pack' ... filled
+    merged = pack . merged . foldr ((:) . unpack) []
+    filled = pack ... filled
     
-    copyTo src so trg to = stToIO . copyTo (unpack src) so (unpack trg) to
+    copyTo src so trg to = stToMIO . copyTo (unpack src) so (unpack trg) to
     
-    ofoldrM f base = \ arr@(IOArray# (STArray# n _ _)) ->
+    ofoldrM f base = \ arr@(MIOArray# (STArray# n _ _)) ->
       let go i =  n == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f i
       in  go 0
     
-    ofoldlM f base = \ arr@(IOArray# (STArray# n _ _)) ->
+    ofoldlM f base = \ arr@(MIOArray# (STArray# n _ _)) ->
       let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f i
       in  go (n - 1)
     
@@ -1030,21 +1037,21 @@ instance LinearM IO (IOArray# e) e
       let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f
       in  go (sizeOf arr - 1)
 
-instance SplitM IO (IOArray# e) e
+instance (MonadIO io) => SplitM io (MIOArray# io e) e
   where
-    takeM n = pack' . takeM n . unpack
-    dropM n = pack' . dropM n . unpack
-    keepM n = pack' . keepM n . unpack
-    sansM n = pack' . sansM n . unpack
+    takeM n = pack . takeM n . unpack
+    dropM n = pack . dropM n . unpack
+    keepM n = pack . keepM n . unpack
+    sansM n = pack . sansM n . unpack
     
-    prefixM f = stToIO . prefixM f . unpack
-    suffixM f = stToIO . suffixM f . unpack
+    prefixM f = stToMIO . prefixM f . unpack
+    suffixM f = stToMIO . suffixM f . unpack
     
-    mprefix p es@(IOArray# (STArray# c _ _)) =
+    mprefix p es@(MIOArray# (STArray# c _ _)) =
       let go i = i >= c ? return c $ do e <- es !#> i; p e ?^ go (succ 1) $ return i
       in  go 0
     
-    msuffix p es@(IOArray# (STArray# c _ _)) =
+    msuffix p es@(MIOArray# (STArray# c _ _)) =
       let go i = i < 0 ? return c $ do e <- es !#> i; p e ?^ go (pred i) $ return (c - i - 1)
       in  go (max 0 (c - 1))
 
@@ -1052,25 +1059,25 @@ instance SplitM IO (IOArray# e) e
 
 {- MapM, IndexedM and SortM instances. -}
 
-instance MapM IO (IOArray# e) Int e
+instance (MonadIO io) => MapM io (MIOArray# io e) Int e
   where
     newMap' defvalue ascs = fromAssocs' (ascsBounds ascs) defvalue ascs
     
     (>!) = (!#>)
     
-    overwrite = pack' ... overwrite . unpack
+    overwrite = pack ... overwrite . unpack
     
     kfoldrM = ofoldrM
     kfoldlM = ofoldlM
 
-instance IndexedM IO (IOArray# e) Int e
+instance (MonadIO io) => IndexedM io (MIOArray# io e) Int e
   where
-    fromAssocs  bnds = pack'  .  fromAssocs  bnds
-    fromAssocs' bnds = pack' ... fromAssocs' bnds
+    fromAssocs  bnds = pack  .  fromAssocs  bnds
+    fromAssocs' bnds = pack ... fromAssocs' bnds
     
-    writeM' es = stToIO ... writeM' (unpack es)
+    writeM' es = stToMIO ... writeM' (unpack es)
     
-    fromIndexed' = pack' . fromIndexed'
+    fromIndexed' = pack . fromIndexed'
     
     fromIndexedM es = do
       n    <- getSizeOf es
@@ -1078,19 +1085,19 @@ instance IndexedM IO (IOArray# e) Int e
       forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM copy i
       return copy
 
-instance SortM IO (IOArray# e) e where sortMBy = timSortBy
+instance (MonadIO io) => SortM io (MIOArray# io e) e where sortMBy = timSortBy
 
 --------------------------------------------------------------------------------
 
-instance Thaw IO (SArray# e) (IOArray# e)
+instance (MonadIO io) => Thaw io (SArray# e) (MIOArray# io e)
   where
-    unsafeThaw = pack' . unsafeThaw
-    thaw       = pack' . thaw
+    unsafeThaw = pack . unsafeThaw
+    thaw       = pack . thaw
 
-instance Freeze IO (IOArray# e) (SArray# e)
+instance (MonadIO io) => Freeze io (MIOArray# io e) (SArray# e)
   where
-    unsafeFreeze = stToIO . unsafeFreeze . unpack
-    freeze       = stToIO . freeze . unpack
+    unsafeFreeze = stToMIO . unsafeFreeze . unpack
+    freeze       = stToMIO . freeze . unpack
 
 --------------------------------------------------------------------------------
 
@@ -1099,7 +1106,7 @@ instance (Storable e) => Freeze IO (Int, Ptr e) (SArray# e)
     freeze (n, ptr) = do
         let !n'@(I# n#) = max 0 n
         es' <- stToIO . ST $ \ s1# -> case newArray# n# err s1# of
-          (# s2#, marr# #) -> (# s2#, IOArray# (STArray# n' 0 marr#) #)
+          (# s2#, marr# #) -> (# s2#, MIOArray# (STArray# n' 0 marr#) #)
         forM_ [0 .. n' - 1] $ \ i -> peekElemOff ptr i >>= writeM es' i
         freeze es'
       where
@@ -1114,6 +1121,8 @@ instance (Storable e) => Thaw IO (SArray# e) (Int, Ptr e)
       return (n, ptr)
 
 --------------------------------------------------------------------------------
+
+{- Primitive operations on SArray# and and STArray#. -}
 
 -- | 'unpackSArray#' returns 'MutableArray#' field of 'SArray#'.
 unpackSArray# :: SArray# e -> Array# e
@@ -1156,10 +1165,6 @@ coerceSTArray# :: (Coercible a b) => STArray# s a -> STArray# s b
 coerceSTArray# =  coerce
 
 --------------------------------------------------------------------------------
-
-{-# INLINE pack' #-}
-pack' :: ST RealWorld (STArray# RealWorld e) -> IO (IOArray# e)
-pack' =  stToIO . coerce
 
 {-# INLINE done #-}
 done :: STArray# s e -> ST s (SArray# e)

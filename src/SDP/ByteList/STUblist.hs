@@ -22,12 +22,11 @@ module SDP.ByteList.STUblist
 )
 where
 
+import SDP.Templates.AnyChunks
+import SDP.Prim.SBytes
 import SDP.IndexedM
 import SDP.Unboxed
 import SDP.SortM
-
-import SDP.Templates.AnyChunks
-import SDP.Prim.SBytes
 
 default ()
 
@@ -35,6 +34,7 @@ default ()
 
 -- | This 'STUblist' is mutable version of 'SDP.ByteList.Ublist.Ublist'.
 type STUblist s = AnyChunks (STBytes# s)
+
 
 
 

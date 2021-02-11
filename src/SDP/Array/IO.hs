@@ -15,22 +15,22 @@ module SDP.Array.IO
   module SDP.IndexedM,
   module SDP.SortM,
   
-  -- * IOArray
-  IOArray
+  -- * MonadIO and IO Array
+  MIOArray, IOArray
 )
 where
 
-import Prelude ()
-import SDP.SafePrelude
-import SDP.IndexedM
-import SDP.SortM
-
 import SDP.Templates.AnyBorder
 import SDP.Prim.SArray
+import SDP.IndexedM
+import SDP.SortM
 
 default ()
 
 --------------------------------------------------------------------------------
+
+-- | 'MIOArray' is mutable version of 'SDP.Array.Array'.
+type MIOArray io = AnyBorder (MIOArray# io)
 
 -- | 'IOArray' is mutable version of 'SDP.Array.Array'.
 type IOArray = AnyBorder IOArray#

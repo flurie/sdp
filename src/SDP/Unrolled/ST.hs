@@ -21,13 +21,10 @@ module SDP.Unrolled.ST
 )
 where
 
-import Prelude ()
-import SDP.SafePrelude
-import SDP.IndexedM
-import SDP.SortM
-
 import SDP.Templates.AnyBorder
 import SDP.Unrolled.STUnlist
+import SDP.IndexedM
+import SDP.SortM
 
 default ()
 
@@ -35,6 +32,4 @@ default ()
 
 -- | 'STUnrolled' is mutable version 'SDP.Unrolled.Unrolled'.
 type STUnrolled s = AnyBorder (STUnlist s)
-
-
 

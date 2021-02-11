@@ -14,6 +14,9 @@ module SDP.SafePrelude
 (
   -- * Exports
   module Control.Applicative, liftA4, liftA5, liftA6,
+  
+  module Control.Monad.IO.Class, stToMIO,
+  module Control.Monad.ST,
   module Control.Monad, liftM6,
   
   module Data.Functor.Classes,
@@ -55,6 +58,9 @@ import Data.Foldable hiding ( concat, concatMap )
 import Data.Function ( on )
 
 import Control.Applicative
+
+import Control.Monad.IO.Class
+import Control.Monad.ST
 import Control.Monad
 
 infixl 8 ?+, ?-
@@ -137,4 +143,8 @@ liftA6 g as bs cs ds es fs = g <$> as <*> bs <*> cs <*> ds <*> es <*> fs
 -- | An absolutely irreplaceable combinator.
 liftM6 :: (Monad m) => (a -> b -> c -> d -> e -> f -> g) -> m a -> m b -> m c -> m d -> m e -> m f -> m g
 liftM6 g as bs cs ds es fs = do a <- as; b <- bs; c <- cs; d <- ds; e <- es; f <- fs; return $ g a b c d e f
+
+-- | 'stToMIO' is just @'liftIO' . 'stToIO'@.
+stToMIO :: (MonadIO io) => ST RealWorld e -> io e
+stToMIO =  liftIO . stToIO
 
