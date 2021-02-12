@@ -23,6 +23,8 @@ import Prelude ()
 import SDP.SafePrelude
 import SDP.IndexedM
 
+import SDP.SortM.Insertion
+
 import Data.Bits
 
 import Control.Monad.Rope
@@ -30,29 +32,6 @@ import Control.Monad.Rope
 default ()
 
 --------------------------------------------------------------------------------
-
--- | 'insertionSort' is just synonym for @'insertionSortBy' 'compare'@.
-{-# INLINE insertionSort #-}
-insertionSort :: (LinearM m v e, BorderedM m v i, Ord e) => v -> m ()
-insertionSort =  insertionSortBy compare
-
-{- |
-  'insertionSortOn' is a version of 'insertionSortBy' that uses a cast function
-  to 'compare' elements.
--}
-{-# INLINE insertionSortOn #-}
-insertionSortOn :: (LinearM m v e, BorderedM m v i, Ord o) => (e -> o) -> v -> m ()
-insertionSortOn =  insertionSortBy . comparing
-
-{- |
-  'insertionSortBy' is naive service sorting procedure, that have @O(n^2)@
-  complexity in all cases.
--}
-{-# INLINE insertionSortBy #-}
-insertionSortBy :: (LinearM m v e, BorderedM m v i) => Compare e -> v -> m ()
-insertionSortBy cmp es =
-  let gt = \ x y -> case x `cmp` y of {GT -> True; _ -> False}
-  in  do n <- getSizeOf es; insertionSort_ gt es 0 0 (n - 1)
 
 -- | 'timSort' is just synonym for @'timSortBy' 'compare'@.
 {-# INLINE timSort #-}
@@ -74,9 +53,7 @@ timSortOn =  timSortBy . comparing
 -}
 {-# INLINE timSortBy #-}
 timSortBy :: (LinearM m v e, BorderedM m v i) => Compare e -> v -> m ()
-timSortBy cmp es =
-  let gt = \ x y -> case x `cmp` y of {GT -> True; _ -> False}
-  in  timSort' gt es
+timSortBy cmp = timSort' $ \ x y -> case x `cmp` y of {GT -> True; _ -> False}
 
 --------------------------------------------------------------------------------
 
@@ -91,7 +68,7 @@ timSort' gt es = getSizeOf es >>= sort'
   where
     sort' n
       |  n < 0  = return ()
-      | n <= 64 = insertionSort_ gt es 0 0 (n - 1)
+      | n <= 64 = unsafeInsertionSort gt es 0 0 (n - 1)
       |   True  = evalInit (ascSubs 0 n) 3 >>= uncurry mergeAll
     
     ascSubs o n = case n - o of
@@ -116,7 +93,7 @@ timSort' gt es = getSizeOf es >>= sort'
         
         normalized s = do
           let ex = min n (o + minrunTS n) -- minimal expected ending
-          when (ex > s) $ insertionSort_ gt es o (s - 1) (ex - 1)
+          when (ex > s) $ unsafeInsertionSort gt es o (s - 1) (ex - 1)
           return $ max ex s
     
     mergeAll [x@(bx, sx), y@(by, sy), z@(_, sz)] r = if rules || sz <= sx
@@ -140,26 +117,9 @@ timSort' gt es = getSizeOf es >>= sort'
 
 --------------------------------------------------------------------------------
 
-{-
-  insertionSort_ cmp es b s e is internal sorting procedure, where
-  @cmp@ - @('>')@, @es@ - data structure, @[b .. s]@ - sorted fragment,
-  @[b .. e]@ - sortable fragment.
--}
-insertionSort_ :: (LinearM m v e) => (e -> e -> Bool) -> v -> Int -> Int -> Int -> m ()
-insertionSort_ gt es b s e' = mapM_ insert_ [s + 1 .. e']
-  where
-    insert_ u = do j <- snext (b, u - 1) u; mapM_ (swapM es u) [j .. u - 1]
-    
-    snext (l, u) i = l > u ? return i $ (es !#> l) >>=<< (es !#> i) $
-      \ c e -> if e `gt` c then snext (l + 1, u) i else return l
-
---------------------------------------------------------------------------------
-
 {-# INLINE minrunTS #-}
 -- | 'minrunTS' returns @Timsort@ chunk size.
 minrunTS :: Int -> Int
 minrunTS i = mr i 0 where mr n r = n >= 64 ? mr (shiftR n 1) (n .&. 1) $ n + r
-
-
 
 
