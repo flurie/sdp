@@ -1,4 +1,4 @@
-{-# LANGUAGE Trustworthy, PatternSynonyms, ViewPatterns, MagicHash #-}
+{-# LANGUAGE CPP, Trustworthy, PatternSynonyms, ViewPatterns, MagicHash #-}
 
 {- |
     Module      :  SDP.Nullable
@@ -19,8 +19,10 @@ where
 
 import Foreign.Ptr
 
+import GHC.ForeignPtr
 import GHC.Stable
 import GHC.Base
+import GHC.Exts
 
 default ()
 
@@ -58,8 +60,21 @@ instance Nullable (Ptr e)
     isNull = (== nullPtr)
     lzero  = nullPtr
 
+-- Stolen from @bytestring@ package.
+instance Nullable (ForeignPtr e)
+  where
+#if __GLASGOW_HASKELL__ >= 811
+    lzero = ForeignPtr nullAddr# FinalPtr
+#else
+    lzero = ForeignPtr nullAddr# (error "nullForeignPtr in SDP.Nullable.lzero")
+#endif
+    
+    isNull (ForeignPtr addr# _) = Ptr addr# == nullPtr
+
 instance Nullable (StablePtr e)
   where
     isNull = (== lzero)
     lzero  = StablePtr (unsafeCoerce# 0#)
+
+
 
