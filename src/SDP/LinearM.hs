@@ -19,7 +19,7 @@ module SDP.LinearM
   BorderedM (..), BorderedM1, BorderedM2,
   
   -- * LinearM class
-  LinearM (..), LinearM1, sortedM,
+  LinearM (..), LinearM1,
   
   -- * SplitM class
   SplitM (..), SplitM1
@@ -346,10 +346,5 @@ type BorderedM1 m l i e = BorderedM m (l e) i
 -- | Kind @(* -> * -> *)@ 'BorderedM' structure.
 type BorderedM2 m l i e = BorderedM m (l i e) i
 
---------------------------------------------------------------------------------
-
--- | sortedM checks if structure is sorted.
-sortedM :: (LinearM m l e, Ord e) => l -> m Bool
-sortedM =  fmap (\ es -> null es || and (zipWith (<=) es (tail es))) . getLeft
 
 

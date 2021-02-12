@@ -150,7 +150,7 @@ instance SplitM STM (TArray# e) e
 
 --------------------------------------------------------------------------------
 
-{- MapM, IndexedM and SortM instances. -}
+{- MapM and IndexedM instances. -}
 
 instance MapM STM (TArray# e) Int e
   where

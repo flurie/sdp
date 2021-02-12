@@ -539,7 +539,8 @@ instance (Index i, IndexedM1 m rep Int e) => IndexedM m (AnyBorder rep i e) i e
 
 instance (Index i, SortM1 m rep e) => SortM m (AnyBorder rep i e) e
   where
-    sortMBy f = sortMBy f . unpack
+    sortedMBy f = sortedMBy f . unpack
+    sortMBy   f = sortMBy   f . unpack
 
 --------------------------------------------------------------------------------
 
@@ -600,6 +601,5 @@ withBounds rep = uncurry AnyBorder (defaultBounds $ sizeOf rep) rep
 {-# INLINE withBounds' #-}
 withBounds' :: (Index i, BorderedM1 m rep Int e) => rep e -> m (AnyBorder rep i e)
 withBounds' rep = (\ n -> uncurry AnyBorder (defaultBounds n) rep) <$> getSizeOf rep
-
 
 

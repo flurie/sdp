@@ -546,9 +546,16 @@ instance (SplitM1 m rep e, IndexedM1 m rep Int e) => IndexedM m (AnyChunks rep e
     fromIndexed' = newLinear  .  listL
     fromIndexedM = newLinear <=< getLeft
 
-instance (BorderedM1 m rep Int e, SplitM1 m rep e, LinearM1 m rep e) => SortM m (AnyChunks rep e) e
+instance (BorderedM1 m rep Int e, SortM1 m rep e, SplitM1 m rep e, LinearM1 m rep e) => SortM m (AnyChunks rep e) e
   where
     sortMBy = timSortBy
+    
+    sortedMBy f = go <=< toChunksM
+      where
+        go (x1 : x2 : xs) =
+          let restM = liftA2 f (getLast x1) (getHead x2) ?^ go (x2 : xs) $ return False
+          in  sortedMBy f x1 ?^ restM $ return False
+        go       _        = return True
 
 --------------------------------------------------------------------------------
 
@@ -607,9 +614,12 @@ unpackM :: (BorderedM1 m rep Int e) => AnyChunks rep e -> m [rep e]
 unpackM (AnyChunks es) = go es
   where
     go (x : xs) = do n <- getSizeOf x; n < 1 ? go xs $ (x :) <$> go xs
-    go _ = return []
+    go    _     = return []
 
 lim :: Int
 lim =  1024
+
+
+
 
 

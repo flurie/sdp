@@ -784,7 +784,13 @@ instance (Unboxed e) => IndexedM (ST s) (STBytes# s e) Int e
       forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM copy i
       return copy
 
-instance (Unboxed e) => SortM (ST s) (STBytes# s e) e where sortMBy = timSortBy
+instance (Unboxed e) => SortM (ST s) (STBytes# s e) e
+  where
+    sortedMBy f es@(STBytes# n _ _) =
+      let go i e1 = i == n ? return True $ do e2 <- es !#> i; e1 `f` e2 ? go (i + 1) e2 $ return False
+      in  n < 2 ? return True $ go 1 =<< getHead es
+    
+    sortMBy = timSortBy
 
 --------------------------------------------------------------------------------
 
@@ -794,8 +800,9 @@ newtype MIOBytes# (io :: * -> *) e = MIOBytes# (STBytes# RealWorld e) deriving (
 -- | 'IOBytes#' is mutable pseudo-primitive 'Int'-indexed strict unboxed array.
 type IOBytes# = MIOBytes# IO
 
+{-# INLINE unpack #-}
 unpack :: MIOBytes# io e -> STBytes# RealWorld e
-unpack =  \ (MIOBytes# arr#) -> arr#
+unpack =  coerce
 
 {-# INLINE pack #-}
 pack :: (MonadIO io) => ST RealWorld (STBytes# RealWorld e) -> io (MIOBytes# io e)
@@ -940,7 +947,10 @@ instance (MonadIO io, Unboxed e) => IndexedM io (MIOBytes# io e) Int e
       forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM copy i
       return copy
 
-instance (MonadIO io, Unboxed e) => SortM io (MIOBytes# io e) e where sortMBy = timSortBy
+instance (MonadIO io, Unboxed e) => SortM io (MIOBytes# io e) e
+  where
+    sortedMBy f = stToMIO . sortedMBy f . unpack
+    sortMBy     = timSortBy
 
 --------------------------------------------------------------------------------
 

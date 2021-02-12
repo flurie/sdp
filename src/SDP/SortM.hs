@@ -13,7 +13,7 @@
 module SDP.SortM
   (
     -- * SortM
-    SortM (..), SortM1, sortM, sortMOn, mathsortM, mathsortMOn
+    SortM (..), SortM1, sortM, sortMOn, mathsortM, mathsortMOn, sortedM, sortedMOn
   )
 where
 
@@ -27,6 +27,14 @@ default ()
 -- | 'SortM' is class of sortable mutable structures.
 class SortM m s e | s -> m, s -> e
   where
+    {-# MINIMAL sortedMBy, sortMBy #-}
+    
+    {- |
+      Checks if structure is already sorted. Should always return 'True' for
+      structures with less than 2 elements.
+    -}
+    sortedMBy :: (e -> e -> Bool) -> s -> m Bool
+    
     -- | 'sortMBy' is common sorting algorithm.
     sortMBy :: Compare e -> s -> m ()
     
@@ -37,10 +45,20 @@ class SortM m s e | s -> m, s -> e
     mathsortMBy :: Compare e -> s -> m ()
     mathsortMBy =  sortMBy
 
+--------------------------------------------------------------------------------
+
 -- | Kind (* -> *) version of 'SortM'.
 type SortM1 m s e = SortM m (s e) e
 
 --------------------------------------------------------------------------------
+
+-- | Checks if the structure is sorted.
+sortedM :: (SortM m s e, Ord e) => s -> m Bool
+sortedM =  sortedMBy (<=)
+
+-- | Sort by comparing the results of a given function applied to each element.
+sortedMOn :: (SortM m s e, Ord o) => (e -> o) -> s -> m Bool
+sortedMOn =  sortedMBy . (on (<=))
 
 -- | 'sortM' is just @'sortMBy' 'compare'@
 sortM :: (SortM m s e, Ord e) => s -> m ()
@@ -57,4 +75,6 @@ mathsortM =  mathsortMBy compare
 -- | Math sort by comparing the results of a key function applied to each element.
 mathsortMOn :: (SortM m s e, Ord o) => (e -> o) -> s -> m ()
 mathsortMOn =  mathsortMBy . comparing
+
+
 

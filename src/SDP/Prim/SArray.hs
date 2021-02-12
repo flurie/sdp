@@ -936,7 +936,13 @@ instance IndexedM (ST s) (STArray# s e) Int e
       forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM copy i
       return copy
 
-instance SortM (ST s) (STArray# s e) e where sortMBy = timSortBy
+instance SortM (ST s) (STArray# s e) e
+  where
+    sortedMBy f es@(STArray# n _ _) =
+      let go i e1 = i == n ? return True $ do e2 <- es !#> i; e1 `f` e2 ? go (i + 1) e2 $ return False
+      in  n < 2 ? return True $ go 1 =<< getHead es
+    
+    sortMBy = timSortBy
 
 --------------------------------------------------------------------------------
 
@@ -948,7 +954,7 @@ type IOArray# = MIOArray# IO
 
 {-# INLINE unpack #-}
 unpack :: MIOArray# io e -> STArray# RealWorld e
-unpack =  \ (MIOArray# arr#) -> arr#
+unpack =  coerce
 
 {-# INLINE pack #-}
 pack :: (MonadIO io) => ST RealWorld (STArray# RealWorld e) -> io (MIOArray# io e)
@@ -1092,7 +1098,10 @@ instance (MonadIO io) => IndexedM io (MIOArray# io e) Int e
       forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM copy i
       return copy
 
-instance (MonadIO io) => SortM io (MIOArray# io e) e where sortMBy = timSortBy
+instance (MonadIO io) => SortM io (MIOArray# io e) e
+  where
+    sortedMBy f = stToMIO . sortedMBy f . unpack
+    sortMBy     = timSortBy
 
 --------------------------------------------------------------------------------
 
@@ -1218,8 +1227,4 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
-
-
-
-
 
