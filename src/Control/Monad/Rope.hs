@@ -44,8 +44,8 @@ runRope (RopeM rope) = do
 evalInit :: (Monad m) => RopeM m a -> Int -> m ([a], RopeM m a)
 evalInit =  \ rope n -> n < 1 ? return ([], rope) $ eval n rope
   where
-    eval 0    rope   = return ([], rope)
-    eval _  RopeEnd  = return ([], RopeEnd)
+    eval 0     rope     = return ([], rope)
+    eval _   RopeEnd    = return ([], RopeEnd)
     eval n (RopeM rope) = do
       (a, rope') <- rope
       (as, rest) <- eval (n - 1) rope'

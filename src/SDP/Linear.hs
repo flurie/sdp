@@ -17,6 +17,7 @@ module SDP.Linear
   -- * Exports
   module SDP.Nullable,
   module SDP.Index,
+  module SDP.Sort,
   module SDP.Zip,
   
   -- * Bordered class
@@ -35,7 +36,7 @@ module SDP.Linear
   pattern (:>), pattern (:<), pattern Z,
   
   -- * Related functions
-  intercalate, tails, inits, sorted, ascending,
+  intercalate, tails, inits, ascending,
   
   stripPrefix, stripSuffix, stripPrefix', stripSuffix'
 )
@@ -45,6 +46,7 @@ import Prelude ()
 import SDP.SafePrelude
 import SDP.Nullable
 import SDP.Index
+import SDP.Sort
 import SDP.Zip
 
 import qualified Data.List as L
@@ -349,6 +351,10 @@ class (Nullable l) => Linear l e | l -> e
     -- | Generalized reverse.
     reverse :: l -> l
     reverse =  fromList . listR
+    
+    -- | Create new line, equal to given.
+    force :: l -> l
+    force =  fromList . listL
     
     -- | Generalized subsequences.
     subsequences :: l -> [l]
@@ -796,6 +802,9 @@ instance Linear [e] e
     listL  = toList
     nubBy  = L.nubBy
     
+    -- | O(1) force, same as 'id'.
+    force = id
+    
     uncons    []    = throw $ PatternMatchFail "in SDP.Linear.(:>)"
     uncons (e : es) = (e, es)
     
@@ -845,11 +854,12 @@ instance Split [e] e
         
         n = sizeOf sub
     
-    combo f (e1 : e2 : es) = e1 `f` e2 ? go 2 e2 es $ 0
+    combo _ [ ] = 0
+    combo _ [_] = 1
+    combo f (e1 : e2 : es) = e1 `f` e2 ? go 2 e2 es $ 1
       where
-        go !i p (x2 : xs) = p `f` x2 ? go (i + 1) x2 xs $ i
-        go  i _ _ = i
-    combo _ _ = 0
+        go !i p (x : xs) = p `f` x ? go (i + 1) x xs $ i
+        go  i _    _     = i
     
     splitBy  f es = let (as, bs) = breakl f es in isNull bs ? (es, []) $ (as, tail bs)
     divideBy f es = let (as, bs) = breakr f es in isNull as ? ([], es) $ (init as, bs)
@@ -899,17 +909,12 @@ inits :: (Linear l e) => l -> [l]
 inits Z  = [Z]
 inits es = es : inits (init es)
 
--- | sorted is a function that checks for sorting.
-sorted :: (Split s e, Bordered s i, Ord e) => s -> Bool
-sorted es = combo (<=) es ==. es
-
 {- |
   @ascending es lens@ checks if the subsequences of @es@ of lengths @lens@ is
   sorted.
 -}
-ascending :: (Split s e, Bordered s i, Ord e) => s -> [Int] -> Bool
+ascending :: (Split s e, Sort s e, Ord e) => s -> [Int] -> Bool
 ascending =  all sorted ... flip splits
-
 
 
 

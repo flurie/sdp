@@ -293,6 +293,8 @@ class (LinearM m s e) => SplitM m s e
     dividesM :: (Foldable f) => f Int -> s -> m [s]
     dividesM ns es = foldr (\ n ds' -> do ds <- ds'; (d, d') <- divideM n (head ds); pure (d' : d : ds)) (pure [es]) ns
     
+    -- TODO: comboM :: (e -> e -> Bool) -> s -> m Int
+    
     {- |
       @partsM n es@ returns the sequence of @es@ prefix references, splitted by
       offsets in @es@. Changes in the source and results must be synchronous.
@@ -349,7 +351,5 @@ type BorderedM2 m l i e = BorderedM m (l i e) i
 -- | sortedM checks if structure is sorted.
 sortedM :: (LinearM m l e, Ord e) => l -> m Bool
 sortedM =  fmap (\ es -> null es || and (zipWith (<=) es (tail es))) . getLeft
-
-
 
 

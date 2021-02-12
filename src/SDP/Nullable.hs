@@ -41,6 +41,13 @@ pattern NULL <- (isNull -> True) where NULL = lzero
 
 --------------------------------------------------------------------------------
 
+instance Nullable (Maybe e)
+  where
+    isNull Nothing = True
+    isNull       _ = False
+    
+    lzero  = Nothing
+
 instance Nullable [e]
   where
     isNull = null
@@ -55,6 +62,4 @@ instance Nullable (StablePtr e)
   where
     isNull = (== lzero)
     lzero  = StablePtr (unsafeCoerce# 0#)
-
-
 

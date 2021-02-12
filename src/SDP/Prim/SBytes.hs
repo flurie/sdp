@@ -207,6 +207,9 @@ instance (Unboxed e) => Linear (SBytes# e) e
             s4# -> case unsafeFreezeByteArray# marr# s4# of
               (# s5#, arr# #) -> (# s5#, SBytes# (I# n#) 0 arr# #)
     
+    force es@(SBytes# n@(I# n#) (I# o#) bytes#) =
+      SBytes# n 0 (cloneUnboxed1# es bytes# n# o#)
+    
     {-# INLINE (!^) #-}
     (!^) (SBytes# _ (I# o#) arr#) = \ (I# i#) -> arr# !# (i# +# o#)
     
@@ -498,6 +501,10 @@ instance (Unboxed e) => Scan (SBytes# e) e
 instance (Unboxed e) => Sort (SBytes# e) e
   where
     sortBy cmp es = runST $ do es' <- thaw es; timSortBy cmp es'; done es'
+    
+    sortedBy f es@(SBytes# n _ _) =
+      let go i = let i1 = i + 1 in i1 == n || (f (es !^ i) (es !^ i1) && go i1)
+      in  n < 2 || go 0
 
 --------------------------------------------------------------------------------
 
@@ -1126,5 +1133,8 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Prim.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
+
+
+
 
 

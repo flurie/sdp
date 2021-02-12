@@ -245,7 +245,9 @@ instance (Bordered1 rep Int e, Linear1 rep e) => Linear (AnyChunks rep e) e
         chunk = replicate lim e
         rest  = replicate rst e
     
-    reverse (AnyChunks es) = AnyChunks $ reverse <$> reverse es
+    reverse (AnyChunks es) = AnyChunks (reverse <$> reverse es)
+    
+    force (AnyChunks es) = AnyChunks (force <$> es)
     
     partition p = both fromList . partition p . listL
     
@@ -609,7 +611,5 @@ unpackM (AnyChunks es) = go es
 
 lim :: Int
 lim =  1024
-
-
 
 

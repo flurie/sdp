@@ -265,6 +265,8 @@ instance (Index i, Linear1 rep e, Bordered1 rep Int e) => Linear (AnyBorder rep 
     
     reverse (AnyBorder l u rep) = AnyBorder l u (reverse rep)
     
+    force (AnyBorder l u rep) = AnyBorder l u (force rep)
+    
     select   f = select f . unpack
     extract  f = second withBounds . extract  f . unpack
     selects fs = second withBounds . selects fs . unpack
@@ -430,7 +432,8 @@ instance (Linear1 (AnyBorder rep i) e) => Scan (AnyBorder rep i e) e
 
 instance (Index i, Sort (rep e) e) => Sort (AnyBorder rep i e) e
   where
-    sortBy cmp (AnyBorder l u rep) = AnyBorder l u (sortBy cmp rep)
+    sortBy cmp = \ (AnyBorder l u rep) -> AnyBorder l u (sortBy cmp rep)
+    sortedBy f = sortedBy f . unpack
 
 --------------------------------------------------------------------------------
 
@@ -597,4 +600,6 @@ withBounds rep = uncurry AnyBorder (defaultBounds $ sizeOf rep) rep
 {-# INLINE withBounds' #-}
 withBounds' :: (Index i, BorderedM1 m rep Int e) => rep e -> m (AnyBorder rep i e)
 withBounds' rep = (\ n -> uncurry AnyBorder (defaultBounds n) rep) <$> getSizeOf rep
+
+
 

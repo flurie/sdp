@@ -25,8 +25,8 @@ import Prelude ()
 import SDP.SafePrelude
 import SDP.Linear
 
-import Data.Maybe ( isJust )
-import Data.List  ( sortBy, groupBy )
+import Data.Maybe ( isJust  )
+import Data.List  ( groupBy )
 
 import GHC.Types
 

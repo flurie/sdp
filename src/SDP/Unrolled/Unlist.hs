@@ -70,15 +70,14 @@ instance Ord1 Unlist
 instance Zip Unlist
   where
     all2 f as bs             = all2 f (listL as) (listL bs)
-    all3 f as bs cs          = all3 f (listL as) (listL bs) (listL cs)
-    all4 f as bs cs ds       = all4 f (listL as) (listL bs) (listL cs) (listL ds)
-    all5 f as bs cs ds es    = all5 f (listL as) (listL bs) (listL cs) (listL ds) (listL es)
-    all6 f as bs cs ds es fs = all6 f (listL as) (listL bs) (listL cs) (listL ds) (listL es) (listL fs)
-    
     any2 f as bs             = any2 f (listL as) (listL bs)
+    all3 f as bs cs          = all3 f (listL as) (listL bs) (listL cs)
     any3 f as bs cs          = any3 f (listL as) (listL bs) (listL cs)
+    all4 f as bs cs ds       = all4 f (listL as) (listL bs) (listL cs) (listL ds)
     any4 f as bs cs ds       = any4 f (listL as) (listL bs) (listL cs) (listL ds)
+    all5 f as bs cs ds es    = all5 f (listL as) (listL bs) (listL cs) (listL ds) (listL es)
     any5 f as bs cs ds es    = any5 f (listL as) (listL bs) (listL cs) (listL ds) (listL es)
+    all6 f as bs cs ds es fs = all6 f (listL as) (listL bs) (listL cs) (listL ds) (listL es) (listL fs)
     any6 f as bs cs ds es fs = any6 f (listL as) (listL bs) (listL cs) (listL ds) (listL es) (listL fs)
     
     zipWith  f as bs             = fromList $ zipWith  f (listL as) (listL bs)
@@ -90,11 +89,17 @@ instance Zip Unlist
 instance Sort (Unlist e) e
   where
     sortBy cmp es = runST $ do es' <- thaw es; timSortBy cmp es'; done es'
+    
+    sortedBy f = go . toChunks
+      where
+        go (x1 : x2 : xs) = sortedBy f x1 && last x1 `f` head x2 && go (x2 : xs)
+        go       _        = True
 
 --------------------------------------------------------------------------------
 
 {-# INLINE done #-}
 done :: STArray# s e -> ST s (Unlist e)
 done =  unsafeFreeze
+
 
 

@@ -23,16 +23,17 @@ module SDP.ByteList.Ublist
 )
 where
 
-import SDP.Templates.AnyChunks
-import SDP.Prim.SBytes
-import SDP.SortM.Tim
+import Prelude ()
+import SDP.SafePrelude
 import SDP.Indexed
 import SDP.Unboxed
 import SDP.Sort
 import SDP.Scan
 import SDP.Set
 
-import Control.Monad.ST
+import SDP.Templates.AnyChunks
+import SDP.Prim.SBytes
+import SDP.SortM.Tim
 
 default ()
 
@@ -46,10 +47,19 @@ type Ublist = AnyChunks SBytes#
 instance (Unboxed e) => Sort (Ublist e) e
   where
     sortBy cmp es = runST $ do es' <- thaw es; timSortBy cmp es'; done es'
+    
+    sortedBy f = go . toChunks
+      where
+        go (x1 : x2 : xs) = sortedBy f x1 && last x1 `f` head x2 && go (x2 : xs)
+        go       _        = True
 
 --------------------------------------------------------------------------------
 
 {-# INLINE done #-}
 done :: (Unboxed e) => STBytes# s e -> ST s (Ublist e)
 done =  unsafeFreeze
+
+
+
+
 

@@ -185,35 +185,35 @@ instance Zip SArray#
         apply i = f (as!^i) (bs!^i)
         
         go 0 = True
-        go i = let i' = i - 1 in apply i' || go i'
+        go i = let i' = i - 1 in apply i' && go i'
     
     all3 f as bs cs = go (minimum [sizeOf as, sizeOf bs, sizeOf cs])
       where
         apply i = f (as!^i) (bs!^i) (cs!^i)
         
         go 0 = True
-        go i = let i' = i - 1 in apply i' || go i'
+        go i = let i' = i - 1 in apply i' && go i'
     
     all4 f as bs cs ds = go (minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds])
       where
         apply i = f (as!^i) (bs!^i) (cs!^i) (ds!^i)
         
         go 0 = True
-        go i = let i' = i - 1 in apply i' || go i'
+        go i = let i' = i - 1 in apply i' && go i'
     
     all5 f as bs cs ds es = go (minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds, sizeOf es])
       where
         apply i = f (as!^i) (bs!^i) (cs!^i) (ds!^i) (es!^i)
         
         go 0 = True
-        go i = let i' = i - 1 in apply i' || go i'
+        go i = let i' = i - 1 in apply i' && go i'
     
     all6 f as bs cs ds es fs = go (minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds, sizeOf es, sizeOf fs])
       where
         apply i = f (as!^i) (bs!^i) (cs!^i) (ds!^i) (es!^i) (fs!^i)
         
         go 0 = True
-        go i = let i' = i - 1 in apply i' || go i'
+        go i = let i' = i - 1 in apply i' && go i'
     
     any2 f as bs = go (minimum [sizeOf as, sizeOf bs])
       where
@@ -357,6 +357,12 @@ instance Linear (SArray# e) e
               (# s5#, arr# #) -> (# s5#, SArray# (I# n#) 0 arr# #)
       where
         n# = n1# +# n2#
+    
+    force (SArray# n@(I# n#) (I# o#) arr#) = runST $ ST $
+      \ s1# -> case newArray# n# (unreachEx "force") s1# of
+        (# s2#, marr# #) -> case copyArray# arr# o# marr# 0# n# s2# of
+          s3# -> case unsafeFreezeArray# marr# s3# of
+            (# s4#, copy# #) -> (# s4#, SArray# n 0 copy# #)
     
     listL = toList
     listR = flip (:) `foldl` []
@@ -645,6 +651,7 @@ instance Scan (SArray# e) e
 instance Sort (SArray# e) e
   where
     sortBy cmp es = runST $ do es' <- thaw es; timSortBy cmp es'; done es'
+    sortedBy f es = all2 f es (tail es)
 
 --------------------------------------------------------------------------------
 
@@ -1211,5 +1218,8 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
+
+
+
 
 

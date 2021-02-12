@@ -13,7 +13,7 @@
 module SDP.Unboxed
 (
   -- * Unboxed
-  Unboxed (..), cloneUnboxed#,
+  Unboxed (..), cloneUnboxed#, cloneUnboxed1#,
   
   -- ** Proxy
   psizeof, pnewUnboxed, pcopyUnboxed, pcopyUnboxedM, fromProxy,
@@ -648,6 +648,10 @@ cloneUnboxed# e bytes# o# c# = unwrap $ runST $ ST $
       s3# -> case unsafeFreezeByteArray# mbytes# s3# of
         (# s4#, bytes'# #) -> (# s4#, (Wrap bytes'#) #)
 
+-- | @(* -> *)@ kind proxy version if 'cloneUnboxed#'.
+cloneUnboxed1# :: (Unboxed e) => proxy e -> ByteArray# -> Int# -> Int# -> ByteArray#
+cloneUnboxed1# proxy = cloneUnboxed# (fromProxy proxy)
+
 --------------------------------------------------------------------------------
 
 {-# INLINE bool_scale #-}
@@ -672,4 +676,5 @@ bool_index =  (`uncheckedIShiftRA#` 6#)
 
 consSizeof :: (a -> b) -> b -> a
 consSizeof =  \ _ _ -> undefined
+
 

@@ -87,9 +87,9 @@ timSortBy cmp es =
 -}
 {-# INLINE timSort' #-}
 timSort' :: (LinearM m v e, BorderedM m v i) => (e -> e -> Bool) -> v -> m ()
-timSort' gt es = getSizeOf es >>= sort
+timSort' gt es = getSizeOf es >>= sort'
   where
-    sort n
+    sort' n
       |  n < 0  = return ()
       | n <= 64 = insertionSort_ gt es 0 0 (n - 1)
       |   True  = evalInit (ascSubs 0 n) 3 >>= uncurry mergeAll
