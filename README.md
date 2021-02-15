@@ -1,144 +1,124 @@
 # Simple Data Processing
 
 It is a library for simple data processing. `sdp` is inspired by `array`,
-`vector`, `bytestring`, `containers` and `repa`. `sdp` is focused on efficiency
-and openness.
-
-## tl; dr
-
-`sdp` is designed to combine the main `Haskell Platform` libraries and their
-functionality for more comfortable work and better code readability.
-
-In addition to the base classes and algorithms, `sdp` implements the simplest
-data structures (arrays and unrolled lists) to replace the obsolete `array`
-library.
+`vector`, `bytestring`, `containers` and `repa`. `sdp` is focused on efficiency,
+openness and simplicity.
 
 ## Motivation
 
-The purpose of `sdp` is to provide the most comfortable interface for working
-with various data structures in one namespace without qualified imports, keeping
-a sufficiently high quality of the code and speed of work.
-
-## Functionality
-
-`sdp` provides basic structures and operations on them.
+Originally `sdp` was created as `array` replacement. Now its main purpose was to
+provide the most comfortable interface for working with various data structures:
+eliminate name conflicts with other libraries and between them, simplify their
+interaction, make code even more versatile and reusable.
 
 ### Structures
 
 All predefined structures are based on **pseudo-primitive** types `SArray#`,
-`SBytes#`, `STArray#`, `STBytes#`, `IOArray#`, `IOBytes#` that securely
-encapsulate real primitives.
+`SBytes#`, `STArray#`, `STBytes#`, `MIOArray#`, `MIOBytes#` that encapsulate
+real primitives with correct size and offset.
 
 `sdp` uses **templates** to define more complex structures:
-* `AnyChunks` defines an unrolled list with structure elements
 * `AnyBorder` adds explicit boundaries of arbitrary type
+* `AnyChunks` defines an unrolled list with structure elements
 
 Based on pseudo-primitives and templates, the following are defined:
-* immutable arrays `Array` and `Bytes`
-* mutable arrays `STArray` and `STBytes`, `IOArray` and `IOBytes`
-* immutable unrolled lists `Unlist` and `Ublist`
-* mutable unrolled lists `STUnlist` and `STUblist`, `IOUnlist` and `IOUblist`
-* immutable unrolled lists with explicit boundaries `Unrolled` and `ByteList`
-* mutable expanded lists with explicit boundaries `STUnrolled` and `STByteList`,
-`IOUnrolled` and `IOByteList`
+* immutable arrays with immutable explicit immutable boundaries: `Array` and
+`Bytes`
+* mutable arrays with immutable explicit immutable boundaries: `STArray` and
+`STBytes`, `MIOArray` (`IOArray`) and `MIOBytes` (`IOBytes`)
+* immutable unrolled lists with immutable implicit boundaries: `Unlist` and
+`Ublist`
+* mutable unrolled lists with immutable implicit boundaries: `STUnlist` and
+`STUblist`, `MIOUnlist` (`IOUnlist`) and `MIOUblist` (`IOUblist`)
+* immutable unrolled lists with explicit immutable boundaries: `Unrolled` and
+`ByteList`
+* mutable unrolled lists with explicit immutable boundaries `STUnrolled` and
+`STByteList`, `MIOUnrolled` (`IOUnrolled`) and `MIOByteList` (`IOByteList`)
 
 ### Classes
 
-`sdp` provides a lot of conversion functions, powerful abstraction data for
-writing generalized algorithms, implements the most popular operations including
-selection, splitting and sorting. With `sdp` list functions are not overlap
-their counterparts for other structures.
+`sdp` generalize the most popular operations on linear (list-like) and
+associative data structures including selection, splitting and sorting. With
+`sdp` list functions aren't overlap their counterparts for other structures.
 
-`Nullable` is a service class of structures with null values.
-
-`Bordered` is a class of structures with borders and finite number of elements.
-
-`Estimate` is a service class for efficiently estimating the length of a
-structure. Allows to express such conditions as:
+* `Nullable` is a service class of structures with null values.
+* `Bordered` is a class of structures with borders and finite number of elements.
+* `Estimate` is a service class for efficiently (at least, in finite time)
+estimating the length of a structure or compare pair of structures by length (in
+finite time if at least one of them is finite). Allows to express such
+conditions as:
 ```
-xs .<  ys -- structure xs is shorter than structure ys?
-es .>   5 -- is structure longer than 5 elements?
-es .== 10 -- The length of the structure is 10?
+xs .<. ys -- length xs < length ys
+es .== 10 -- length es == 10
+es .>   5 -- length es > 5
 ```
-and calculate them in a finite time (in the first example at least one of the
-structures must be finite). It makes sense to use `Estimate` in cases where
-length calculation is more difficult than `O(1)` and you don't need to know the
-exact size.
-
-`Unboxed` is a service class that simplifies interacting with data stored in
-`ByteArray#` and `MutableArray#`. Used in containers that based on `SBytes#`,
+* `Unboxed` is a service class that simplifies interacting with data stored in
+* `ByteArray#` and `MutableArray#`. Used in containers that based on `SBytes#`,
 `STBytes#` or `IOBytes#`.
-
-`Shape` is a service class for dimension operations and finite-dimensional index
-transformations.
-
-`Index` is a service class that generalizes enumeration and membership
-operations interval. It is an improved version of `Ix`.
-
-`Linear` is a class of linear structures that generalizes the standard list
-functions.
-
-`Split` is a split structure class that extends `Linear`.
-
-`Indexed` is a class of indexed structures that generalizes read and modify
+* `Shape` is a service class for dimension operations and finite-dimensional
+index transformations. `Index` is a service class that generalizes `Enum` to
+interval operations, replaces `Ix`.
+* `Linear` is a class of linear structures that generalizes the standard list
+functions. `Split` is `Linear` extension, which implements additional list-like
+operations like `split(At)` `takeWhile`, `isPrefixOf`, etc.
+* `Indexed` is a class of indexed structures that generalizes read and modify
 operations immutable structures.
-
-`Shaped` is a class of operations on structures generalized by the type of
+* `Shaped` is a class of operations on structures generalized by the type of
 index. Provides safe change of range and index type, fast extraction of
 subsequences.
-
-`Map` is a class of operations with dictionaries.
-
-`Set` is a class of operations on sets.
-
-`Zip` is a class that generalizes element-wise union of structures.
-
-`Scan` is a class of convolutions with intermediate values.
-
-`Sort` is a sorting class for immutable structures.
-
-`BorderedM`, `LinearM`, `SplitM`, `IndexedM`, `SortM` - classes of operations on
-mutable containers.
+* `Map` is a class of operations on associative arrays (dictionaries).
+* `Set` is a class of operations on sets.
+* `Zip` is a class that generalizes element-wise union of structures.
+* `Scan` is a class of convolutions with intermediate values.
+* `Sort` is a sorting class for immutable structures.
+* `BorderedM`, `LinearM`, `SplitM`, `IndexedM`, `SortM` - classes of operations
+on mutable containers.
 
 ## Versions
 
 `sdp` follow [Haskell Package Versioning Policy](https://pvp.haskell.org). To
-simplify the search for derivative components, I propose the following rules:
+simplify the search for extensions, I also recommend the following rules:
 * The `MAJOR` version of the derivative must match the smallest `MAJOR` version
 of `sdp` with which it's compatible.
-* `sdp` extensions should be called `sdp-%extensionname%`, e.g. `sdp-io` or
-`sdp-quickcheck`.
-* `sdp` wrappers should be called `sdp4%libraryname%`, e.g. `sdp4text`.
-* Some wrappers may be called `sdp2%libraryname%`, e.g. `sdp2binary`.
+* Extensions should be called `sdp-%extensionname%` (e.g. `sdp-quickcheck`).
+* Wrappers should be called `sdp4%libraryname%` (e.g., `sdp4text`).
 
 ## Differences from other similar projects
 
-* **Not another ((re)re)base.** `sdp` works **with** `base`, generalizes and
-extends it.
+* **Not another [[re]re]base.** `sdp` works **with** `base`: generalizes its
+functions and avoids shortcomings, instead of trying to replace it, solve
+backward compatibility problems or combine the typical dependencies of some
+typical library/application in one package.
 * **Maximum functionality with minimal size**. The `sdp` requires only 3 simple
-dependencies (including `base`).
+dependencies, including `base`. It doesn't depend on other common packages, but
+can easily interoperate with them.
 * **Good extensibility.** `sdp` is a well-extensible library that allows you to
 easily integrate new components, simplifies interlibrary communication. The
 functionality of `sdp` is also easy to extend with the flexibility that type
 classes provide.
-* **Orientation to other libraries.** Originally `sdp` was created as `array`
-replacement, now its main purpose was to eliminate name conflicts with other
-libraries and between them. The library generalizes standard functions and thus
-hides many qualified imports. `sdp` wrappers also improves code readability. For
-example, you can work with text and binary streams (`Text` and `ByteString`) in
-one module without unnecessary qualifiers.
-* **Modern design.** `sdp` is what array would look like if it were written now.
-`sdp` has a good balance between openness, reliability, and performance. `sdp`
-doesn't impose significant restrictions on the implementation and doesn't go too
-far with the complexity of the definitions, trying to be both understandable and
-universal. But also `sdp` tries to keep up with the times, providing support for
-many non-standard features of the language, if they are appropriate.
+* **Orientation to other libraries.** `sdp` wrappers also improves code
+readability. For example, you can work with text and binary streams (`Text` and
+`ByteString`) in one module without qualifiers. Also, you no longer have to
+think about the specifics of functions (for example, `replicate` from the `text`
+package accepts `Text`, not `Char`, optimizing the case of a singleton string by
+rewrite rule) and differences in their names (for example, `force` in `vector`
+and `copy` in `text` and `bytestring`). `sdp` generalizes many functions not
+only by the type of structure, but also by the types of additional arguments
+(e.g., replaces `[]` with `Foldable`).
+* **Modern design.** `sdp` is what `array` would look like if it were written
+now. `sdp` has a good balance between openness, reliability and performance.
+`sdp` doesn't impose significant restrictions on the implementation. In
+particular, `sdp` doesn't say how many parameters your type should have and in
+what order they should be specified, what restrictions on the value type it can
+have, etc. I don't think that you can put something like `Text` or `ByteString`
+in `AnyChunks` for the freebie instances, but nothing prevents you from defining
+`AnyChunks`-like structure and instances for.
 
 ## Using the SDP category
 
-The `SDP` category is intended for classes and structures whose names are
-already taken in the `Data` category. It shouldn't be used instead of `System`,
-`Control`, `Foreign`, etc.
+The `SDP` category is intended for `sdp` classes and primitives, as for
+structures whose names are already taken in the `Data` category. It shouldn't be
+used instead of `System`, `Control`, `Foreign`, etc.
 
 ## Contributing
 For details of the process for submitting pull requests, please read
@@ -148,6 +128,6 @@ For details of the process for submitting pull requests, please read
 `sdp` is FOSS (free and open source software), you can redistribute it and/or
 modify it under the terms of the BSD3 license. `sdp` is distributed in the hope
 that it will be useful, but without any warranty, without even the implied
-warranty of merchantability or fitness for a particular purpose. See the BSD3
-license for more details.
+warranty of merchantability or fitness for a particular purpose. See the LICENSE
+file for more details.
 

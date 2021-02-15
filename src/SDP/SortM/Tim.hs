@@ -11,11 +11,8 @@
 -}
 module SDP.SortM.Tim
 (
-  -- * Insertion Sort
-  insertionSort, insertionSortBy, insertionSortOn,
-  
   -- * TimSort
-  timSort, timSortBy, timSortOn, minrunTS
+  timSort, timSortBy', timSortBy, timSortOn, minrunTS
 )
 where
 
@@ -26,8 +23,6 @@ import SDP.IndexedM
 import SDP.SortM.Insertion
 
 import Data.Bits
-
-import Control.Monad.Rope
 
 default ()
 
@@ -53,58 +48,60 @@ timSortOn =  timSortBy . comparing
 -}
 {-# INLINE timSortBy #-}
 timSortBy :: (LinearM m v e, BorderedM m v i) => Compare e -> v -> m ()
-timSortBy cmp = timSort' $ \ x y -> case x `cmp` y of {GT -> True; _ -> False}
+timSortBy cmp = timSortBy' $ \ x y -> case x `cmp` y of {GT -> True; _ -> False}
 
 --------------------------------------------------------------------------------
 
-{-
-  timSort' is a sorting procedure for mutable random access data structures
+{- |
+  'timSortBy'' is a sorting procedure for mutable random access data structures
   using any comparison function and having O(n * log n) complexity in the worst
   case.
 -}
-{-# INLINE timSort' #-}
-timSort' :: (LinearM m v e, BorderedM m v i) => (e -> e -> Bool) -> v -> m ()
-timSort' gt es = getSizeOf es >>= sort'
+{-# INLINE timSortBy' #-}
+
+timSortBy' :: (BorderedM m v i, LinearM m v e) => (e -> e -> Bool) -> v -> m ()
+timSortBy' gt es = sort' =<< getSizeOf es
   where
     sort' n
       |  n < 0  = return ()
       | n <= 64 = unsafeInsertionSort gt es 0 0 (n - 1)
-      |   True  = evalInit (ascSubs 0 n) 3 >>= uncurry mergeAll
+      |   True  = iteratePreN (3 :: Int) 0 >>= go
+        where
+          go [sx, sy, sz] = do
+            nxt <- iteratePreN (1 :: Int) (sx + sy + sz)
+            if (sx > sy + sz && sy > sz) || sz <= sx
+              then do merge sx sy sz; go ([sx, sy + sz] ++ nxt)
+              else do merge 0  sx sy; go ([sx + sy, sz] ++ nxt)
+          go [sx, sy] = merge 0 sx sy
+          go     _    = return ()
+          
+          iteratePreN 0 _ = return []
+          iteratePreN j o = case n - o of
+              0 -> return []
+              1 -> return [1]
+              2 -> do
+                e0 <- es !#> o
+                e1 <- es !#> o + 1
+                when (e0 `gt` e1) $ swapM es o (o + 1)
+                return [2]
+              _ -> do
+                end <- normalized =<< actual
+                end == 0 ? return [end - o] $ (end - o :) <$> iteratePreN (j - 1) end
+            where
+              actual = (es !#> o) >>=<< (es !#> o + 1) $ \ e0 e1 ->
+                  e0 `gt` e1 ? desc e1 (o + 2) $ asc e1 (o + 2)
+                where
+                  desc p i = do c <- es !#> i; c `gt` p ? rev' o i $ i /= n - 1 ? desc c (i + 1) $ rev' o (i + 1)
+                  asc  p i = do c <- es !#> i; p `gt` c ? return i $ i /= n - 1 ? asc  c (i + 1) $ return (i + 1)
+                  rev  f l = when (f < l) $ do swapM es f l; rev (f + 1) (l - 1)
+                  rev' f l = do rev f (l - 1); return l
+              
+              normalized s = do
+                let ex = min n (o + minrunTS n) -- minimal expected ending
+                when (ex > s) $ unsafeInsertionSort gt es o (s - 1) (ex - 1)
+                return (ex `max` s)
     
-    ascSubs o n = case n - o of
-        0 -> RopeEnd
-        1 -> RopeM $ return ((o, 1), RopeEnd)
-        2 -> RopeM $ do
-            e0 <- es !#> o
-            e1 <- es !#> o + 1
-            when (e0 `gt` e1) $ swapM es o (o + 1)
-            return ((o, 2), RopeEnd)
-        _ -> RopeM $ do
-            end <- normalized =<< actual
-            return ((o, end - o), ascSubs end n)
-      where
-        actual = (es !#> o) >>=<< (es !#> o + 1) $
-          \ e0 e1 -> e0 `gt` e1 ? desc e1 (o + 2) $ asc e1 (o + 2)
-          where
-            asc  p i = do c <- es !#> i; p `gt` c ? return i $ i /= n - 1 ? asc  c (i + 1) $ return (i + 1)
-            desc p i = do c <- es !#> i; c `gt` p ? rev' o i $ i /= n - 1 ? desc c (i + 1) $ rev' o (i + 1)
-            rev  f l = when (f < l) $ do swapM es f l; rev (f + 1) (l - 1)
-            rev' f l = do rev f (l - 1); return l
-        
-        normalized s = do
-          let ex = min n (o + minrunTS n) -- minimal expected ending
-          when (ex > s) $ unsafeInsertionSort gt es o (s - 1) (ex - 1)
-          return $ max ex s
-    
-    mergeAll [x@(bx, sx), y@(by, sy), z@(_, sz)] r = if rules || sz <= sx
-        then do merge y z; (nxt, r') <- nextR r; mergeAll ([x, (by, sy + sz)] ++ nxt) r'
-        else do merge x y; (nxt, r') <- nextR r; mergeAll ([(bx, sx + sy), z] ++ nxt) r'
-      where
-        rules = sx > sy + sz && sy > sz
-    mergeAll [x, y] _ = merge x y
-    mergeAll    _   _ = return ()
-    
-    merge (bx, sx) (by, sy) = copied' es bx sx >>= mergeGo bx 0 by
+    merge o sx sy = copied' es o sx >>= mergeGo o 0 (o + sx)
       where
         mergeGo ic il ir left
           | il >= lb = return () -- at least left is empty, merge is completed.
@@ -113,13 +110,16 @@ timSort' gt es = getSizeOf es >>= sort'
             \ l r -> if r `gt` l
               then writeM es ic l >> mergeGo (ic + 1) (il + 1) ir left
               else writeM es ic r >> mergeGo (ic + 1) il (ir + 1) left
-        rb = by + sy; lb = sx
+        rb = o + sx + sy
+        lb = sx
 
 --------------------------------------------------------------------------------
 
 {-# INLINE minrunTS #-}
--- | 'minrunTS' returns @Timsort@ chunk size.
+-- | 'minrunTS' returns @Timsort@ chunk size by given length.
 minrunTS :: Int -> Int
 minrunTS i = mr i 0 where mr n r = n >= 64 ? mr (shiftR n 1) (n .&. 1) $ n + r
+
+
 
 

@@ -13,7 +13,7 @@
 module SDP.SortM
   (
     -- * SortM
-    SortM (..), SortM1, sortM, sortMOn, mathsortM, mathsortMOn, sortedM, sortedMOn
+    SortM (..), SortM1, sortM, sortMOn, sortedM, sortedMOn
   )
 where
 
@@ -37,13 +37,6 @@ class SortM m s e | s -> m, s -> e
     
     -- | 'sortMBy' is common sorting algorithm.
     sortMBy :: Compare e -> s -> m ()
-    
-    {- |
-      'mathsortMBy' is sortMBy modiffication, that which is optimized for
-      sorting data with a lot of repetitions.
-    -}
-    mathsortMBy :: Compare e -> s -> m ()
-    mathsortMBy =  sortMBy
 
 --------------------------------------------------------------------------------
 
@@ -67,14 +60,6 @@ sortM =  sortMBy compare
 -- | Sort by comparing the results of a key function applied to each element.
 sortMOn :: (SortM m s e, Ord o) => (e -> o) -> s -> m ()
 sortMOn =  sortMBy . comparing
-
--- | 'mathsortM' is just @'mathsortMBy' 'compare'@
-mathsortM :: (SortM m s e, Ord e) => s -> m ()
-mathsortM =  mathsortMBy compare
-
--- | Math sort by comparing the results of a key function applied to each element.
-mathsortMOn :: (SortM m s e, Ord o) => (e -> o) -> s -> m ()
-mathsortMOn =  mathsortMBy . comparing
 
 
 

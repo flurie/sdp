@@ -11,9 +11,8 @@
 -}
 module SDP.Nullable
 (
-  Nullable (..),
-  
-  pattern NULL
+  -- * Nullable
+  Nullable (..), pattern NULL
 )
 where
 
@@ -45,9 +44,7 @@ pattern NULL <- (isNull -> True) where NULL = lzero
 
 instance Nullable (Maybe e)
   where
-    isNull Nothing = True
-    isNull       _ = False
-    
+    isNull = \ mx -> case mx of {Nothing -> True; _ -> False}
     lzero  = Nothing
 
 instance Nullable [e]
@@ -73,8 +70,6 @@ instance Nullable (ForeignPtr e)
 
 instance Nullable (StablePtr e)
   where
-    isNull = (== lzero)
     lzero  = StablePtr (unsafeCoerce# 0#)
-
-
+    isNull = (== lzero)
 

@@ -11,10 +11,10 @@
     "SDP.Sort" provides 'Sort' - class of sortable immutable structures.
 -}
 module SDP.Sort
-  (
-    -- * Sort
-    Sort (..), sort, sortOn, mathsort, mathsortOn, sorted, sortedOn
-  )
+(
+  -- * Sort
+  Sort (..), sort, sortOn, sorted, sortedOn
+)
 where
 
 import Prelude ()
@@ -40,13 +40,6 @@ class Sort s e | s -> e
     
     -- | 'sortBy' function is common sorting algorithm.
     sortBy :: Compare e -> s -> s
-    
-    {- |
-      'mathsortBy' is 'sortBy' modiffication, that which is optimized for
-      sorting data with a lot of repetitions.
-    -}
-    mathsortBy :: Compare e -> s -> s
-    mathsortBy =  sortBy
 
 instance Sort [a] a
   where
@@ -72,14 +65,6 @@ sort =  sortBy compare
 -- | Sort by comparing the results of a given function applied to each element.
 sortOn :: (Sort s e, Ord o) => (e -> o) -> s -> s
 sortOn =  sortBy . comparing
-
--- | 'mathsort' is just @'mathsortBy' 'compare'@
-mathsort :: (Sort s e, Ord e) => s -> s
-mathsort =  mathsortBy compare
-
--- | Math sort by comparing the results of a key function applied to each element.
-mathsortOn :: (Sort s e, Ord o) => (e -> o) -> s -> s
-mathsortOn =  mathsortBy . comparing
 
 
 

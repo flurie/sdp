@@ -12,10 +12,7 @@
 module SDP.Ratio
 (
   -- * Export
-  module Data.Ratio,
-  
-  -- * Related
-  pattern (:%)
+  module Data.Ratio, pattern (:%)
 )
 where
 
@@ -32,4 +29,7 @@ default ()
 -- | Crutch pattern: real (':%') is closed 'Ratio' constructor.
 pattern (:%) :: (Integral a) => a -> a -> Ratio a
 pattern n :% d <- ((\ r -> (numerator r, denominator r)) -> (n, d)) where (:%) = (%)
+
+
+
 

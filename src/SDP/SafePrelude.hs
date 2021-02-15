@@ -8,7 +8,21 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
     
-    Module of @sdp@ common definitions.
+    "SDP.SafePrelude" module re-exports common "Prelude" definitions except
+    those overridden in this library and its extensions (e.g. @sdp-io@).
+    
+    In addition, this module re-exports the most common definitions from other
+    @base@ and @sdp@ modules ("Control.Applicative", "Data.Bufunctor",
+    "SDP.Estimate", etc.) and some useful combinators that were used in this
+    library and may be useful to its users.
+    
+    Import 'Prelude' without conflicting functions, may require additional
+    imports for functions overridden in other modules:
+    
+    @
+      import Prelude ()
+      import SDP.SafePrelude
+    @
 -}
 module SDP.SafePrelude
 (
@@ -45,9 +59,8 @@ import Prelude hiding
     head, tail, init, last, take, drop, (!!), (++), reverse, filter, lookup,
     concat, concatMap, replicate, takeWhile, dropWhile, iterate,
     
-    -- defined in SDP.IO (sdp-io extension) and System.IO
+    -- defined in System.IO.Handle, System.IO.Classes (@sdp-io@) and System.IO
     readFile, writeFile, appendFile, getContents,
-    
     getChar, putChar, getLine, putStr, putStrLn
   )
 
@@ -151,5 +164,7 @@ liftM6 g as bs cs ds es fs = do a <- as; b <- bs; c <- cs; d <- ds; e <- es; f <
 -- | 'stToMIO' is just @'liftIO' . 'stToIO'@.
 stToMIO :: (MonadIO io) => ST RealWorld e -> io e
 stToMIO =  liftIO . stToIO
+
+
 
 
