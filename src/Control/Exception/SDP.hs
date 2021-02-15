@@ -49,21 +49,21 @@ default ()
   underflow. But if an overflow is detected, underflow may not be noticed.
 -}
 data IndexException = UnacceptableExpansion String
-                    | UnexpectedRank        String
                     | UndefinedValue        String
-                    | EmptyRange            String
-                    | IndexOverflow         String
+                    | UnexpectedRank        String
                     | IndexUnderflow        String
+                    | IndexOverflow         String
+                    | EmptyRange            String
   deriving ( Eq, Typeable )
 
 instance Show IndexException
   where
     show (UnacceptableExpansion s) = "unacceptable expansion "   ++ s
-    show (UnexpectedRank        s) = "unexpected rank "          ++ s
     show (UndefinedValue        s) = "undefined element "        ++ s
-    show (EmptyRange            s) = "empty range "              ++ s
-    show (IndexOverflow         s) = "index out of upper bound " ++ s
+    show (UnexpectedRank        s) = "unexpected rank "          ++ s
     show (IndexUnderflow        s) = "index out of lower bound " ++ s
+    show (IndexOverflow         s) = "index out of upper bound " ++ s
+    show (EmptyRange            s) = "empty range "              ++ s
 
 instance Exception IndexException
 

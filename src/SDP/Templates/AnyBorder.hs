@@ -50,7 +50,13 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | 'AnyBorder' is template, that appends arbitrary bounds to any structure.
+{- |
+  'AnyBorder' is template, that appends arbitrary bounds to any structure.
+  
+  * 'Eq', 'Ord', 'Eq1' and 'Ord1' instances ingores bounds.
+  * 'Thaw' and 'Freeze' instances for @'AnyBorder' rep e@ inherit @rep e@
+  behavior.
+-}
 data AnyBorder rep i e = AnyBorder !i !i !(rep e)
   deriving ( Typeable, Data, Generic )
 
@@ -133,10 +139,10 @@ instance (Index i) => Estimate (AnyBorder rep i e)
     (.<.)  = on (<)   sizeOf
     
     (<.=>) = (<=>) . sizeOf
-    (.>)   = (>)   . sizeOf
-    (.<)   = (<)   . sizeOf
     (.>=)  = (>=)  . sizeOf
     (.<=)  = (<=)  . sizeOf
+    (.>)   = (>)   . sizeOf
+    (.<)   = (<)   . sizeOf
 
 --------------------------------------------------------------------------------
 
@@ -216,11 +222,10 @@ instance (Index i, Traversable rep) => Traversable (AnyBorder rep i)
 
 instance (Index i) => Bordered (AnyBorder rep i e) i
   where
-    sizeOf (AnyBorder l u _) = size (l, u)
-    bounds (AnyBorder l u _) = (l, u)
-    lower  (AnyBorder l _ _) = l
-    upper  (AnyBorder _ u _) = u
-    
+    lower    (AnyBorder l _ _) = l
+    upper    (AnyBorder _ u _) = u
+    bounds   (AnyBorder l u _) = (l, u)
+    sizeOf   (AnyBorder l u _) = size    (l, u)
     indices  (AnyBorder l u _) = range   (l, u)
     indexOf  (AnyBorder l u _) = index   (l, u)
     indexIn  (AnyBorder l u _) = inRange (l, u)
@@ -245,13 +250,12 @@ instance (Index i, Linear1 rep e, Bordered1 rep Int e) => Linear (AnyBorder rep 
     
     fromFoldable = withBounds . fromFoldable
     
-    (++) = withBounds ... on (++) unpack
-    
     listL = listL . unpack
     listR = listR . unpack
     
     {-# INLINE (!^) #-}
     (!^) = (!^) . unpack
+    (++) = withBounds ... on (++) unpack
     
     write (AnyBorder l u es) n e = AnyBorder l u (write es n e)
     
@@ -264,8 +268,7 @@ instance (Index i, Linear1 rep e, Bordered1 rep Int e) => Linear (AnyBorder rep 
     filter f = withBounds . filter f . unpack
     
     reverse (AnyBorder l u rep) = AnyBorder l u (reverse rep)
-    
-    force (AnyBorder l u rep) = AnyBorder l u (force rep)
+    force   (AnyBorder l u rep) = AnyBorder l u (force   rep)
     
     select   f = select f . unpack
     extract  f = second withBounds . extract  f . unpack
@@ -346,8 +349,8 @@ instance (Index i, LinearM1 m rep e, BorderedM1 m rep Int e) => LinearM m (AnyBo
     ofoldrM f e = ofoldrM f e . unpack
     ofoldlM f e = ofoldlM f e . unpack
     
-    o_foldrM f e = o_foldrM f e . unpack
-    o_foldlM f e = o_foldlM f e . unpack
+    foldrM f e = foldrM f e . unpack
+    foldlM f e = foldlM f e . unpack
 
 instance (Index i, BorderedM1 m rep Int e, SplitM1 m rep e) => SplitM m (AnyBorder rep i e) e
   where
@@ -498,15 +501,13 @@ instance (Bordered1 rep Int e, Split1 rep e) => Shaped (AnyBorder rep) e
 
 instance (Index i, MapM1 m rep Int e, LinearM1 m rep e, BorderedM1 m rep Int e) => MapM m (AnyBorder rep i e) i e
   where
-    newMap ascs = AnyBorder l u <$> newMap [ (offset (l, u) i, e) | (i, e) <- ascs ]
-      where
-        l = fst $ minimumBy cmpfst ascs
-        u = fst $ maximumBy cmpfst ascs
+    newMap ascs =
+      let bnds@(l, u) = ascsBounds ascs
+      in  AnyBorder l u <$> newMap [ (offset bnds i, e) | (i, e) <- ascs ]
     
-    newMap' defvalue ascs = AnyBorder l u <$> newMap' defvalue [ (offset (l, u) i, e) | (i, e) <- ascs ]
-      where
-        l = fst $ minimumBy cmpfst ascs
-        u = fst $ maximumBy cmpfst ascs
+    newMap' defvalue ascs =
+      let bnds@(l, u) = ascsBounds ascs
+      in  AnyBorder l u <$> newMap' defvalue [ (offset bnds i, e) | (i, e) <- ascs ]
     
     {-# INLINE (>!) #-}
     (>!) (AnyBorder l u es) = (es !#>) . offset (l, u)
@@ -601,5 +602,4 @@ withBounds rep = uncurry AnyBorder (defaultBounds $ sizeOf rep) rep
 {-# INLINE withBounds' #-}
 withBounds' :: (Index i, BorderedM1 m rep Int e) => rep e -> m (AnyBorder rep i e)
 withBounds' rep = (\ n -> uncurry AnyBorder (defaultBounds n) rep) <$> getSizeOf rep
-
 

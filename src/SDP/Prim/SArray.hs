@@ -153,16 +153,16 @@ instance Default   (SArray# e) where def = Z
 instance Estimate (SArray# e)
   where
     (<==>) = on (<=>) sizeOf
-    (.>.)  = on  (>)  sizeOf
-    (.<.)  = on  (<)  sizeOf
     (.<=.) = on  (<=) sizeOf
     (.>=.) = on  (>=) sizeOf
+    (.>.)  = on  (>)  sizeOf
+    (.<.)  = on  (<)  sizeOf
     
     (<.=>) = (<=>) . sizeOf
-    (.>)   = (>)   . sizeOf
-    (.<)   = (<)   . sizeOf
     (.>=)  = (>=)  . sizeOf
     (.<=)  = (<=)  . sizeOf
+    (.>)   = (>)   . sizeOf
+    (.<)   = (<)   . sizeOf
 
 --------------------------------------------------------------------------------
 
@@ -310,8 +310,8 @@ instance Foldable SArray#
       let go i = 0 == i ? e $ f (go $ i - 1) e where e = arr !^ i
       in  null arr ? pfailEx "foldl1" $ go (sizeOf arr - 1)
     
-    null   = isNull
     length = sizeOf
+    null   = isNull
 
 instance Traversable SArray#
   where
@@ -323,8 +323,8 @@ instance Traversable SArray#
 
 instance Linear (SArray# e) e
   where
-    single      e = runST $ filled 1 e >>= done
     replicate n e = runST $ filled n e >>= done
+    single      e = runST $ filled 1 e >>= done
     
     toHead e (SArray# (I# c#) (I# o#) arr#) = let n# = c# +# 1# in runST $ ST $
       \ s1# -> case newArray# n# e s1# of
@@ -340,15 +340,15 @@ instance Linear (SArray# e) e
     
     head es = es !^ 0
     last es@(SArray# c _ _) = es !^ (c - 1)
-    
-    tail (SArray# c o arr#) = SArray# (max 1 c - 1) (o + 1) arr#
     init (SArray# c o arr#) = SArray# (max 1 c - 1) o arr#
+    tail (SArray# c o arr#) = SArray# (max 1 c - 1) (o + 1) arr#
     
     fromList = fromFoldable
     
     fromListN  n es = runST $ newLinearN  n es >>= done
     fromFoldable es = runST $ fromFoldableM es >>= done
     
+    -- [internal]: always return new array, even if (at least) one is empty
     SArray# (I# n1#) (I# o1#) arr1# ++ SArray# (I# n2#) (I# o2#) arr2# =
       runST $ ST $ \ s1# -> case newArray# n# (unreachEx "(++)") s1# of
         (#s2#, marr# #) -> case copyArray# arr1# o1# marr# 0# n1# s2# of
@@ -367,7 +367,8 @@ instance Linear (SArray# e) e
     listL = toList
     listR = flip (:) `foldl` []
     
-    (!^) (SArray# _ (I# o#) arr#) = \ (I# i#) -> case indexArray# arr# (i# +# o#) of (# e #) -> e
+    (!^) (SArray# _ (I# o#) arr#) = \ (I# i#) ->
+      case indexArray# arr# (i# +# o#) of (# e #) -> e
     
     write es n e = not (indexIn es n) ? es $ runST $ do
       es' <- thaw es
@@ -376,6 +377,7 @@ instance Linear (SArray# e) e
     
     reverse es = runST $ fromIndexed' es >>= reversed >>= done
     
+    -- [internal]: always return new array, even if only one is nonempty
     concat ess = runST $ do
       let n = foldr' ((+) . sizeOf) 0 ess
       marr@(STArray# _ _ marr#) <- filled n (unreachEx "concat")
@@ -390,9 +392,9 @@ instance Linear (SArray# e) e
     
     select  f = foldr (\ o es -> case f o of {Just e -> e : es; _ -> es}) []
     
-    extract f = second fromList . foldr g ([], [])
-      where
-        g = \ o -> case f o of {Just e -> first (e :); _ -> second (o :)}
+    extract f =
+      let g = \ o -> case f o of {Just e -> first (e :); _ -> second (o :)}
+      in  second fromList . foldr g ([], [])
     
     selects fs = second fromList . selects fs . listL
     
@@ -463,18 +465,14 @@ instance Split (SArray# e) e
           s3# -> case unsafeFreezeArray# marr# s3# of
             (# s4#, arr# #) -> (# s4#, SArray# n 0 arr# #)
     
-    combo _  Z = 0
-    combo f es = go (head es) 1
-      where
-        go e i = let e' = es !^ i in i == n || not (f e e') ? i $ go e' (i + 1)
-        
-        n = sizeOf es
+    combo _                  Z = 0
+    combo f es@(SArray# n _ _) =
+      let go e i = let e' = es !^ i in i == n || not (f e e') ? i $ go e' (i + 1)
+      in  go (head es) 1
     
-    each n es = case n <=> 1 of {LT -> Z; EQ -> es; GT -> fromList $ go (n - 1)}
-      where
-        go i = i < s ? es!^i : go (i + n) $ []
-        
-        s = sizeOf es
+    each n es@(SArray# c _ _) =
+      let go i = i < c ? es!^i : go (i + n) $ []
+      in  case n <=> 1 of {LT -> Z; EQ -> es; GT -> fromList $ go (n - 1)}
     
     isPrefixOf xs@(SArray# c1 _ _) ys@(SArray# c2 _ _) =
       let eq i = i == c1 || (xs !^ i) == (ys !^ i) && eq (i + 1)
@@ -489,8 +487,8 @@ instance Split (SArray# e) e
       in  go 0
     
     selectEnd g xs@(SArray# c _ _) =
-      let go i f es = i == 0 ? [] $ maybe [] (: go (i - 1) f es) $ f (es !^ i)
-      in  reverse $ go (c - 1) g xs
+      let go i es = i == 0 ? [] $ maybe [] (: go (i - 1) es) $ g (es !^ i)
+      in  reverse $ go (c - 1) xs
 
 instance Bordered (SArray# e) Int
   where
@@ -521,57 +519,57 @@ instance SetWith (SArray# e) e
     deleteWith f e es = memberWith f e es ? except (\ x -> f e x == EQ) es $ es
     
     {-# INLINE intersectionWith #-}
-    intersectionWith f xs ys = fromList $ go 0 0
+    intersectionWith f xs@(SArray# n1 _ _) ys@(SArray# n2 _ _) = fromList $ go 0 0
       where
-        n1 = sizeOf xs; n2 = sizeOf ys
         go i j = i == n1 || j == n2 ? [] $ case x `f` y of
-            LT -> go (i + 1) j
             EQ -> x : go (i + 1) (j + 1)
+            LT -> go (i + 1) j
             GT -> go i (j + 1)
           where
-            x = xs !^ i; y = ys !^ j
+            x = xs !^ i
+            y = ys !^ j
     
     {-# INLINE unionWith #-}
-    unionWith f xs ys = fromList $ go 0 0
+    unionWith f xs@(SArray# n1 _ _) ys@(SArray# n2 _ _) = fromList $ go 0 0
       where
-        n1 = sizeOf xs; n2 = sizeOf ys
         go i j
           | i == n1 = (ys !^) <$> [j .. n2 - 1]
           | j == n2 = (xs !^) <$> [i .. n1 - 1]
           |  True   = case x `f` y of
-            LT -> x : go (i + 1) j
             EQ -> x : go (i + 1) (j + 1)
+            LT -> x : go (i + 1) j
             GT -> y : go i (j + 1)
           where
-            x = xs !^ i; y = ys !^ j
+            x = xs !^ i
+            y = ys !^ j
     
     {-# INLINE differenceWith #-}
-    differenceWith f xs ys = fromList $ go 0 0
+    differenceWith f xs@(SArray# n1 _ _) ys@(SArray# n2 _ _) = fromList $ go 0 0
       where
-        n1 = sizeOf xs; n2 = sizeOf ys
         go i j
             | i == n1 = []
             | j == n2 = (xs !^) <$> [i .. n1 - 1]
             |  True   = case x `f` y of
-              LT -> x : go (i + 1) j
               EQ -> go (i + 1) (j + 1)
+              LT -> x : go (i + 1) j
               GT -> go i (j + 1)
           where
-            x = xs !^ i; y = ys !^ j
+            x = xs !^ i
+            y = ys !^ j
     
     {-# INLINE symdiffWith #-}
-    symdiffWith f xs ys = fromList $ symdiff' 0 0
+    symdiffWith f xs@(SArray# n1 _ _) ys@(SArray# n2 _ _) = fromList $ symdiff' 0 0
       where
-        n1 = sizeOf xs; n2 = sizeOf ys
         symdiff' i j
             | i == n1 = (ys !^) <$> [j .. n2 - 1]
             | j == n2 = (xs !^) <$> [i .. n1 - 1]
             |  True   = case x `f` y of
-              LT -> x : symdiff' (i + 1) j
               EQ -> symdiff' (i + 1) (j + 1)
+              LT -> x : symdiff' (i + 1) j
               GT -> y : symdiff' i (j + 1)
           where
-            x = xs !^ i; y = ys !^ j
+            x = xs !^ i
+            y = ys !^ j
     
     memberWith = binaryContain
     
@@ -586,8 +584,8 @@ instance SetWith (SArray# e) e
         u' = upper es
         
         look' r l u = l > u ? Just r $ case o `f` e of
-            LT -> look' r l (j - 1)
             EQ -> Just $ j < 1 ? r $ es !^ (j - 1)
+            LT -> look' r l (j - 1)
             GT -> look' e (j + 1) u
           where
             j = l + (u - l) `div` 2
@@ -618,7 +616,7 @@ instance SetWith (SArray# e) e
       where
         head' = es .! 0
         last' = es .! u'
-        u' = upper es
+        u'    = upper es
         
         look' r l u = l > u ? Just r $ case o `f` e of
             LT -> look' e l (j - 1)
@@ -636,7 +634,7 @@ instance SetWith (SArray# e) e
       where
         head' = es .! 0
         last' = es .! u'
-        u' = upper es
+        u'    = upper es
         
         look' r l u = l > u ? Just r $ case o `f` e of
             LT -> look' e l (j - 1)
@@ -661,12 +659,11 @@ instance Map (SArray# e) Int e
   where
     toMap' e ascs = isNull ascs ? Z $ assoc' (ascsBounds ascs) e ascs
     
-    (.!) = (!^)
-    
     Z  // ascs = toMap ascs
     es // ascs = runST $ fromFoldableM es >>= (`overwrite` ascs) >>= done
     
     (*$) p = ofoldr (\ i e is -> p e ? (i : is) $ is) []
+    (.!)   = (!^)
     
     kfoldr = ofoldr
     kfoldl = ofoldl
@@ -716,10 +713,9 @@ type role STArray# nominal representational
 
 instance Eq (STArray# s e)
   where
-    (STArray# c1 o1 marr1#) == (STArray# c2 o2 marr2#) = res
-      where
-        same = isTrue# (sameMutableArray# marr1# marr2#)
-        res  = c1 == c2 && (c1 == 0 || o1 == o2 && same)
+    (STArray# c1 o1 marr1#) == (STArray# c2 o2 marr2#) =
+      let same = isTrue# (sameMutableArray# marr1# marr2#)
+      in  c1 == c2 && (c1 == 0 || o1 == o2 && same)
 
 --------------------------------------------------------------------------------
 
@@ -843,11 +839,11 @@ instance LinearM (ST s) (STArray# s e) e
       let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f i
       in  go (n - 1)
     
-    o_foldrM f base = \ arr@(STArray# n _ _) ->
+    foldrM f base = \ arr@(STArray# n _ _) ->
       let go i = n == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f
       in  go 0
     
-    o_foldlM f base = \ arr@(STArray# n _ _) ->
+    foldlM f base = \ arr@(STArray# n _ _) ->
       let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f
       in  go (n - 1)
 
@@ -1018,13 +1014,12 @@ instance (MonadIO io) => LinearM io (MIOArray# io e) e
     newLinearN    = pack ... newLinearN
     fromFoldableM = pack . fromFoldableM
     
-    (!#>) = stToMIO ... (!#>) . unpack
-    
     writeM = writeM'
+    (!#>)  = stToMIO ... (!#>) . unpack
     
-    copied   = pack  . copied   . unpack
+    copied   = pack . copied . unpack
+    reversed = pack . reversed . unpack
     getLeft  = stToMIO . getLeft  . unpack
-    reversed = pack  . reversed . unpack
     getRight = stToMIO . getRight . unpack
     
     copied' es = pack ... copied' (unpack es)
@@ -1042,11 +1037,11 @@ instance (MonadIO io) => LinearM io (MIOArray# io e) e
       let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f i
       in  go (n - 1)
     
-    o_foldrM f base arr =
+    foldrM f base arr =
       let go i = sizeOf arr == i ? return base $ (arr !#> i) >>=<< go (i + 1) $ f
       in  go 0
     
-    o_foldlM f base arr =
+    foldlM f base arr =
       let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f
       in  go (sizeOf arr - 1)
 

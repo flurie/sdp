@@ -34,28 +34,33 @@ newtype TArray# e = TArray# (SArray# (TVar e)) deriving ( Eq )
 
 --------------------------------------------------------------------------------
 
-{- Estimate, Bordered and BorderedM instances. -}
+{- Nullable, Estimate, Bordered and BorderedM instances. -}
+
+instance Nullable (TArray# e)
+  where
+    isNull = \ (TArray# es) -> isNull es
+    lzero  = TArray# Z
 
 instance Estimate (TArray# e)
   where
     (<==>) = on (<=>) sizeOf
-    (.>.)  = on (>)   sizeOf
-    (.<.)  = on (<)   sizeOf
     (.<=.) = on (<=)  sizeOf
     (.>=.) = on (>=)  sizeOf
+    (.>.)  = on (>)   sizeOf
+    (.<.)  = on (<)   sizeOf
     
     (<.=>) = (<=>) . sizeOf
-    (.>)   = (>)   . sizeOf
-    (.<)   = (<)   . sizeOf
     (.>=)  = (>=)  . sizeOf
     (.<=)  = (<=)  . sizeOf
+    (.>)   = (>)   . sizeOf
+    (.<)   = (<)   . sizeOf
 
 instance Bordered (TArray# e) Int
   where
     lower _ = 0
     
-    sizeOf   (TArray# arr) = sizeOf arr
     upper    (TArray# arr) = upper arr
+    sizeOf   (TArray# arr) = sizeOf arr
     bounds   (TArray# arr) = (0, upper arr)
     indices  (TArray# arr) = [0 .. upper arr]
     indexOf  (TArray# arr) = index (0, upper arr)
@@ -95,9 +100,8 @@ instance LinearM STM (TArray# e) e
     
     getLeft  = mapM readTVar . listL . unpack
     getRight = mapM readTVar . listR . unpack
+    merged   = return . TArray# . concatMap unpack
     reversed = return . TArray# . reverse . unpack
-    
-    merged = return . TArray# . concatMap unpack
     filled n = fmap (TArray# . fromList) . replicateM n . newTVar
     
     copyTo src so trg to n = when (n > 0) $ do
@@ -114,8 +118,8 @@ instance LinearM STM (TArray# e) e
     ofoldlM f base = ofoldl (\ i es -> ($ f i) . (es >>=<<) . readTVar) (return base) . unpack
     ofoldrM f base = ofoldr (\ i -> ($ f i) ... (>>=<<) . readTVar) (return base) . unpack
     
-    o_foldlM f base = o_foldl (\ es -> ($ f) . (es >>=<<) . readTVar) (return base) . unpack
-    o_foldrM f base = o_foldr (($ f) ... (>>=<<) . readTVar) (return base) . unpack
+    foldlM f base = foldl (\ es -> ($ f) . (es >>=<<) . readTVar) (return base) . unpack
+    foldrM f base = foldr (($ f) ... (>>=<<) . readTVar) (return base) . unpack
 
 instance SplitM STM (TArray# e) e
   where
@@ -158,11 +162,9 @@ instance MapM STM (TArray# e) Int e
     
     (>!) = (!#>)
     
-    overwrite es ascs =
-      let
-          ies = filter (inRange (0, c - 1) . fst) ascs
-          c = sizeOf es
-      in  mapM_ (uncurry $ writeM es) ies >> return es
+    overwrite es ascs = do
+      mapM_ (uncurry $ writeM es) (filter (indexIn es . fst) ascs)
+      return es
     
     kfoldrM = ofoldrM
     kfoldlM = ofoldlM
@@ -210,6 +212,4 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Prim.TArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.TArray."
-
-
 

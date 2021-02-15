@@ -80,7 +80,11 @@ class (Monad m, Index i) => BorderedM m b i | b -> m, b -> i
 
 --------------------------------------------------------------------------------
 
--- | 'LinearM' is 'Linear' version for mutable data structures.
+{- |
+  'LinearM' is 'Linear' version for mutable data structures. This class is
+  designed with the possibility of in-place implementation, so many operations
+  from 'Linear' have no analogues here.
+-}
 class (Monad m) => LinearM m l e | l -> m, l -> e
   where
     {-# MINIMAL (newLinear|fromFoldableM), (getLeft|getRight), (!#>), writeM, copyTo #-}
@@ -204,21 +208,21 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     ofoldlM' :: (Int -> r -> e -> m r) -> r -> l -> m r
     ofoldlM' f = ofoldlM (\ !i !r e -> f i r e)
     
-    -- | 'o_foldrM' is just 'ofoldrM' in 'Linear' context.
-    o_foldrM :: (e -> r -> m r) -> r -> l -> m r
-    o_foldrM =  ofoldrM . const
+    -- | 'foldrM' is just 'ofoldrM' in 'Linear' context.
+    foldrM :: (e -> r -> m r) -> r -> l -> m r
+    foldrM =  ofoldrM . const
     
-    -- | 'o_foldlM' is just 'ofoldlM' in 'Linear' context.
-    o_foldlM :: (r -> e -> m r) -> r -> l -> m r
-    o_foldlM =  ofoldlM . const
+    -- | 'foldlM' is just 'ofoldlM' in 'Linear' context.
+    foldlM :: (r -> e -> m r) -> r -> l -> m r
+    foldlM =  ofoldlM . const
     
-    -- | 'o_foldrM'' is strict version of 'o_foldrM'.
-    o_foldrM' :: (e -> r -> m r) -> r -> l -> m r
-    o_foldrM' f = o_foldrM (\ e !r -> f e r)
+    -- | 'foldrM'' is strict version of 'o_foldrM'.
+    foldrM' :: (e -> r -> m r) -> r -> l -> m r
+    foldrM' f = foldrM (\ e !r -> f e r)
     
-    -- | 'o_foldlM'' is strict version of 'o_foldlM'.
-    o_foldlM' :: (r -> e -> m r) -> r -> l -> m r
-    o_foldlM' f = o_foldlM (\ !r e -> f r e)
+    -- | 'foldlM'' is strict version of 'o_foldlM'.
+    foldlM' :: (r -> e -> m r) -> r -> l -> m r
+    foldlM' f = foldlM (\ !r e -> f r e)
     
     -- | Just swap two elements.
     swapM :: l -> Int -> Int -> m ()
@@ -226,7 +230,11 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
 
 --------------------------------------------------------------------------------
 
--- | 'SplitM' is 'SplitM' version for mutable data structures.
+{- |
+  'SplitM' is 'Split' version for mutable data structures. This class is
+  designed with the possibility of in-place implementation, so many operations
+  from 'Split' have no analogues here.
+-}
 class (LinearM m s e) => SplitM m s e
   where
     {-# MINIMAL (takeM|sansM), (dropM|keepM) #-}
@@ -345,6 +353,8 @@ type BorderedM1 m l i e = BorderedM m (l e) i
 
 -- | Kind @(* -> * -> *)@ 'BorderedM' structure.
 type BorderedM2 m l i e = BorderedM m (l i e) i
+
+
 
 
 

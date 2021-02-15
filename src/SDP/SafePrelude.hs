@@ -56,7 +56,7 @@ import SDP.Estimate
 
 import Data.Functor.Classes
 import Data.Bifunctor
-import Data.Foldable hiding ( concat, concatMap )
+import Data.Foldable hiding ( foldrM, foldlM, concat, concatMap )
 import Data.Function ( on )
 
 import Control.Applicative
@@ -66,7 +66,7 @@ import Control.Monad.ST
 import Control.Monad
 
 infixl 8 ?+, ?-
-infixr 1  ?  -- Lowest priority, compatible with infixr 0 $
+infixr 1 ?,  ?^ -- Lowest priority, compatible with infixr 0 $
 infixr 0 ...
 
 default ()
