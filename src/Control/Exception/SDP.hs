@@ -44,9 +44,9 @@ default ()
   'Exception' constructors are specified in the order of definition, this is the
   recommended check order.
   
-  If the error type may depend on the check order, then it should be indicated
-  in the documentation. For example: overflow is checked first, and then
-  underflow. But if an overflow is detected, underflow may not be noticed.
+  If the error type may depend on the check order, it should be indicated in the
+  documentation. For example: overflow is checked first, and then underflow. But
+  if an overflow is detected, underflow may not be noticed.
 -}
 data IndexException = UnacceptableExpansion String
                     | UndefinedValue        String
@@ -70,10 +70,13 @@ instance Exception IndexException
 --------------------------------------------------------------------------------
 
 {- |
-   A 'UnreachableException' is used as an exception that should never be thrown.
-  Unlike 'ErrorCall' and 'AssertionFailed', which signal an incorrect use of a
-  function or an error in its behavior, 'UnreachableException' indicates that
-  expression is unreachable by definition.
+  A 'UnreachableException' is used as an exception that should never be thrown.
+  
+  * 'ErrorCall' and 'AssertionFailed' means that the function is partially
+  defined or missused (if some arguments shouldn't be passed).
+  * 'UnreachableException' means that some expression, by definition, cannot be
+  reached (for example, a default value when initializing an array, if each
+  value is guaranteed to be overwritten before use).
 -}
 data UnreachableException = UnreachableException String deriving (Eq, Typeable)
 
@@ -82,4 +85,6 @@ instance Show UnreachableException
     show (UnreachableException s) = "unreachable exception " ++ s
 
 instance Exception UnreachableException
+
+
 

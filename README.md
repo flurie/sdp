@@ -19,7 +19,7 @@ real primitives with correct size and offset.
 
 `sdp` uses **templates** to define more complex structures:
 * `AnyBorder` adds explicit boundaries of arbitrary type
-* `AnyChunks` defines an unrolled list with structure elements
+* `AnyChunks` defines an unrolled list of given elements
 
 Based on pseudo-primitives and templates, the following are defined:
 * immutable arrays with immutable explicit immutable boundaries: `Array` and
@@ -68,7 +68,8 @@ index. Provides safe change of range and index type, fast extraction of
 subsequences.
 * `Map` is a class of operations on associative arrays (dictionaries).
 * `Set` is a class of operations on sets.
-* `Zip` is a class that generalizes element-wise union of structures.
+* `Zip` is a class that generalizes zipping operations (see `zip`, `zipWith`,
+`ZipList`, etc.).
 * `Scan` is a class of convolutions with intermediate values.
 * `Sort` is a sorting class for immutable structures.
 * `BorderedM`, `LinearM`, `SplitM`, `IndexedM`, `SortM` - classes of operations
@@ -82,36 +83,6 @@ simplify the search for extensions, I also recommend the following rules:
 of `sdp` with which it's compatible.
 * Extensions should be called `sdp-%extensionname%` (e.g. `sdp-quickcheck`).
 * Wrappers should be called `sdp4%libraryname%` (e.g., `sdp4text`).
-
-## Differences from other similar projects
-
-* **Not another [[re]re]base.** `sdp` works **with** `base`: generalizes its
-functions and avoids shortcomings, instead of trying to replace it, solve
-backward compatibility problems or combine the typical dependencies of some
-typical library/application in one package.
-* **Maximum functionality with minimal size**. The `sdp` requires only 3 simple
-dependencies, including `base`. It doesn't depend on other common packages, but
-can easily interoperate with them.
-* **Good extensibility.** `sdp` is a well-extensible library that allows you to
-easily integrate new components, simplifies interlibrary communication. The
-functionality of `sdp` is also easy to extend with the flexibility that type
-classes provide.
-* **Orientation to other libraries.** `sdp` wrappers also improves code
-readability. For example, you can work with text and binary streams (`Text` and
-`ByteString`) in one module without qualifiers. Also, you no longer have to
-think about the specifics of functions (for example, `replicate` from the `text`
-package accepts `Text`, not `Char`, optimizing the case of a singleton string by
-rewrite rule) and differences in their names (for example, `force` in `vector`
-and `copy` in `text` and `bytestring`). `sdp` generalizes many functions not
-only by the type of structure, but also by the types of additional arguments
-(e.g., replaces `[]` with `Foldable`).
-* **Modern design.** `sdp` is what `array` would look like if it were written
-now. `sdp` has a good balance between openness, reliability and performance.
-`sdp` doesn't impose significant restrictions on the implementation. In
-particular, `sdp` doesn't say how many parameters your type should have and in
-what order they should be specified, what restrictions on the value type it can
-have, etc. I don't think that you can put something like `Text` or `ByteString`
-in `AnyChunks` for the freebie instances, but nothing prevents you from defining
 `AnyChunks`-like structure and instances for.
 
 ## Using the SDP category

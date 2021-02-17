@@ -16,7 +16,7 @@
     "SDP.Estimate", etc.) and some useful combinators that were used in this
     library and may be useful to its users.
     
-    Import 'Prelude' without conflicting functions, may require additional
+    Import "Prelude" without conflicting functions, may require additional
     imports for functions overridden in other modules:
     
     @

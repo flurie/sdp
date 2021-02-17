@@ -216,11 +216,11 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     foldlM :: (r -> e -> m r) -> r -> l -> m r
     foldlM =  ofoldlM . const
     
-    -- | 'foldrM'' is strict version of 'o_foldrM'.
+    -- | 'foldrM'' is strict version of 'foldrM'.
     foldrM' :: (e -> r -> m r) -> r -> l -> m r
     foldrM' f = foldrM (\ e !r -> f e r)
     
-    -- | 'foldlM'' is strict version of 'o_foldlM'.
+    -- | 'foldlM'' is strict version of 'foldlM'.
     foldlM' :: (r -> e -> m r) -> r -> l -> m r
     foldlM' f = foldlM (\ !r e -> f r e)
     

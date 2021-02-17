@@ -56,10 +56,10 @@ default ()
   * Efficiency of operations on @'AnyChunks' rep e@ are very sensitive in the
   efficiency of 'Bordered', 'Linear' and 'Split' on @rep e@.
   * @'AnyChunks' rep e@ is only defined for Int-indexed @rep e@.
-  * 'Eq', 'Ord', 'Eq1' and 'Ord1' instances compare @'AnyBorder' rep e@ as
+  * 'Eq', 'Ord', 'Eq1' and 'Ord1' instances compare @'AnyChunks' rep e@ as
   streams of equal size chunks. To do this, the comparison @rep e@ must also be
   lexicographic, also for @rep e@ must implement 'Bordered' and 'Split'.
-  * 'Freeze' and 'Thaw' for @'AnyBorder' rep e@ are defined for all @rep e@ that
+  * 'Freeze' and 'Thaw' for @'AnyChunks' rep e@ are defined for all @rep e@ that
   already have 'Freeze' and 'Thaw' instances.
 -}
 newtype AnyChunks rep e = AnyChunks [rep e] deriving ( Typeable, Data, Generic )
