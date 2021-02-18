@@ -51,14 +51,14 @@ instance (Unboxed e) => Sort (Ublist e) e
     sortedBy f = go . toChunks
       where
         go (x1 : x2 : xs) = sortedBy f x1 && last x1 `f` head x2 && go (x2 : xs)
-        go       _        = True
+        go      [x1]      = sortedBy f x1
+        go       []       = True
 
 --------------------------------------------------------------------------------
 
 {-# INLINE done #-}
 done :: (Unboxed e) => STBytes# s e -> ST s (Ublist e)
 done =  unsafeFreeze
-
 
 
 

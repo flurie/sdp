@@ -567,7 +567,8 @@ instance (BorderedM1 m rep Int e, SortM1 m rep e, SplitM1 m rep e, LinearM1 m re
         go (x1 : x2 : xs) =
           let restM = liftA2 f (getLast x1) (getHead x2) ?^ go (x2 : xs) $ return False
           in  sortedMBy f x1 ?^ restM $ return False
-        go              _ = return True
+        go      [x1]      = sortedMBy f x1
+        go       []       = return True
 
 --------------------------------------------------------------------------------
 
@@ -625,6 +626,5 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Templates.AnyChunks."
 
 lim :: Int
 lim =  1024
-
 
 

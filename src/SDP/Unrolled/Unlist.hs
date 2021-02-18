@@ -94,12 +94,12 @@ instance Sort (Unlist e) e
     sortedBy f = go . toChunks
       where
         go (x1 : x2 : xs) = sortedBy f x1 && last x1 `f` head x2 && go (x2 : xs)
-        go       _        = True
+        go      [x1]      = sortedBy f x1
+        go       []       = True
 
 --------------------------------------------------------------------------------
 
 {-# INLINE done #-}
 done :: STArray# s e -> ST s (Unlist e)
 done =  unsafeFreeze
-
 
