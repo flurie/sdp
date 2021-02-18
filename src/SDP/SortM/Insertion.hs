@@ -43,23 +43,28 @@ insertionSortOn =  insertionSortBy . comparing
 -}
 {-# INLINE insertionSortBy #-}
 insertionSortBy :: (LinearM m v e, BorderedM m v i) => Compare e -> v -> m ()
-insertionSortBy cmp es =
-  let gt = \ x y -> case x `cmp` y of {GT -> True; _ -> False}
-  in  do n <- getSizeOf es; unsafeInsertionSort gt es 0 0 (n - 1)
+insertionSortBy cmp es = do n <- getSizeOf es; unsafeInsertionSort cmp es 0 0 (n - 1)
 
 --------------------------------------------------------------------------------
 
 {- |
   unsafeInsertionSort cmp es b s e is internal sorting procedure, where
-  @cmp@ - @('>')@, @es@ - data structure, @[b .. s]@ - sorted fragment,
-  @[b .. e]@ - sortable fragment.
+  @cmp@ - compare function, @es@ - data structure, @[b .. s]@ - sorted range,
+  @[b .. e]@ - sortable range.
 -}
-unsafeInsertionSort :: (LinearM m v e) => (e -> e -> Bool) -> v -> Int -> Int -> Int -> m ()
-unsafeInsertionSort gt es b s e' = mapM_ insert_ [s + 1 .. e']
-  where
-    insert_ u = do j <- snext (b, u - 1) u; mapM_ (swapM es u) [j .. u - 1]
-    
-    snext (l, u) i = l > u ? return i $ (es !#> l) >>=<< (es !#> i) $
-      \ c e -> if e `gt` c then snext (l + 1, u) i else return l
+unsafeInsertionSort :: (LinearM m v e) => Compare e -> v -> Int -> Int -> Int -> m ()
+unsafeInsertionSort cmp es b s e = forM_ [s + 1 .. e] $ \ i -> do
+  ei <- es !#> i
+  let
+    next' l u j = l > u ? return j $ do
+      let c = (l + u) `div` 2
+      ec <- es !#> c
+      case ei `cmp` ec of
+        GT -> next' (c + 1) u j
+        LT -> next' l (c - 1) c
+        EQ -> return (c + 1)
+  p <- next' b (i - 1) i
+  mapM_ (swapM es i) [p .. i - 1]
+
 
 
