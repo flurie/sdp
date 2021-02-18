@@ -943,7 +943,8 @@ instance SortM (ST s) (STArray# s e) e
 --------------------------------------------------------------------------------
 
 -- | 'MIOArray#' is mutable preudo-primitive 'Int'-indexed lazy boxed array.
-newtype MIOArray# (io :: * -> *) e = MIOArray# (STArray# RealWorld e) deriving ( Eq )
+newtype MIOArray# (io :: Type -> Type) e = MIOArray# (STArray# RealWorld e)
+  deriving ( Eq )
 
 -- | 'IOArray#' is mutable preudo-primitive 'Int'-indexed lazy boxed array.
 type IOArray# = MIOArray# IO
@@ -1127,8 +1128,7 @@ instance (Storable e) => Thaw IO (SArray# e) (Int, Ptr e)
   where
     thaw (SArray# n o arr#) = do
       ptr <- callocArray n
-      forM_ [o .. n + o - 1] $
-        \ i@(I# i#) -> let (# e #) = indexArray# arr# i# in pokeElemOff ptr i e
+      forM_ [o .. n + o - 1] $ \ i@(I# i#) -> let (# e #) = indexArray# arr# i# in pokeElemOff ptr i e
       return (n, ptr)
 
 --------------------------------------------------------------------------------

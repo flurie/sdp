@@ -784,7 +784,8 @@ instance (Unboxed e) => SortM (ST s) (STBytes# s e) e
 --------------------------------------------------------------------------------
 
 -- | 'MIOBytes#' is mutable pseudo-primitive 'Int'-indexed strict unboxed array.
-newtype MIOBytes# (io :: * -> *) e = MIOBytes# (STBytes# RealWorld e) deriving ( Eq )
+newtype MIOBytes# (io :: Type -> Type) e = MIOBytes# (STBytes# RealWorld e)
+  deriving ( Eq )
 
 -- | 'IOBytes#' is mutable pseudo-primitive 'Int'-indexed strict unboxed array.
 type IOBytes# = MIOBytes# IO
@@ -1080,9 +1081,8 @@ hashSBytesWith# (I# salt#) es@(SBytes# (I# c#) (I# o#) bytes#) =
 
 {-# INLINE done #-}
 done :: STBytes# s e -> ST s (SBytes# e)
-done (STBytes# n o marr#) = ST $
-  \ s1# -> case unsafeFreezeByteArray# marr# s1# of
-    (# s2#, arr# #) -> (# s2#, SBytes# n o arr# #)
+done (STBytes# n o marr#) = ST $ \ s1# -> case unsafeFreezeByteArray# marr# s1# of
+  (# s2#, arr# #) -> (# s2#, SBytes# n o arr# #)
 
 {-# INLINE done' #-}
 done' :: Int -> MutableByteArray# s -> STRep s (STBytes# s e)

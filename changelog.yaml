@@ -32,7 +32,7 @@
   dependencies:
     - package: ghc-prim
       since: 0.5.3
-      upto: 0.6
+      upto: 0.7
 
     - package: data-default-class
       since: 0.1

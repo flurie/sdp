@@ -73,14 +73,14 @@ type family GIndex i
 class Shape i
   where
     -- | Type of index top dimension.
-    type DimLast i :: *
+    type DimLast i :: Type
     type DimLast i =  i
     
     {- |
       The type of subspace of 'rank' @n - 1@, where @n@ is the 'rank' of the
       space specified by this 'SDP.Index.Index' type.
     -}
-    type DimInit i :: *
+    type DimInit i :: Type
     type DimInit i =  E
     
     -- | Create index from generalized index.
