@@ -343,7 +343,7 @@ class (Nullable l) => Linear l e | l -> e
       > remove   5  [0 .. 5] == [0,1,2,3,4]
     -}
     remove :: Int -> l -> l
-    remove n es = fromList (n `remove` listL es)
+    remove n = fromList . remove n . listL
     
     -- | Generalized 'subsequences'.
     subsequences :: l -> [l]

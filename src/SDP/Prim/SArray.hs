@@ -148,8 +148,7 @@ instance Nullable (SArray# e)
 instance Semigroup (SArray# e) where (<>) = (++)
 instance Monoid    (SArray# e) where mempty = Z; mappend = (<>)
 instance Default   (SArray# e) where def = Z
-
-instance Estimate (SArray# e)
+instance Estimate  (SArray# e)
   where
     (<==>) = on (<=>) sizeOf
     (.<=.) = on (<=)  sizeOf
@@ -1243,5 +1242,4 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
-
 
