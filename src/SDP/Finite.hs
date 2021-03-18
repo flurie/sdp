@@ -34,6 +34,7 @@ where
 
 import Prelude ( (++) )
 import SDP.SafePrelude
+import SDP.Nullable
 
 import Data.Default.Class
 
@@ -62,6 +63,12 @@ instance IsList E
     
     fromList = const E
     toList   = const []
+
+-- | @since 0.2.1
+instance Nullable E
+  where
+    isNull = const True
+    lzero  = E
 
 --------------------------------------------------------------------------------
 
@@ -195,8 +202,6 @@ ind12 a b c d e f g h i j k l       = [a,b,c,d,e,f,g,h,i,j,k,l]
 ind13 a b c d e f g h i j k l m     = [a,b,c,d,e,f,g,h,i,j,k,l,m]
 ind14 a b c d e f g h i j k l m n   = [a,b,c,d,e,f,g,h,i,j,k,l,m,n]
 ind15 a b c d e f g h i j k l m n o = [a,b,c,d,e,f,g,h,i,j,k,l,m,n,o]
-
---------------------------------------------------------------------------------
 
 unsnoc :: [i] -> ([i], i)
 unsnoc    [i]   = ([], i)

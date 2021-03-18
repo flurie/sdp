@@ -23,6 +23,8 @@ import GHC.Stable
 import GHC.Base
 import GHC.Exts
 
+import Control.Exception.SDP
+
 default ()
 
 --------------------------------------------------------------------------------
@@ -42,6 +44,12 @@ pattern NULL <- (isNull -> True) where NULL = lzero
 
 --------------------------------------------------------------------------------
 
+-- | @since 0.2.1
+instance Nullable ()
+  where
+    isNull = const True
+    lzero  = ()
+
 instance Nullable (Maybe e)
   where
     isNull = \ mx -> case mx of {Nothing -> True; _ -> False}
@@ -51,6 +59,8 @@ instance Nullable [e]
   where
     isNull = null
     lzero  = []
+
+--------------------------------------------------------------------------------
 
 instance Nullable (Ptr e)
   where
@@ -63,13 +73,18 @@ instance Nullable (ForeignPtr e)
 #if __GLASGOW_HASKELL__ >= 811
     lzero = ForeignPtr nullAddr# FinalPtr
 #else
-    lzero = ForeignPtr nullAddr# (error "nullForeignPtr in SDP.Nullable.lzero")
+    lzero = ForeignPtr nullAddr# (throw $ UnreachableException "in SDP.Nullable.lzero :: ForeignPtr e")
 #endif
-    
     isNull (ForeignPtr addr# _) = Ptr addr# == nullPtr
 
 instance Nullable (StablePtr e)
   where
     lzero  = StablePtr (unsafeCoerce# 0#)
     isNull = (== lzero)
+
+-- | @since 0.2.1
+instance Nullable (FunPtr e)
+  where
+    isNull = (== lzero)
+    lzero  = nullFunPtr
 
