@@ -217,19 +217,6 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
       in  when (i < j) $ go i =<< (es !#> j)
     
     {- |
-      @since 0.2.1
-      
-      @'lshiftM' es i j@ cyclically shifts the elements with offsets between @i@
-      and @j@ @(i < j)@ one position to the left (the @j@-th element is in the
-      @i@-th position, the @i@-th in the @(i+1)@th, etc.) If @i >= j@, does
-      nothing.
-    -}
-    lshiftM :: l -> Int -> Int -> m ()
-    lshiftM es i j =
-      let go k ej = when (k <= j) $ do ek <- es !#> k; writeM es k ej; go (k + 1) ek
-      in  when (i < j) $ go i =<< (es !#> j)
-    
-    {- |
       @copyTo source soff target toff count@ writes @count@ elements of @source@
       from @soff@ to @target@ starting with @toff@.
     -}
@@ -479,7 +466,5 @@ type SplitM1 m l e = SplitM m (l e) e
 
 -- | Kind @(Type -> Type -> Type)@ 'SplitM' structure.
 type SplitM2 m l i e = SplitM m (l i e) e
-
-
 
 

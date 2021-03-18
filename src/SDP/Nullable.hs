@@ -69,6 +69,8 @@ instance Nullable [e]
     isNull = null
     lzero  = []
 
+--------------------------------------------------------------------------------
+
 instance Nullable (Ptr e)
   where
     lzero = nullPtr
@@ -88,8 +90,6 @@ instance Nullable (StablePtr e)
     lzero  = StablePtr (unsafeCoerce# 0#)
 
 -- | @since 0.2.1
-instance Nullable (FunPtr e)
-  where
-    lzero  = nullFunPtr
+instance Nullable (FunPtr e) where lzero = nullFunPtr
 
 

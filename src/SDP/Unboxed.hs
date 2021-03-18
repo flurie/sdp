@@ -698,7 +698,6 @@ deriving_instance_Unboxed(CSUSeconds)
 -- | @since base-4.10.0.0
 deriving_instance_Unboxed(CBool)
 #endif
-
 deriving_instance_Unboxed(CSize)
 deriving_instance_Unboxed(CFloat)
 deriving_instance_Unboxed(CDouble)
@@ -1481,5 +1480,6 @@ rank# i = case rank i of I# r# -> r#
 
 consSizeof :: (a -> b) -> b -> a
 consSizeof =  \ _ _ -> undefined
+
 
 
