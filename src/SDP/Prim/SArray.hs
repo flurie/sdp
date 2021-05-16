@@ -152,10 +152,10 @@ instance Default   (SArray# e) where def = Z
 instance Estimate (SArray# e)
   where
     (<==>) = on (<=>) sizeOf
-    (.<=.) = on  (<=) sizeOf
-    (.>=.) = on  (>=) sizeOf
-    (.>.)  = on  (>)  sizeOf
-    (.<.)  = on  (<)  sizeOf
+    (.<=.) = on (<=)  sizeOf
+    (.>=.) = on (>=)  sizeOf
+    (.>.)  = on (>)   sizeOf
+    (.<.)  = on (<)   sizeOf
     
     (<.=>) = (<=>) . sizeOf
     (.>=)  = (>=)  . sizeOf
@@ -277,7 +277,17 @@ instance Zip SArray#
 instance Applicative SArray#
   where
     pure = single
-    fs <*> es = concatMap (<$> es) fs
+    
+    fs@(SArray# fn _ _) <*> es@(SArray# en _ _) = runST $ do
+      xs <- filled (fn * en) $ unreachEx "in SDP.Prim.SArray.(<*>) :: SArray# e"
+      
+      let
+        go (-1)  _  _ = return ()
+        go   i (-1) k = go (i - 1) (en - 1) k
+        go   i   j  k = writeM xs k (fs!^i $ es!^j) >> go i (j - 1) (k - 1)
+      
+      go (fn - 1) (en - 1) (upper xs)
+      done xs
 
 --------------------------------------------------------------------------------
 

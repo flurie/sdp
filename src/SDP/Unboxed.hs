@@ -23,7 +23,11 @@ module SDP.Unboxed
   
   -- ** Kind @(* -> * -> *)@ proxies
   fromProxy1, pnewUnboxed1, pnewUnboxed1', pcloneUnboxed1, cloneUnboxed1#,
-  pcloneUnboxedM1, pcopyUnboxed1, pcopyUnboxedM1
+  pcloneUnboxedM1, pcopyUnboxed1, pcopyUnboxedM1,
+  
+  -- Wrap helper
+  Wrap (..), lzero#, single#, fromList#, fromFoldable#, fromListN#,
+  newLinear#, newLinearN#, fromFoldableM#, concat#, pconcat
 )
 where
 
@@ -35,7 +39,7 @@ import SDP.Shape
 import SDP.Ratio
 
 import GHC.Stable
-import GHC.Base
+import GHC.Base hiding ( foldr )
 import GHC.Word
 import GHC.Int
 import GHC.Ptr
@@ -325,7 +329,7 @@ pcopyUnboxedM1 =  copyUnboxedM# . fromProxy1
 
 {- |
   @since 0.2.1
-  @(* -> * -> *)@ kind proxy version of 'copyUnboxedM'.
+  @(* -> * -> *)@ kind proxy version of 'cloneUnboxed#'.
 -}
 pcloneUnboxed1 :: (Unboxed e) => p (proxy e) -> ByteArray# -> Int# -> Int# -> ByteArray#
 pcloneUnboxed1 =  cloneUnboxed# . fromProxy1
@@ -1371,7 +1375,80 @@ instance (Unboxed e) => Unboxed (T15 e)
 
 --------------------------------------------------------------------------------
 
+-- | 'ByteArray#' wrapper.
 data Wrap = Wrap {unwrap :: ByteArray#}
+
+-- | Wrapped empty 'ByteArray#'.
+lzero# :: Wrap
+lzero# =  runST $ ST $ \ s1# -> case newByteArray# 0# s1# of
+  (# s2#, marr# #) -> case unsafeFreezeByteArray# marr# s2# of
+    (# s3#, arr# #) -> (# s3#, Wrap arr# #)
+
+-- | 'ByteArray#' singleton.
+single# :: (Unboxed e) => e -> ByteArray#
+single# e = unwrap $ runST $ ST $ \ s1# -> case newUnboxed' e 1# s1# of
+  (# s2#, marr# #) -> case unsafeFreezeByteArray# marr# s2# of
+    (# s3#, arr# #) -> (# s3#, Wrap arr# #)
+
+-- | List to 'ByteArray#'.
+fromList# :: (Unboxed e) => [e] -> ByteArray#
+fromList# es = let !(I# n#) = length es in fromListN# n# es
+
+-- | 'Foldable' to 'ByteArray#'.
+fromFoldable# :: (Foldable f, Unboxed e) => f e -> (# Int, ByteArray# #)
+fromFoldable# es = unpack' $ runST $ ST $ \ s1# -> case fromFoldableM# es s1# of
+    (# s2#, n, marr# #) -> case unsafeFreezeByteArray# marr# s2# of
+      (# s3#, arr# #) -> (# s3#, (n, Wrap arr#) #)
+  where
+    unpack' (i, Wrap arr#) = (# i, arr# #)
+
+-- | Version of 'fromList#' with explicit 'length'.
+fromListN# :: (Unboxed e) => Int# -> [e] -> ByteArray#
+fromListN# n# es = unwrap $ runST $ ST $ \ s1# -> case newLinearN# n# es s1# of
+  (# s2#, marr# #) -> case unsafeFreezeByteArray# marr# s2# of
+    (# s3#, arr# #) -> (# s3#, Wrap arr# #)
+
+newLinear# :: (Unboxed e) => [e] -> State# s -> (# State# s, MutableByteArray# s #)
+newLinear# es = let !(I# n#) = length es in newLinearN# n# es
+
+newLinearN# :: (Unboxed e) => Int# -> [e] -> State# s -> (# State# s, MutableByteArray# s #)
+newLinearN# c# es = \ s1# -> case pnewUnboxed es n# s1# of
+    (# s2#, marr# #) ->
+      let
+        go y r = \ i# s4# -> case writeByteArray# marr# i# y s4# of
+          s5# -> if isTrue# (i# ==# n# -# 1#) then s5# else r (i# +# 1#) s5#
+      in case if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2# of
+          s3# -> (# s3#, marr# #)
+  where
+    !n@(I# n#) = max 0 (I# c#)
+
+fromFoldableM# :: (Foldable f, Unboxed e) => f e -> State# s -> (# State# s, Int, MutableByteArray# s #)
+fromFoldableM# es = \ s1# -> case pnewUnboxed es n# s1# of
+    (# s2#, marr# #) ->
+      let
+        go y r = \ i# s4# -> case writeByteArray# marr# i# y s4# of
+          s5# -> if isTrue# (i# ==# n# -# 1#) then s5# else r (i# +# 1#) s5#
+      in case if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2# of
+          s3# -> (# s3#, n, marr# #)
+  where
+    !n@(I# n#) = length es
+
+concat# :: (Unboxed e) => e -> ByteArray# -> Int# -> Int# ->
+                               ByteArray# -> Int# -> Int# ->
+                               State# s -> (# State# s, Int#, MutableByteArray# s #)
+concat# e arr1# n1# o1# arr2# n2# o2# = \ s1# -> case newUnboxed e n# s1# of
+    (# s2#, marr# #) -> case copyUnboxed# e arr1# o1# marr# 0# n1# s2# of
+      s3# -> case copyUnboxed# e arr2# o2# marr# n1# n2# s3# of
+        s4# -> (# s4#, n#, marr# #)
+  where
+    n# = n1# +# n2#
+
+pconcat :: (Unboxed e) => proxy e ->
+  ByteArray# -> Int# -> Int# -> ByteArray# -> Int# -> Int# ->
+  State# s -> (# State# s, Int#, MutableByteArray# s #)
+pconcat proxy = concat# (fromProxy proxy)
+
+--------------------------------------------------------------------------------
 
 {-# INLINE bool_scale #-}
 bool_scale :: Int# -> Int#
@@ -1399,7 +1476,5 @@ rank# i = case rank i of I# r# -> r#
 
 consSizeof :: (a -> b) -> b -> a
 consSizeof =  \ _ _ -> undefined
-
-
 
 
