@@ -1,4 +1,5 @@
-{-# LANGUAGE CPP, Trustworthy, PatternSynonyms, ViewPatterns, MagicHash #-}
+{-# LANGUAGE Trustworthy, PatternSynonyms, ViewPatterns, ConstraintKinds #-}
+{-# LANGUAGE CPP, MagicHash #-}
 
 {- |
     Module      :  SDP.Nullable
@@ -12,7 +13,7 @@
 module SDP.Nullable
 (
   -- * Nullable
-  Nullable (..), pattern NULL
+  Nullable (..), Nullable1, pattern NULL
 )
 where
 
@@ -60,8 +61,6 @@ instance Nullable [e]
     isNull = null
     lzero  = []
 
---------------------------------------------------------------------------------
-
 instance Nullable (Ptr e)
   where
     isNull = (== nullPtr)
@@ -87,4 +86,10 @@ instance Nullable (FunPtr e)
   where
     isNull = (== lzero)
     lzero  = nullFunPtr
+
+--------------------------------------------------------------------------------
+
+-- | @since 0.2.1 @(Type -> Type)@ kind 'Nullable' structure.
+type Nullable1 rep e = Nullable (rep e)
+
 
