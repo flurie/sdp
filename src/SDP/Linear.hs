@@ -452,6 +452,22 @@ class (Nullable l) => Linear l e | l -> e
     -- | 'o_foldl'' is just 'foldl'' in 'Linear' context.
     o_foldl' :: (b -> e -> b) -> b -> l -> b
     o_foldl' =  ofoldl' . const
+    
+    -- | 'o_foldr1' is just 'foldr1' in 'Linear' context.
+    o_foldr1 :: (e -> e -> e) -> l -> e
+    o_foldr1 f = \ (es :< e) -> o_foldr f e es
+    
+    -- | 'o_foldl1' is just 'foldl1' in 'Linear' context.
+    o_foldl1 :: (e -> e -> e) -> l -> e
+    o_foldl1 f = \ (e :> es) -> o_foldl f e es
+    
+    -- | 'o_foldr1'' is just 'foldr1'' in 'Linear' context.
+    o_foldr1' :: (e -> e -> e) -> l -> e
+    o_foldr1' f = \ (es :< e) -> o_foldr' f e es
+    
+    -- | 'o_foldl1'' is just 'foldl1'' in 'Linear' context.
+    o_foldl1' :: (e -> e -> e) -> l -> e
+    o_foldl1' f = \ (e :> es) -> o_foldl' f e es
 
 --------------------------------------------------------------------------------
 
@@ -974,6 +990,5 @@ inits es = es : inits (init es)
 -}
 ascending :: (Split s e, Sort s e, Ord e) => s -> [Int] -> Bool
 ascending =  all sorted ... flip splits
-
 
 

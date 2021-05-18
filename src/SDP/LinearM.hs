@@ -238,6 +238,14 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     foldlM' :: (r -> e -> m r) -> r -> l -> m r
     foldlM' f = foldlM (\ !r e -> f r e)
     
+    -- | 'foldrM1' is 'foldrM' version with 'last' element as base.
+    foldrM1 :: (e -> e -> m e) -> l -> m e
+    foldrM1 f = getLeft >=> \ (es :< e) -> foldr ((=<<) . f) (pure e) es
+    
+    -- | 'foldlM1' is 'foldlM' version with 'head' element as base.
+    foldlM1 :: (e -> e -> m e) -> l -> m e
+    foldlM1 f = getLeft >=> \ (e :> es) -> foldl (flip $ (=<<) . flip f) (pure e) es
+    
     -- | Just swap two elements.
     swapM :: l -> Int -> Int -> m ()
     swapM es i j = do ei <- es !#> i; writeM es i =<< es !#> j; writeM es j ei
@@ -371,5 +379,7 @@ type BorderedM1 m l i e = BorderedM m (l e) i
 
 -- | Kind @(* -> * -> *)@ 'BorderedM' structure.
 type BorderedM2 m l i e = BorderedM m (l i e) i
+
+
 
 
