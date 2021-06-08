@@ -958,4 +958,3 @@ ascending :: (Split s e, Sort s e, Ord e) => s -> [Int] -> Bool
 ascending =  all sorted ... flip splits
 
 
-
