@@ -1,5 +1,6 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, BangPatterns #-}
-{-# LANGUAGE Safe, ConstraintKinds, DefaultSignatures #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
+{-# LANGUAGE ConstraintKinds, KindSignatures, DataKinds, DefaultSignatures #-}
+{-# LANGUAGE Safe, BangPatterns, ViewPatterns, PatternSynonyms, GADTs #-}
 
 {- |
     Module      :  SDP.LinearM
@@ -13,13 +14,14 @@
 module SDP.LinearM
 (
   -- * Exports
+  module Data.Property,
   module SDP.Linear,
   
   -- * BorderedM class
   BorderedM (..), BorderedM1, BorderedM2,
   
   -- * LinearM class
-  LinearM (..), LinearM1,
+  LinearM (..), LinearM1, pattern (:+=), pattern (:=+), pattern (:~=),
   
   -- * SplitM class
   SplitM (..), SplitM1
@@ -30,6 +32,8 @@ import Prelude ()
 import SDP.SafePrelude
 import SDP.Linear
 import SDP.Map
+
+import Data.Property hiding ( set )
 
 default ()
 
@@ -185,6 +189,10 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     {-# INLINE filled #-}
     filled :: Int -> e -> m l
     filled n = newLinearN n . replicate n
+    
+    -- | @'removed' n es@ removes element with offset @n@ from @es@.
+    removed :: Int -> l -> m l
+    removed n es = newLinear . remove n =<< getLeft es
     
     {- |
       @since 0.2.1
@@ -365,6 +373,33 @@ class (LinearM m s e) => SplitM m s e
     -- | @msuffix p es@ returns the longest @es@ suffix size, satisfying @p@.
     msuffix :: (e -> m Bool) -> s -> m Int
     msuffix p = foldl (\ c e -> do b <- p e; b ? succ <$> c $ pure 0) (pure 0) <=< getLeft
+
+--------------------------------------------------------------------------------
+
+{- |
+  'FieldLinear' is a service type used to 'prepend', 'append' or 'remove'
+  element.
+-}
+data FieldLinear m field record
+  where
+    Prepend :: (LinearM m l e, GetProp field record, SetProp field record) => e   -> field m record l -> FieldLinear m field record
+    Append  :: (LinearM m l e, GetProp field record, SetProp field record) => field m record l ->   e -> FieldLinear m field record
+    Delete  :: (LinearM m l e, GetProp field record, SetProp field record) => Int -> field m record l -> FieldLinear m field record
+
+instance IsProp FieldLinear field record
+  where
+    performProp record (Prepend e field) = setRecord field record =<< prepend e =<< getRecord field record
+    performProp record (Delete  n field) = setRecord field record =<< removed n =<< getRecord field record
+    performProp record (Append  field e) = setRecord field record =<< flip append e =<< getRecord field record
+
+pattern (:+=) :: (LinearM m l e, GetProp field record, SetProp field record) => e -> field m record l -> Prop m field record
+pattern e :+= field <- (undefined -> (e, field)) where (:+=) = Prop ... Prepend
+
+pattern (:=+) :: (LinearM m l e, GetProp field record, SetProp field record) => field m record l -> e -> Prop m field record
+pattern field :=+ e <- (undefined -> (field, e)) where (:=+) = Prop ... Append
+
+pattern (:~=) :: (LinearM m l e, GetProp field record, SetProp field record) => Int -> field m record l -> Prop m field record
+pattern n :~= field <- (undefined -> (n, field)) where (:~=) = Prop ... Delete
 
 --------------------------------------------------------------------------------
 
