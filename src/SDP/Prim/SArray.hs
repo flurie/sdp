@@ -324,7 +324,7 @@ instance Foldable SArray#
 
 instance Traversable SArray#
   where
-    traverse f = fmap fromList . foldr (liftA2 (:) . f) (pure [])
+    traverse f es = fromListN (sizeOf es) <$> foldr (liftA2 (:) . f) (pure Z) es
 
 --------------------------------------------------------------------------------
 
@@ -392,9 +392,9 @@ instance Linear (SArray# e) e
       marr@(STArray# _ _ marr#) <- filled n (unreachEx "concat")
       
       let
-        write# (SArray# c@(I# c#) (I# o#) arr#) i@(I# i#) = ST $
+        write# (SArray# (I# c#) (I# o#) arr#) (I# i#) = ST $
           \ s2# -> case copyArray# arr# o# marr# i# c# s2# of
-            s3# -> (# s3#, i + c #)
+            s3# -> (# s3#, I# (i# +# c#) #)
       
       void $ foldl (\ b a -> write# a =<< b) (return 0) ess
       done marr
@@ -700,8 +700,7 @@ instance Indexed (SArray# e) Int e
     fromIndexed es = runST $ do
       let n = sizeOf es
       copy <- filled n (unreachEx "fromIndexed")
-      forM_ [0 .. n - 1] $ \ i -> writeM copy i (es !^ i)
-      done copy
+      updateM copy (\ i _ -> es!^i) >>= done
 
 --------------------------------------------------------------------------------
 
@@ -820,15 +819,15 @@ instance LinearM (ST s) (STArray# s e) e
     
     writeM = writeM'
     
-    copied es@(STArray# n _ _) = do
-      copy <- filled n $ unreachEx "copied"
-      forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM copy i
-      return copy
+    copied (STArray# n@(I# n#) (I# o#) marr#) = ST $
+      \ s1# -> case cloneMutableArray# marr# o# n# s1# of
+        (# s2#, copy# #) -> (# s2#, STArray# n 0 copy# #)
     
-    copied' es l n = do
-      copy <- n `filled` unreachEx "copied'"
-      forM_ [0 .. n - 1] $ \ i -> es !#> (l + i) >>= writeM copy i
-      return copy
+    copied' (STArray# c (I# o#) marr#) l@(I# l#) n@(I# n#)
+      | l >= 0 && n >= 0 && c >= l + n = ST $
+        \ s1# -> case cloneMutableArray# marr# (o# +# l#) n# s1# of
+          (# s2#, copy# #) -> (# s2#, STArray# n 0 copy# #)
+      | True = unreachEx "copied'"
     
     reversed es =
       let go i j = when (i < j) $ go (i + 1) (j - 1) >> swapM es i j
@@ -1242,4 +1241,5 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
+
 
