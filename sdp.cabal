@@ -73,8 +73,8 @@ Library
     SDP.Scan
     SDP.Sort
     SDP.Map
-    SDP.Set
     SDP.Zip
+    SDP.Set
     
     -- Sorting
     SDP.SortM.Insertion
