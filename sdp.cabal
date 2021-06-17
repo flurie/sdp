@@ -76,11 +76,12 @@ Library
     SDP.Shaped
     SDP.Linear
     SDP.MapM
+    SDP.ZipM
     SDP.Scan
     SDP.Sort
     SDP.Map
-    SDP.Set
     SDP.Zip
+    SDP.Set
     
     -- Templates
     SDP.Templates.AnyBorder

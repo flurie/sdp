@@ -1,5 +1,5 @@
 {-# LANGUAGE Trustworthy, PatternSynonyms, ViewPatterns, ConstraintKinds #-}
-{-# LANGUAGE CPP, MagicHash #-}
+{-# LANGUAGE CPP, MagicHash, DefaultSignatures #-}
 
 {- |
     Module      :  SDP.Nullable
@@ -36,8 +36,10 @@ class Nullable e
     -- | Empty value.
     lzero  :: e
     
-    -- | Is value empty?
+    -- | Is value empty? Has default since @0.2.1@
+    default isNull :: (Eq e) => e -> Bool
     isNull :: e -> Bool
+    isNull =  (== lzero)
 
 -- | Originally defined in @sdp-ctypes@ (now @sdp-foreign@), same as @Z@ now.
 pattern NULL :: (Nullable e) => e
@@ -63,8 +65,7 @@ instance Nullable [e]
 
 instance Nullable (Ptr e)
   where
-    isNull = (== nullPtr)
-    lzero  = nullPtr
+    lzero = nullPtr
 
 -- Stolen from @bytestring@ package.
 instance Nullable (ForeignPtr e)
@@ -79,17 +80,16 @@ instance Nullable (ForeignPtr e)
 instance Nullable (StablePtr e)
   where
     lzero  = StablePtr (unsafeCoerce# 0#)
-    isNull = (== lzero)
 
 -- | @since 0.2.1
 instance Nullable (FunPtr e)
   where
-    isNull = (== lzero)
     lzero  = nullFunPtr
 
 --------------------------------------------------------------------------------
 
 -- | @since 0.2.1 @(Type -> Type)@ kind 'Nullable' structure.
 type Nullable1 rep e = Nullable (rep e)
+
 
 

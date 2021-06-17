@@ -19,12 +19,12 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | Zip is generalization of ZipList applicative semantics (but without pure).
+-- | Zip is generalization of ZipList applicative semantics (but without 'pure')
 class (Functor z) => Zip z
   where
     {-# MINIMAL (zap | zipWith), all2, any2 #-}
     
-    -- | ZipList-like '<*>'
+    -- | ZipList-like ('<*>')
     zap :: z (a -> b) -> z a -> z b
     zap =  zipWith ($)
     

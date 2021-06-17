@@ -179,70 +179,70 @@ instance Functor SArray#
 
 instance Zip SArray#
   where
-    all2 f as bs = go (minimum [sizeOf as, sizeOf bs])
+    all2 f as bs = go (sizeOf as <?=> bs)
       where
         apply i = f (as!^i) (bs!^i)
         
         go 0 = True
         go i = let i' = i - 1 in apply i' && go i'
     
-    all3 f as bs cs = go (minimum [sizeOf as, sizeOf bs, sizeOf cs])
+    all3 f as bs cs = go (sizeOf as <?=> bs <?=> cs)
       where
         apply i = f (as!^i) (bs!^i) (cs!^i)
         
         go 0 = True
         go i = let i' = i - 1 in apply i' && go i'
     
-    all4 f as bs cs ds = go (minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds])
+    all4 f as bs cs ds = go (sizeOf as <?=> bs <?=> cs <?=> ds)
       where
         apply i = f (as!^i) (bs!^i) (cs!^i) (ds!^i)
         
         go 0 = True
         go i = let i' = i - 1 in apply i' && go i'
     
-    all5 f as bs cs ds es = go (minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds, sizeOf es])
+    all5 f as bs cs ds es = go (sizeOf as <?=> bs <?=> cs <?=> ds <?=> es)
       where
         apply i = f (as!^i) (bs!^i) (cs!^i) (ds!^i) (es!^i)
         
         go 0 = True
         go i = let i' = i - 1 in apply i' && go i'
     
-    all6 f as bs cs ds es fs = go (minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds, sizeOf es, sizeOf fs])
+    all6 f as bs cs ds es fs = go (sizeOf as <?=> bs <?=> cs <?=> ds <?=> es <?=> fs)
       where
         apply i = f (as!^i) (bs!^i) (cs!^i) (ds!^i) (es!^i) (fs!^i)
         
         go 0 = True
         go i = let i' = i - 1 in apply i' && go i'
     
-    any2 f as bs = go (minimum [sizeOf as, sizeOf bs])
+    any2 f as bs = go (sizeOf as <?=> bs)
       where
         apply i = f (as!^i) (bs!^i)
         
         go 0 = False
         go i = let i' = i - 1 in apply i' || go i'
     
-    any3 f as bs cs = go (minimum [sizeOf as, sizeOf bs, sizeOf cs])
+    any3 f as bs cs = go (sizeOf as <?=> bs <?=> cs)
       where
         apply i = f (as!^i) (bs!^i) (cs!^i)
         
         go 0 = False
         go i = let i' = i - 1 in apply i' || go i'
     
-    any4 f as bs cs ds = go (minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds])
+    any4 f as bs cs ds = go (sizeOf as <?=> bs <?=> cs <?=> ds)
       where
         apply i = f (as!^i) (bs!^i) (cs!^i) (ds!^i)
         
         go 0 = False
         go i = let i' = i - 1 in apply i' || go i'
     
-    any5 f as bs cs ds es = go (minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds, sizeOf es])
+    any5 f as bs cs ds es = go (sizeOf as <?=> bs <?=> cs <?=> ds <?=> es)
       where
         apply i = f (as!^i) (bs!^i) (cs!^i) (ds!^i) (es!^i)
         
         go 0 = False
         go i = let i' = i - 1 in apply i' || go i'
     
-    any6 f as bs cs ds es fs = go (minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds, sizeOf es, sizeOf fs])
+    any6 f as bs cs ds es fs = go (sizeOf as <?=> bs <?=> cs <?=> ds <?=> es <?=> fs)
       where
         apply i = f (as!^i) (bs!^i) (cs!^i) (ds!^i) (es!^i) (fs!^i)
         
@@ -1220,9 +1220,11 @@ nubSorted f es = fromList $ foldr fun [last es] ((es !^) <$> [0 .. sizeOf es - 2
 ascsBounds :: (Ord a) => [(a, b)] -> (a, a)
 ascsBounds =  \ ((x, _) : xs) -> foldr (\ (e, _) (mn, mx) -> (min mn e, max mx e)) (x, x) xs
 
--- | In base-4.9 'asProxyTypeOf' has less general type @a -> Proxy a -> a@.
 asProxyTypeOf :: a -> proxy a -> a
 asProxyTypeOf =  const
+
+(<?=>) :: (Bordered a j) => Int -> a -> Int
+(<?=>) =  (. sizeOf) . min
 
 --------------------------------------------------------------------------------
 
@@ -1240,6 +1242,4 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
-
-
 
