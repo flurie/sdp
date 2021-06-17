@@ -1,15 +1,15 @@
 {-# LANGUAGE Safe, MagicHash #-}
 
 {- |
-    Module      :  Control.Concurent.SDP.TArray
+    Module      :  Control.Concurrent.SDP.TArray
     Copyright   :  (c) Andrey Mulik 2020
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
     
-    "Control.Concurent.SDP.TArray" provides lazy boxed array of @stm@ 'TVar's.
+    "Control.Concurrent.SDP.TArray" provides lazy boxed array of @stm@ 'TVar's.
 -}
-module Control.Concurent.SDP.TArray
+module Control.Concurrent.SDP.TArray
 (
   -- * TArray
   TArray, STM, TVar
