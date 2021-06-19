@@ -84,7 +84,7 @@ import Control.Applicative
 
 import Control.Monad.IO.Class
 import Control.Monad.ST
-import Control.Monad
+import Control.Monad hiding ( zipWithM )
 
 infixl 8 ?+, ?-
 infixr 1 ?,  ?^ -- Lowest priority, compatible with infixr 0 $
@@ -121,8 +121,8 @@ default ()
 -- | Short version of 'Data.Maybe.fromMaybe'.
 {-# INLINE (+?) #-}
 (+?) :: a -> Maybe a -> a
-_ +?  Just x = x
-x +? Nothing = x
+_ +? Just x = x
+x +?      _ = x
 
 -- | @(...) = (.) . (.)@.
 {-# INLINE (...) #-}
@@ -166,8 +166,6 @@ liftA6 g as bs cs ds es fs = g <$> as <*> bs <*> cs <*> ds <*> es <*> fs
 -- | See 'liftA6'.
 liftM6 :: (Monad m) => (a -> b -> c -> d -> e -> f -> g) -> m a -> m b -> m c -> m d -> m e -> m f -> m g
 liftM6 g as bs cs ds es fs = do a <- as; b <- bs; c <- cs; d <- ds; e <- es; f <- fs; return $ g a b c d e f
-
---------------------------------------------------------------------------------
 
 -- | 'stToMIO' is just @'liftIO' . 'stToIO'@.
 stToMIO :: (MonadIO io) => ST RealWorld e -> io e

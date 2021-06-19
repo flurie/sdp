@@ -10,7 +10,7 @@
 -}
 module Control.Concurent.SDP.TUnlist
 {-# WARNING "This module is the result of a typo in the word \
-      \'concurrent' and will be removed in sdp-0.3" #-}
+      \concurrent and will be removed in sdp-0.3" #-}
 (
   module Control.Concurrent.SDP.TUnlist
 )

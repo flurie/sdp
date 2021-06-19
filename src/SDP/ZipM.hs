@@ -1,5 +1,16 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
+{-# LANGUAGE Safe, MultiParamTypeClasses, FunctionalDependencies #-}
 
+{- |
+    Module      :  SDP.ZipM
+    Copyright   :  (c) Andrey Mulik 2021
+    License     :  BSD-style
+    Maintainer  :  work.a.mulik@gmail.com
+    Portability :  portable
+    
+    @since 0.2.1
+    "SDP.ZipM" provides 'ZipM' - class of 'Control.Applicative.ZipList"-like
+    structures.
+-}
 module SDP.ZipM
 (
   -- * Export
@@ -10,12 +21,15 @@ module SDP.ZipM
 )
 where
 
+import Prelude ()
+import SDP.SafePrelude
 import SDP.Zip
 
 default ()
 
 --------------------------------------------------------------------------------
 
+-- | 'ZipM' class is monadic version of 'Zip'.
 class (Monad m) => ZipM m z | z -> m
   where
     {-# MINIMAL zipWithM #-}
@@ -78,8 +92,4 @@ class (Monad m) => ZipM m z | z -> m
     -- | Monadic 'zipWith6'.
     zipWithM6 :: (a -> b -> c -> d -> e -> f -> m r) -> z a -> z b -> z c -> z d -> z e -> z f -> m (z r)
     zipWithM6 f za zb zc zd ze zf = zipWithM ($) `flip` zf =<< mzipWith5 f za zb zc zd ze
-
-
-
-
 

@@ -1390,11 +1390,11 @@ single# e = unwrap $ runST $ ST $ \ s1# -> case newUnboxed' e 1# s1# of
   (# s2#, marr# #) -> case unsafeFreezeByteArray# marr# s2# of
     (# s3#, arr# #) -> (# s3#, Wrap arr# #)
 
--- | List to 'ByteArray#'.
+-- | Create immutable 'Unboxed' array from given list.
 fromList# :: (Unboxed e) => [e] -> ByteArray#
 fromList# es = let !(I# n#) = length es in fromListN# n# es
 
--- | 'Foldable' to 'ByteArray#'.
+-- | Create immutable 'Unboxed' array from 'Foldable' stream.
 fromFoldable# :: (Foldable f, Unboxed e) => f e -> (# Int, ByteArray# #)
 fromFoldable# es = unpack' $ runST $ ST $ \ s1# -> case fromFoldableM# es s1# of
     (# s2#, n, marr# #) -> case unsafeFreezeByteArray# marr# s2# of
@@ -1402,15 +1402,17 @@ fromFoldable# es = unpack' $ runST $ ST $ \ s1# -> case fromFoldableM# es s1# of
   where
     unpack' (i, Wrap arr#) = (# i, arr# #)
 
--- | Version of 'fromList#' with explicit 'length'.
+-- | Create immutable 'Unboxed' array from known size list.
 fromListN# :: (Unboxed e) => Int# -> [e] -> ByteArray#
 fromListN# n# es = unwrap $ runST $ ST $ \ s1# -> case newLinearN# n# es s1# of
   (# s2#, marr# #) -> case unsafeFreezeByteArray# marr# s2# of
     (# s3#, arr# #) -> (# s3#, Wrap arr# #)
 
+-- | Create mutable 'Unboxed' array from given list.
 newLinear# :: (Unboxed e) => [e] -> State# s -> (# State# s, MutableByteArray# s #)
 newLinear# es = let !(I# n#) = length es in newLinearN# n# es
 
+-- | Create mutable 'Unboxed' array from known size list.
 newLinearN# :: (Unboxed e) => Int# -> [e] -> State# s -> (# State# s, MutableByteArray# s #)
 newLinearN# c# es = \ s1# -> case pnewUnboxed es n# s1# of
     (# s2#, marr# #) ->
@@ -1422,6 +1424,7 @@ newLinearN# c# es = \ s1# -> case pnewUnboxed es n# s1# of
   where
     !n@(I# n#) = max 0 (I# c#)
 
+-- | Create mutable 'Unboxed' array from 'Foldable' stream.
 fromFoldableM# :: (Foldable f, Unboxed e) => f e -> State# s -> (# State# s, Int, MutableByteArray# s #)
 fromFoldableM# es = \ s1# -> case pnewUnboxed es n# s1# of
     (# s2#, marr# #) ->
@@ -1433,6 +1436,7 @@ fromFoldableM# es = \ s1# -> case pnewUnboxed es n# s1# of
   where
     !n@(I# n#) = length es
 
+-- | Concat pair of immutable 'Unboxed' arrays to new mutable array.
 concat# :: (Unboxed e) => e -> ByteArray# -> Int# -> Int# ->
                                ByteArray# -> Int# -> Int# ->
                                State# s -> (# State# s, Int#, MutableByteArray# s #)
@@ -1443,6 +1447,7 @@ concat# e arr1# n1# o1# arr2# n2# o2# = \ s1# -> case newUnboxed e n# s1# of
   where
     n# = n1# +# n2#
 
+-- | Kind @(* -> *)@ proxy 'concat#'.
 pconcat :: (Unboxed e) => proxy e ->
   ByteArray# -> Int# -> Int# -> ByteArray# -> Int# -> Int# ->
   State# s -> (# State# s, Int#, MutableByteArray# s #)

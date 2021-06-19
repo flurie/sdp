@@ -138,7 +138,7 @@ instance Bordered [e] Int
   "select'/Just" select' Just = id;
 #-}
 
-{- 
+{- |
   Class of list-like data structures, which
   
   * can be converted to and from list
@@ -427,19 +427,19 @@ class (Nullable l) => Linear l e | l -> e
     o_foldl' :: (b -> e -> b) -> b -> l -> b
     o_foldl' =  ofoldl' . const
     
-    -- | 'o_foldr1' is just 'foldr1' in 'Linear' context.
+    -- | 'o_foldr1' is just 'Data.Foldable.foldr1' in 'Linear' context.
     o_foldr1 :: (e -> e -> e) -> l -> e
     o_foldr1 f = \ (es :< e) -> o_foldr f e es
     
-    -- | 'o_foldl1' is just 'foldl1' in 'Linear' context.
+    -- | 'o_foldl1' is just 'Data.Foldable.foldl1' in 'Linear' context.
     o_foldl1 :: (e -> e -> e) -> l -> e
     o_foldl1 f = \ (e :> es) -> o_foldl f e es
     
-    -- | 'o_foldr1'' is just 'foldr1'' in 'Linear' context.
+    -- | 'o_foldr1'' is just strict 'Data.Foldable.foldr1' in 'Linear' context.
     o_foldr1' :: (e -> e -> e) -> l -> e
     o_foldr1' f = \ (es :< e) -> o_foldr' f e es
     
-    -- | 'o_foldl1'' is just 'foldl1'' in 'Linear' context.
+    -- | 'o_foldl1'' is just 'Data.Foldable.foldl1'' in 'Linear' context.
     o_foldl1' :: (e -> e -> e) -> l -> e
     o_foldl1' f = \ (e :> es) -> o_foldl' f e es
 

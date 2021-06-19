@@ -14,7 +14,6 @@
 module SDP.LinearM
 (
   -- * Exports
-  module Data.Property,
   module SDP.Linear,
   
   -- * BorderedM class
@@ -161,7 +160,7 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     getRight :: l -> m [e]
     getRight =  fmap reverse . getLeft
     
-    -- | (!#>) is unsafe monadic offset-based reader.
+    -- | @('!#>')@ is unsafe monadic offset-based reader.
     (!#>) :: l -> Int -> m e
     
     -- | Unsafe monadic offset-based writer.
@@ -336,8 +335,6 @@ class (LinearM m s e) => SplitM m s e
       let f n ds' = do ds <- ds'; (d, d') <- divideM n (head ds); pure (d':d:ds)
       in  foldr f (pure [es]) ns
     
-    -- TODO: comboM :: (e -> e -> Bool) -> s -> m Int
-    
     {- |
       @partsM n es@ returns the sequence of @es@ prefix references, splitted by
       offsets in @es@. Changes in the source and results must be synchronous.
@@ -454,7 +451,5 @@ type BorderedM1 m l i e = BorderedM m (l e) i
 
 -- | Kind @(* -> * -> *)@ 'BorderedM' structure.
 type BorderedM2 m l i e = BorderedM m (l i e) i
-
-
 
 

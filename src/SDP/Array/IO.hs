@@ -7,7 +7,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
     
-    "SDP.Array.IO provides 'IOArray' - mutable lazy boxed array type.
+    "SDP.Array.IO" provides 'IOArray' - mutable lazy boxed array type.
 -}
 module SDP.Array.IO
 (

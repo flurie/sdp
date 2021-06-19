@@ -36,7 +36,7 @@ default ()
 --------------------------------------------------------------------------------
 
 {-# WARNING updates' "deprecated in favor of 'update', will be removed in sdp-0.3" #-}
-{-# WARNING update'  "will be moved to SDP.Map.Map class as 'update_' in sdp-0.3" #-}
+{-# WARNING update'  "will be moved to SDP.Map.Map class in sdp-0.3" #-}
 {-# WARNING write'   "will be moved to SDP.Map.Map class in sdp-0.3" #-}
 
 --------------------------------------------------------------------------------

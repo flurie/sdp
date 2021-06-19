@@ -37,7 +37,7 @@ default ()
 
 --------------------------------------------------------------------------------
 
-{-# WARNING updateM' "deprecated in favor of SDP.MapM.MapM.updateM_ and will be removed in sdp-0.3" #-}
+{-# WARNING updateM' "will be moved to SDP.MapM.MapM class in sdp-0.3" #-}
 {-# WARNING writeM'  "will be moved to SDP.MapM.MapM class in sdp-0.3" #-}
 
 --------------------------------------------------------------------------------
