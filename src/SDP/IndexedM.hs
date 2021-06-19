@@ -37,6 +37,11 @@ default ()
 
 --------------------------------------------------------------------------------
 
+{-# WARNING updateM' "deprecated in favor of SDP.MapM.MapM.updateM_ and will be removed in sdp-0.3" #-}
+{-# WARNING writeM'  "will be moved to SDP.MapM.MapM class in sdp-0.3" #-}
+
+--------------------------------------------------------------------------------
+
 -- | Class for work with mutable indexed structures.
 class (LinearM m v e, BorderedM m v i, MapM m v i e) => IndexedM m v i e
   where
@@ -72,16 +77,6 @@ class (LinearM m v e, BorderedM m v i, MapM m v i e) => IndexedM m v i e
     -- | Update element by given function.
     updateM' :: v -> (e -> e) -> i -> m ()
     updateM' es f i = writeM' es i . f =<< es >! i
-    
-    {- |
-      @since 0.2.1
-      @'updatesM'' es f@ updates each element in @es@ by @f@.
-      
-      The order of actions and, accordingly, the content from the start of the
-      update to its end is undefined.
-    -}
-    updatesM' :: v -> (i -> e -> e) -> m ()
-    updatesM' es f = do bnds <- getBounds es; indices bnds `forM_` \ i -> updateM' es (f i) i
     
     -- | Just swap two elements.
     swapM' :: v -> i -> i -> m ()

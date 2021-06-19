@@ -35,6 +35,12 @@ default ()
 
 --------------------------------------------------------------------------------
 
+{-# WARNING updates' "deprecated in favor of 'update', will be removed in sdp-0.3" #-}
+{-# WARNING update'  "will be moved to SDP.Map.Map class as 'update_' in sdp-0.3" #-}
+{-# WARNING write'   "will be moved to SDP.Map.Map class in sdp-0.3" #-}
+
+--------------------------------------------------------------------------------
+
 -- | 'Indexed' is class of ordered associative arrays with static bounds.
 class (Linear v e, Bordered v i, Map v i e) => Indexed v i e | v -> i, v -> e
   where
@@ -141,5 +147,4 @@ binaryContain f e es =
 
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.Indexed."
-
 
