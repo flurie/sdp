@@ -1,6 +1,6 @@
+{-# LANGUAGE ConstraintKinds, DefaultSignatures, ViewPatterns, PatternSynonyms #-}
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE ConstraintKinds, KindSignatures, DataKinds, DefaultSignatures #-}
-{-# LANGUAGE Safe, BangPatterns, ViewPatterns, PatternSynonyms, GADTs #-}
+{-# LANGUAGE Safe, BangPatterns, GADTs #-}
 
 {- |
     Module      :  SDP.LinearM
@@ -34,6 +34,7 @@ import SDP.Linear
 import SDP.Map
 
 import Data.Property hiding ( set )
+import Data.Typeable
 
 default ()
 
@@ -380,26 +381,46 @@ class (LinearM m s e) => SplitM m s e
   'FieldLinear' is a service type used to 'prepend', 'append' or 'remove'
   element.
 -}
-data FieldLinear m field record
+data FieldLinearM l e m field record
   where
-    Prepend :: (LinearM m l e, GetProp field record, SetProp field record) => e   -> field m record l -> FieldLinear m field record
-    Append  :: (LinearM m l e, GetProp field record, SetProp field record) => field m record l ->   e -> FieldLinear m field record
-    Delete  :: (LinearM m l e, GetProp field record, SetProp field record) => Int -> field m record l -> FieldLinear m field record
+    Prepend :: (LinearM m l e, GetProp field record, SetProp field record) => e   -> field m record l -> FieldLinearM l e m field record
+    Append  :: (LinearM m l e, GetProp field record, SetProp field record) => field m record l ->   e -> FieldLinearM l e m field record
+    Delete  :: (LinearM m l e, GetProp field record, SetProp field record) => Int -> field m record l -> FieldLinearM l e m field record
+  deriving ( Typeable )
 
-instance IsProp FieldLinear field record
+instance IsProp (FieldLinearM l e) field record
   where
-    performProp record (Prepend e field) = setRecord field record =<< prepend e =<< getRecord field record
-    performProp record (Delete  n field) = setRecord field record =<< removed n =<< getRecord field record
-    performProp record (Append  field e) = setRecord field record =<< flip append e =<< getRecord field record
+    performProp record (Append  field e) = setRecord field record =<< (`append` e) =<< getRecord field record
+    performProp record (Delete  n field) = setRecord field record =<<  removed  n  =<< getRecord field record
+    performProp record (Prepend e field) = setRecord field record =<<  prepend  e  =<< getRecord field record
 
-pattern (:+=) :: (LinearM m l e, GetProp field record, SetProp field record) => e -> field m record l -> Prop m field record
-pattern e :+= field <- (undefined -> (e, field)) where (:+=) = Prop ... Prepend
+pattern (:+=) ::
+  (
+    Typeable record, Typeable field, Typeable m, Typeable l, Typeable e,
+    LinearM m l e, GetProp field record, SetProp field record
+  ) => e -> field m record l -> Prop m field record
+pattern e :+= field <- (cast' -> Just (Prepend e field)) where (:+=) = Prop ... Prepend
 
-pattern (:=+) :: (LinearM m l e, GetProp field record, SetProp field record) => field m record l -> e -> Prop m field record
-pattern field :=+ e <- (undefined -> (field, e)) where (:=+) = Prop ... Append
+pattern (:=+) ::
+  (
+    Typeable record, Typeable field, Typeable m, Typeable l, Typeable e,
+    LinearM m l e, GetProp field record, SetProp field record
+  ) => field m record l -> e -> Prop m field record
+pattern field :=+ e <- (cast' -> Just (Append field e)) where (:=+) = Prop ... Append
 
-pattern (:~=) :: (LinearM m l e, GetProp field record, SetProp field record) => Int -> field m record l -> Prop m field record
-pattern n :~= field <- (undefined -> (n, field)) where (:~=) = Prop ... Delete
+pattern (:~=) ::
+  (
+    Typeable record, Typeable field, Typeable m, Typeable l, Typeable e,
+    LinearM m l e, GetProp field record, SetProp field record
+  ) => Int -> field m record l -> Prop m field record
+pattern n :~= field <- (cast' -> Just (Delete n field)) where (:~=) = Prop ... Delete
+
+cast' ::
+  (
+    Typeable record, Typeable field, Typeable m, Typeable l, Typeable e,
+    LinearM m l e, GetProp field record, SetProp field record
+  ) => Prop m field record -> Maybe (FieldLinearM l e m field record)
+cast' =  cast
 
 --------------------------------------------------------------------------------
 
@@ -414,7 +435,6 @@ type BorderedM1 m l i e = BorderedM m (l e) i
 
 -- | Kind @(* -> * -> *)@ 'BorderedM' structure.
 type BorderedM2 m l i e = BorderedM m (l i e) i
-
 
 
 
