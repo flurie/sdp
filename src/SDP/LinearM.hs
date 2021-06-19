@@ -14,7 +14,6 @@
 module SDP.LinearM
 (
   -- * Exports
-  module Data.Property,
   module SDP.Linear,
   
   -- * BorderedM class
@@ -467,4 +466,5 @@ type SplitM1 m l e = SplitM m (l e) e
 
 -- | Kind @(Type -> Type -> Type)@ 'SplitM' structure.
 type SplitM2 m l i e = SplitM m (l i e) e
+
 
