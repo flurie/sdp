@@ -69,6 +69,20 @@ class (LinearM m v e, BorderedM m v i, MapM m v i e) => IndexedM m v i e
     writeM' :: v -> i -> e -> m ()
     writeM' es i e = do bnds <- getBounds es; writeM es (offset bnds i) e
     
+    -- | Update element by given function.
+    updateM' :: v -> (e -> e) -> i -> m ()
+    updateM' es f i = writeM' es i . f =<< es >! i
+    
+    {- |
+      @since 0.2.1
+      @'updatesM'' es f@ updates each element in @es@ by @f@.
+      
+      The order of actions and, accordingly, the content from the start of the
+      update to its end is undefined.
+    -}
+    updatesM' :: v -> (i -> e -> e) -> m ()
+    updatesM' es f = do bnds <- getBounds es; indices bnds `forM_` \ i -> updateM' es (f i) i
+    
     -- | Just swap two elements.
     swapM' :: v -> i -> i -> m ()
     swapM' es i j = do ei <- es >! i; writeM' es i =<< es >! j; writeM' es j ei
@@ -91,10 +105,6 @@ class (LinearM m v e, BorderedM m v i, MapM m v i e) => IndexedM m v i e
     fromAccum f es ascs = getBounds es >>=<< ies $ fromAssocs
       where
         ies = sequence [ do e <- es !> i; return (i, f e e') | (i, e') <- ascs ]
-    
-    -- | Update element by given function.
-    updateM' :: v -> (e -> e) -> i -> m ()
-    updateM' es f i = writeM' es i . f =<< es >! i
 
 --------------------------------------------------------------------------------
 

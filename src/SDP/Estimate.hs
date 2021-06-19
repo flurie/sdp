@@ -43,16 +43,16 @@ class Estimate e
   where
     {-# MINIMAL (<.=>), (<==>) #-}
     
-    -- | Left-side structure length with number comparison.
+    -- | Compare structure length with given number.
     (<.=>) :: e -> Int -> Ordering
     
-    -- | Two structures by length comparison.
+    -- | Compare structures by its lengths.
     (<==>) :: Compare e
     
-    -- | Left-side structure length with number comparison.
+    -- | Compare structure length with given number.
     (.==), (./=), (.<=), (.>=), (.<), (.>) :: e -> Int -> Bool
     
-    -- | Two structures comparison by length.
+    -- | Compare structures by its lengths.
     (.<.), (.>.), (.<=.), (.>=.), (.==.), (./=.) :: e -> e -> Bool
     
     e .<  i = case e <.=> i of {LT -> True; _ -> False}
@@ -69,11 +69,11 @@ class Estimate e
     e1 .==. e2 = case e1 <==> e2 of {EQ -> True; _ -> False}
     e1 ./=. e2 = case e1 <==> e2 of {EQ -> False; _ -> True}
 
--- | Right-side number with structure length comparison.
+-- | Compare given number with structure length.
 (<=.>) :: (Estimate e) => Int -> e -> Ordering
 i <=.> e = case e <.=> i of {LT -> GT; EQ -> EQ; GT -> LT}
 
--- | Right-side number with structure length comparison.
+-- | Compare given number with structure length.
 (==.), (/=.), (<=.), (>=.), (<.), (>.) :: (Estimate e) => Int -> e -> Bool
 
 (==.) = flip (.==)

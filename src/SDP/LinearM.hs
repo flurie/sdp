@@ -377,48 +377,67 @@ class (LinearM m s e) => SplitM m s e
 
 --------------------------------------------------------------------------------
 
-{- |
-  'FieldLinear' is a service type used to 'prepend', 'append' or 'remove'
-  element.
--}
+-- | 'FieldLinearM' is a service type used to prepend, append or remove element.
 data FieldLinearM l e m field record
   where
-    Prepend :: (LinearM m l e, GetProp field record, SetProp field record) => e   -> field m record l -> FieldLinearM l e m field record
-    Append  :: (LinearM m l e, GetProp field record, SetProp field record) => field m record l ->   e -> FieldLinearM l e m field record
-    Delete  :: (LinearM m l e, GetProp field record, SetProp field record) => Int -> field m record l -> FieldLinearM l e m field record
+    Prepend :: (LinearM m l e, FieldGet field, FieldSet field)
+            => e -> field m record l -> FieldLinearM l e m field record
+    Append  :: (LinearM m l e, FieldGet field, FieldSet field)
+            => field m record l -> e -> FieldLinearM l e m field record
+    Delete  :: (LinearM m l e, FieldGet field, FieldSet field)
+            => Int -> field m record l -> FieldLinearM l e m field record
   deriving ( Typeable )
 
-instance IsProp (FieldLinearM l e) field record
+instance IsProp (FieldLinearM l e)
   where
-    performProp record (Append  field e) = setRecord field record =<< (`append` e) =<< getRecord field record
-    performProp record (Delete  n field) = setRecord field record =<<  removed  n  =<< getRecord field record
-    performProp record (Prepend e field) = setRecord field record =<<  prepend  e  =<< getRecord field record
+    performProp record (Append  field e) = setRecord field record =<<
+                              flip append e =<< getRecord field record
+    
+    performProp record (Delete  n field) = setRecord field record =<<
+                              removed n =<< getRecord field record
+    
+    performProp record (Prepend e field) = setRecord field record =<<
+                              prepend e =<< getRecord field record
 
+{- |
+  @since 0.2.1
+  @(':+=')@ is @fmr@-compatible 'prepend' element pattern for 'LinearM' fields.
+-}
 pattern (:+=) ::
   (
     Typeable record, Typeable field, Typeable m, Typeable l, Typeable e,
-    LinearM m l e, GetProp field record, SetProp field record
+    LinearM m l e, FieldGet field, FieldSet field
   ) => e -> field m record l -> Prop m field record
 pattern e :+= field <- (cast' -> Just (Prepend e field)) where (:+=) = Prop ... Prepend
 
+{- |
+  @since 0.2.1
+  @(':=+')@ is @fmr@-compatible 'append' element pattern for 'LinearM' fields.
+-}
 pattern (:=+) ::
   (
     Typeable record, Typeable field, Typeable m, Typeable l, Typeable e,
-    LinearM m l e, GetProp field record, SetProp field record
+    LinearM m l e, FieldGet field, FieldSet field
   ) => field m record l -> e -> Prop m field record
 pattern field :=+ e <- (cast' -> Just (Append field e)) where (:=+) = Prop ... Append
 
+{- |
+  @since 0.2.1
+  @(':~=')@ is @fmr@-compatible delete element pattern for 'LinearM' fields, see
+  'removed'.
+-}
 pattern (:~=) ::
   (
     Typeable record, Typeable field, Typeable m, Typeable l, Typeable e,
-    LinearM m l e, GetProp field record, SetProp field record
+    LinearM m l e, FieldGet field, FieldSet field
   ) => Int -> field m record l -> Prop m field record
 pattern n :~= field <- (cast' -> Just (Delete n field)) where (:~=) = Prop ... Delete
 
+-- | 'cast'' is just service function for 'Prop' data extraction.
 cast' ::
   (
     Typeable record, Typeable field, Typeable m, Typeable l, Typeable e,
-    LinearM m l e, GetProp field record, SetProp field record
+    LinearM m l e, FieldGet field, FieldSet field
   ) => Prop m field record -> Maybe (FieldLinearM l e m field record)
 cast' =  cast
 
@@ -435,6 +454,7 @@ type BorderedM1 m l i e = BorderedM m (l e) i
 
 -- | Kind @(* -> * -> *)@ 'BorderedM' structure.
 type BorderedM2 m l i e = BorderedM m (l i e) i
+
 
 
 

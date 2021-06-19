@@ -283,15 +283,15 @@ instance (Index i) => Estimate (i, i)
     (.<.)  = on (<)   size
     
     (<.=>) = (<=>) . size
+    (.<=)  = (<=)  . size
+    (.>=)  = (>=)  . size
     (.>)   = (>)   . size
     (.<)   = (<)   . size
-    (.>=)  = (>=)  . size
-    (.<=)  = (<=)  . size
 
 instance (Index i) => Nullable (i, i)
   where
-    isNull = isEmpty
     lzero  = defaultBounds 0
+    isNull = isEmpty
 
 --------------------------------------------------------------------------------
 
