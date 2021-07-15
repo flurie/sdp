@@ -53,7 +53,6 @@ instance Estimate (TArray# e)
     (.>=.) = on (>=)  sizeOf
     (.>.)  = on (>)   sizeOf
     (.<.)  = on (<)   sizeOf
-    
     (<.=>) = (<=>) . sizeOf
     (.>=)  = (>=)  . sizeOf
     (.<=)  = (<=)  . sizeOf
@@ -162,7 +161,7 @@ instance SplitM STM (TArray# e) e
 
 instance MapM STM (TArray# e) Int e
   where
-    newMap' defvalue ascs = fromAssocs' (ascsBounds ascs) defvalue ascs
+    newMap' e ascs = fromAssocs' (fromRangeList (fsts ascs)) e ascs
     
     {-# INLINE writeM' #-}
     writeM' = writeTVar ... (!^) . unpack
@@ -202,9 +201,6 @@ instance Freeze STM (TArray# e) (SArray# e) where freeze = mapM readTVar . unpac
 
 --------------------------------------------------------------------------------
 
-ascsBounds :: (Ord a) => [(a, b)] -> (a, a)
-ascsBounds =  \ ((x, _) : xs) -> foldr (\ (e, _) (mn, mx) -> (min mn e, max mx e)) (x, x) xs
-
 unpack :: TArray# e -> SArray# (TVar e)
 unpack =  \ (TArray# arr) -> arr
 
@@ -216,5 +212,4 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Prim.TArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.TArray."
-
 

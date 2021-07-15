@@ -692,7 +692,7 @@ instance Sort (SArray# e) e
 
 instance Map (SArray# e) Int e
   where
-    toMap' e ascs = isNull ascs ? Z $ assoc' (ascsBounds ascs) e ascs
+    toMap' e ascs = isNull ascs ? Z $ assoc' (fromRangeList (fsts ascs)) e ascs
     
     Z  // ascs = toMap ascs
     es // ascs = runST $ fromFoldableM es >>= (`overwrite` ascs) >>= done
@@ -705,7 +705,7 @@ instance Map (SArray# e) Int e
 
 instance Indexed (SArray# e) Int e
   where
-    assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
+    assoc' bnds e ascs = runST $ fromAssocs' bnds e ascs >>= done
     
     fromIndexed es = runST $ do
       let n = sizeOf es
@@ -951,7 +951,7 @@ instance SplitM (ST s) (STArray# s e) e
 
 instance MapM (ST s) (STArray# s e) Int e
   where
-    newMap' defvalue ascs = fromAssocs' (ascsBounds ascs) defvalue ascs
+    newMap' e ascs = fromAssocs' (fromRangeList (fsts ascs)) e ascs
     
     {-# INLINE writeM' #-}
     writeM' (STArray# _ (I# o#) marr#) = \ (I# i#) e -> ST $
@@ -968,7 +968,7 @@ instance MapM (ST s) (STArray# s e) Int e
 
 instance IndexedM (ST s) (STArray# s e) Int e
   where
-    fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
+    fromAssocs' bnds e ascs = size bnds `filled` e >>= (`overwrite` ascs)
     
     fromIndexed' es = do
       let n = sizeOf es
@@ -1126,7 +1126,7 @@ instance (MonadIO io) => SplitM io (MIOArray# io e) e
 
 instance (MonadIO io) => MapM io (MIOArray# io e) Int e
   where
-    newMap' defvalue ascs = fromAssocs' (ascsBounds ascs) defvalue ascs
+    newMap' e ascs = fromAssocs' (fromRangeList (fsts ascs)) e ascs
     
     writeM' es = stToMIO ... writeM' (unpack es)
     
@@ -1252,14 +1252,13 @@ nubSorted f es = fromList $ foldr fun [last es] ((es !^) <$> [0 .. sizeOf es - 2
   where
     fun = \ e ls -> e `f` head ls == EQ ? ls $ e : ls
 
-ascsBounds :: (Ord a) => [(a, b)] -> (a, a)
-ascsBounds =  \ ((x, _) : xs) -> foldr (\ (e, _) (mn, mx) -> (min mn e, max mx e)) (x, x) xs
-
 asProxyTypeOf :: a -> proxy a -> a
 asProxyTypeOf =  const
 
 (<?=>) :: (Bordered b i) => Int -> b -> Int
 (<?=>) =  (. sizeOf) . min
+
+--------------------------------------------------------------------------------
 
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.Prim.SArray."
@@ -1275,6 +1274,7 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
+
 
 
 

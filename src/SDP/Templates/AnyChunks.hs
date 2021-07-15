@@ -489,9 +489,9 @@ instance (Linear1 (AnyChunks rep) e) => Scan (AnyChunks rep e) e
 
 instance (Indexed1 rep Int e) => Map (AnyChunks rep e) Int e
   where
-    toMap ascs = isNull ascs ? Z $ assoc (ascsBounds ascs) ascs
+    toMap ascs = isNull ascs ? Z $ assoc (fromRangeList (fsts ascs)) ascs
     
-    toMap' defvalue ascs = isNull ascs ? Z $ assoc' (ascsBounds ascs) defvalue ascs
+    toMap' e ascs = isNull ascs ? Z $ assoc' (fromRangeList (fsts ascs)) e ascs
     
     (.!) = (!^)
     
@@ -523,9 +523,9 @@ instance (Indexed1 rep Int e) => Indexed (AnyChunks rep e) Int e
             (as, bs) = partition (inRange (l, n) . fst) ies
             n = min u (l + lim)
     
-    assoc' bnds defvalue ascs = AnyChunks (go bnds ascs)
+    assoc' bnds e ascs = AnyChunks (go bnds ascs)
       where
-        go (l, u) ies = isEmpty (l, u) ? [] $ assoc' (l, n) defvalue as : go (n + 1, u) bs
+        go (l, u) ies = isEmpty (l, u) ? [] $ assoc' (l, n) e as : go (n + 1, u) bs
           where
             (as, bs) = partition (inRange (l, n) . fst) ies
             n = min u (l + lim)
@@ -538,16 +538,16 @@ instance (Indexed1 rep Int e) => Indexed (AnyChunks rep e) Int e
 
 instance (SplitM1 m rep e, MapM1 m rep Int e, BorderedM1 m rep Int e) => MapM m (AnyChunks rep e) Int e
   where
-    newMap ascs = AnyChunks <$> sequence (go (ascsBounds ascs) ascs)
+    newMap ascs = AnyChunks <$> sequence (fromRangeList (fsts ascs) `go` ascs)
       where
         go (l, u) ies = isEmpty (l, u) ? [] $ newMap as : go (n + 1, u) bs
           where
             (as, bs) = partition (inRange (l, n) . fst) ies
             n = min u (l + lim)
     
-    newMap' defvalue ascs = AnyChunks <$> sequence (go (ascsBounds ascs) ascs)
+    newMap' e ascs = AnyChunks <$> sequence (fromRangeList (fsts ascs) `go` ascs)
       where
-        go (l, u) ies = newMap' defvalue as : go (n + 1, u) bs
+        go (l, u) ies = newMap' e as : go (n + 1, u) bs
           where
             (as, bs) = partition (inRange (l, n) . fst) ies
             n = min u (l + lim)
@@ -579,9 +579,9 @@ instance (SplitM1 m rep e, IndexedM1 m rep Int e) => IndexedM m (AnyChunks rep e
             (as, bs) = partition (inRange (l, n) . fst) ies
             n = min u (l + lim)
     
-    fromAssocs' bnds defvalue ascs = AnyChunks <$> sequence (go bnds ascs)
+    fromAssocs' bnds e ascs = AnyChunks <$> sequence (go bnds ascs)
       where
-        go (l, u) ies = fromAssocs' (l, n) defvalue as : go (n + 1, u) bs
+        go (l, u) ies = fromAssocs' (l, n) e as : go (n + 1, u) bs
           where
             (as, bs) = partition (inRange (l, n) . fst) ies
             n = min u (l + lim)
@@ -643,9 +643,6 @@ instance {-# OVERLAPS #-} (Freeze1 m mut imm e) => Freeze m (AnyChunks mut e) (A
 
 --------------------------------------------------------------------------------
 
-ascsBounds :: (Ord a) => [(a, b)] -> (a, a)
-ascsBounds =  \ ((x, _) : xs) -> foldr (\ (e, _) (mn, mx) -> (min mn e, max mx e)) (x, x) xs
-
 overEx :: String -> a
 overEx =  throw . IndexOverflow . showString "in SDP.Templates.AnyChunks."
 
@@ -657,4 +654,7 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Templates.AnyChunks."
 
 lim :: Int
 lim =  1024
+
+
+
 

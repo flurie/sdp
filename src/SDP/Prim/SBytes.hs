@@ -529,9 +529,9 @@ instance (Unboxed e) => Sort (SBytes# e) e
 
 instance (Unboxed e) => Map (SBytes# e) Int e
   where
-    toMap ascs = isNull ascs ? Z $ assoc (ascsBounds ascs) ascs
+    toMap ascs = isNull ascs ? Z $ assoc (fromRangeList (fsts ascs)) ascs
     
-    toMap' defvalue ascs = isNull ascs ? Z $ assoc' (ascsBounds ascs) defvalue ascs
+    toMap' e ascs = isNull ascs ? Z $ assoc' (fromRangeList (fsts ascs)) e ascs
     
     Z  // ascs = toMap ascs
     es // ascs = runST $ thaw es >>= flip overwrite ascs >>= done
@@ -545,7 +545,7 @@ instance (Unboxed e) => Map (SBytes# e) Int e
 instance (Unboxed e) => Indexed (SBytes# e) Int e
   where
     assoc  bnds ascs = runST $ fromAssocs bnds ascs >>= done
-    assoc' bnds defvalue ascs = runST $ fromAssocs' bnds defvalue ascs >>= done
+    assoc' bnds e ascs = runST $ fromAssocs' bnds e ascs >>= done
     
     fromIndexed es = runST $ do
       let n = sizeOf es
@@ -768,9 +768,9 @@ instance (Unboxed e) => SplitM (ST s) (STBytes# s e) e
 
 instance (Unboxed e) => MapM (ST s) (STBytes# s e) Int e
   where
-    newMap ascs = fromAssocs (ascsBounds ascs) ascs
+    newMap ascs = fromAssocs (fromRangeList (fsts ascs)) ascs
     
-    newMap' defvalue ascs = fromAssocs' (ascsBounds ascs) defvalue ascs
+    newMap' e ascs = fromAssocs' (fromRangeList (fsts ascs)) e ascs
     
     {-# INLINE writeM' #-}
     writeM' (STBytes# _ (I# o#) marr#) = \ (I# i#) e -> ST $
@@ -789,7 +789,7 @@ instance (Unboxed e) => MapM (ST s) (STBytes# s e) Int e
 instance (Unboxed e) => IndexedM (ST s) (STBytes# s e) Int e
   where
     fromAssocs  bnds ascs = alloc (size bnds) >>= flip overwrite ascs
-    fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
+    fromAssocs' bnds e ascs = size bnds `filled` e >>= (`overwrite` ascs)
     
     fromIndexed' es = do
       let n = sizeOf es
@@ -1138,8 +1138,7 @@ nubSorted f es =
   let fun = \ e ls -> e `f` head ls == EQ ? ls $ e : ls
   in  fromList $ foldr fun [last es] ((es !^) <$> [0 .. sizeOf es - 2])
 
-ascsBounds :: (Ord a) => [(a, b)] -> (a, a)
-ascsBounds =  \ ((x, _) : xs) -> foldr (\ (e, _) (mn, mx) -> (min mn e, max mx e)) (x, x) xs
+--------------------------------------------------------------------------------
 
 overEx :: String -> a
 overEx =  throw . IndexOverflow . showString "in SDP.Prim.SBytes."
@@ -1149,6 +1148,7 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Prim.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
+
 
 
 
