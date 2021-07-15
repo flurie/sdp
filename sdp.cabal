@@ -1,5 +1,5 @@
 name:          sdp
-version:       0.2.1
+version:       0.3
 category:      Data Structures
 
 synopsis:      Simple Data Processing
@@ -116,11 +116,6 @@ Library
     Control.Concurrent.SDP.TArray
     Control.Concurrent.SDP.TUnlist
     Control.Concurrent.SDP.TUnrolled
-    
-    -- Typo, deprecated
-    Control.Concurent.SDP.TArray
-    Control.Concurent.SDP.TUnlist
-    Control.Concurent.SDP.TUnrolled
     
     -- Service definitions
     Control.Exception.SDP
