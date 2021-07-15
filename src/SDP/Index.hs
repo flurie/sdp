@@ -175,12 +175,13 @@ class (Ord i, Shape i, Shape (DimLast i), Shape (DimInit i), Shape (GIndex i)) =
     -- | Returns bounds of nonempty range (swaps bounds in each empty subshape).
     {-# INLINE ordBounds #-}
     ordBounds :: (i, i) -> (i, i)
-    ordBounds = \ bs -> isEmpty bs ? swap bs $ bs
+    ordBounds bs = isEmpty bs ? swap bs $ bs
+    default ordBounds :: (GIndex i ~~ I1 i) => (i, i) -> (i, i)
     
     -- | Returns size of biggest range, that may be represented by this type.
     defLimit :: i -> Integer
+    defLimit i = on (-) (toInteger . (`asTypeOf` i)) maxBound minBound
     default defLimit :: (Integral i, Bounded i) => i -> Integer
-    defLimit i = toInteger (maxBound `asTypeOf` i) + 1
     
     -- | Returns default range by size.
     {-# INLINE defaultBounds #-}
@@ -223,17 +224,13 @@ class (Ord i, Shape i, Shape (DimLast i), Shape (DimInit i), Shape (GIndex i)) =
     
     -- | Returns previous index in 'range'.
     prev :: (i, i) -> i -> i
-    default prev  :: (Enum i) => (i, i) -> i -> i
-    prev (l, u) i | isEmpty (l, u) = e | i <= l = l | i > u = u | True = pred i
-      where
-        e = emptyEx "prev {default}"
+    default prev :: (Enum i) => (i, i) -> i -> i
+    prev (l, u) i | isEmpty (l, u) = emptyEx "prev {default}" | i <= l = l | i > u = u | True = pred i
     
     -- | Returns next index in range.
-    default next  :: (Enum i) => (i, i) -> i -> i
     next :: (i, i) -> i -> i
-    next (l, u) i | isEmpty (l, u) = e | i >= u = u | i < l = l | True = succ i
-      where
-        e = emptyEx "next {default}"
+    default next :: (Enum i) => (i, i) -> i -> i
+    next (l, u) i | isEmpty (l, u) = emptyEx "next {default}" | i >= u = u | i < l = l | True = succ i
     
     -- | Returns 'offset' (indent) of 'index' in 'range'.
     {-# INLINE offset #-}
@@ -254,6 +251,19 @@ class (Ord i, Shape i, Shape (DimLast i), Shape (DimInit i), Shape (GIndex i)) =
     range :: (i, i) -> [i]
     range =  uncurry enumFromTo
     default range :: (Enum i) => (i, i) -> [i]
+    
+    {- |
+      @fromRangeList es@ returns the smallest 'range' containing all indices
+      from @es@.
+    -}
+    default fromRangeList :: (Enum i) => [i] -> (i, i)
+    fromRangeList :: [i] -> (i, i)
+    fromRangeList    [i]   = (i, i)
+    fromRangeList    [ ]   = defaultBounds 0
+    fromRangeList (i : is) = go (i, i) is
+      where
+        go (l, u) (j : js) = go (min l j, max u j) js
+        go  bnds     []    = bnds
     
     {- |
       @subshape bnds ij@ returns subshape of @bnds@.
@@ -311,6 +321,9 @@ instance Index E
     next   _ _ = E
     prev   _ _ = E
     
+    fromRangeList   = const (E, E)
+    ordBounds       = id
+    
     inRange     _ _ = False
     isUnderflow _ _ = True
     isOverflow  _ _ = True
@@ -334,6 +347,7 @@ instance Index ()
     isUnderflow _ _ = False
     
     defaultBounds = const ((), ())
+    fromRangeList = const ((), ())
     index         = const unsafeIndex
     offset  _  _  = 0
     
@@ -351,33 +365,22 @@ instance Index Char
 -}
 instance Index Integer
   where
-    -- | Undefined.
-    defLimit = error "in SDP.Index.defLimit: Integer has no upper bound"
-    offset   = offsetIntegral
-
-instance Index Int     where offset = offsetIntegral
-instance Index Int8    where offset = offsetIntegral
-instance Index Int16   where offset = offsetIntegral
-instance Index Int32   where offset = offsetIntegral
-instance Index Int64   where offset = offsetIntegral
-
-instance Index Word    where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
-instance Index Word8   where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
-instance Index Word16  where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
-instance Index Word32  where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
-instance Index Word64  where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+    defLimit      = error "in SDP.Index.defLimit: Integer has no upper bound"
+    offset        = offsetIntegral
 
 --------------------------------------------------------------------------------
 
-{- Foreign C instances. -}
+{- Numeric instances. -}
 
-instance Index CChar      where offset = offsetIntegral
-instance Index CSChar     where offset = offsetIntegral
-instance Index CWchar     where offset = offsetIntegral
-instance Index CShort     where offset = offsetIntegral
-
+instance Index Int        where offset = offsetIntegral
+instance Index Int8       where offset = offsetIntegral
+instance Index Int16      where offset = offsetIntegral
+instance Index Int32      where offset = offsetIntegral
+instance Index Int64      where offset = offsetIntegral
 instance Index CInt       where offset = offsetIntegral
 instance Index CLong      where offset = offsetIntegral
+instance Index CSChar     where offset = offsetIntegral
+instance Index CShort     where offset = offsetIntegral
 instance Index CLLong     where offset = offsetIntegral
 instance Index CIntPtr    where offset = offsetIntegral
 instance Index CIntMax    where offset = offsetIntegral
@@ -389,15 +392,20 @@ instance Index CSigAtomic where offset = offsetIntegral
 instance Index CBool where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
 #endif
 
-instance Index CSize      where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
-instance Index CUChar     where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
-instance Index CUShort    where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
-
-instance Index CUInt      where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
-instance Index CULong     where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
-instance Index CULLong    where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
-instance Index CUIntPtr   where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
-instance Index CUIntMax   where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+instance Index Word     where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+instance Index Word8    where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+instance Index Word16   where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+instance Index Word32   where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+instance Index Word64   where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+instance Index CChar    where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+instance Index CWchar   where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+instance Index CSize    where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+instance Index CUChar   where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+instance Index CUShort  where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+instance Index CUInt    where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+instance Index CULong   where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+instance Index CUIntPtr where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+instance Index CUIntMax where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
 
 --------------------------------------------------------------------------------
 
@@ -425,10 +433,10 @@ instance (Index i) => Index (E :& i)
     offset = \ (E:&l, E:&u) (E:&i) -> offset (l, u) i
     index  = \ (E:&l, E:&u) -> (E:&) . index (l, u)
     
+    fromRangeList = both (E :&) . fromRangeList . map (\ (E :& n) -> n)
     defaultBounds = both (E :&) . defaultBounds
     unsafeIndex   = (E :&) . unsafeIndex
 
--- [internal]: undecidable
 instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
   where
     defLimit i = lim (error "in defLimit {i' :& i :& i}") (rank i) i
@@ -484,6 +492,11 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
         res = offset (ls, us) is * size (l, u) + offset (l, u) i
         (ls :& l, us :& u) = bnds
     
+    fromRangeList inds = (l :& ls, u :& us)
+      where
+        ((l, u), (ls, us)) = bimap fromRangeList fromRangeList
+                           . unzip $ (\ (i :& is) -> (i, is)) <$> inds
+    
     unsafeIndex c = unsafeIndex d :& i
       where
         (d, m) = defLimit c <= lim ? (0, c) $ c `divMod` fromInteger lim
@@ -496,21 +509,22 @@ instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
 
 #define INDEX_INSTANCE(Type) instance (Ord i, Index i, Enum i, Bounded i) => Index (Type i) where\
 {\
-size        = size . toGBounds;\
-sizes       = sizes . toGBounds;\
-isEmpty     = isEmpty . toGBounds;\
-defLimit    = defLimit . toGIndex;\
-unsafeIndex = fromGIndex . unsafeIndex;\
-index       = fromGIndex ... index . toGBounds;\
-range       = fmap fromGIndex . range . toGBounds;\
-ordBounds   = fromGBounds . ordBounds . toGBounds;\
-offset      = \ bs -> offset (toGBounds bs) . toGIndex;\
-inRange     = \ bs -> inRange (toGBounds bs) . toGIndex;\
-isOverflow  = \ bs -> isOverflow  (toGBounds bs) . toGIndex;\
-isUnderflow = \ bs -> isUnderflow (toGBounds bs) . toGIndex;\
-next        = \ bs -> fromGIndex . next (toGBounds bs) . toGIndex;\
-prev        = \ bs -> fromGIndex . prev (toGBounds bs) . toGIndex;\
-safeElem    = \ bs -> fromGIndex . safeElem (toGBounds bs) . toGIndex;\
+size          = size . toGBounds;\
+sizes         = sizes . toGBounds;\
+isEmpty       = isEmpty . toGBounds;\
+defLimit      = defLimit . toGIndex;\
+unsafeIndex   = fromGIndex . unsafeIndex;\
+index         = fromGIndex ... index . toGBounds;\
+range         = fmap fromGIndex . range . toGBounds;\
+ordBounds     = fromGBounds . ordBounds . toGBounds;\
+offset        = \ bs -> offset (toGBounds bs) . toGIndex;\
+inRange       = \ bs -> inRange (toGBounds bs) . toGIndex;\
+isOverflow    = \ bs -> isOverflow  (toGBounds bs) . toGIndex;\
+isUnderflow   = \ bs -> isUnderflow (toGBounds bs) . toGIndex;\
+next          = \ bs -> fromGIndex . next (toGBounds bs) . toGIndex;\
+prev          = \ bs -> fromGIndex . prev (toGBounds bs) . toGIndex;\
+safeElem      = \ bs -> fromGIndex . safeElem (toGBounds bs) . toGIndex;\
+fromRangeList = fromGBounds . fromRangeList . map toGIndex\
 }
 
 INDEX_INSTANCE(T2)
@@ -555,6 +569,7 @@ checkBounds bnds i res = case inBounds bnds i of
 
 emptyEx :: String -> a
 emptyEx =  throw . EmptyRange . showString "in SDP.Index."
+
 
 
 
