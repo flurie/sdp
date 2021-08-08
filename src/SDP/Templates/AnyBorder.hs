@@ -41,10 +41,8 @@ import Data.Data
 import Text.Read.SDP
 import Text.Show.SDP
 
-import GHC.Generics
 import qualified GHC.Exts as E
-
-import Control.Exception.SDP
+import GHC.Generics
 
 default ()
 
@@ -119,16 +117,25 @@ instance (Index i, E.IsList (rep e), Bordered1 rep Int e) => E.IsList (AnyBorder
 
 --------------------------------------------------------------------------------
 
-{- Semigroup, Monoid, Nullable, Default and Estimate instances. -}
+{- Semigroup, Monoid and Default instances. -}
+
+instance (Linear1 (AnyBorder rep i) e) => Semigroup (AnyBorder rep i e) where (<>) = (++)
+instance (Linear1 (AnyBorder rep i) e) => Monoid    (AnyBorder rep i e) where mempty = Z
+instance (Linear1 (AnyBorder rep i) e) => Default   (AnyBorder rep i e) where def = Z
+
+--------------------------------------------------------------------------------
+
+{- Nullable, NullableM and Estimate instances. -}
 
 instance (Index i, Bordered (rep e) Int, Nullable (rep e)) => Nullable (AnyBorder rep i e)
   where
     isNull = \ (AnyBorder l u rep) -> isEmpty (l, u) || isNull rep
     lzero  = withBounds lzero
 
-instance (Linear1 (AnyBorder rep i) e) => Semigroup (AnyBorder rep i e) where (<>) = (++)
-instance (Linear1 (AnyBorder rep i) e) => Monoid    (AnyBorder rep i e) where mempty = Z; mappend = (<>)
-instance (Linear1 (AnyBorder rep i) e) => Default   (AnyBorder rep i e) where def = Z
+instance (Index i, NullableM m (rep e)) => NullableM m (AnyBorder rep i e)
+  where
+    nowNull (AnyBorder l u es) = isEmpty (l, u) ? return True $ nowNull es
+    newNull = uncurry AnyBorder (defaultBounds 0) <$> newNull
 
 instance (Index i) => Estimate (AnyBorder rep i e)
   where
@@ -230,6 +237,8 @@ instance (Index i) => Bordered (AnyBorder rep i e) i
     indexOf  (AnyBorder l u _) = index   (l, u)
     indexIn  (AnyBorder l u _) = inRange (l, u)
     offsetOf (AnyBorder l u _) = offset  (l, u)
+    
+    rebound es@(AnyBorder _ _ rep) (l,u) = size (l,u) >=. es ? es $ AnyBorder l u rep
 
 instance (Index i, Linear1 rep e, Bordered1 rep Int e) => Linear (AnyBorder rep i e) e
   where
@@ -320,10 +329,6 @@ instance (Index i, BorderedM1 m rep Int e) => BorderedM m (AnyBorder rep i e) i
 
 instance (Index i, LinearM1 m rep e, BorderedM1 m rep Int e) => LinearM m (AnyBorder rep i e) e
   where
-    newNull = uncurry AnyBorder (defaultBounds 0) <$> newNull
-    
-    nowNull (AnyBorder l u es) = isEmpty (l, u) ? return True $ nowNull es
-    
     getHead = getHead . unpack
     getLast = getLast . unpack
     
@@ -407,7 +412,7 @@ instance (Index i, BorderedM1 m rep Int e, SplitM1 m rep e) => SplitM m (AnyBord
 
 --------------------------------------------------------------------------------
 
-{- Set, Scan and Sort instances. -}
+{- Set and SetWith instances. -}
 
 instance (SetWith1 (AnyBorder rep i) e, Nullable (AnyBorder rep i e), Ord e) => Set (AnyBorder rep i e) e
 
@@ -423,15 +428,19 @@ instance (Index i, SetWith1 rep e, Linear1 rep e, Bordered1 rep Int e) => SetWit
     deleteWith f e = withBounds . deleteWith f e . unpack
     
     intersectionWith f = withBounds ... on (intersectionWith f) unpack
-    unionWith        f = withBounds ... on (unionWith        f) unpack
     differenceWith   f = withBounds ... on (differenceWith   f) unpack
     symdiffWith      f = withBounds ... on (symdiffWith      f) unpack
+    unionWith        f = withBounds ... on (unionWith        f) unpack
     
     memberWith   f e = memberWith   f e . unpack
     lookupLTWith f o = lookupLTWith f o . unpack
     lookupGTWith f o = lookupGTWith f o . unpack
     lookupLEWith f o = lookupLEWith f o . unpack
     lookupGEWith f o = lookupGEWith f o . unpack
+
+--------------------------------------------------------------------------------
+
+{- Scan and Sort instances. -}
 
 instance (Linear1 (AnyBorder rep i) e) => Scan (AnyBorder rep i e) e
 
@@ -480,8 +489,6 @@ instance (Index i, Indexed1 rep Int e) => Indexed (AnyBorder rep i e) i e
 
 instance (Bordered1 rep Int e, Split1 rep e) => Shaped (AnyBorder rep) e
   where
-    reshape es bs = size bs >. es ? expEx "reshape" $ uncurry AnyBorder bs (unpack es)
-    
     (AnyBorder l u rep) !! ij = uncurry AnyBorder sub . take s $ drop o rep
       where
         (num, sub) = slice (l, u) ij
@@ -511,6 +518,9 @@ instance (Index i, MapM1 m rep Int e, LinearM1 m rep e, BorderedM1 m rep Int e) 
       let bnds@(l, u) = ascsBounds ascs
       in  AnyBorder l u <$> newMap' defvalue [ (offset bnds i, e) | (i, e) <- ascs ]
     
+    {-# INLINE writeM' #-}
+    writeM' (AnyBorder l u es) = writeM' es . offset (l, u)
+    
     {-# INLINE (>!) #-}
     (>!) (AnyBorder l u es) = (es !#>) . offset (l, u)
     
@@ -533,9 +543,6 @@ instance (Index i, IndexedM1 m rep Int e) => IndexedM m (AnyBorder rep i e) i e
       where
         ies  = [ (offset (l, u) i, e) | (i, e) <- ascs, inRange (l, u) i ]
         bnds = (0, size (l, u) - 1)
-    
-    {-# INLINE writeM' #-}
-    writeM' (AnyBorder l u es) = writeM' es . offset (l, u)
     
     fromIndexed' = withBounds' <=< fromIndexed'
     fromIndexedM = withBounds' <=< fromIndexedM
@@ -587,9 +594,6 @@ instance {-# OVERLAPS #-} (Index i, Freeze1 m mut imm e) => Freeze m (AnyBorder 
 
 --------------------------------------------------------------------------------
 
-expEx :: String -> a
-expEx =  throw . UnacceptableExpansion . showString "in SDP.Templates.AnyBorder."
-
 ascsBounds :: (Ord a) => [(a, b)] -> (a, a)
 ascsBounds =  \ ((x, _) : xs) -> foldr (\ (e, _) (mn, mx) -> (min mn e, max mx e)) (x, x) xs
 
@@ -604,6 +608,7 @@ withBounds rep = uncurry AnyBorder (defaultBounds $ sizeOf rep) rep
 {-# INLINE withBounds' #-}
 withBounds' :: (Index i, BorderedM1 m rep Int e) => rep e -> m (AnyBorder rep i e)
 withBounds' rep = (\ n -> uncurry AnyBorder (defaultBounds n) rep) <$> getSizeOf rep
+
 
 
 

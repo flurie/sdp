@@ -11,14 +11,12 @@
     "SDP.SortM" provides 'SortM' - class of sortable mutable structures.
 -}
 module SDP.SortM
-  (
-    -- * SortM
-    SortM (..), SortM1, SortM2,
-    sortM, sortMOn, sortedM, sortedMOn
-  )
+(
+  -- * SortM
+  SortM (..), SortM1, SortM2
+)
 where
 
-import Prelude ()
 import SDP.SafePrelude
 
 default ()
@@ -35,9 +33,37 @@ class SortM m s e | s -> m, s -> e
       structures with less than 2 elements.
     -}
     sortedMBy :: (e -> e -> Bool) -> s -> m Bool
+
+    {- |
+      Sort by comparing the results of a given function applied to each element.
+      
+      > sortedMOn = sortedMBy . on (<=)
+    -}
+    sortedMOn :: (Ord o) => (e -> o) -> s -> m Bool
+    sortedMOn =  sortedMBy . on (<=)
+    
+    {- |
+      Checks if the structure is sorted.
+      
+      > sortedM = sortedMBy (<=)
+    -}
+    sortedM :: (Ord e) => s -> m Bool
+    sortedM =  sortedMBy (<=)
     
     -- | 'sortMBy' is common sorting algorithm.
     sortMBy :: Compare e -> s -> m ()
+    
+    {- |
+      Sort by comparing the results of a key function applied to each element.
+      
+      > sortMOn = sortMBy . comparing
+    -}
+    sortMOn :: (Ord o) => (e -> o) -> s -> m ()
+    sortMOn =  sortMBy . comparing
+    
+    -- | 'sortM' is just @'sortMBy' 'compare'@.
+    sortM :: (Ord e) => s -> m ()
+    sortM =  sortMBy compare
 
 --------------------------------------------------------------------------------
 
@@ -46,25 +72,4 @@ type SortM1 m s e = SortM m (s e) e
 
 -- | Kind @(* -> * -> *)@ version of 'SortM'.
 type SortM2 m s i e = SortM m (s i e)
-
---------------------------------------------------------------------------------
-
--- | Checks if the structure is sorted.
-sortedM :: (SortM m s e, Ord e) => s -> m Bool
-sortedM =  sortedMBy (<=)
-
--- | Sort by comparing the results of a given function applied to each element.
-sortedMOn :: (SortM m s e, Ord o) => (e -> o) -> s -> m Bool
-sortedMOn =  sortedMBy . (on (<=))
-
--- | 'sortM' is just @'sortMBy' 'compare'@
-sortM :: (SortM m s e, Ord e) => s -> m ()
-sortM =  sortMBy compare
-
--- | Sort by comparing the results of a key function applied to each element.
-sortMOn :: (SortM m s e, Ord o) => (e -> o) -> s -> m ()
-sortMOn =  sortMBy . comparing
-
-
-
 

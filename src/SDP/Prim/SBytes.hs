@@ -135,17 +135,21 @@ instance (Unboxed e) => E.IsList (SBytes# e)
 
 --------------------------------------------------------------------------------
 
-{- Semigroup, Monoid, Nullable, Default and Estimate instances. -}
+{- Semigroup, Monoid and Default instances. -}
+
+instance Default (SBytes# e) where def = SBytes# 0 0 (unwrap lzero#)
+
+instance (Unboxed e) => Semigroup (SBytes# e) where (<>) = (++)
+instance (Unboxed e) => Monoid    (SBytes# e) where mempty = Z; mappend = (<>)
+
+--------------------------------------------------------------------------------
+
+{- Nullable and Estimate instances. -}
 
 instance Nullable (SBytes# e)
   where
     isNull es = case es of {(SBytes# 0 _ _) -> True; _ -> False}
     lzero     = def
-
-instance (Unboxed e) => Semigroup (SBytes# e) where (<>) = (++)
-instance (Unboxed e) => Monoid    (SBytes# e) where mempty = Z; mappend = (<>)
-
-instance Default (SBytes# e) where def = SBytes# 0 0 (unwrap lzero#)
 
 instance Estimate (SBytes# e)
   where
@@ -164,6 +168,25 @@ instance Estimate (SBytes# e)
 --------------------------------------------------------------------------------
 
 {- Linear, Split and Bordered instances. -}
+
+instance Bordered (SBytes# e) Int
+  where
+    lower = const 0
+    
+    sizeOf   (SBytes# c _ _) = c
+    upper    (SBytes# c _ _) = c - 1
+    bounds   (SBytes# c _ _) = (0, c - 1)
+    indices  (SBytes# c _ _) = [0 .. c - 1]
+    indexOf  (SBytes# c _ _) = index (0, c - 1)
+    offsetOf (SBytes# c _ _) = offset (0, c - 1)
+    indexIn  (SBytes# c _ _) = \ i -> i >= 0 && i < c
+    
+    rebound es@(SBytes# c o bytes#) bnds
+        | n < 0 = Z
+        | n >= c = es
+        | True = SBytes# n o bytes#
+      where
+        n = size bnds
 
 instance (Unboxed e) => Linear (SBytes# e) e
   where
@@ -346,21 +369,9 @@ instance (Unboxed e) => Split (SBytes# e) e
       let go i es = i == 0 ? [] $ maybe [] (: go (i - 1) es) $ g (es !^ i)
       in  reverse $ go (c - 1) xs
 
-instance Bordered (SBytes# e) Int
-  where
-    lower = const 0
-    
-    sizeOf   (SBytes# c _ _) = c
-    upper    (SBytes# c _ _) = c - 1
-    bounds   (SBytes# c _ _) = (0, c - 1)
-    indices  (SBytes# c _ _) = [0 .. c - 1]
-    indexOf  (SBytes# c _ _) = index (0, c - 1)
-    offsetOf (SBytes# c _ _) = offset (0, c - 1)
-    indexIn  (SBytes# c _ _) = \ i -> i >= 0 && i < c
-
 --------------------------------------------------------------------------------
 
-{- Set, SetWith and Sort instances. -}
+{- Set and SetWith instances. -}
 
 instance (Unboxed e, Ord e) => Set (SBytes# e) e
 
@@ -498,6 +509,10 @@ instance (Unboxed e) => SetWith (SBytes# e) e
     
     isSubsetWith f xs ys = o_foldr (\ x b -> b && memberWith f x ys) True xs
 
+--------------------------------------------------------------------------------
+
+{- Scan and Sort instances. -}
+
 instance (Unboxed e) => Scan (SBytes# e) e
 
 instance (Unboxed e) => Sort (SBytes# e) e
@@ -540,6 +555,8 @@ instance (Unboxed e) => Indexed (SBytes# e) Int e
 
 --------------------------------------------------------------------------------
 
+{- Freeze and Thaw instances. -}
+
 instance (Unboxed e) => Thaw (ST s) (SBytes# e) (STBytes# s e)
   where
     thaw es@(SBytes# c@(I# c#) (I# o#) arr#) = do
@@ -573,7 +590,14 @@ instance Eq (STBytes# s e)
 
 --------------------------------------------------------------------------------
 
-{- Estimate, Bordered, BorderedM, LinearM and SplitM instances. -}
+{- NullableM, Estimate and Bordered instances. -}
+
+instance NullableM (ST s) (STBytes# s e)
+  where
+    nowNull (STBytes# n _ _) = return (n < 1)
+    
+    newNull = ST $ \ s1# -> case newByteArray# 0# s1# of
+      (# s2#, marr# #) -> (# s2#, STBytes# 0 0 marr# #)
 
 instance Estimate (STBytes# s e)
   where
@@ -591,8 +615,19 @@ instance Estimate (STBytes# s e)
 
 instance Bordered (STBytes# s e) Int
   where
+    rebound es@(STBytes# c o bytes#) bnds
+        | n < 0 = STBytes# 0 0 bytes#
+        | n < c = STBytes# n o bytes#
+        | True  = es
+      where
+        n = size bnds
+    
     bounds (STBytes# c _ _) = (0, c - 1)
     sizeOf (STBytes# c _ _) = c
+
+--------------------------------------------------------------------------------
+
+{- BorderedM, LinearM and SplitM instances. -}
 
 instance BorderedM (ST s) (STBytes# s e) Int
   where
@@ -606,12 +641,8 @@ instance BorderedM (ST s) (STBytes# s e) Int
 
 instance (Unboxed e) => LinearM (ST s) (STBytes# s e) e
   where
-    newNull = ST $ \ s1# -> case newByteArray# 0# s1# of
-      (# s2#, marr# #) -> (# s2#, STBytes# 0 0 marr# #)
-    
     getHead es = es >! 0
     getLast es = es >! upper es
-    nowNull es = return (sizeOf es == 0)
     newLinear  = fromFoldableM
     
     newLinearN c es = let !n@(I# n#) = max 0 c in ST $
@@ -741,6 +772,11 @@ instance (Unboxed e) => MapM (ST s) (STBytes# s e) Int e
     
     newMap' defvalue ascs = fromAssocs' (ascsBounds ascs) defvalue ascs
     
+    {-# INLINE writeM' #-}
+    writeM' (STBytes# _ (I# o#) marr#) = \ (I# i#) e -> ST $
+      \ s1# -> case writeByteArray# marr# (o# +# i#) e s1# of
+        s2# -> (# s2#, () #)
+    
     (>!) = (!#>)
     
     overwrite es@(STBytes# c _ _) ascs =
@@ -754,11 +790,6 @@ instance (Unboxed e) => IndexedM (ST s) (STBytes# s e) Int e
   where
     fromAssocs  bnds ascs = alloc (size bnds) >>= flip overwrite ascs
     fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
-    
-    {-# INLINE writeM' #-}
-    writeM' (STBytes# _ (I# o#) marr#) = \ (I# i#) e -> ST $
-      \ s1# -> case writeByteArray# marr# (o# +# i#) e s1# of
-        s2# -> (# s2#, () #)
     
     fromIndexed' es = do
       let n = sizeOf es
@@ -799,7 +830,12 @@ pack =  stToMIO . coerce
 
 --------------------------------------------------------------------------------
 
-{- Estimate, Bordered and BorderedM instances. -}
+{- NullableM, Estimate and Bordered instances. -}
+
+instance (MonadIO io) => NullableM io (MIOBytes# io e)
+  where
+    newNull = pack newNull
+    nowNull = stToMIO . nowNull . unpack
 
 instance Estimate (MIOBytes# io e)
   where
@@ -826,6 +862,12 @@ instance Bordered (MIOBytes# io e) Int
     indexOf  (MIOBytes# (STBytes# c _ _)) = index (0, c - 1)
     offsetOf (MIOBytes# (STBytes# c _ _)) = offset (0, c - 1)
     indexIn  (MIOBytes# (STBytes# c _ _)) = \ i -> i >= 0 && i < c
+    
+    rebound  (MIOBytes# es) bnds = MIOBytes# (rebound es bnds)
+
+--------------------------------------------------------------------------------
+
+{- BorderedM, LinearM and SplitM instances. -}
 
 instance (MonadIO io) => BorderedM io (MIOBytes# io e) Int
   where
@@ -836,15 +878,9 @@ instance (MonadIO io) => BorderedM io (MIOBytes# io e) Int
     getUpper   = return . upper . unpack
     getLower _ = return 0
 
---------------------------------------------------------------------------------
-
-{- LinearM and SplitM instances. -}
-
 instance (MonadIO io, Unboxed e) => LinearM io (MIOBytes# io e) e
   where
-    newNull = pack newNull
     singleM = pack . singleM
-    nowNull = stToMIO . nowNull . unpack
     getHead = stToMIO . getHead . unpack
     getLast = stToMIO . getLast . unpack
     
@@ -915,6 +951,8 @@ instance (MonadIO io, Unboxed e) => MapM io (MIOBytes# io e) Int e
     newMap' = pack ... newMap'
     newMap  = pack  .  newMap
     
+    writeM' es = stToMIO ... writeM' (unpack es)
+    
     (>!) = (!#>)
     
     overwrite = pack ... overwrite . unpack
@@ -926,8 +964,6 @@ instance (MonadIO io, Unboxed e) => IndexedM io (MIOBytes# io e) Int e
   where
     fromAssocs  bnds = pack  .  fromAssocs  bnds
     fromAssocs' bnds = pack ... fromAssocs' bnds
-    
-    writeM'   es = stToMIO ... writeM' (unpack es)
     fromIndexed' = pack . fromIndexed'
     
     fromIndexedM es = do
@@ -943,17 +979,12 @@ instance (MonadIO io, Unboxed e) => SortM io (MIOBytes# io e) e
 
 --------------------------------------------------------------------------------
 
-instance (MonadIO io, Unboxed e) => Thaw io (SBytes# e) (MIOBytes# io e)
-  where
-    unsafeThaw = pack . unsafeThaw
-    thaw       = pack . thaw
+{- Freeze and Thaw instances. -}
 
 instance (MonadIO io, Unboxed e) => Freeze io (MIOBytes# io e) (SBytes# e)
   where
     unsafeFreeze = stToMIO . unsafeFreeze . unpack
     freeze       = stToMIO . freeze . unpack
-
---------------------------------------------------------------------------------
 
 instance (Storable e, Unboxed e) => Freeze IO (Int, Ptr e) (SBytes# e)
   where
@@ -963,6 +994,11 @@ instance (Storable e, Unboxed e) => Freeze IO (Int, Ptr e) (SBytes# e)
         (# s2#, marr# #) -> (# s2#, MIOBytes# (STBytes# n' 0 marr#) #)
       forM_ [0 .. n' - 1] $ \ i -> peekElemOff ptr i >>= writeM es' i
       freeze es'
+
+instance (MonadIO io, Unboxed e) => Thaw io (SBytes# e) (MIOBytes# io e)
+  where
+    unsafeThaw = pack . unsafeThaw
+    thaw       = pack . thaw
 
 instance (Storable e, Unboxed e) => Thaw IO (SBytes# e) (Int, Ptr e)
   where
@@ -1105,8 +1141,6 @@ nubSorted f es =
 ascsBounds :: (Ord a) => [(a, b)] -> (a, a)
 ascsBounds =  \ ((x, _) : xs) -> foldr (\ (e, _) (mn, mx) -> (min mn e, max mx e)) (x, x) xs
 
---------------------------------------------------------------------------------
-
 overEx :: String -> a
 overEx =  throw . IndexOverflow . showString "in SDP.Prim.SBytes."
 
@@ -1115,6 +1149,7 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Prim.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
+
 
 
 

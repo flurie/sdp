@@ -29,18 +29,7 @@ default ()
 -}
 class Shaped s e
   where
-    {-# MINIMAL reshape, (!!), slices, unslice #-}
-    
-    -- | 'rebound' with 'defaultBounds'.
-    defaultRebound :: (Index i, Index j, Bordered2 s i e) => s i e -> s j e
-    defaultRebound es = es `reshape` defaultBounds (sizeOf es)
-    
-    -- | Set new bounds of same type, may shrink.
-    rebound :: (Index i) => s i e -> (i, i) -> s i e
-    rebound =  reshape
-    
-    -- | Set new bounds, may shrink.
-    reshape :: (Index i, Index j) => s i e -> (j, j) -> s j e
+    {-# MINIMAL (!!), slices, unslice #-}
     
     -- | @es !! ij@ returns subshape @ij@ of @es@.
     (!!) :: (SubIndex i j) => s i e -> i :|: j -> s j e
@@ -50,6 +39,7 @@ class Shaped s e
     
     -- | Unslice subshapes.
     unslice :: (Foldable f, SubIndex i j) => f (s j e) -> s i e
+
 
 
 

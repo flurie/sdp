@@ -138,17 +138,22 @@ instance E.IsList (SArray# e)
 
 --------------------------------------------------------------------------------
 
-{- Semigroup, Monoid, Nullable, Default and Estimate instances. -}
+{- Semigroup, Monoid and Default instances. -}
+
+instance Semigroup (SArray# e) where (<>) = (++)
+instance Monoid    (SArray# e) where mempty = Z
+instance Default   (SArray# e) where def = Z
+
+--------------------------------------------------------------------------------
+
+{- Nullable and Estimate instances. -}
 
 instance Nullable (SArray# e)
   where
     lzero  = runST $ filled 0 (unreachEx "lzero") >>= done
     isNull = \ (SArray# c _ _) -> c == 0
 
-instance Semigroup (SArray# e) where (<>) = (++)
-instance Monoid    (SArray# e) where mempty = Z; mappend = (<>)
-instance Default   (SArray# e) where def = Z
-instance Estimate  (SArray# e)
+instance Estimate (SArray# e)
   where
     (<==>) = on (<=>) sizeOf
     (.<=.) = on (<=)  sizeOf
@@ -525,10 +530,12 @@ instance Bordered (SArray# e) Int
     indexOf  (SArray# c _ _) = index (0, c - 1)
     offsetOf (SArray# c _ _) = offset (0, c - 1)
     indexIn  (SArray# c _ _) = \ i -> i >= 0 && i < c
+    
+    rebound es bnds = size bnds `take` es
 
 --------------------------------------------------------------------------------
 
-{- Set, SetWith, Scan and Sort instances. -}
+{- Set and SetWith instances. -}
 
 instance (Ord e) => Set (SArray# e) e
 
@@ -668,6 +675,10 @@ instance SetWith (SArray# e) e
             j = l + (u - l) `div` 2
             e = es !^ j
 
+--------------------------------------------------------------------------------
+
+{- Scan and Sort instances. -}
+
 instance Scan (SArray# e) e
 
 instance Sort (SArray# e) e
@@ -677,7 +688,7 @@ instance Sort (SArray# e) e
 
 --------------------------------------------------------------------------------
 
-{- Indexed instance. -}
+{- Map and Indexed instances. -}
 
 instance Map (SArray# e) Int e
   where
@@ -702,6 +713,8 @@ instance Indexed (SArray# e) Int e
       updateM copy (\ i _ -> es!^i) >>= done
 
 --------------------------------------------------------------------------------
+
+{- Thaw and Freeze instances. -}
 
 instance Thaw (ST s) (SArray# e) (STArray# s e)
   where
@@ -742,7 +755,14 @@ instance Eq (STArray# s e)
 
 --------------------------------------------------------------------------------
 
-{- Estimate, Bordered, BorderedM, LinearM and SplitM instances. -}
+{- NullableM, Estimate and Bordered instances. -}
+
+instance NullableM (ST s) (STArray# s e)
+  where
+    newNull = ST $ \ s1# -> case newArray# 0# (unreachEx "newNull") s1# of
+      (# s2#, marr# #) -> (# s2#, STArray# 0 0 marr# #)
+    
+    nowNull (STArray# n _ _) = return (n < 1)
 
 instance Estimate (STArray# s e)
   where
@@ -769,6 +789,17 @@ instance Bordered (STArray# s e) Int
     indexOf  (STArray# c _ _) = index (0, c - 1)
     offsetOf (STArray# c _ _) = offset (0, c - 1)
     indexIn  (STArray# c _ _) = \ i -> i >= 0 && i < c
+    
+    rebound es@(STArray# c o arr#) bnds
+        | n < 0 = STArray# 0 0 arr#
+        | n < c = STArray# n o arr#
+        | True  = es
+      where
+        n = size bnds
+
+--------------------------------------------------------------------------------
+
+{- BorderedM, LinearM and SplitM instances. -}
 
 instance BorderedM (ST s) (STArray# s e) Int
   where
@@ -782,11 +813,6 @@ instance BorderedM (ST s) (STArray# s e) Int
 
 instance LinearM (ST s) (STArray# s e) e
   where
-    newNull = ST $ \ s1# -> case newArray# 0# (unreachEx "newNull") s1# of
-      (# s2#, marr# #) -> (# s2#, STArray# 0 0 marr# #)
-    
-    nowNull es = return (sizeOf es < 1)
-    
     getHead es = es >! 0
     getLast es = es >! upper es
     
@@ -927,6 +953,10 @@ instance MapM (ST s) (STArray# s e) Int e
   where
     newMap' defvalue ascs = fromAssocs' (ascsBounds ascs) defvalue ascs
     
+    {-# INLINE writeM' #-}
+    writeM' (STArray# _ (I# o#) marr#) = \ (I# i#) e -> ST $
+      \ s1# -> case writeArray# marr# (o# +# i#) e s1# of s2# -> (# s2#, () #)
+    
     (>!) = (!#>)
     
     overwrite es@(STArray# c _ _) ascs =
@@ -939,10 +969,6 @@ instance MapM (ST s) (STArray# s e) Int e
 instance IndexedM (ST s) (STArray# s e) Int e
   where
     fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
-    
-    {-# INLINE writeM' #-}
-    writeM' (STArray# _ (I# o#) marr#) = \ (I# i#) e -> ST $
-      \ s1# -> case writeArray# marr# (o# +# i#) e s1# of s2# -> (# s2#, () #)
     
     fromIndexed' es = do
       let n = sizeOf es
@@ -983,7 +1009,7 @@ pack =  stToMIO . coerce
 
 --------------------------------------------------------------------------------
 
-{- Estimate, Bordered and BorderedM instances. -}
+{- Estimate, Bordered and NullableM instances. -}
 
 instance Estimate (MIOArray# io e)
   where
@@ -1010,6 +1036,17 @@ instance Bordered (MIOArray# io e) Int
     indexOf  (MIOArray# (STArray# c _ _)) = index (0, c - 1)
     offsetOf (MIOArray# (STArray# c _ _)) = offset (0, c - 1)
     indexIn  (MIOArray# (STArray# c _ _)) = \ i -> i >= 0 && i < c
+    
+    rebound  (MIOArray# es) bnds = MIOArray# (rebound es bnds)
+
+instance (MonadIO io) => NullableM io (MIOArray# io e)
+  where
+    newNull = pack newNull
+    nowNull = stToMIO . nowNull . unpack
+
+--------------------------------------------------------------------------------
+
+{- BorderedM, LinearM and SplitM instances. -}
 
 instance (MonadIO io) => BorderedM io (MIOArray# io e) Int
   where
@@ -1020,15 +1057,9 @@ instance (MonadIO io) => BorderedM io (MIOArray# io e) Int
     getUpper   = return . upper . unpack
     getLower _ = return 0
 
---------------------------------------------------------------------------------
-
-{- LinearM and SplitM instances. -}
-
 instance (MonadIO io) => LinearM io (MIOArray# io e) e
   where
-    newNull = pack newNull
     singleM = pack . singleM
-    nowNull = stToMIO . nowNull . unpack
     getHead = stToMIO . getHead . unpack
     getLast = stToMIO . getLast . unpack
     
@@ -1097,6 +1128,8 @@ instance (MonadIO io) => MapM io (MIOArray# io e) Int e
   where
     newMap' defvalue ascs = fromAssocs' (ascsBounds ascs) defvalue ascs
     
+    writeM' es = stToMIO ... writeM' (unpack es)
+    
     (>!) = (!#>)
     
     overwrite = pack ... overwrite . unpack
@@ -1107,8 +1140,6 @@ instance (MonadIO io) => IndexedM io (MIOArray# io e) Int e
   where
     fromAssocs  bnds = pack  .  fromAssocs  bnds
     fromAssocs' bnds = pack ... fromAssocs' bnds
-    
-    writeM' es = stToMIO ... writeM' (unpack es)
     
     fromIndexed' = pack . fromIndexed'
     
@@ -1125,6 +1156,8 @@ instance (MonadIO io) => SortM io (MIOArray# io e) e
 
 --------------------------------------------------------------------------------
 
+{- Thaw and Freeze instances. -}
+
 instance (MonadIO io) => Thaw io (SArray# e) (MIOArray# io e)
   where
     unsafeThaw = pack . unsafeThaw
@@ -1137,6 +1170,15 @@ instance (MonadIO io) => Freeze io (MIOArray# io e) (SArray# e)
 
 --------------------------------------------------------------------------------
 
+{- Thaw and Freeze instances. -}
+
+instance (Storable e) => Thaw IO (SArray# e) (Int, Ptr e)
+  where
+    thaw (SArray# n o arr#) = do
+      ptr <- callocArray n
+      forM_ [o .. n + o - 1] $ \ i@(I# i#) -> let (# e #) = indexArray# arr# i# in pokeElemOff ptr i e
+      return (n, ptr)
+
 instance (Storable e) => Freeze IO (Int, Ptr e) (SArray# e)
   where
     freeze (n, ptr) = do
@@ -1147,13 +1189,6 @@ instance (Storable e) => Freeze IO (Int, Ptr e) (SArray# e)
         freeze es'
       where
         err = undEx "freeze {(Int, Ptr e) => SArray# e}" `asProxyTypeOf` ptr
-
-instance (Storable e) => Thaw IO (SArray# e) (Int, Ptr e)
-  where
-    thaw (SArray# n o arr#) = do
-      ptr <- callocArray n
-      forM_ [o .. n + o - 1] $ \ i@(I# i#) -> let (# e #) = indexArray# arr# i# in pokeElemOff ptr i e
-      return (n, ptr)
 
 --------------------------------------------------------------------------------
 
@@ -1226,8 +1261,6 @@ asProxyTypeOf =  const
 (<?=>) :: (Bordered b i) => Int -> b -> Int
 (<?=>) =  (. sizeOf) . min
 
---------------------------------------------------------------------------------
-
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.Prim.SArray."
 
@@ -1242,4 +1275,6 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
+
+
 

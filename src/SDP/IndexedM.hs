@@ -37,11 +37,6 @@ default ()
 
 --------------------------------------------------------------------------------
 
-{-# WARNING updateM' "will be moved to SDP.MapM.MapM class in sdp-0.3" #-}
-{-# WARNING writeM'  "will be moved to SDP.MapM.MapM class in sdp-0.3" #-}
-
---------------------------------------------------------------------------------
-
 -- | Class for work with mutable indexed structures.
 class (LinearM m v e, BorderedM m v i, MapM m v i e) => IndexedM m v i e
   where
@@ -64,19 +59,6 @@ class (LinearM m v e, BorderedM m v i, MapM m v i e) => IndexedM m v i e
     -}
     fromAssocs' :: (i, i) -> e -> [(i, e)] -> m v
     fromAssocs' bnds defvalue = newMap' defvalue . filter (inRange bnds . fst)
-    
-    {- |
-      @'writeM' map key e@ writes element @e@ to @key@ position safely (if @key@
-      is out of @map@ range, do nothing). The 'writeM' function is intended to
-      overwrite only existing values, so its behavior is identical for
-      structures with both static and dynamic boundaries.
-    -}
-    writeM' :: v -> i -> e -> m ()
-    writeM' es i e = do bnds <- getBounds es; writeM es (offset bnds i) e
-    
-    -- | Update element by given function.
-    updateM' :: v -> (e -> e) -> i -> m ()
-    updateM' es f i = writeM' es i . f =<< es >! i
     
     -- | Just swap two elements.
     swapM' :: v -> i -> i -> m ()
@@ -131,5 +113,8 @@ type IndexedM2 m v i e = IndexedM m (v i e) i e
 
 -- | Kind @(* -> *)@ 'Thaw'.
 type Thaw1 m v v' e = Thaw m (v e) (v' e)
+
+
+
 
 

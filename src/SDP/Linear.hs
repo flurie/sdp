@@ -58,7 +58,7 @@ infixl 9 !^
 -- | Class of bordered data structures.
 class (Index i, Estimate b) => Bordered b i | b -> i
   where
-    {-# MINIMAL (bounds|(lower, upper)) #-}
+    {-# MINIMAL (bounds|(lower, upper)), rebound #-}
     
     {-# INLINE bounds #-}
     {- |
@@ -107,6 +107,34 @@ class (Index i, Estimate b) => Bordered b i | b -> i
     -- | Returns index offset in structure bounds.
     offsetOf :: b -> i -> Int
     offsetOf =  offset . bounds
+    
+    {- |
+      @'rebound' es bnds@ returns (old) structure with bounds @bnds@, if
+      possible.
+      
+      * 'rebound' doesn't change the existing structure and shouldn't create a
+      new one
+      * 'rebound' don't selects elements from its subrange and keeps the
+      original element order, so @'bounds' es@ don't affect the 'rebound'
+      result
+      * if @'size' bnds > sizeOf es@, upper bound will be replaced by
+      @'index' bnds ('sizeOf' es)@
+      * if the specified 'bounds' cannot be set, 'rebound' uses the
+      @'defaultBounds' ('size' bnds)@ value.
+      
+      @
+        sizeOf (rebound es bnds) === min (sizeOf es) (size bnds)
+        bounds (rebound es bnds) =/= bnds -- generally speaking
+      @
+      
+      > rebound [1 .. 10] (5, 8) :: [Int]
+      [1,2,3,4] -- bounds: (0, 9) => (0, 3)
+      > rebound (fromList [1 .. 10]) (5, 8) :: SArray# Int
+      [1,2,3,4] -- bounds: (0, 9) => (0, 3)
+      > rebound (fromList [1 .. 10]) (5, 8) :: Array Int Int
+      array (5,8) [(5,1),(6,2),(7,3),(8,4)] -- bounds: (0, 9) => (5, 8)
+    -}
+    rebound :: b -> (i, i) -> b
 
 --------------------------------------------------------------------------------
 
@@ -793,6 +821,7 @@ instance Bordered [e] Int
     sizeOf = length
     lower  = const 0
     
+    rebound es = \ bnds -> size bnds `take` es
     upper   es = length es - 1
 
 instance Linear [e] e
@@ -913,6 +942,7 @@ instance (Index i) => Bordered (i, i) i
     
     indices = range
     indexIn = inRange
+    rebound = const id
     
     sizeOf   = size
     indexOf  = index

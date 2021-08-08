@@ -70,9 +70,24 @@ class (Monad m) => MapM m map key e | map -> m, map -> key, map -> e
     (!?>) :: map -> key -> m (Maybe e)
     es !?> i = do b <- memberM' es i; b ? Just <$> (es >! i) $ pure empty
     
+    {- |
+      @'writeM' map key e@ writes element @e@ to @key@ position safely (if @key@
+      is out of @map@ range, do nothing). The 'writeM' function is intended to
+      overwrite only existing values, so its behavior is identical for
+      structures with both static and dynamic boundaries.
+    -}
+    writeM' :: map -> key -> e -> m ()
+    default writeM' :: (LinearM m map e, BorderedM m map key) => map -> key -> e -> m ()
+    writeM' es i e = do bnds <- getBounds es; writeM es (offset bnds i) e
+    
     -- | Update elements by mapping with indices.
     updateM :: map -> (key -> e -> e) -> m map
+    default updateM :: (BorderedM m map key) => map -> (key -> e -> e) -> m map
     updateM es f = do ascs <- getAssocs es; es `overwrite` [ (i, f i e) | (i, e) <- ascs ]
+    
+    -- | Update element by given function.
+    updateM' :: map -> (e -> e) -> key -> m ()
+    updateM' es f i = writeM' es i . f =<< es >! i
     
     {- |
       This function designed to overwrite large enough fragments of the

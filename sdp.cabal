@@ -55,8 +55,9 @@ Library
   exposed-modules:
     SDP.SafePrelude
     SDP.Comparing
-    SDP.Estimate
+    SDP.NullableM
     SDP.Nullable
+    SDP.Estimate
     SDP.IndexedM
     SDP.Unboxed
     SDP.Indexed
@@ -125,6 +126,5 @@ Library
     
     Text.Show.SDP
     Text.Read.SDP
-
 
 

@@ -125,12 +125,7 @@ instance (Indexed1 rep Int e, Read e) => Read (AnyChunks rep e)
 
 --------------------------------------------------------------------------------
 
-{- Semigroup, Monoid, Nullable, Default and Estimate instances. -}
-
-instance Nullable (AnyChunks rep e)
-  where
-    isNull = \ (AnyChunks es) -> null es
-    lzero  = AnyChunks []
+{- Semigroup, Monoid and Default instances. -}
 
 instance Semigroup (AnyChunks rep e)
   where
@@ -138,6 +133,20 @@ instance Semigroup (AnyChunks rep e)
 
 instance Monoid  (AnyChunks rep e) where mempty = AnyChunks []; mappend = (<>)
 instance Default (AnyChunks rep e) where def    = AnyChunks []
+
+--------------------------------------------------------------------------------
+
+{- Nullable, NullableM and Estimate instances. -}
+
+instance Nullable (AnyChunks rep e)
+  where
+    isNull = \ (AnyChunks es) -> null es
+    lzero  = AnyChunks []
+
+instance (NullableM m (rep e)) => NullableM m (AnyChunks rep e)
+  where
+    nowNull = fmap and . mapM nowNull . toChunks
+    newNull = return (AnyChunks [])
 
 instance (Bordered1 rep Int e) => Estimate (AnyChunks rep e)
   where
@@ -219,6 +228,14 @@ instance (Bordered1 rep Int e) => Bordered (AnyChunks rep e) Int
     lower   _ = 0
     upper  es = sizeOf es - 1
     bounds es = (0, sizeOf es - 1)
+    
+    rebound es bnds = AnyChunks (size bnds `go` toChunks es)
+      where
+        go c (x : xs) = let s = sizeOf x in case c <=> s of
+          LT -> [x `rebound` defaultBounds c]
+          GT -> x : go (c - s) xs
+          EQ -> [x]
+        go _    []    = []
 
 instance (Bordered1 rep Int e, Linear1 rep e) => Linear (AnyChunks rep e) e
   where
@@ -338,10 +355,8 @@ instance (BorderedM1 m rep Int e) => BorderedM m (AnyChunks rep e) Int
 
 instance (BorderedM1 m rep Int e, SplitM1 m rep e) => LinearM m (AnyChunks rep e) e
   where
-    nowNull = fmap and . mapM nowNull . toChunks
     getHead = getHead . head . toChunks
     getLast = getLast . last . toChunks
-    newNull = return (AnyChunks [])
     
     prepend e' es' = AnyChunks <$> go e' (toChunks es')
       where
@@ -436,7 +451,7 @@ instance (BorderedM1 m rep Int e, SplitM1 m rep e) => SplitM m (AnyChunks rep e)
 
 --------------------------------------------------------------------------------
 
-{- Set and Scan instances. -}
+{- Set, SetWith and Scan instances. -}
 
 instance (Nullable (AnyChunks rep e), SetWith1 (AnyChunks rep) e, Ord e) => Set (AnyChunks rep e) e
 
@@ -537,6 +552,9 @@ instance (SplitM1 m rep e, MapM1 m rep Int e, BorderedM1 m rep Int e) => MapM m 
             (as, bs) = partition (inRange (l, n) . fst) ies
             n = min u (l + lim)
     
+    {-# INLINE writeM' #-}
+    writeM' es i e = (i < 0) `unless` writeM es i e
+    
     {-# INLINE (>!) #-}
     es >! i = i < 0 ? overEx "(>!)" $ es !#> i
     
@@ -567,9 +585,6 @@ instance (SplitM1 m rep e, IndexedM1 m rep Int e) => IndexedM m (AnyChunks rep e
           where
             (as, bs) = partition (inRange (l, n) . fst) ies
             n = min u (l + lim)
-    
-    {-# INLINE writeM' #-}
-    writeM' es i e = (i < 0) `unless` writeM es i e
     
     fromIndexed' = newLinear  .  listL
     fromIndexedM = newLinear <=< getLeft

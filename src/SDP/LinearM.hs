@@ -14,6 +14,7 @@
 module SDP.LinearM
 (
   -- * Exports
+  module SDP.NullableM,
   module SDP.Linear,
   
   -- * BorderedM class
@@ -29,6 +30,7 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
+import SDP.NullableM
 import SDP.Linear
 import SDP.Map
 
@@ -89,17 +91,9 @@ class (Monad m, Index i) => BorderedM m b i | b -> m, b -> i
   designed with the possibility of in-place implementation, so many operations
   from 'Linear' have no analogues here.
 -}
-class (Monad m) => LinearM m l e | l -> m, l -> e
+class (Monad m, NullableM m l) => LinearM m l e | l -> m, l -> e
   where
     {-# MINIMAL (newLinear|fromFoldableM), (getLeft|getRight), (!#>), writeM, copyTo #-}
-    
-    -- | Monadic 'single'.
-    newNull :: m l
-    newNull =  newLinear []
-    
-    -- | Monadic 'isNull'.
-    nowNull :: l -> m Bool
-    nowNull =  fmap isNull . getLeft
     
     -- | Monadic 'single'.
     singleM :: e -> m l

@@ -34,12 +34,17 @@ newtype TArray# e = TArray# (SArray# (TVar e)) deriving ( Eq )
 
 --------------------------------------------------------------------------------
 
-{- Nullable, Estimate, Bordered and BorderedM instances. -}
+{- Nullable, NullableM, Estimate, Bordered instances. -}
 
 instance Nullable (TArray# e)
   where
     isNull = \ (TArray# es) -> isNull es
     lzero  = TArray# Z
+
+instance NullableM STM (TArray# e)
+  where
+    newNull = return (TArray# Z)
+    nowNull = return . isNull . unpack
 
 instance Estimate (TArray# e)
   where
@@ -65,7 +70,12 @@ instance Bordered (TArray# e) Int
     indices  (TArray# arr) = [0 .. upper arr]
     indexOf  (TArray# arr) = index (0, upper arr)
     offsetOf (TArray# arr) = offset (0, upper arr)
+    rebound  (TArray# arr) bnds = TArray# (rebound arr bnds)
     indexIn  (TArray# arr) = \ i -> i >= 0 && i < sizeOf arr
+
+--------------------------------------------------------------------------------
+
+{- BorderedM, LinearM and SplitM instances. -}
 
 instance BorderedM STM (TArray# e) Int
   where
@@ -76,14 +86,8 @@ instance BorderedM STM (TArray# e) Int
     getUpper   = return . upper
     getLower _ = return 0
 
---------------------------------------------------------------------------------
-
-{- LinearM and SplitM instances. -}
-
 instance LinearM STM (TArray# e) e
   where
-    newNull = return (TArray# Z)
-    nowNull = return . isNull . unpack
     getHead = readTVar . head . unpack
     getLast = readTVar . last . unpack
     singleM = fmap (TArray# . single) . newTVar
@@ -160,6 +164,9 @@ instance MapM STM (TArray# e) Int e
   where
     newMap' defvalue ascs = fromAssocs' (ascsBounds ascs) defvalue ascs
     
+    {-# INLINE writeM' #-}
+    writeM' = writeTVar ... (!^) . unpack
+    
     (>!) = (!#>)
     
     overwrite es ascs = do
@@ -172,9 +179,6 @@ instance MapM STM (TArray# e) Int e
 instance IndexedM STM (TArray# e) Int e
   where
     fromAssocs' bnds defvalue ascs = size bnds `filled` defvalue >>= (`overwrite` ascs)
-    
-    {-# INLINE writeM' #-}
-    writeM' = writeTVar ... (!^) . unpack
     
     fromIndexed' es = do
       let n = sizeOf es
@@ -212,4 +216,5 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Prim.TArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.TArray."
+
 
