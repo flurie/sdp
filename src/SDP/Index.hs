@@ -404,6 +404,7 @@ instance Index CUChar   where offset = offsetIntegral; defaultBounds = defaultBo
 instance Index CUShort  where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
 instance Index CUInt    where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
 instance Index CULong   where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+instance Index CULLong  where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
 instance Index CUIntPtr where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
 instance Index CUIntMax where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
 
@@ -569,7 +570,6 @@ checkBounds bnds i res = case inBounds bnds i of
 
 emptyEx :: String -> a
 emptyEx =  throw . EmptyRange . showString "in SDP.Index."
-
 
 
 
