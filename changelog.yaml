@@ -1,31 +1,147 @@
 # template
 # - version: 1.0
-#   # important
-#   dependencies: # [{ !package, ~since, ~upto :: String }]
+#   # important (tl; dr)
+#   dependencies: # [{!package: String, ~since: String, ~upto: String}]
 #   crutches:     # [String]
 #   fixes:        # [String]
 #   deprecations: # [String]
 #   improvements: # [String: String]
 #
-#   # news
-#   modules:         # [String: String]
-#   definitions:     # [String: [String]]
-#   classes:         # [String: String]
-#   class-functions: # [String: [String]]
-#   types:           # [String: String]
-#   type-families:   # [String: [String]]
-#   exceptions:      # [String: [String]]
+#   # news (non-breaking changes)
+#   modules:         # [{String: String}]
+#   definitions:     # [{String: [String]}]
+#   classes:         # [{String: String}]
+#   class-functions: # [{String: [String]}]
+#   types:           # [{String: String}]
+#   type-families:   # [{String: [String]}]
+#   exceptions:      # [{String: [String]}]
 #   syntax:          # [String]
 #   tests:           # [String: String; ~Suite]
-#   benchmarks:      # [String: String]
+#   benchmarks:      # [{String: String}]
 #
-#   # changes
-#   moved:        # [String: String]
-#   changes:      # [String: String]
-#   superclasses: # [String: [String]]
-#   removed:      # [String: [String]]
+#   # changes (breaking changes)
+#   moved:        # [{String: String}]
+#   changes:      # [{String: String}]
+#   superclasses: # [{String: [String]}]
+#   removed:      # [{String: [String]}]
 
 ---
+
+- version: 0.2.1
+  # important
+  dependencies:
+    - package: ghc-prim
+      since: 0.5.3
+      upto: 0.7
+
+    - package: data-default-class
+      since: 0.1
+      upto: 0.2
+
+    - package: base
+      since: 4.8
+      upto: 5
+
+    - package: fmr
+      since: 0.1
+      upto: 1
+
+  fixes:
+    - isPrefixOf and isSuffixOf definitions
+    - typo in the word 'Concurrent' in Control.Concurrent.SDP.* module names
+
+  deprecations:
+    - SDP.Indexed.Indexed.updates' in favour 'update', will be removed in sdp-0.3
+    - SDP.Indexed.Indexed.update' will be moved to SDP.Map.Map class in sdp-0.3
+    - SDP.Indexed.Indexed.write' will be moved to SDP.Map.Map class in sdp-0.3
+
+    - SDP.IndexedM.IndexedM.updateM' will be moved to SDP.MapM.MapM class in sdp-0.3
+    - SDP.IndexedM.IndexedM.writeM' will be moved to SDP.MapM.MapM class in sdp-0.3
+
+  improvements:
+    - added 'Nullable' instances for pointers and default definition for 'lzero'
+
+  # news
+  modules:
+    - Control.Concurrent.SDP.TArray: same as Control.Concurrent.SDP.TArray
+    - Control.Concurrent.SDP.TUnlist: same as Control.Concurrent.SDP.TUnlist
+    - Control.Concurrent.SDP.TUnrolled: same as Control.Concurrent.SDP.TUnrolled
+
+    - SDP.ZipM: monadic version of SDP.Zip
+
+  definitions:
+    - SDP.LinearM:
+        - "(:+=)"
+        - "(:=+)"
+        - "(:~=)"
+    - SDP.Unboxed:
+        - lzero#
+        - single#
+        - concat#
+        - pconcat
+        - psizeof#
+        - fromList#
+        - fromListN#
+        - newLinear#
+        - newLinearN#
+        - thawUnboxed#
+        - fromFoldable#
+        - fromFoldableM#
+        - freezeUnboxed#
+        - cloneUnboxedM#
+
+        - fromProxy
+        - fromProxy1
+        - pnewUnboxed'
+        - pnewUnboxed1'
+        - pthawUnboxed
+        - pcloneUnboxed
+        - pcloneUnboxed1
+        - pfreezeUnboxed
+        - pcopyUnboxedM1
+        - pcloneUnboxedM
+        - pcloneUnboxedM1
+  classes:
+    - ZipM: monadic version of SDP.Zip.Zip
+
+  class-functions:
+    - Linear:
+        - after
+        - before
+        - remove
+        - o_foldr1
+        - o_foldl1
+        - o_foldr1'
+        - o_foldl1'
+    - LinearM:
+        - lshiftM
+        - foldrM1
+        - foldlM1
+
+    - ZipM:
+        - zipM
+        - zipM3
+        - zipM4
+        - zipM5
+        - zipM6
+
+        - mzipWith
+        - mzipWith3
+        - mzipWith4
+        - mzipWith5
+        - mzipWith6
+
+        - zipWithM
+        - zipWithM3
+        - zipWithM4
+        - zipWithM5
+        - zipWithM6
+  types:
+    - Wrap: service wrapper type for some fo SDP.Unboxed definitions
+
+# ---------------------------------------------------------------------------- #
+# ############################################################################ #
+# ---------------------------------------------------------------------------- #
 
 - version: 0.2
   # important
