@@ -1222,7 +1222,7 @@ ascsBounds =  \ ((x, _) : xs) -> foldr (\ (e, _) (mn, mx) -> (min mn e, max mx e
 asProxyTypeOf :: a -> proxy a -> a
 asProxyTypeOf =  const
 
-(<?=>) :: (Bordered a j) => Int -> a -> Int
+(<?=>) :: (Bordered b i) => Int -> b -> Int
 (<?=>) =  (. sizeOf) . min
 
 --------------------------------------------------------------------------------

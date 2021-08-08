@@ -24,10 +24,10 @@ module SDP.Linear
   Bordered (..), Bordered1, Bordered2,
   
   -- * Linear class
-  Linear (..), Linear1, pattern (:>), pattern (:<), pattern Z,
+  Linear (..), Linear1, Linear2, pattern (:>), pattern (:<), pattern Z,
   
   -- * Split class
-  Split (..), Split1,
+  Split (..), Split1, Split2,
   
   -- * Related functions
   stripPrefix, stripSuffix, stripPrefix', stripSuffix',
@@ -48,8 +48,7 @@ import Control.Exception.SDP
 
 default ()
 
-infix 8 `filter`, `except`
-
+infix  8 `filter`, `except`
 infixr 5 :>, ++
 infixl 5 :<
 infixl 9 !^
@@ -108,28 +107,6 @@ class (Index i, Estimate b) => Bordered b i | b -> i
     -- | Returns index offset in structure bounds.
     offsetOf :: b -> i -> Int
     offsetOf =  offset . bounds
-
---------------------------------------------------------------------------------
-
-instance (Index i) => Bordered (i, i) i
-  where
-    bounds = id
-    lower  = fst
-    upper  = snd
-    
-    indices = range
-    indexIn = inRange
-    
-    sizeOf   = size
-    indexOf  = index
-    offsetOf = offset
-
-instance Bordered [e] Int
-  where
-    sizeOf = length
-    lower  = const 0
-    
-    upper es = length es - 1
 
 --------------------------------------------------------------------------------
 
@@ -790,8 +767,14 @@ pattern xs :< x <- (unsnoc' -> Just (xs, x)) where (:<) = toLast
 -- | Kind @(* -> *)@ 'Linear' structure.
 type Linear1 l e = Linear (l e) e
 
+-- | Kind @(* -> * -> *)@ 'Linear' structure.
+type Linear2 l i e = Linear (l i e) e
+
 -- | Kind @(* -> *)@ 'Split' structure.
 type Split1 s e = Split (s e) e
+
+-- | Kind @(* -> * -> *)@ 'Split' structure.
+type Split2 s i e = Split (s i e) e
 
 -- | Kind @(* -> *)@ 'Bordered' structure.
 type Bordered1 l i e = Bordered (l e) i
@@ -804,6 +787,13 @@ type Bordered2 l i e = Bordered (l i e) i
 {-# COMPLETE Z,  (:)  #-}
 {-# COMPLETE [], (:>) #-}
 {-# COMPLETE [], (:<) #-}
+
+instance Bordered [e] Int
+  where
+    sizeOf = length
+    lower  = const 0
+    
+    upper   es = length es - 1
 
 instance Linear [e] e
   where
@@ -912,6 +902,21 @@ instance Split [e] e
     selectWhile f (x : xs) = case f x of {(Just e) -> e : select f xs; _ -> []}
     
     selectEnd f = reverse . selectWhile f . reverse
+
+--------------------------------------------------------------------------------
+
+instance (Index i) => Bordered (i, i) i
+  where
+    bounds = id
+    lower  = fst
+    upper  = snd
+    
+    indices = range
+    indexIn = inRange
+    
+    sizeOf   = size
+    indexOf  = index
+    offsetOf = offset
 
 --------------------------------------------------------------------------------
 

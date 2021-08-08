@@ -155,7 +155,7 @@ instance Storable WordAs8
         (# s2#, x #) -> (# s2#, WordAs8 (W# x) #)
     
     pokeElemOff (Ptr p#) (I# i#) (WordAs8 (W# x)) = IO $
-      \ s1# -> case writeWord8OffAddr# p# i# x s1# of s2 -> (# s2, () #)
+      \ s1# -> (# writeWord8OffAddr# p# i# x s1#, () #)
 
 instance Storable WordAs16
   where
@@ -167,7 +167,7 @@ instance Storable WordAs16
         (# s2, x #) -> (# s2, WordAs16 (W# x) #)
     
     pokeElemOff (Ptr p#) (I# i#) (WordAs16 (W# x)) = IO $
-      \ s1# -> case writeWord16OffAddr# p# i# x s1# of s2 -> (# s2, () #)
+      \ s1# -> (# writeWord16OffAddr# p# i# x s1#, () #)
 
 instance Storable WordAs32
   where
@@ -179,7 +179,7 @@ instance Storable WordAs32
         (# s2, x #) -> (# s2, WordAs32 (W# x) #)
     
     pokeElemOff (Ptr p#) (I# i#) (WordAs32 (W# x)) = IO $
-      \ s1# -> case writeWord32OffAddr# p# i# x s1# of s2 -> (# s2, () #)
+      \ s1# -> (# writeWord32OffAddr# p# i# x s1#, () #)
 
 instance Storable WordAs64
   where
@@ -191,5 +191,5 @@ instance Storable WordAs64
         (# s2, x #) -> (# s2, WordAs64 (W# x) #)
     
     pokeElemOff (Ptr p#) (I# i#) (WordAs64 (W# x)) = IO $
-      \ s1# -> case writeWord64OffAddr# p# i# x s1# of s2 -> (# s2, () #)
+      \ s1# -> (# writeWord64OffAddr# p# i# x s1#, () #)
 

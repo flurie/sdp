@@ -155,7 +155,7 @@ instance Storable IntAs8
         (# s2#, x #) -> (# s2#, IntAs8 (I# x) #)
     
     pokeElemOff (Ptr p#) (I# i#) (IntAs8 (I# x)) = IO $
-      \ s1# -> case writeInt8OffAddr# p# i# x s1# of s2 -> (# s2, () #)
+      \ s1# -> (# writeInt8OffAddr# p# i# x s1#, () #)
 
 instance Storable IntAs16
   where
@@ -167,7 +167,7 @@ instance Storable IntAs16
         (# s2, x #) -> (# s2, IntAs16 (I# x) #)
     
     pokeElemOff (Ptr p#) (I# i#) (IntAs16 (I# x)) = IO $
-      \ s1# -> case writeInt16OffAddr# p# i# x s1# of s2 -> (# s2, () #)
+      \ s1# -> (# writeInt16OffAddr# p# i# x s1#, () #)
 
 instance Storable IntAs32
   where
@@ -179,7 +179,7 @@ instance Storable IntAs32
         (# s2, x #) -> (# s2, IntAs32 (I# x) #)
     
     pokeElemOff (Ptr p#) (I# i#) (IntAs32 (I# x)) = IO $
-      \ s1# -> case writeInt32OffAddr# p# i# x s1# of s2 -> (# s2, () #)
+      \ s1# -> (# writeInt32OffAddr# p# i# x s1#, () #)
 
 instance Storable IntAs64
   where
@@ -191,5 +191,5 @@ instance Storable IntAs64
         (# s2, x #) -> (# s2, IntAs64 (I# x) #)
     
     pokeElemOff (Ptr p#) (I# i#) (IntAs64 (I# x)) = IO $
-      \ s1# -> case writeInt64OffAddr# p# i# x s1# of s2 -> (# s2, () #)
+      \ s1# -> (# writeInt64OffAddr# p# i# x s1#, () #)
 

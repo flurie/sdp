@@ -13,7 +13,7 @@
 module SDP.Nullable
 (
   -- * Nullable
-  Nullable (..), Nullable1, pattern NULL
+  Nullable (..), Nullable1, Nullable2, pattern NULL
 )
 where
 
@@ -40,6 +40,12 @@ class Nullable e
     default isNull :: (Eq e) => e -> Bool
     isNull :: e -> Bool
     isNull =  (== lzero)
+
+-- | @since 0.2.1 @(* -> *)@ kind 'Nullable' structure.
+type Nullable1 rep e = Nullable (rep e)
+
+-- | @since 0.3 @(* -> * -> *)@ kind 'Nullable' structure.
+type Nullable2 rep e = Nullable (rep e)
 
 -- | Originally defined in @sdp-ctypes@ (now @sdp-foreign@), same as @Z@ now.
 pattern NULL :: (Nullable e) => e
@@ -85,11 +91,5 @@ instance Nullable (StablePtr e)
 instance Nullable (FunPtr e)
   where
     lzero  = nullFunPtr
-
---------------------------------------------------------------------------------
-
--- | @since 0.2.1 @(Type -> Type)@ kind 'Nullable' structure.
-type Nullable1 rep e = Nullable (rep e)
-
 
 

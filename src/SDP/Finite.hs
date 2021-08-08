@@ -1,5 +1,5 @@
-{-# LANGUAGE UndecidableInstances, FlexibleInstances, FlexibleContexts #-}
-{-# LANGUAGE Trustworthy, TypeFamilies, TypeOperators, OverloadedLists #-}
+{-# LANGUAGE Trustworthy, TypeFamilies, TypeOperators #-}
+{-# LANGUAGE UndecidableInstances, FlexibleInstances #-}
 
 {- |
     Module      :  SDP.Finite
@@ -82,16 +82,16 @@ data tail :& head = !tail :& !head deriving ( Eq, Ord )
 
 instance (Enum i) => Enum (E :& i)
   where
-    succ = \ [e] -> [succ e]
-    pred = \ [e] -> [pred e]
+    fromEnum (E :& e) = fromEnum  e
+    succ     (E :& e) = E :& succ e
+    pred     (E :& e) = E :& pred e
     
-    toEnum   = \  n  -> [toEnum n]
-    fromEnum = \ [e] -> fromEnum e
+    toEnum = (E :&) . toEnum
     
-    enumFrom       = \     [f]     -> [ [e] | e <- [f ..] ]
-    enumFromTo     = \   [f] [l]   -> [ [e] | e <- [f .. l] ]
-    enumFromThen   = \   [f] [n]   -> [ [e] | e <- [f, n ..] ]
-    enumFromThenTo = \ [f] [n] [l] -> [ [e] | e <- [f, n .. l] ]
+    enumFrom                (E :& f)          = (E :&) <$> [f ..]
+    enumFromTo         (E :& f) (E :& l)      = (E :&) <$> [f .. l]
+    enumFromThen       (E :& f)  (E :& n)     = (E :&) <$> [f, n ..]
+    enumFromThenTo (E :& f) (E :& n) (E :& l) = (E :&) <$> [f, n .. l]
 
 instance (Default d, Default d') => Default (d :& d') where def = def :& def
 
@@ -188,20 +188,20 @@ ind14 :: i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i     
 -- | 15-dimensional index constructor.
 ind15 :: i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> i -> I15 i
 
-ind2  a b                           = [a,b]
-ind3  a b c                         = [a,b,c]
-ind4  a b c d                       = [a,b,c,d]
-ind5  a b c d e                     = [a,b,c,d,e]
-ind6  a b c d e f                   = [a,b,c,d,e,f]
-ind7  a b c d e f g                 = [a,b,c,d,e,f,g]
-ind8  a b c d e f g h               = [a,b,c,d,e,f,g,h]
-ind9  a b c d e f g h i             = [a,b,c,d,e,f,g,h,i]
-ind10 a b c d e f g h i j           = [a,b,c,d,e,f,g,h,i,j]
-ind11 a b c d e f g h i j k         = [a,b,c,d,e,f,g,h,i,j,k]
-ind12 a b c d e f g h i j k l       = [a,b,c,d,e,f,g,h,i,j,k,l]
-ind13 a b c d e f g h i j k l m     = [a,b,c,d,e,f,g,h,i,j,k,l,m]
-ind14 a b c d e f g h i j k l m n   = [a,b,c,d,e,f,g,h,i,j,k,l,m,n]
-ind15 a b c d e f g h i j k l m n o = [a,b,c,d,e,f,g,h,i,j,k,l,m,n,o]
+ind2  a b                           = E:&a:&b
+ind3  a b c                         = E:&a:&b:&c
+ind4  a b c d                       = E:&a:&b:&c:&d
+ind5  a b c d e                     = E:&a:&b:&c:&d:&e
+ind6  a b c d e f                   = E:&a:&b:&c:&d:&e:&f
+ind7  a b c d e f g                 = E:&a:&b:&c:&d:&e:&f:&g
+ind8  a b c d e f g h               = E:&a:&b:&c:&d:&e:&f:&g:&h
+ind9  a b c d e f g h i             = E:&a:&b:&c:&d:&e:&f:&g:&h:&i
+ind10 a b c d e f g h i j           = E:&a:&b:&c:&d:&e:&f:&g:&h:&i:&j
+ind11 a b c d e f g h i j k         = E:&a:&b:&c:&d:&e:&f:&g:&h:&i:&j:&k
+ind12 a b c d e f g h i j k l       = E:&a:&b:&c:&d:&e:&f:&g:&h:&i:&j:&k:&l
+ind13 a b c d e f g h i j k l m     = E:&a:&b:&c:&d:&e:&f:&g:&h:&i:&j:&k:&l:&m
+ind14 a b c d e f g h i j k l m n   = E:&a:&b:&c:&d:&e:&f:&g:&h:&i:&j:&k:&l:&m:&n
+ind15 a b c d e f g h i j k l m n o = E:&a:&b:&c:&d:&e:&f:&g:&h:&i:&j:&k:&l:&m:&n:&o
 
 unsnoc :: [i] -> ([i], i)
 unsnoc    [i]   = ([], i)

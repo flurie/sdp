@@ -20,10 +20,10 @@ module SDP.LinearM
   BorderedM (..), BorderedM1, BorderedM2,
   
   -- * LinearM class
-  LinearM (..), LinearM1, pattern (:+=), pattern (:=+), pattern (:~=),
+  LinearM (..), LinearM1, LinearM2, pattern (:+=), pattern (:=+), pattern (:~=),
   
   -- * SplitM class
-  SplitM (..), SplitM1
+  SplitM (..), SplitM1, SplitM2
 )
 where
 
@@ -440,16 +440,21 @@ cast' =  cast
 
 --------------------------------------------------------------------------------
 
--- | Kind @(* -> *)@ 'SplitM' structure.
-type SplitM1 m l e = SplitM m (l e) e
-
--- | Kind @(* -> *)@ 'LinearM' structure.
-type LinearM1 m l e = LinearM m (l e) e
-
--- | Kind @(* -> *)@ 'BorderedM' structure.
+-- | Kind @(Type -> Type)@ 'BorderedM' structure.
 type BorderedM1 m l i e = BorderedM m (l e) i
 
--- | Kind @(* -> * -> *)@ 'BorderedM' structure.
+-- | Kind @(Type -> Type -> Type)@ 'BorderedM' structure.
 type BorderedM2 m l i e = BorderedM m (l i e) i
 
+-- | Kind @(Type -> Type)@ 'LinearM' structure.
+type LinearM1 m l e = LinearM m (l e) e
+
+-- | Kind @(Type -> Type -> Type)@ 'LinearM' structure.
+type LinearM2 m l i e = LinearM m (l i e) e
+
+-- | Kind @(Type -> Type)@ 'SplitM' structure.
+type SplitM1 m l e = SplitM m (l e) e
+
+-- | Kind @(Type -> Type -> Type)@ 'SplitM' structure.
+type SplitM2 m l i e = SplitM m (l i e) e
 

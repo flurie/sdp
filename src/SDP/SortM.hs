@@ -13,7 +13,8 @@
 module SDP.SortM
   (
     -- * SortM
-    SortM (..), SortM1, sortM, sortMOn, sortedM, sortedMOn
+    SortM (..), SortM1, SortM2,
+    sortM, sortMOn, sortedM, sortedMOn
   )
 where
 
@@ -43,6 +44,9 @@ class SortM m s e | s -> m, s -> e
 -- | Kind @(* -> *)@ version of 'SortM'.
 type SortM1 m s e = SortM m (s e) e
 
+-- | Kind @(* -> * -> *)@ version of 'SortM'.
+type SortM2 m s i e = SortM m (s i e)
+
 --------------------------------------------------------------------------------
 
 -- | Checks if the structure is sorted.
@@ -60,6 +64,7 @@ sortM =  sortMBy compare
 -- | Sort by comparing the results of a key function applied to each element.
 sortMOn :: (SortM m s e, Ord o) => (e -> o) -> s -> m ()
 sortMOn =  sortMBy . comparing
+
 
 
 

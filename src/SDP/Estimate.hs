@@ -1,11 +1,11 @@
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE Safe, ConstraintKinds #-}
 
 {- |
     Module      :  SDP.Estimate
     Copyright   :  (c) Andrey Mulik 2019
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  portable
+    Portability :  non-portable (GHC extensions)
     
     "SDP.Estimate" provides 'Estimate' class, type synonyms and some common
     comparators. This module is exported by "SDP.SafePrelude".
@@ -16,7 +16,9 @@ module SDP.Estimate
   module Data.Functor.Classes,
   
   -- * Estimate
-  Estimate (..), (<=.>), (<.), (>.), (<=.), (>=.), (==.), (/=.)
+  Estimate (..), Estimate1, Estimate2, (<=.>),
+  
+  (<.), (>.), (<=.), (>=.), (==.), (/=.)
 )
 where
 
@@ -96,5 +98,13 @@ instance Estimate [a]
     es <.=> n =
       let go xs c | c == 0 = GT | null xs = 0 <=> c | True = tail xs `go` (c - 1)
       in  if n < 0 then LT else go es n
+
+--------------------------------------------------------------------------------
+
+-- | @(* -> *)@ kind 'Estimate'.
+type Estimate1 rep e = Estimate (rep e)
+
+-- | @(* -> * -> *)@ kind 'Estimate'.
+type Estimate2 rep i e = Estimate (rep i e)
 
 
