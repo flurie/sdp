@@ -47,7 +47,7 @@ module SDP.SafePrelude
 #endif
   
   -- * Combinators
-  on, (?), (?+), (?-), (?^), (?:), (+?), (...), (<=<<), (>>=>), (>>=<<)
+  on, (?), (?+), (?-), (?^), (?:), (+?), (...), (<=<<), (>>=>), (>>=<<), both'
 )
 where
 
@@ -151,6 +151,10 @@ x +?      _ = x
 
 --------------------------------------------------------------------------------
 
+-- | @since sdp-0.3 'SDP.Tuple.both' for 'Bifunctor's.
+both' :: (Bifunctor f) => (a -> b) -> f a a -> f b b
+both' f = bimap f f
+
 -- | Very useful combinator.
 liftA4 :: (Applicative t) => (a -> b -> c -> d -> e) -> t a -> t b -> t c -> t d -> t e
 liftA4 g as bs cs ds = g <$> as <*> bs <*> cs <*> ds
@@ -170,4 +174,5 @@ liftM6 g as bs cs ds es fs = do a <- as; b <- bs; c <- cs; d <- ds; e <- es; f <
 -- | 'stToMIO' is just @'liftIO' . 'stToIO'@.
 stToMIO :: (MonadIO io) => ST RealWorld e -> io e
 stToMIO =  liftIO . stToIO
+
 

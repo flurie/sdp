@@ -83,6 +83,7 @@ Library
     SDP.SortM
     
     -- Templates
+    SDP.Templates.AnyBorderM
     SDP.Templates.AnyBorder
     SDP.Templates.AnyChunks
     
@@ -126,5 +127,4 @@ Library
     
     Text.Show.SDP
     Text.Read.SDP
-
 

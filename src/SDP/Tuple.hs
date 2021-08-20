@@ -15,10 +15,11 @@ module SDP.Tuple
   T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15,
   
   -- * Related combinators
-  fsts, snds, both
+  fsts, snds, both, bothA
 )
 where
 
+import Control.Applicative
 import Data.Function ( on )
 
 default ()
@@ -36,6 +37,10 @@ snds =  fmap snd
 -- | Applies function to both elements of pair.
 both :: (a -> b) -> (a, a) -> (b, b)
 both =  uncurry . on (,)
+
+-- | @since sdp-0.3 Applies procedure to both elements of pair
+bothA :: (Applicative f) => (a -> f b) -> (a, a) -> f (b, b)
+bothA =  uncurry . on (liftA2 (,))
 
 --------------------------------------------------------------------------------
 
