@@ -48,6 +48,7 @@
 
   fixes:
     - isPrefixOf and isSuffixOf definitions
+    - SArray# and SBytes# reversed definitions, also see new procedure reversed'
     - typo in the word 'Concurrent' in Control.Concurrent.SDP.* module names
 
   deprecations:
@@ -114,6 +115,7 @@
         - o_foldr1'
         - o_foldl1'
     - LinearM:
+        - reversed'
         - lshiftM
         - foldrM1
         - foldlM1

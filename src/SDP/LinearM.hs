@@ -176,10 +176,19 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     copied' :: l -> Int -> Int -> m l
     copied' es l n = getLeft es >>= newLinearN n . drop l
     
-    -- | Monadic 'reverse'.
+    -- | Monadic 'reverse', returns new structure.
     {-# INLINE reversed #-}
     reversed :: l -> m l
     reversed =  newLinear <=< getRight
+    
+    {- |
+      @since 0.2.1
+      Monadic in-place 'reverse', reverse elements of given structure.
+    -}
+    reversed' :: l -> m ()
+    reversed' es = do
+      xs <- getRight es
+      assocs xs `forM_` (uncurry $ writeM es)
     
     -- | Monadic 'concat'.
     merged :: (Foldable f) => f l -> m l
@@ -457,4 +466,5 @@ type SplitM1 m l e = SplitM m (l e) e
 
 -- | Kind @(Type -> Type -> Type)@ 'SplitM' structure.
 type SplitM2 m l i e = SplitM m (l i e) e
+
 
