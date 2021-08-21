@@ -81,11 +81,6 @@ Library
     SDP.SortM.Tim
     SDP.SortM
     
-    -- Sorting
-    SDP.SortM.Insertion
-    SDP.SortM.Tim
-    SDP.SortM
-    
     -- Templates
     SDP.Templates.AnyBorder
     SDP.Templates.AnyChunks
