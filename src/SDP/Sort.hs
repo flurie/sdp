@@ -62,7 +62,7 @@ class Sort s e | s -> e
       
       > sortOn = sortBy . comparing
     -}
-    sortOn :: (Sort s e, Ord o) => (e -> o) -> s -> s
+    sortOn :: (Ord o) => (e -> o) -> s -> s
     sortOn =  sortBy . comparing
     
     -- | 'sort' is just @'sortBy' 'compare'@.

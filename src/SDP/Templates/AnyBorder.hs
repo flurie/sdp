@@ -1,5 +1,5 @@
-{-# LANGUAGE TypeFamilies, DeriveDataTypeable, DeriveGeneric, TypeOperators #-}
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts, CPP #-}
+{-# LANGUAGE TypeFamilies, DeriveDataTypeable, DeriveGeneric #-}
 {-# LANGUAGE Trustworthy, UndecidableInstances #-}
 
 {- |
@@ -120,8 +120,15 @@ instance (Index i, E.IsList (rep e), Bordered1 rep Int e) => E.IsList (AnyBorder
 {- Semigroup, Monoid and Default instances. -}
 
 instance (Linear1 (AnyBorder rep i) e) => Semigroup (AnyBorder rep i e) where (<>) = (++)
-instance (Linear1 (AnyBorder rep i) e) => Monoid    (AnyBorder rep i e) where mempty = Z
 instance (Linear1 (AnyBorder rep i) e) => Default   (AnyBorder rep i e) where def = Z
+
+instance (Linear1 (AnyBorder rep i) e) => Monoid (AnyBorder rep i e)
+  where
+-- For base >= 4.9 && < 4.11
+#if !MIN_VERSION_base(4,11,0)
+    mappend = (<>)
+#endif
+    mempty  = Z
 
 --------------------------------------------------------------------------------
 
@@ -605,6 +612,4 @@ withBounds rep = uncurry AnyBorder (defaultBounds $ sizeOf rep) rep
 {-# INLINE withBounds' #-}
 withBounds' :: (Index i, BorderedM1 m rep Int e) => rep e -> m (AnyBorder rep i e)
 withBounds' rep = (\ n -> uncurry AnyBorder (defaultBounds n) rep) <$> getSizeOf rep
-
-
 

@@ -1,5 +1,5 @@
 {-# LANGUAGE Trustworthy, MagicHash, UnboxedTuples, BangPatterns, TypeFamilies #-}
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, RoleAnnotations #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, RoleAnnotations, CPP #-}
 
 {- |
     Module      :  SDP.Prim.SArray
@@ -141,8 +141,15 @@ instance E.IsList (SArray# e)
 {- Semigroup, Monoid and Default instances. -}
 
 instance Semigroup (SArray# e) where (<>) = (++)
-instance Monoid    (SArray# e) where mempty = Z
 instance Default   (SArray# e) where def = Z
+
+instance Monoid (SArray# e)
+  where
+-- For base >= 4.9 && < 4.11
+#if !MIN_VERSION_base(4,11,0)
+    mappend = (<>)
+#endif
+    mempty  = Z
 
 --------------------------------------------------------------------------------
 
@@ -1252,6 +1259,7 @@ nubSorted f es = fromList $ foldr fun [last es] ((es !^) <$> [0 .. sizeOf es - 2
   where
     fun = \ e ls -> e `f` head ls == EQ ? ls $ e : ls
 
+-- | In base-4.9 'asProxyTypeOf' has less general type @a -> Proxy a -> a@.
 asProxyTypeOf :: a -> proxy a -> a
 asProxyTypeOf =  const
 
@@ -1274,7 +1282,4 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
-
-
-
 

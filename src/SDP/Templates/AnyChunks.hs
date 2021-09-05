@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts, CPP #-}
 {-# LANGUAGE TypeFamilies, DeriveDataTypeable, DeriveGeneric #-}
 {-# LANGUAGE Trustworthy, UndecidableInstances, BangPatterns #-}
 

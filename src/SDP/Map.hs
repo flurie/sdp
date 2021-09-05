@@ -142,8 +142,8 @@ class (Nullable map) => Map map key e | map -> key, map -> e
           LT -> x' : go xs ys'
           EQ -> (i, f x y) : go xs ys
           GT -> y' : go xs' ys
-        go xs'   Z = xs'
-        go Z   ys' = ys'
+        go xs'  [] = xs'
+        go []  ys' = ys'
     
     {- |
       @'difference'' f mx my@ applies @comb@ to values with equal keys.

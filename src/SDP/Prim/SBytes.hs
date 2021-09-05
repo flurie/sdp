@@ -1,5 +1,5 @@
 {-# LANGUAGE Trustworthy, MagicHash, UnboxedTuples, BangPatterns, TypeFamilies #-}
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, RoleAnnotations #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, RoleAnnotations, CPP #-}
 
 {- |
     Module      :  SDP.Prim.SBytes
@@ -1148,8 +1148,6 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Prim.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
-
-
 
 
 
