@@ -28,6 +28,7 @@ module SDP.SafePrelude
 (
   -- * Exports
   module Control.Applicative, liftA4, liftA5, liftA6,
+  module Control.Category,
   
   module Control.Monad.IO.Class, stToMIO,
   module Control.Monad.ST,
@@ -53,6 +54,9 @@ where
 
 import Prelude hiding
   (
+    -- defined in Control.Category
+    (.), id,
+    
     -- defined in SDP.Zip and Data.List
     zip, zip3, zipWith, zipWith3,
     
@@ -81,6 +85,7 @@ import Data.Foldable hiding ( foldrM, foldlM, concat, concatMap )
 import Data.Function ( on )
 
 import Control.Applicative
+import Control.Category
 
 import Control.Monad.IO.Class
 import Control.Monad.ST

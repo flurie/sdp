@@ -1,5 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, ConstraintKinds #-}
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE Safe, MultiParamTypeClasses, FunctionalDependencies, ConstraintKinds #-}
 
 {- |
     Module      :  SDP.SortM
@@ -17,6 +16,7 @@ module SDP.SortM
 )
 where
 
+import Prelude ()
 import SDP.SafePrelude
 
 default ()

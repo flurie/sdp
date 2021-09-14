@@ -39,7 +39,7 @@ import SDP.Shape
 import SDP.Ratio
 
 import GHC.Stable
-import GHC.Base hiding ( foldr )
+import GHC.Base hiding ( (.), foldr )
 import GHC.Word
 import GHC.Int
 import GHC.Ptr
