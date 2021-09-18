@@ -106,6 +106,16 @@ class (Nullable map) => Map map key e | map -> key, map -> e
     (//) :: map -> [(key, e)] -> map
     (//) =  toMap ... (++) . assocs
     
+    {-# INLINE write' #-}
+    -- | Safe index-based immutable writer.
+    default write' :: (Linear map e, Bordered map key) => map -> key -> e -> map
+    write' :: map -> key -> e -> map
+    write' es = write es . offsetOf es
+    
+    -- | Update element by given function.
+    update' :: map -> (e -> e) -> key -> map
+    update' es f i = write' es i . f $ es!i
+    
     -- | @('.!')@ is unsafe reader, can be faster @('!')@ by skipping checks.
     {-# INLINE (.!) #-}
     (.!) :: map -> key -> e
