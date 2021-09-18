@@ -1,4 +1,5 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, ConstraintKinds #-}
+{-# LANGUAGE ConstraintKinds, QuantifiedConstraints, RankNTypes #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
 
 {- |
     Module      :  SDP.NullableM
@@ -12,7 +13,7 @@
 module SDP.NullableM
 (
   -- * Monadic nullable
-  NullableM (..), NullableM1, NullableM2
+  NullableM (..), NullableM1, NullableM2, NullableM', NullableM''
 )
 where
 
@@ -29,12 +30,16 @@ class (Monad m) => NullableM m e | e -> m
     -- | Monadic 'SDP.Nullable.isNull'.
     nowNull :: e -> m Bool
 
---------------------------------------------------------------------------------
-
--- | @since 0.3 @(* -> *)@ kind 'NullableM'.
+-- | @since 0.3 'NullableM' contraint for @(Type -> Type)@-kind types.
 type NullableM1 m rep e = NullableM m (rep e)
 
--- | @since 0.3 @(* -> * -> *)@ kind 'NullableM'.
+-- | @since 0.3 'NullableM' contraint for @(Type -> Type -> Type)@-kind types.
 type NullableM2 m rep i e = NullableM m (rep i e)
+
+-- | @since 0.3 'NullableM' contraint for @(Type -> Type)@-kind types.
+type NullableM' m rep = forall e . NullableM m (rep e)
+
+-- | @since 0.3 'NullableM' contraint for @(Type -> Type -> Type)@-kind types.
+type NullableM'' m rep = forall i e . NullableM m (rep i e)
 
 

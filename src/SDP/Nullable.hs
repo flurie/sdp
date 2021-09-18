@@ -1,9 +1,9 @@
-{-# LANGUAGE Trustworthy, PatternSynonyms, ViewPatterns, ConstraintKinds #-}
-{-# LANGUAGE CPP, MagicHash, DefaultSignatures #-}
+{-# LANGUAGE CPP, MagicHash, PatternSynonyms, ViewPatterns, DefaultSignatures #-}
+{-# LANGUAGE Trustworthy, ConstraintKinds, QuantifiedConstraints, RankNTypes #-}
 
 {- |
     Module      :  SDP.Nullable
-    Copyright   :  (c) Andrey Mulik 2020
+    Copyright   :  (c) Andrey Mulik 2020-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
@@ -13,7 +13,8 @@
 module SDP.Nullable
 (
   -- * Nullable
-  Nullable (..), Nullable1, Nullable2, pattern NULL
+  Nullable (..), Nullable1, Nullable2, Nullable', Nullable'',
+  pattern NULL
 )
 where
 
@@ -41,39 +42,37 @@ class Nullable e
     isNull :: e -> Bool
     isNull =  (== lzero)
 
--- | @since 0.2.1 @(* -> *)@ kind 'Nullable' structure.
-type Nullable1 rep e = Nullable (rep e)
-
--- | @since 0.3 @(* -> * -> *)@ kind 'Nullable' structure.
-type Nullable2 rep e = Nullable (rep e)
-
 -- | Originally defined in @sdp-ctypes@ (now @sdp-foreign@), same as @Z@ now.
 pattern NULL :: (Nullable e) => e
 pattern NULL <- (isNull -> True) where NULL = lzero
 
 --------------------------------------------------------------------------------
 
+-- | @since 0.2.1 'Nullable' contraint for @(Type -> Type)@-kind types.
+type Nullable1 rep e = Nullable (rep e)
+
+-- | @since 0.3 'Nullable' contraint for @(Type -> Type -> Type)@-kind types.
+type Nullable2 rep i e = Nullable (rep i e)
+
+-- | @since 0.3 'Nullable' contraint for @(Type -> Type)@-kind types.
+type Nullable' rep = forall e . Nullable (rep e)
+
+-- | @since 0.3 'Nullable' contraint for @(Type -> Type -> Type)@-kind types.
+type Nullable'' rep = forall i e . Nullable (rep i e)
+
+--------------------------------------------------------------------------------
+
 -- | @since 0.2.1
-instance Nullable ()
-  where
-    isNull = const True
-    lzero  = ()
+instance Nullable () where isNull = const True; lzero = ()
 
 instance Nullable (Maybe e)
   where
     isNull = \ mx -> case mx of {Nothing -> True; _ -> False}
     lzero  = Nothing
 
-instance Nullable [e]
-  where
-    isNull = null
-    lzero  = []
+instance Nullable [e] where isNull = null; lzero  = []
 
---------------------------------------------------------------------------------
-
-instance Nullable (Ptr e)
-  where
-    lzero = nullPtr
+instance Nullable (Ptr e) where lzero = nullPtr
 
 -- Stolen from @bytestring@ package.
 instance Nullable (ForeignPtr e)
@@ -91,5 +90,6 @@ instance Nullable (StablePtr e)
 
 -- | @since 0.2.1
 instance Nullable (FunPtr e) where lzero = nullFunPtr
+
 
 

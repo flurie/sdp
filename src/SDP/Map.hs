@@ -1,9 +1,10 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Safe, DefaultSignatures, ConstraintKinds, BangPatterns #-}
+{-# LANGUAGE Safe, ConstraintKinds, QuantifiedConstraints, RankNTypes #-}
+{-# LANGUAGE DefaultSignatures, BangPatterns #-}
 
 {- |
     Module      :  SDP.Map
-    Copyright   :  (c) Andrey Mulik 2019
+    Copyright   :  (c) Andrey Mulik 2019-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
@@ -16,7 +17,7 @@ module SDP.Map
   module SDP.Set,
   
   -- * Map
-  Map (..), Map1, Map2
+  Map (..), Map1, Map2, Map', Map''
 )
 where
 
@@ -239,11 +240,17 @@ class (Nullable map) => Map map key e | map -> key, map -> e
 
 --------------------------------------------------------------------------------
 
--- | Kind @(* -> *)@ 'Map' structure.
+-- | 'Map' contraint for @(Type -> Type)@-kind types.
 type Map1 map key e = Map (map e) key e
 
--- | Kind @(* -> * -> *)@ 'Map' structure.
+-- | 'Map' contraint for @(Type -> Type -> Type)@-kind types.
 type Map2 map key e = Map (map key e) key e
+
+-- | 'Map' contraint for @(Type -> Type)@-kind types.
+type Map' map key = forall e . Map (map e) key e
+
+-- | 'Map' contraint for @(Type -> Type -> Type)@-kind types.
+type Map'' map = forall key e . Map (map key e) key e
 
 --------------------------------------------------------------------------------
 
@@ -310,6 +317,4 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Map."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Map."
-
-
 

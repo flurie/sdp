@@ -1,8 +1,8 @@
-{-# LANGUAGE Safe, ConstraintKinds #-}
+{-# LANGUAGE Safe, ConstraintKinds, QuantifiedConstraints, RankNTypes #-}
 
 {- |
     Module      :  SDP.Estimate
-    Copyright   :  (c) Andrey Mulik 2019
+    Copyright   :  (c) Andrey Mulik 2019-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
@@ -16,9 +16,8 @@ module SDP.Estimate
   module Data.Functor.Classes,
   
   -- * Estimate
-  Estimate (..), Estimate1, Estimate2, (<=.>),
-  
-  (<.), (>.), (<=.), (>=.), (==.), (/=.)
+  Estimate (..), Estimate1, Estimate2, Estimate', Estimate'',
+  (<=.>), (<.), (>.), (<=.), (>=.), (==.), (/=.)
 )
 where
 
@@ -101,10 +100,16 @@ instance Estimate [a]
 
 --------------------------------------------------------------------------------
 
--- | @(* -> *)@ kind 'Estimate'.
+-- | 'Estimate' contraint for @(Type -> Type)@-kind types.
 type Estimate1 rep e = Estimate (rep e)
 
--- | @(* -> * -> *)@ kind 'Estimate'.
+-- | 'Estimate' contraint for @(Type -> Type -> Type)@-kind types.
 type Estimate2 rep i e = Estimate (rep i e)
+
+-- | 'Estimate' contraint for @(Type -> Type)@-kind types.
+type Estimate' rep = forall e . Estimate (rep e)
+
+-- | 'Estimate' contraint for @(Type -> Type -> Type)@-kind types.
+type Estimate'' rep = forall i e . Estimate (rep i e)
 
 

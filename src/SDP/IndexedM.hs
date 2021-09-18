@@ -1,9 +1,9 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
-{-# LANGUAGE Safe, DefaultSignatures, ConstraintKinds #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, DefaultSignatures #-}
+{-# LANGUAGE Safe, ConstraintKinds, QuantifiedConstraints, RankNTypes #-}
 
 {- |
     Module      :  SDP.IndexedM
-    Copyright   :  (c) Andrey Mulik 2019
+    Copyright   :  (c) Andrey Mulik 2019-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
@@ -18,10 +18,10 @@ module SDP.IndexedM
   module SDP.MapM,
   
   -- * IndexedM
-  IndexedM (..), IndexedM1, IndexedM2,
+  IndexedM (..), IndexedM1, IndexedM2, IndexedM', IndexedM'',
   
   -- * Thaw
-  Thaw (..), Thaw1
+  Thaw (..), Thaw1, Thaw'
 )
 where
 
@@ -105,16 +105,21 @@ class (Monad m) => Thaw m v v' | v' -> m
 
 --------------------------------------------------------------------------------
 
--- | Kind @(* -> *)@ 'IndexedM'.
+-- | 'IndexedM' contraint for @(Type -> Type)@-kind types.
 type IndexedM1 m v i e = IndexedM m (v e) i e
 
--- | Kind @(* -> * -> *)@ 'IndexedM'.
+-- | 'IndexedM' contraint for @(Type -> Type -> Type)@-kind types.
 type IndexedM2 m v i e = IndexedM m (v i e) i e
 
--- | Kind @(* -> *)@ 'Thaw'.
+-- | 'Thaw' contraint for @(Type -> Type)@-kind types.
 type Thaw1 m v v' e = Thaw m (v e) (v' e)
 
+-- | 'IndexedM' contraint for @(Type -> Type)@-kind types.
+type IndexedM' m v i = forall e . IndexedM m (v e) i e
 
+-- | 'IndexedM' contraint for @(Type -> Type -> Type)@-kind types.
+type IndexedM'' m v = forall i e . IndexedM m (v i e) i e
 
-
+-- | 'Thaw' contraint for @(Type -> Type)@-kind types.
+type Thaw' m v v' = forall e . Thaw m (v e) (v' e)
 

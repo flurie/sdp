@@ -1,9 +1,10 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Safe, DefaultSignatures, ConstraintKinds, BangPatterns #-}
+{-# LANGUAGE Safe, ConstraintKinds, QuantifiedConstraints, RankNTypes #-}
+{-# LANGUAGE DefaultSignatures, BangPatterns #-}
 
 {- |
     Module      :  SDP.MapM
-    Copyright   :  (c) Andrey Mulik 2020
+    Copyright   :  (c) Andrey Mulik 2020-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
@@ -13,7 +14,7 @@
 module SDP.MapM
 (
   -- * Mutable maps
-  MapM (..), MapM1, MapM2
+  MapM (..), MapM1, MapM2, MapM', MapM''
 )
 where
 
@@ -148,11 +149,17 @@ class (Monad m) => MapM m map key e | map -> m, map -> key, map -> e
 
 --------------------------------------------------------------------------------
 
--- | Rank @(* -> *)@ 'MapM'.
+-- | 'MapM' contraint for @(Type -> Type)@-kind types.
 type MapM1 m map key e = MapM m (map e) key e
 
--- | Rank @(* -> * -> *)@ 'MapM'.
+-- | 'MapM' contraint for @(Type -> Type -> Type)@-kind types.
 type MapM2 m map key e = MapM m (map key e) key e
+
+-- | 'MapM' contraint for @(Type -> Type)@-kind types.
+type MapM' m map key = forall e . MapM m (map e) key e
+
+-- | 'MapM' contraint for @(Type -> Type -> Type)@-kind types.
+type MapM'' m map = forall key e . MapM m (map key e) key e
 
 --------------------------------------------------------------------------------
 
@@ -167,4 +174,7 @@ overEx =  throw . IndexOverflow . showString "in SDP.MapM."
 
 underEx :: String -> a
 underEx =  throw . IndexUnderflow . showString "in SDP.MapM."
+
+
+
 

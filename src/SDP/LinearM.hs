@@ -1,10 +1,10 @@
-{-# LANGUAGE ConstraintKinds, DefaultSignatures, ViewPatterns, PatternSynonyms #-}
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Safe, BangPatterns, GADTs #-}
+{-# LANGUAGE Safe, GADTs, ConstraintKinds, QuantifiedConstraints, RankNTypes #-}
+{-# LANGUAGE DefaultSignatures, ViewPatterns, PatternSynonyms, BangPatterns #-}
 
 {- |
     Module      :  SDP.LinearM
-    Copyright   :  (c) Andrey Mulik 2019
+    Copyright   :  (c) Andrey Mulik 2019-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
@@ -18,18 +18,20 @@ module SDP.LinearM
   module SDP.Linear,
   
   -- * BorderedM class
-  BorderedM (..), BorderedM1, BorderedM2,
+  BorderedM (..), BorderedM1, BorderedM2, BorderedM', BorderedM'',
   
   -- * LinearM class
-  LinearM (..), LinearM1, LinearM2, pattern (:+=), pattern (:=+), pattern (:~=),
+  LinearM (..), LinearM1, LinearM2, LinearM', LinearM'',
+  pattern (:+=), pattern (:=+), pattern (:~=),
   
   -- * SplitM class
-  SplitM (..), SplitM1, SplitM2
+  SplitM (..), SplitM1, SplitM2, SplitM', SplitM''
 )
 where
 
 import Prelude ()
 import SDP.SafePrelude
+
 import SDP.NullableM
 import SDP.Linear
 import SDP.Map
@@ -443,23 +445,41 @@ cast' =  cast
 
 --------------------------------------------------------------------------------
 
--- | Kind @(Type -> Type)@ 'BorderedM' structure.
+-- | 'BorderedM' contraint for @(Type -> Type)@-kind types.
 type BorderedM1 m l i e = BorderedM m (l e) i
 
--- | Kind @(Type -> Type -> Type)@ 'BorderedM' structure.
+-- | 'BorderedM' contraint for @(Type -> Type -> Type)@-kind types.
 type BorderedM2 m l i e = BorderedM m (l i e) i
 
--- | Kind @(Type -> Type)@ 'LinearM' structure.
+-- | 'LinearM' contraint for @(Type -> Type)@-kind types.
 type LinearM1 m l e = LinearM m (l e) e
 
--- | Kind @(Type -> Type -> Type)@ 'LinearM' structure.
+-- | 'LinearM' contraint for @(Type -> Type -> Type)@-kind types.
 type LinearM2 m l i e = LinearM m (l i e) e
 
--- | Kind @(Type -> Type)@ 'SplitM' structure.
+-- | 'SplitM' contraint for @(Type -> Type)@-kind types.
 type SplitM1 m l e = SplitM m (l e) e
 
--- | Kind @(Type -> Type -> Type)@ 'SplitM' structure.
+-- | 'SplitM' contraint for @(Type -> Type -> Type)@-kind types.
 type SplitM2 m l i e = SplitM m (l i e) e
+
+-- | 'BorderedM' contraint for @(Type -> Type)@-kind types.
+type BorderedM' m l i = forall e . BorderedM m (l e) i
+
+-- | 'BorderedM' contraint for @(Type -> Type -> Type)@-kind types.
+type BorderedM'' m l = forall i e . BorderedM m (l i e) i
+
+-- | 'LinearM' contraint for @(Type -> Type)@-kind types.
+type LinearM' m l = forall e . LinearM m (l e) e
+
+-- | 'LinearM' contraint for @(Type -> Type -> Type)@-kind types.
+type LinearM'' m l = forall i e . LinearM m (l i e) e
+
+-- | 'SplitM' contraint for @(Type -> Type)@-kind types.
+type SplitM' m l = forall e . SplitM m (l e) e
+
+-- | 'SplitM' contraint for @(Type -> Type -> Type)@-kind types.
+type SplitM'' m l = forall i e . SplitM m (l i e) e
 
 
 

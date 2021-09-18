@@ -1,10 +1,11 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
+{-# LANGUAGE Trustworthy, ConstraintKinds, QuantifiedConstraints, RankNTypes #-}
 {-# LANGUAGE PatternSynonyms, ViewPatterns, BangPatterns, DefaultSignatures #-}
-{-# LANGUAGE Trustworthy, TypeOperators, TypeFamilies, ConstraintKinds, CPP #-}
+{-# LANGUAGE TypeFamilies, CPP #-}
 
 {- |
     Module      :  SDP.Linear
-    Copyright   :  (c) Andrey Mulik 2019
+    Copyright   :  (c) Andrey Mulik 2019-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
@@ -21,13 +22,14 @@ module SDP.Linear
   module SDP.Zip,
   
   -- * Bordered class
-  Bordered (..), Bordered1, Bordered2,
+  Bordered (..), Bordered1, Bordered2, Bordered', Bordered'',
   
   -- * Linear class
-  Linear (..), Linear1, Linear2, pattern (:>), pattern (:<), pattern Z,
+  Linear (..), Linear1, Linear2, Linear', Linear'',
+  pattern (:>), pattern (:<), pattern Z,
   
   -- * Split class
-  Split (..), Split1, Split2,
+  Split (..), Split1, Split2, Split', Split'',
   
   -- * Related functions
   stripPrefix, stripSuffix, stripPrefix', stripSuffix',
@@ -792,23 +794,41 @@ pattern xs :< x <- (unsnoc' -> Just (xs, x)) where (:<) = toLast
 
 --------------------------------------------------------------------------------
 
--- | Kind @(* -> *)@ 'Linear' structure.
+-- | 'Linear' contraint for @(Type -> Type)@-kind types.
 type Linear1 l e = Linear (l e) e
 
--- | Kind @(* -> * -> *)@ 'Linear' structure.
+-- | 'Linear' contraint for @(Type -> Type -> Type)@-kind types.
 type Linear2 l i e = Linear (l i e) e
 
--- | Kind @(* -> *)@ 'Split' structure.
+-- | 'Split' contraint for @(Type -> Type)@-kind types.
 type Split1 s e = Split (s e) e
 
--- | Kind @(* -> * -> *)@ 'Split' structure.
+-- | 'Split' contraint for @(Type -> Type -> Type)@-kind types.
 type Split2 s i e = Split (s i e) e
 
--- | Kind @(* -> *)@ 'Bordered' structure.
+-- | 'Bordered' contraint for @(Type -> Type)@-kind types.
 type Bordered1 l i e = Bordered (l e) i
 
--- | Kind @(* -> * -> *)@ 'Bordered' structure.
+-- | 'Bordered' contraint for @(Type -> Type -> Type)@-kind types.
 type Bordered2 l i e = Bordered (l i e) i
+
+-- | 'Linear' contraint for @(Type -> Type)@-kind types.
+type Linear' l = forall e . Linear (l e) e
+
+-- | 'Linear' contraint for @(Type -> Type -> Type)@-kind types.
+type Linear'' l = forall i e . Linear (l i e) e
+
+-- | 'Split' contraint for @(Type -> Type)@-kind types.
+type Split' s = forall e . Split (s e) e
+
+-- | 'Split' contraint for @(Type -> Type -> Type)@-kind types.
+type Split'' s = forall i e . Split (s i e) e
+
+-- | 'Bordered' contraint for @(Type -> Type)@-kind types.
+type Bordered' l i = forall e . Bordered (l e) i
+
+-- | 'Bordered' contraint for @(Type -> Type -> Type)@-kind types.
+type Bordered'' l = forall i e . Bordered (l i e) i
 
 --------------------------------------------------------------------------------
 

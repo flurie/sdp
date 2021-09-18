@@ -1,9 +1,9 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Safe, ConstraintKinds #-}
+{-# LANGUAGE Safe, ConstraintKinds, QuantifiedConstraints, RankNTypes #-}
 
 {- |
     Module      :  SDP.Index
-    Copyright   :  (c) Andrey Mulik 2019
+    Copyright   :  (c) Andrey Mulik 2019-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
@@ -13,7 +13,7 @@
 module SDP.Sort
 (
   -- * Sort
-  Sort (..), Sort1, Sort2
+  Sort (..), Sort1, Sort2, Sort', Sort''
 )
 where
 
@@ -80,11 +80,16 @@ instance Sort [a] a
 
 --------------------------------------------------------------------------------
 
--- | @(* -> *)@ kind 'Sort'.
+-- | 'Sort' contraint for @(Type -> Type)@-kind types.
 type Sort1 rep e = Sort (rep e)
 
--- | @(* -> * -> *)@ kind 'Sort'.
+-- | 'Sort' contraint for @(Type -> Type -> Type)@-kind types.
 type Sort2 rep i e = Sort (rep i e)
 
+-- | 'Sort' contraint for @(Type -> Type)@-kind types.
+type Sort' rep = forall e . Sort (rep e)
+
+-- | 'Sort' contraint for @(Type -> Type -> Type)@-kind types.
+type Sort'' rep = forall i e . Sort (rep i e)
 
 

@@ -1,8 +1,9 @@
-{-# LANGUAGE Safe, MultiParamTypeClasses, FunctionalDependencies, ConstraintKinds #-}
+{-# LANGUAGE Safe, MultiParamTypeClasses, FunctionalDependencies #-}
+{-# LANGUAGE ConstraintKinds, QuantifiedConstraints, RankNTypes #-}
 
 {- |
     Module      :  SDP.SortM
-    Copyright   :  (c) Andrey Mulik 2019
+    Copyright   :  (c) Andrey Mulik 2019-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
@@ -12,7 +13,7 @@
 module SDP.SortM
 (
   -- * SortM
-  SortM (..), SortM1, SortM2
+  SortM (..), SortM1, SortM2, SortM', SortM''
 )
 where
 
@@ -67,9 +68,18 @@ class SortM m s e | s -> m, s -> e
 
 --------------------------------------------------------------------------------
 
--- | Kind @(* -> *)@ version of 'SortM'.
+-- | 'SortM' contraint for @(Type -> Type)@-kind types.
 type SortM1 m s e = SortM m (s e) e
 
--- | Kind @(* -> * -> *)@ version of 'SortM'.
+-- | 'SortM' contraint for @(Type -> Type -> Type)@-kind types.
 type SortM2 m s i e = SortM m (s i e)
+
+-- | 'SortM' contraint for @(Type -> Type)@-kind types.
+type SortM' m s = forall e . SortM m (s e) e
+
+-- | 'SortM' contraint for @(Type -> Type -> Type)@-kind types.
+type SortM'' m s = forall i e . SortM m (s i e)
+
+
+
 

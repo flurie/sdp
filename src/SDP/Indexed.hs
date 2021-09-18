@@ -1,9 +1,10 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Safe, DefaultSignatures, ConstraintKinds #-}
+{-# LANGUAGE Safe, ConstraintKinds, QuantifiedConstraints, RankNTypes #-}
+{-# LANGUAGE DefaultSignatures #-}
 
 {- |
     Module      :  SDP.Indexed
-    Copyright   :  (c) Andrey Mulik 2019
+    Copyright   :  (c) Andrey Mulik 2019-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
@@ -17,10 +18,10 @@ module SDP.Indexed
   module SDP.Map,
   
   -- * Indexed
-  Indexed (..), Indexed1, Indexed2, binaryContain,
+  Indexed (..), Indexed1, Indexed2, Indexed', Indexed'', binaryContain,
   
   -- * Freeze
-  Freeze (..), Freeze1
+  Freeze (..), Freeze1, Freeze'
 )
 where
 
@@ -111,14 +112,23 @@ class (Monad m) => Freeze m v' v | v' -> m
 
 --------------------------------------------------------------------------------
 
--- | Kind @(* -> *)@ 'Indexed' structure.
+-- | 'Indexed' contraint for @(Type -> Type)@-kind types.
 type Indexed1 v i e = Indexed (v e) i e
 
--- | Kind @(* -> * -> *)@ 'Indexed' structure.
+-- | 'Indexed' contraint for @(Type -> Type -> Type)@-kind types.
 type Indexed2 v i e = Indexed (v i e) i e
 
--- | Kind @(* -> *)@ 'Freeze'.
+-- | 'Freeze' contraint for @(Type -> Type)@-kind types.
 type Freeze1 m v' v e = Freeze m (v' e) (v e)
+
+-- | 'Indexed' contraint for @(Type -> Type)@-kind types.
+type Indexed' v i = forall e . Indexed (v e) i e
+
+-- | 'Indexed' contraint for @(Type -> Type -> Type)@-kind types.
+type Indexed'' v = forall i e . Indexed (v i e) i e
+
+-- | 'Freeze' contraint for @(Type -> Type)@-kind types.
+type Freeze' m v' v = forall e . Freeze m (v' e) (v e)
 
 --------------------------------------------------------------------------------
 

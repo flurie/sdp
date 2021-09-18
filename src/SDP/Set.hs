@@ -1,10 +1,10 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE TypeOperators, TypeFamilies, ConstraintKinds, DefaultSignatures #-}
-{-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE Trustworthy, TypeOperators, TypeFamilies, DefaultSignatures #-}
+{-# LANGUAGE ConstraintKinds, QuantifiedConstraints, RankNTypes #-}
 
 {- |
     Module      :  SDP.Set
-    Copyright   :  (c) Andrey Mulik 2019
+    Copyright   :  (c) Andrey Mulik 2019-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
@@ -14,10 +14,10 @@
 module SDP.Set
 (
   -- * SetWith
-  SetWith (..), SetWith1,
+  SetWith (..), SetWith1, SetWith2, SetWith', SetWith'',
   
   -- * Set
-  Set (..), Set1
+  Set (..), Set1, Set2, Set', Set''
 )
 where
 
@@ -260,11 +260,29 @@ class (Nullable s) => Set s o | s -> o
 
 --------------------------------------------------------------------------------
 
--- | Kind @(* -> *)@ 'Set'.
+-- | 'Set' contraint for @(Type -> Type)@-kind types.
 type Set1 s o = Set (s o) o
 
--- | Kind @(* -> *)@ 'SetWith'.
+-- | 'SetWith' contraint for @(Type -> Type)@-kind types.
 type SetWith1 s o = SetWith (s o) o
+
+-- | 'Set' contraint for @(Type -> Type -> Type)@-kind types.
+type Set2 s i o = Set (s i o) o
+
+-- | 'SetWith' contraint for @(Type -> Type -> Type)@-kind types.
+type SetWith2 s i o = SetWith (s i o) o
+
+-- | 'Set' contraint for @(Type -> Type)@-kind types.
+type Set' s = forall o . Set (s o) o
+
+-- | 'SetWith' contraint for @(Type -> Type)@-kind types.
+type SetWith' s = forall o . SetWith (s o) o
+
+-- | 'Set' contraint for @(Type -> Type -> Type)@-kind types.
+type Set'' s = forall i o . Set (s i o) o
+
+-- | 'SetWith' contraint for @(Type -> Type -> Type)@-kind types.
+type SetWith'' s = forall i o . SetWith (s i o) o
 
 --------------------------------------------------------------------------------
 
@@ -344,7 +362,4 @@ instance SetWith [o] o
     lookupGEWith _ _ _ = Nothing
     
     groupSetWith cmp f = map (foldr1 f) . groupBy ((== EQ) ... cmp) . sortBy cmp
-
-
-
 
