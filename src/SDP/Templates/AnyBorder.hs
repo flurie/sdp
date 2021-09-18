@@ -245,7 +245,7 @@ instance (Index i) => Bordered (AnyBorder rep i e) i
     indexIn  (AnyBorder l u _) = inRange (l, u)
     offsetOf (AnyBorder l u _) = offset  (l, u)
     
-    rebound es@(AnyBorder _ _ rep) (l,u) = size (l,u) >=. es ? es $ AnyBorder l u rep
+    rebound es@(AnyBorder _ _ rep) (l,u) = size (l,u) >. es ? es $ AnyBorder l u rep
 
 instance (Index i, Linear1 rep e, Bordered1 rep Int e) => Linear (AnyBorder rep i e) e
   where
