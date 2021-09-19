@@ -1,6 +1,10 @@
+{-# LANGUAGE DefaultSignatures, ConstraintKinds, ViewPatterns, PatternSynonyms #-}
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Safe, GADTs, ConstraintKinds, QuantifiedConstraints, RankNTypes #-}
-{-# LANGUAGE DefaultSignatures, ViewPatterns, PatternSynonyms, BangPatterns #-}
+{-# LANGUAGE Safe, CPP, BangPatterns, GADTs #-}
+
+#if __GLASGOW_HASKELL__ >= 806
+{-# LANGUAGE QuantifiedConstraints, RankNTypes #-}
+#endif
 
 {- |
     Module      :  SDP.LinearM
@@ -18,14 +22,25 @@ module SDP.LinearM
   module SDP.Linear,
   
   -- * BorderedM class
-  BorderedM (..), BorderedM1, BorderedM2, BorderedM', BorderedM'',
+  BorderedM (..), BorderedM1, BorderedM2,
+  
+#if __GLASGOW_HASKELL__ >= 806
+  BorderedM', BorderedM'',
+#endif
   
   -- * LinearM class
-  LinearM (..), LinearM1, LinearM2, LinearM', LinearM'',
-  pattern (:+=), pattern (:=+), pattern (:~=),
+  LinearM (..), LinearM1, LinearM2, pattern (:+=), pattern (:=+), pattern (:~=),
+  
+#if __GLASGOW_HASKELL__ >= 806
+  LinearM', LinearM'',
+#endif
   
   -- * SplitM class
-  SplitM (..), SplitM1, SplitM2, SplitM', SplitM''
+  SplitM (..), SplitM1, SplitM2,
+  
+#if __GLASGOW_HASKELL__ >= 806
+  SplitM', SplitM''
+#endif
 )
 where
 
@@ -463,23 +478,50 @@ type SplitM1 m l e = SplitM m (l e) e
 -- | 'SplitM' contraint for @(Type -> Type -> Type)@-kind types.
 type SplitM2 m l i e = SplitM m (l i e) e
 
--- | 'BorderedM' contraint for @(Type -> Type)@-kind types.
+#if __GLASGOW_HASKELL__ >= 806
+
+{- |
+  'BorderedM' contraint for @(Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type BorderedM' m l i = forall e . BorderedM m (l e) i
 
--- | 'BorderedM' contraint for @(Type -> Type -> Type)@-kind types.
+{- |
+  'BorderedM' contraint for @(Type -> Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type BorderedM'' m l = forall i e . BorderedM m (l i e) i
 
--- | 'LinearM' contraint for @(Type -> Type)@-kind types.
+{- |
+  'LinearM' contraint for @(Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type LinearM' m l = forall e . LinearM m (l e) e
 
--- | 'LinearM' contraint for @(Type -> Type -> Type)@-kind types.
+{- |
+  'LinearM' contraint for @(Type -> Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type LinearM'' m l = forall i e . LinearM m (l i e) e
 
--- | 'SplitM' contraint for @(Type -> Type)@-kind types.
+{- |
+  'SplitM' contraint for @(Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type SplitM' m l = forall e . SplitM m (l e) e
 
--- | 'SplitM' contraint for @(Type -> Type -> Type)@-kind types.
+{- |
+  'SplitM' contraint for @(Type -> Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type SplitM'' m l = forall i e . SplitM m (l i e) e
 
+#endif
 
 

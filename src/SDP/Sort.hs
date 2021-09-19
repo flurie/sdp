@@ -1,5 +1,9 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Safe, ConstraintKinds, QuantifiedConstraints, RankNTypes #-}
+{-# LANGUAGE Safe, CPP, ConstraintKinds #-}
+
+#if __GLASGOW_HASKELL__ >= 806
+{-# LANGUAGE QuantifiedConstraints, RankNTypes #-}
+#endif
 
 {- |
     Module      :  SDP.Index
@@ -13,7 +17,11 @@
 module SDP.Sort
 (
   -- * Sort
-  Sort (..), Sort1, Sort2, Sort', Sort''
+  Sort (..), Sort1, Sort2,
+  
+#if __GLASGOW_HASKELL__ >= 806
+  Sort', Sort''
+#endif
 )
 where
 
@@ -86,10 +94,22 @@ type Sort1 rep e = Sort (rep e)
 -- | 'Sort' contraint for @(Type -> Type -> Type)@-kind types.
 type Sort2 rep i e = Sort (rep i e)
 
--- | 'Sort' contraint for @(Type -> Type)@-kind types.
+#if __GLASGOW_HASKELL__ >= 806
+
+{- |
+  'Sort' contraint for @(Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type Sort' rep = forall e . Sort (rep e)
 
--- | 'Sort' contraint for @(Type -> Type -> Type)@-kind types.
+{- |
+  'Sort' contraint for @(Type -> Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type Sort'' rep = forall i e . Sort (rep i e)
+
+#endif
 
 

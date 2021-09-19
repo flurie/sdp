@@ -1,6 +1,9 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Safe, ConstraintKinds, QuantifiedConstraints, RankNTypes #-}
-{-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE Safe, CPP, ConstraintKinds, DefaultSignatures #-}
+
+#if __GLASGOW_HASKELL__ >= 806
+{-# LANGUAGE QuantifiedConstraints, RankNTypes #-}
+#endif
 
 {- |
     Module      :  SDP.Indexed
@@ -18,10 +21,18 @@ module SDP.Indexed
   module SDP.Map,
   
   -- * Indexed
-  Indexed (..), Indexed1, Indexed2, Indexed', Indexed'', binaryContain,
+  Indexed (..), Indexed1, Indexed2, binaryContain,
+  
+#if __GLASGOW_HASKELL__ >= 806
+  Indexed', Indexed'',
+#endif
   
   -- * Freeze
-  Freeze (..), Freeze1, Freeze'
+  Freeze (..), Freeze1,
+  
+#if __GLASGOW_HASKELL__ >= 806
+  Freeze'
+#endif
 )
 where
 
@@ -102,14 +113,30 @@ type Indexed2 v i e = Indexed (v i e) i e
 -- | 'Freeze' contraint for @(Type -> Type)@-kind types.
 type Freeze1 m v' v e = Freeze m (v' e) (v e)
 
--- | 'Indexed' contraint for @(Type -> Type)@-kind types.
+#if __GLASGOW_HASKELL__ >= 806
+
+{- |
+  'Indexed' contraint for @(Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type Indexed' v i = forall e . Indexed (v e) i e
 
--- | 'Indexed' contraint for @(Type -> Type -> Type)@-kind types.
+{- |
+  'Indexed' contraint for @(Type -> Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type Indexed'' v = forall i e . Indexed (v i e) i e
 
--- | 'Freeze' contraint for @(Type -> Type)@-kind types.
+{- |
+  'Freeze' contraint for @(Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type Freeze' m v' v = forall e . Freeze m (v' e) (v e)
+
+#endif
 
 --------------------------------------------------------------------------------
 
@@ -137,4 +164,7 @@ binaryContain f e es =
 
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.Indexed."
+
+
+
 

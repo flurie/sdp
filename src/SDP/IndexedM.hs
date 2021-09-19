@@ -1,5 +1,9 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, DefaultSignatures #-}
-{-# LANGUAGE Safe, ConstraintKinds, QuantifiedConstraints, RankNTypes #-}
+{-# LANGUAGE Safe, CPP, ConstraintKinds #-}
+
+#if __GLASGOW_HASKELL__ >= 806
+{-# LANGUAGE QuantifiedConstraints, RankNTypes #-}
+#endif
 
 {- |
     Module      :  SDP.IndexedM
@@ -18,15 +22,24 @@ module SDP.IndexedM
   module SDP.MapM,
   
   -- * IndexedM
-  IndexedM (..), IndexedM1, IndexedM2, IndexedM', IndexedM'',
+  IndexedM (..), IndexedM1, IndexedM2,
+  
+#if __GLASGOW_HASKELL__ >= 806
+  IndexedM', IndexedM'',
+#endif
   
   -- * Thaw
-  Thaw (..), Thaw1, Thaw'
+  Thaw (..), Thaw1,
+  
+#if __GLASGOW_HASKELL__ >= 806
+  Thaw'
+#endif
 )
 where
 
 import Prelude ()
 import SDP.SafePrelude
+
 import SDP.LinearM
 import SDP.Indexed
 import SDP.MapM
@@ -114,12 +127,29 @@ type IndexedM2 m v i e = IndexedM m (v i e) i e
 -- | 'Thaw' contraint for @(Type -> Type)@-kind types.
 type Thaw1 m v v' e = Thaw m (v e) (v' e)
 
--- | 'IndexedM' contraint for @(Type -> Type)@-kind types.
+#if __GLASGOW_HASKELL__ >= 806
+
+{- |
+  'IndexedM' contraint for @(Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type IndexedM' m v i = forall e . IndexedM m (v e) i e
 
--- | 'IndexedM' contraint for @(Type -> Type -> Type)@-kind types.
+{- |
+  'IndexedM' contraint for @(Type -> Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type IndexedM'' m v = forall i e . IndexedM m (v i e) i e
 
--- | 'Thaw' contraint for @(Type -> Type)@-kind types.
+{- |
+  'Thaw' contraint for @(Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type Thaw' m v v' = forall e . Thaw m (v e) (v' e)
+
+#endif
+
 

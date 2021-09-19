@@ -1,7 +1,10 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Trustworthy, ConstraintKinds, QuantifiedConstraints, RankNTypes #-}
 {-# LANGUAGE PatternSynonyms, ViewPatterns, BangPatterns, DefaultSignatures #-}
-{-# LANGUAGE TypeFamilies, CPP #-}
+{-# LANGUAGE Trustworthy, CPP, TypeFamilies, ConstraintKinds #-}
+
+#if __GLASGOW_HASKELL__ >= 806
+{-# LANGUAGE QuantifiedConstraints, RankNTypes #-}
+#endif
 
 {- |
     Module      :  SDP.Linear
@@ -22,14 +25,25 @@ module SDP.Linear
   module SDP.Zip,
   
   -- * Bordered class
-  Bordered (..), Bordered1, Bordered2, Bordered', Bordered'',
+  Bordered (..), Bordered1, Bordered2,
+  
+#if __GLASGOW_HASKELL__ >= 806
+  Bordered', Bordered'',
+#endif
   
   -- * Linear class
-  Linear (..), Linear1, Linear2, Linear', Linear'',
-  pattern (:>), pattern (:<), pattern Z,
+  Linear (..), Linear1, Linear2, pattern (:>), pattern (:<), pattern Z,
+  
+#if __GLASGOW_HASKELL__ >= 806
+  Linear', Linear'',
+#endif
   
   -- * Split class
-  Split (..), Split1, Split2, Split', Split'',
+  Split (..), Split1, Split2,
+  
+#if __GLASGOW_HASKELL__ >= 806
+  Split', Split'',
+#endif
   
   -- * Related functions
   stripPrefix, stripSuffix, stripPrefix', stripSuffix',
@@ -39,6 +53,7 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
+
 import SDP.Nullable
 import SDP.Index
 import SDP.Sort
@@ -812,23 +827,51 @@ type Bordered1 l i e = Bordered (l e) i
 -- | 'Bordered' contraint for @(Type -> Type -> Type)@-kind types.
 type Bordered2 l i e = Bordered (l i e) i
 
--- | 'Linear' contraint for @(Type -> Type)@-kind types.
+#if __GLASGOW_HASKELL__ >= 806
+
+{- |
+  'Linear' contraint for @(Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type Linear' l = forall e . Linear (l e) e
 
--- | 'Linear' contraint for @(Type -> Type -> Type)@-kind types.
+{- |
+  'Linear' contraint for @(Type -> Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type Linear'' l = forall i e . Linear (l i e) e
 
--- | 'Split' contraint for @(Type -> Type)@-kind types.
+{- |
+  'Split' contraint for @(Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type Split' s = forall e . Split (s e) e
 
--- | 'Split' contraint for @(Type -> Type -> Type)@-kind types.
+{- |
+  'Split' contraint for @(Type -> Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type Split'' s = forall i e . Split (s i e) e
 
--- | 'Bordered' contraint for @(Type -> Type)@-kind types.
+{- |
+  'Bordered' contraint for @(Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type Bordered' l i = forall e . Bordered (l e) i
 
--- | 'Bordered' contraint for @(Type -> Type -> Type)@-kind types.
+{- |
+  'Bordered' contraint for @(Type -> Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type Bordered'' l = forall i e . Bordered (l i e) i
+
+#endif
 
 --------------------------------------------------------------------------------
 
@@ -1006,5 +1049,7 @@ inits es = es : inits (init es)
 -}
 ascending :: (Split s e, Sort s e, Ord e) => s -> [Int] -> Bool
 ascending =  all sorted ... flip splits
+
+
 
 

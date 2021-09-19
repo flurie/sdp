@@ -1,5 +1,9 @@
-{-# LANGUAGE ConstraintKinds, QuantifiedConstraints, RankNTypes #-}
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, ConstraintKinds #-}
+{-# LANGUAGE Safe, CPP #-}
+
+#if __GLASGOW_HASKELL_ >= 806
+{-# LANGUAGE QuantifiedConstraints, RankNTypes #-}
+#endif
 
 {- |
     Module      :  SDP.NullableM
@@ -13,7 +17,11 @@
 module SDP.NullableM
 (
   -- * Monadic nullable
-  NullableM (..), NullableM1, NullableM2, NullableM', NullableM''
+  NullableM (..), NullableM1, NullableM2,
+  
+#if __GLASGOW_HASKELL_ >= 806
+  NullableM', NullableM''
+#endif
 )
 where
 
@@ -36,10 +44,22 @@ type NullableM1 m rep e = NullableM m (rep e)
 -- | @since 0.3 'NullableM' contraint for @(Type -> Type -> Type)@-kind types.
 type NullableM2 m rep i e = NullableM m (rep i e)
 
--- | @since 0.3 'NullableM' contraint for @(Type -> Type)@-kind types.
+#if __GLASGOW_HASKELL_ >= 806
+
+{- |
+  @since 0.3 'NullableM' contraint for @(Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type NullableM' m rep = forall e . NullableM m (rep e)
 
--- | @since 0.3 'NullableM' contraint for @(Type -> Type -> Type)@-kind types.
+{- |
+  @since 0.3 'NullableM' contraint for @(Type -> Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type NullableM'' m rep = forall i e . NullableM m (rep i e)
+
+#endif
 
 

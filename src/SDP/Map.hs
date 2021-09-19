@@ -1,6 +1,9 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Safe, ConstraintKinds, QuantifiedConstraints, RankNTypes #-}
-{-# LANGUAGE DefaultSignatures, BangPatterns #-}
+{-# LANGUAGE Safe, CPP, BangPatterns, ConstraintKinds, DefaultSignatures #-}
+
+#if __GLASGOW_HASKELL__ >= 806
+{-# LANGUAGE QuantifiedConstraints, RankNTypes #-}
+#endif
 
 {- |
     Module      :  SDP.Map
@@ -17,7 +20,11 @@ module SDP.Map
   module SDP.Set,
   
   -- * Map
-  Map (..), Map1, Map2, Map', Map''
+  Map (..), Map1, Map2,
+  
+#if __GLASGOW_HASKELL__ >= 806
+  Map', Map''
+#endif
 )
 where
 
@@ -209,14 +216,16 @@ class (Nullable map) => Map map key e | map -> key, map -> e
       @key <= k@ (if any). If @k@ is a @map@ element, returns @(k, e)@.
     -}
     lookupLE' :: (Ord key) => key -> map -> Maybe (key, e)
-    lookupLE' k me = (,) k <$> (me !? k) <|> lookupLEWith cmpfst (k, unreachEx "lookupLE'") (assocs me)
+    lookupLE' k me = (,) k <$> (me !? k) <|> lookupLEWith cmpfst
+      (k, unreachEx "lookupLE'") (assocs me)
     
     {- |
       @lookupGE' k map@ finds pair @(key, value)@ with  @key@, where
       @key >= k@ (if any).
     -}
     lookupGE' :: (Ord key) => key -> map -> Maybe (key, e)
-    lookupGE' k me = (,) k <$> (me !? k) <|> lookupGEWith cmpfst (k, unreachEx "lookupGE'") (assocs me)
+    lookupGE' k me = (,) k <$> (me !? k) <|> lookupGEWith cmpfst
+      (k, unreachEx "lookupGE'") (assocs me)
     
     -- | Returns list of map keys.
     keys :: map -> [key]
@@ -256,11 +265,23 @@ type Map1 map key e = Map (map e) key e
 -- | 'Map' contraint for @(Type -> Type -> Type)@-kind types.
 type Map2 map key e = Map (map key e) key e
 
--- | 'Map' contraint for @(Type -> Type)@-kind types.
+#if __GLASGOW_HASKELL__ >= 806
+
+{- |
+  'Map' contraint for @(Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type Map' map key = forall e . Map (map e) key e
 
--- | 'Map' contraint for @(Type -> Type -> Type)@-kind types.
+{- |
+  'Map' contraint for @(Type -> Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type Map'' map = forall key e . Map (map key e) key e
+
+#endif
 
 --------------------------------------------------------------------------------
 
@@ -273,7 +294,8 @@ instance Map [e] Int e
           in  ix : fill rest
         fill xs = xs
     
-    assocs = zip [0 ..] . listL
+    xs // es = snds $ unionWith cmpfst (setWith cmpfst es) (assocs xs)
+    assocs   = zip [0 ..] . listL
     
     insert' k e es = k < 0 ? es $ go k es
       where
@@ -297,8 +319,6 @@ instance Map [e] Int e
       GT -> xs !? (n - 1)
       EQ -> Just x
       LT -> Nothing
-    
-    xs // es = snds $ unionWith cmpfst (setWith cmpfst es) (assocs xs)
     
     (.$) = findIndex
     (*$) = findIndices

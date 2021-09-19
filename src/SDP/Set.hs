@@ -1,6 +1,10 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Trustworthy, TypeOperators, TypeFamilies, DefaultSignatures #-}
-{-# LANGUAGE ConstraintKinds, QuantifiedConstraints, RankNTypes #-}
+{-# LANGUAGE Trustworthy, CPP, TypeOperators, TypeFamilies, DefaultSignatures #-}
+{-# LANGUAGE ConstraintKinds #-}
+
+#if __GLASGOW_HASKELL__ >= 806
+{-# LANGUAGE QuantifiedConstraints, RankNTypes #-}
+#endif
 
 {- |
     Module      :  SDP.Set
@@ -14,10 +18,18 @@
 module SDP.Set
 (
   -- * SetWith
-  SetWith (..), SetWith1, SetWith2, SetWith', SetWith'',
+  SetWith (..), SetWith1, SetWith2,
+  
+#if __GLASGOW_HASKELL__ >= 806
+  SetWith', SetWith'',
+#endif
   
   -- * Set
-  Set (..), Set1, Set2, Set', Set''
+  Set (..), Set1, Set2,
+  
+#if __GLASGOW_HASKELL__ >= 806
+  Set', Set''
+#endif
 )
 where
 
@@ -50,9 +62,8 @@ default ()
 -}
 class (Nullable s) => SetWith s o | s -> o
   where
-    {-# MINIMAL intersectionWith, unionWith, differenceWith, lookupLTWith, lookupGTWith #-}
-    
-    {- Creation functions. -}
+    {-# MINIMAL intersectionWith, unionWith, differenceWith,
+      lookupLTWith, lookupGTWith #-}
     
     -- | Creates ordered set from linear structure.
     default setWith :: (Linear s o) => Compare o -> s -> s
@@ -77,8 +88,6 @@ class (Nullable s) => SetWith s o | s -> o
     deleteWith :: Compare o -> o -> s -> s
     deleteWith f = flip (differenceWith f) . single
     
-    {- Basic operations on sets. -}
-    
     -- | Intersection of two sets.
     intersectionWith :: Compare o -> s -> s -> s
     
@@ -91,8 +100,6 @@ class (Nullable s) => SetWith s o | s -> o
     
     -- | Union of two sets.
     unionWith :: Compare o -> s -> s -> s
-    
-    {- Generalization of basic set operations on foldable. -}
     
     -- | Fold by 'intersectionWith'.
     intersectionsWith :: (Foldable f) => Compare o -> f s -> s
@@ -109,8 +116,6 @@ class (Nullable s) => SetWith s o | s -> o
     -- | Fold by 'symdiffWith'.
     symdiffsWith :: (Foldable f) => Compare o -> f s -> s
     symdiffsWith =  (`foldl` Z) . symdiffWith
-    
-    {- Сomparsion operations. -}
     
     -- | Compares sets on intersection.
     isIntersectsWith :: Compare o -> s -> s -> Bool
@@ -134,8 +139,6 @@ class (Nullable s) => SetWith s o | s -> o
     default subsets :: (Linear s o, Ord o) => s -> [s]
     subsets :: (Ord o) => s -> [s]
     subsets =  subsequences . setWith compare
-    
-    {- Lookups. -}
     
     -- | 'lookupLTWith' trying to find lesser element in set.
     lookupLTWith :: Compare o -> o -> s -> Maybe o
@@ -272,17 +275,37 @@ type Set2 s i o = Set (s i o) o
 -- | 'SetWith' contraint for @(Type -> Type -> Type)@-kind types.
 type SetWith2 s i o = SetWith (s i o) o
 
--- | 'Set' contraint for @(Type -> Type)@-kind types.
+#if __GLASGOW_HASKELL__ >= 806
+
+{- |
+  'Set' contraint for @(Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type Set' s = forall o . Set (s o) o
 
--- | 'SetWith' contraint for @(Type -> Type)@-kind types.
+{- |
+  'SetWith' contraint for @(Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type SetWith' s = forall o . SetWith (s o) o
 
--- | 'Set' contraint for @(Type -> Type -> Type)@-kind types.
+{- |
+  'Set' contraint for @(Type -> Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type Set'' s = forall i o . Set (s i o) o
 
--- | 'SetWith' contraint for @(Type -> Type -> Type)@-kind types.
+{- |
+  'SetWith' contraint for @(Type -> Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type SetWith'' s = forall i o . SetWith (s i o) o
+
+#endif
 
 --------------------------------------------------------------------------------
 
@@ -362,4 +385,6 @@ instance SetWith [o] o
     lookupGEWith _ _ _ = Nothing
     
     groupSetWith cmp f = map (foldr1 f) . groupBy ((== EQ) ... cmp) . sortBy cmp
+
+
 

@@ -1,5 +1,9 @@
-{-# LANGUAGE Safe, MultiParamTypeClasses, FunctionalDependencies #-}
-{-# LANGUAGE ConstraintKinds, QuantifiedConstraints, RankNTypes #-}
+{-# LANGUAGE Safe, CPP, MultiParamTypeClasses, FunctionalDependencies #-}
+{-# LANGUAGE ConstraintKinds #-}
+
+#if __GLASGOW_HASKELL__ >= 806
+{-# LANGUAGE QuantifiedConstraints, RankNTypes #-}
+#endif
 
 {- |
     Module      :  SDP.SortM
@@ -13,7 +17,11 @@
 module SDP.SortM
 (
   -- * SortM
-  SortM (..), SortM1, SortM2, SortM', SortM''
+  SortM (..), SortM1, SortM2,
+  
+#if __GLASGOW_HASKELL__ >= 806
+  SortM', SortM''
+#endif
 )
 where
 
@@ -43,11 +51,7 @@ class SortM m s e | s -> m, s -> e
     sortedMOn :: (Ord o) => (e -> o) -> s -> m Bool
     sortedMOn =  sortedMBy . on (<=)
     
-    {- |
-      Checks if the structure is sorted.
-      
-      > sortedM = sortedMBy (<=)
-    -}
+    -- | Checks if the structure is sorted. @sortedM = sortedMBy (<=)@
     sortedM :: (Ord e) => s -> m Bool
     sortedM =  sortedMBy (<=)
     
@@ -55,9 +59,8 @@ class SortM m s e | s -> m, s -> e
     sortMBy :: Compare e -> s -> m ()
     
     {- |
-      Sort by comparing the results of a key function applied to each element.
-      
-      > sortMOn = sortMBy . comparing
+      Sort by comparing the results of a key function applied to each element
+      @sortMOn = sortMBy . comparing@.
     -}
     sortMOn :: (Ord o) => (e -> o) -> s -> m ()
     sortMOn =  sortMBy . comparing
@@ -74,11 +77,23 @@ type SortM1 m s e = SortM m (s e) e
 -- | 'SortM' contraint for @(Type -> Type -> Type)@-kind types.
 type SortM2 m s i e = SortM m (s i e)
 
--- | 'SortM' contraint for @(Type -> Type)@-kind types.
+#if __GLASGOW_HASKELL__ >= 806
+
+{- |
+  'SortM' contraint for @(Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type SortM' m s = forall e . SortM m (s e) e
 
--- | 'SortM' contraint for @(Type -> Type -> Type)@-kind types.
+{- |
+  'SortM' contraint for @(Type -> Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type SortM'' m s = forall i e . SortM m (s i e)
+
+#endif
 
 
 

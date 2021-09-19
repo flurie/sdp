@@ -1,6 +1,9 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Safe, ConstraintKinds, QuantifiedConstraints, RankNTypes #-}
-{-# LANGUAGE DefaultSignatures, BangPatterns #-}
+{-# LANGUAGE Safe, CPP, BangPatterns, ConstraintKinds, DefaultSignatures #-}
+
+#if __GLASGOW_HASKELL__ >= 806
+{-# LANGUAGE QuantifiedConstraints, RankNTypes #-}
+#endif
 
 {- |
     Module      :  SDP.MapM
@@ -14,7 +17,11 @@
 module SDP.MapM
 (
   -- * Mutable maps
-  MapM (..), MapM1, MapM2, MapM', MapM''
+  MapM (..), MapM1, MapM2,
+  
+#if __GLASGOW_HASKELL__ >= 806
+  MapM', MapM''
+#endif
 )
 where
 
@@ -84,7 +91,9 @@ class (Monad m) => MapM m map key e | map -> m, map -> key, map -> e
     -- | Update elements by mapping with indices.
     updateM :: map -> (key -> e -> e) -> m map
     default updateM :: (BorderedM m map key) => map -> (key -> e -> e) -> m map
-    updateM es f = do ascs <- getAssocs es; es `overwrite` [ (i, f i e) | (i, e) <- ascs ]
+    updateM es f = do
+      ascs <- getAssocs es
+      overwrite es [ (i, f i e) | (i, e) <- ascs ]
     
     -- | Update element by given function.
     updateM' :: map -> (e -> e) -> key -> m ()
@@ -155,11 +164,23 @@ type MapM1 m map key e = MapM m (map e) key e
 -- | 'MapM' contraint for @(Type -> Type -> Type)@-kind types.
 type MapM2 m map key e = MapM m (map key e) key e
 
--- | 'MapM' contraint for @(Type -> Type)@-kind types.
+#if __GLASGOW_HASKELL__ >= 806
+
+{- |
+  'MapM' contraint for @(Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type MapM' m map key = forall e . MapM m (map e) key e
 
--- | 'MapM' contraint for @(Type -> Type -> Type)@-kind types.
+{- |
+  'MapM' contraint for @(Type -> Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type MapM'' m map = forall key e . MapM m (map key e) key e
+
+#endif
 
 --------------------------------------------------------------------------------
 
@@ -174,7 +195,6 @@ overEx =  throw . IndexOverflow . showString "in SDP.MapM."
 
 underEx :: String -> a
 underEx =  throw . IndexUnderflow . showString "in SDP.MapM."
-
 
 
 

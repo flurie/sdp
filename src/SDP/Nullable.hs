@@ -1,5 +1,9 @@
 {-# LANGUAGE CPP, MagicHash, PatternSynonyms, ViewPatterns, DefaultSignatures #-}
-{-# LANGUAGE Trustworthy, ConstraintKinds, QuantifiedConstraints, RankNTypes #-}
+{-# LANGUAGE Trustworthy, ConstraintKinds #-}
+
+#if __GLASGOW_HASKELL__ >= 806
+{-# LANGUAGE QuantifiedConstraints, RankNTypes #-}
+#endif
 
 {- |
     Module      :  SDP.Nullable
@@ -13,8 +17,11 @@
 module SDP.Nullable
 (
   -- * Nullable
-  Nullable (..), Nullable1, Nullable2, Nullable', Nullable'',
-  pattern NULL
+  Nullable (..), Nullable1, Nullable2, pattern NULL,
+  
+#if __GLASGOW_HASKELL__ >= 806
+  Nullable', Nullable''
+#endif
 )
 where
 
@@ -54,11 +61,23 @@ type Nullable1 rep e = Nullable (rep e)
 -- | @since 0.3 'Nullable' contraint for @(Type -> Type -> Type)@-kind types.
 type Nullable2 rep i e = Nullable (rep i e)
 
--- | @since 0.3 'Nullable' contraint for @(Type -> Type)@-kind types.
+#if __GLASGOW_HASKELL__ >= 806
+
+{- |
+  @since 0.3 'Nullable' contraint for @(Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type Nullable' rep = forall e . Nullable (rep e)
 
--- | @since 0.3 'Nullable' contraint for @(Type -> Type -> Type)@-kind types.
+{- |
+  @since 0.3 'Nullable' contraint for @(Type -> Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type Nullable'' rep = forall i e . Nullable (rep i e)
+
+#endif
 
 --------------------------------------------------------------------------------
 
@@ -84,12 +103,8 @@ instance Nullable (ForeignPtr e)
 #endif
     isNull (ForeignPtr addr# _) = Ptr addr# == nullPtr
 
-instance Nullable (StablePtr e)
-  where
-    lzero  = StablePtr (unsafeCoerce# 0#)
+instance Nullable (StablePtr e) where lzero = StablePtr (unsafeCoerce# 0#)
 
 -- | @since 0.2.1
 instance Nullable (FunPtr e) where lzero = nullFunPtr
-
-
 

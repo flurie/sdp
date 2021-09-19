@@ -1,4 +1,8 @@
-{-# LANGUAGE Safe, ConstraintKinds, QuantifiedConstraints, RankNTypes #-}
+{-# LANGUAGE Safe, CPP, ConstraintKinds #-}
+
+#if __GLASGOW_HASKELL__ >= 806
+{-# LANGUAGE QuantifiedConstraints, RankNTypes #-}
+#endif
 
 {- |
     Module      :  SDP.Estimate
@@ -16,7 +20,12 @@ module SDP.Estimate
   module Data.Functor.Classes,
   
   -- * Estimate
-  Estimate (..), Estimate1, Estimate2, Estimate', Estimate'',
+  Estimate (..), Estimate1, Estimate2,
+  
+#if __GLASGOW_HASKELL__ >= 806
+  Estimate', Estimate'',
+#endif
+  
   (<=.>), (<.), (>.), (<=.), (>=.), (==.), (/=.)
 )
 where
@@ -106,10 +115,21 @@ type Estimate1 rep e = Estimate (rep e)
 -- | 'Estimate' contraint for @(Type -> Type -> Type)@-kind types.
 type Estimate2 rep i e = Estimate (rep i e)
 
--- | 'Estimate' contraint for @(Type -> Type)@-kind types.
+#if __GLASGOW_HASKELL__ >= 806
+
+{- |
+  'Estimate' contraint for @(Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type Estimate' rep = forall e . Estimate (rep e)
 
--- | 'Estimate' contraint for @(Type -> Type -> Type)@-kind types.
+{- |
+  'Estimate' contraint for @(Type -> Type -> Type)@-kind types.
+  
+  Only for GHC >= 8.6.1
+-}
 type Estimate'' rep = forall i e . Estimate (rep i e)
 
+#endif
 
