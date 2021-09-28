@@ -4,7 +4,7 @@
 
 {- |
     Module      :  SDP.Templates.AnyChunks
-    Copyright   :  (c) Andrey Mulik 2020
+    Copyright   :  (c) Andrey Mulik 2020-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
@@ -24,6 +24,7 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
+import SDP.Forceable
 import SDP.IndexedM
 import SDP.SortM
 import SDP.Scan
@@ -83,7 +84,7 @@ toChunks =  E.coerce
 
 {- Eq and Ord instances. -}
 
-instance (Eq (rep e), Bordered1 rep Int e, Split1 rep e) => Eq (AnyChunks rep e)
+instance (Eq (rep e), Bordered1 rep Int e, Linear1 rep e) => Eq (AnyChunks rep e)
   where
     Z == Z = True
     xs@(AnyChunks (x : xs')) == ys@(AnyChunks (y : ys')) = if n1 > n2
@@ -94,7 +95,7 @@ instance (Eq (rep e), Bordered1 rep Int e, Split1 rep e) => Eq (AnyChunks rep e)
         n2 = sizeOf y
     _ == _ = False
 
-instance (Ord (rep e), Bordered1 rep Int e, Split1 rep e) => Ord (AnyChunks rep e)
+instance (Ord (rep e), Bordered1 rep Int e, Linear1 rep e) => Ord (AnyChunks rep e)
   where
     compare Z Z = EQ
     compare xs@(AnyChunks (x : xs')) ys@(AnyChunks (y : ys')) = if n1 > n2
@@ -211,7 +212,11 @@ instance (Traversable rep) => Traversable (AnyChunks rep)
 
 --------------------------------------------------------------------------------
 
-{- Bordered, Linear and Split instances. -}
+{- Bordered and Linear instances. -}
+
+instance (Forceable (rep e)) => Forceable (AnyChunks rep e)
+  where
+    force (AnyChunks es) = AnyChunks (force <$> es)
 
 instance (Bordered1 rep Int e) => Bordered (AnyChunks rep e) Int
   where
@@ -278,7 +283,6 @@ instance (Bordered1 rep Int e, Linear1 rep e) => Linear (AnyChunks rep e) e
         rest  = replicate rst e
     
     reverse (AnyChunks es) = AnyChunks (reverse <$> reverse es)
-    force   (AnyChunks es) = AnyChunks (force <$> es)
     
     partition p = both fromList . partition p . listL
     
@@ -316,9 +320,7 @@ instance (Bordered1 rep Int e, Linear1 rep e) => Linear (AnyChunks rep e) e
     
     o_foldr f base = foldr (flip $ o_foldr f) base . toChunks
     o_foldl f base = foldl (o_foldl f) base . toChunks
-
-instance (Bordered1 rep Int e, Split1 rep e) => Split (AnyChunks rep e) e
-  where
+    
     take n = AnyChunks . go n . toChunks
       where
         go c (x : xs) = let s = sizeOf x in case c <=> s of
@@ -591,8 +593,7 @@ instance (SplitM1 m rep e, IndexedM1 m rep Int e) => IndexedM m (AnyChunks rep e
 
 instance (BorderedM1 m rep Int e, SortM1 m rep e, SplitM1 m rep e, LinearM1 m rep e) => SortM m (AnyChunks rep e) e
   where
-    sortMBy = timSortBy
-    
+    sortMBy     = timSortBy
     sortedMBy f = go . toChunks
       where
         go (x1 : x2 : xs) =
@@ -654,7 +655,6 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Templates.AnyChunks."
 
 lim :: Int
 lim =  1024
-
 
 
 

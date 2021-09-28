@@ -96,7 +96,7 @@ instance Nullable (Ptr e) where lzero = nullPtr
 -- Stolen from @bytestring@ package.
 instance Nullable (ForeignPtr e)
   where
-#if __GLASGOW_HASKELL__ >= 811
+#if MIN_VERSION_base(4,15,0)
     lzero = ForeignPtr nullAddr# FinalPtr
 #else
     lzero = ForeignPtr nullAddr# (throw $ UnreachableException "in SDP.Nullable.lzero :: ForeignPtr e")

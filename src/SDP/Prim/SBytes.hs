@@ -3,7 +3,7 @@
 
 {- |
     Module      :  SDP.Prim.SBytes
-    Copyright   :  (c) Andrey Mulik 2019
+    Copyright   :  (c) Andrey Mulik 2019-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
@@ -39,6 +39,7 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
+import SDP.Forceable
 import SDP.IndexedM
 import SDP.Unboxed
 import SDP.SortM
@@ -144,12 +145,17 @@ instance (Unboxed e) => Monoid    (SBytes# e) where mempty = Z; mappend = (<>)
 
 --------------------------------------------------------------------------------
 
-{- Nullable and Estimate instances. -}
+{- Nullable, Forceable and Estimate instances. -}
 
 instance Nullable (SBytes# e)
   where
     isNull es = case es of {(SBytes# 0 _ _) -> True; _ -> False}
     lzero     = def
+
+instance (Unboxed e) => Forceable (SBytes# e)
+  where
+    force es@(SBytes# n@(I# n#) (I# o#) bytes#) =
+      SBytes# n 0 (cloneUnboxed1# es bytes# n# o#)
 
 instance Estimate (SBytes# e)
   where
@@ -167,7 +173,7 @@ instance Estimate (SBytes# e)
 
 --------------------------------------------------------------------------------
 
-{- Linear, Split and Bordered instances. -}
+{- Linear and Bordered instances. -}
 
 instance Bordered (SBytes# e) Int
   where
@@ -219,9 +225,6 @@ instance (Unboxed e) => Linear (SBytes# e) e
       runST $ ST $ \ s1# -> case pconcat xs arr1# n1# o1# arr2# n2# o2# s1# of
         (# s2#, n#, marr# #) -> case unsafeFreezeByteArray# marr# s2# of
           (# s3#, arr# #) -> (# s3#, SBytes# (I# n#) 0 arr# #)
-    
-    force es@(SBytes# n@(I# n#) (I# o#) bytes#) =
-      SBytes# n 0 (cloneUnboxed1# es bytes# n# o#)
     
     {-# INLINE (!^) #-}
     (!^) (SBytes# _ (I# o#) arr#) = \ (I# i#) -> arr# !# (i# +# o#)
@@ -287,9 +290,7 @@ instance (Unboxed e) => Linear (SBytes# e) e
     o_foldl f base = \ arr@(SBytes# c _ _) ->
       let go i = -1 == i ? base $ f (go $ i - 1) (arr !^ i)
       in  go (c - 1)
-
-instance (Unboxed e) => Split (SBytes# e) e
-  where
+    
     -- | O(1) 'take', O(1) memory.
     take n es@(SBytes# c o arr#)
       | n <= 0 = Z
@@ -1148,6 +1149,5 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Prim.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
-
 
 

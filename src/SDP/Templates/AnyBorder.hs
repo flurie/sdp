@@ -4,7 +4,7 @@
 
 {- |
     Module      :  SDP.Templates.AnyBorder
-    Copyright   :  (c) Andrey Mulik 2020
+    Copyright   :  (c) Andrey Mulik 2020-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
@@ -27,6 +27,7 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
+import SDP.Forceable
 import SDP.IndexedM
 import SDP.Shaped
 import SDP.SortM
@@ -151,7 +152,6 @@ instance (Index i) => Estimate (AnyBorder rep i e)
     (.>=.) = on (>=)  sizeOf
     (.>.)  = on (>)   sizeOf
     (.<.)  = on (<)   sizeOf
-    
     (<.=>) = (<=>) . sizeOf
     (.>=)  = (>=)  . sizeOf
     (.<=)  = (<=)  . sizeOf
@@ -232,7 +232,11 @@ instance (Index i, Traversable rep) => Traversable (AnyBorder rep i)
 
 --------------------------------------------------------------------------------
 
-{- Bordered, Linear and Split instances. -}
+{- Bordered, Forceable and Linear instances. -}
+
+instance (Index i, Forceable (rep e)) => Forceable (AnyBorder rep i e)
+  where
+    force (AnyBorder l u rep) = AnyBorder l u (force rep)
 
 instance (Index i) => Bordered (AnyBorder rep i e) i
   where
@@ -286,7 +290,6 @@ instance (Index i, Linear1 rep e, Bordered1 rep Int e) => Linear (AnyBorder rep 
     before es = withBounds ... before (unpack es)
     
     reverse (AnyBorder l u rep) = AnyBorder l u (reverse rep)
-    force   (AnyBorder l u rep) = AnyBorder l u (force   rep)
     
     select   f = select f . unpack
     extract  f = second withBounds . extract  f . unpack
@@ -300,9 +303,7 @@ instance (Index i, Linear1 rep e, Bordered1 rep Int e) => Linear (AnyBorder rep 
     
     o_foldr f base = o_foldr f base . unpack
     o_foldl f base = o_foldl f base . unpack
-
-instance (Index i, Split1 rep e, Bordered1 rep Int e) => Split (AnyBorder rep i e) e
-  where
+    
     take n = withBounds . take n . unpack
     drop n = withBounds . drop n . unpack
     keep n = withBounds . keep n . unpack
@@ -310,7 +311,6 @@ instance (Index i, Split1 rep e, Bordered1 rep Int e) => Split (AnyBorder rep i 
     
     splits ns = fmap withBounds . splits ns . unpack
     chunks ns = fmap withBounds . chunks ns . unpack
-    parts  ns = fmap withBounds . parts  ns . unpack
     
     justifyL n e = withBounds . justifyL n e . unpack
     justifyR n e = withBounds . justifyR n e . unpack
@@ -494,7 +494,7 @@ instance (Index i, Indexed1 rep Int e) => Indexed (AnyBorder rep i e) i e
     
     fromIndexed = withBounds . fromIndexed
 
-instance (Bordered1 rep Int e, Split1 rep e) => Shaped (AnyBorder rep) e
+instance (Bordered1 rep Int e, Linear1 rep e) => Shaped (AnyBorder rep) e
   where
     (AnyBorder l u rep) !! ij = uncurry AnyBorder sub . take s $ drop o rep
       where

@@ -55,6 +55,7 @@ Library
   exposed-modules:
     SDP.SafePrelude
     SDP.Comparing
+    SDP.Forceable
     SDP.NullableM
     SDP.Nullable
     SDP.Estimate
@@ -127,4 +128,8 @@ Library
     
     Text.Show.SDP
     Text.Read.SDP
+
+
+
+
 

@@ -3,7 +3,7 @@
 
 {- |
     Module      :  SDP.Prim.SArray
-    Copyright   :  (c) Andrey Mulik 2019
+    Copyright   :  (c) Andrey Mulik 2019-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
@@ -37,6 +37,7 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
+import SDP.Forceable
 import SDP.IndexedM
 import SDP.SortM
 import SDP.Sort
@@ -339,7 +340,29 @@ instance Traversable SArray#
 
 --------------------------------------------------------------------------------
 
-{- Linear, Split and Bordered instances. -}
+{- Bordered, Linear and Forceable instances. -}
+
+instance Bordered (SArray# e) Int
+  where
+    lower _ = 0
+    
+    sizeOf   (SArray# c _ _) = c
+    upper    (SArray# c _ _) = c - 1
+    bounds   (SArray# c _ _) = (0, c - 1)
+    indices  (SArray# c _ _) = [0 .. c - 1]
+    indexOf  (SArray# c _ _) = index (0, c - 1)
+    offsetOf (SArray# c _ _) = offset (0, c - 1)
+    indexIn  (SArray# c _ _) = \ i -> i >= 0 && i < c
+    
+    rebound es bnds = size bnds `take` es
+
+instance Forceable (SArray# e)
+  where
+    force (SArray# n@(I# n#) (I# o#) arr#) = runST $ ST $
+      \ s1# -> case newArray# n# (unreachEx "force") s1# of
+        (# s2#, marr# #) -> case copyArray# arr# o# marr# 0# n# s2# of
+          s3# -> case unsafeFreezeArray# marr# s3# of
+            (# s4#, copy# #) -> (# s4#, SArray# n 0 copy# #)
 
 instance Linear (SArray# e) e
   where
@@ -377,12 +400,6 @@ instance Linear (SArray# e) e
               (# s5#, arr# #) -> (# s5#, SArray# (I# n#) 0 arr# #)
       where
         n# = n1# +# n2#
-    
-    force (SArray# n@(I# n#) (I# o#) arr#) = runST $ ST $
-      \ s1# -> case newArray# n# (unreachEx "force") s1# of
-        (# s2#, marr# #) -> case copyArray# arr# o# marr# 0# n# s2# of
-          s3# -> case unsafeFreezeArray# marr# s3# of
-            (# s4#, copy# #) -> (# s4#, SArray# n 0 copy# #)
     
     listL = toList
     listR = flip (:) `foldl` []
@@ -444,9 +461,7 @@ instance Linear (SArray# e) e
     
     o_foldr = foldr
     o_foldl = foldl
-
-instance Split (SArray# e) e
-  where
+    
     -- | O(1) 'take', O(1) memory.
     take n es@(SArray# c o arr#)
       | n <= 0 = Z
@@ -525,20 +540,6 @@ instance Split (SArray# e) e
     selectEnd g xs@(SArray# c _ _) =
       let go i es = i == 0 ? [] $ maybe [] (: go (i - 1) es) $ g (es !^ i)
       in  reverse $ go (c - 1) xs
-
-instance Bordered (SArray# e) Int
-  where
-    lower _ = 0
-    
-    sizeOf   (SArray# c _ _) = c
-    upper    (SArray# c _ _) = c - 1
-    bounds   (SArray# c _ _) = (0, c - 1)
-    indices  (SArray# c _ _) = [0 .. c - 1]
-    indexOf  (SArray# c _ _) = index (0, c - 1)
-    offsetOf (SArray# c _ _) = offset (0, c - 1)
-    indexIn  (SArray# c _ _) = \ i -> i >= 0 && i < c
-    
-    rebound es bnds = size bnds `take` es
 
 --------------------------------------------------------------------------------
 
@@ -1183,7 +1184,9 @@ instance (Storable e) => Thaw IO (SArray# e) (Int, Ptr e)
   where
     thaw (SArray# n o arr#) = do
       ptr <- callocArray n
-      forM_ [o .. n + o - 1] $ \ i@(I# i#) -> let (# e #) = indexArray# arr# i# in pokeElemOff ptr i e
+      forM_ [o .. n + o - 1] $ \ i@(I# i#) ->
+        let (# e #) = indexArray# arr# i#
+        in  pokeElemOff ptr i e
       return (n, ptr)
 
 instance (Storable e) => Freeze IO (Int, Ptr e) (SArray# e)
@@ -1282,4 +1285,6 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
+
+
 
