@@ -17,7 +17,7 @@
 module SDP.Nullable
 (
   -- * Nullable
-  Nullable (..), Nullable1, Nullable2, pattern NULL,
+  Nullable (..), Nullable1, Nullable2, pattern NULL, pattern Z,
   
 #if __GLASGOW_HASKELL__ >= 806
   Nullable', Nullable''
@@ -38,7 +38,29 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | 'Nullable' is class of types which value may be empty.
+{- |
+  'Nullable' is class of types which have empty values.
+  
+  Nullable instances must follow some rules:
+  
+  @
+    isNull Z === True
+    x == Z ==> isNull x == True
+    x == y === isNull x == isNull y
+    
+    -- For 'Foldable' instances
+    toList Z === []
+    fold   Z === mempty
+    isNull x === null x
+    isNull x === length x == 0
+    
+    sum      Z === 0
+    product  Z === 1
+    elem   x Z === False
+    foldr  f Z === foldl  f Z === id
+    foldr1 f Z === foldl1 f Z === undefined
+  @
+-}
 class Nullable e
   where
     -- | Empty value.
@@ -49,9 +71,20 @@ class Nullable e
     isNull :: e -> Bool
     isNull =  (== lzero)
 
--- | Originally defined in @sdp-ctypes@ (now @sdp-foreign@), same as @Z@ now.
+--------------------------------------------------------------------------------
+
+{-# COMPLETE Z,    (:) #-}
+{-# COMPLETE NULL, (:) #-}
+
+-- | 'NULL' pattern correspond 'isNull' values, @'NULL' = 'lzero'@.
 pattern NULL :: (Nullable e) => e
 pattern NULL <- (isNull -> True) where NULL = lzero
+
+{- |
+  Other empty value pattern: @Z = NULL@.
+-}
+pattern Z :: (Nullable e) => e
+pattern Z =  NULL
 
 --------------------------------------------------------------------------------
 
@@ -99,7 +132,9 @@ instance Nullable (ForeignPtr e)
 #if MIN_VERSION_base(4,15,0)
     lzero = ForeignPtr nullAddr# FinalPtr
 #else
-    lzero = ForeignPtr nullAddr# (throw $ UnreachableException "in SDP.Nullable.lzero :: ForeignPtr e")
+    lzero =
+      let ex = UnreachableException "in SDP.Nullable.lzero :: ForeignPtr e"
+      in  ForeignPtr nullAddr# (throw ex)
 #endif
     isNull (ForeignPtr addr# _) = Ptr addr# == nullPtr
 

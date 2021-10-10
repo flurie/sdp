@@ -32,7 +32,7 @@ module SDP.Linear
 #endif
   
   -- * Linear class
-  Linear (..), Linear1, Linear2, pattern (:>), pattern (:<), pattern Z,
+  Linear (..), Linear1, Linear2, pattern (:>), pattern (:<),
   
 #if __GLASGOW_HASKELL__ >= 806
   Linear', Linear'',
@@ -46,7 +46,6 @@ where
 
 import Prelude ()
 import SDP.SafePrelude
-
 import SDP.Forceable
 import SDP.Nullable
 import SDP.Index
@@ -66,14 +65,31 @@ infixl 9 !^
 
 --------------------------------------------------------------------------------
 
--- | Class of bordered data structures.
+{- |
+  'Bordered' is class of data structures with constant bounds of 'Index' type.
+  
+  'Bordered' instances must follow some rules:
+  
+  @
+    bounds es === (lower es, upper es)
+    sizeOf es === product (sizesOf es)
+    
+    -- For 'Foldable' instances
+    sizeOf  === length
+    null xs === sizeOf xs == 0
+    
+    -- For 'Nullable' instances
+    sizeOf  Z === 0
+    isNull xs === sizeOf xs === 0
+  @
+-}
 class (Index i, Estimate b) => Bordered b i | b -> i
   where
     {-# MINIMAL (bounds|(lower, upper)), rebound #-}
     
     {-# INLINE bounds #-}
     {- |
-      Returns the exact 'upper' and 'lower' bounds of given structure. If the
+      Returns the exact 'lower' and 'upper' bounds of given structure. If the
       structure doesn't have explicitly defined boundaries (list, for example),
       use the @'defaultBounds' . 'sizeOf'@.
     -}
@@ -158,7 +174,7 @@ class (Index i, Estimate b) => Bordered b i | b -> i
   'Linear' is one of the main SDP classes, a class of linear data structures.
   
   A structure of type @l@ must be able to contain an arbitrary ordered dataset
-  of type @e@, of arbitrary length. The ordering implies that each @e@ element
+  of type @e@, with arbitrary length. The ordering implies that each @e@ element
   in @l@ can be associated with a non-negative number.
   
   Structures that cannot store, for example, a zero number of elements (e.g.
@@ -169,8 +185,46 @@ class (Index i, Estimate b) => Bordered b i | b -> i
   elements. The standard SDP structures use the 'Index' class to define this
   order. You may also want to think of the table as a linear structure
   containing rows/columns, or use a different ordering method such as Gray code.
+  
+  'Linear' structures must follow some rules:
+  
+  @
+    mempty  === lzero
+    mappend === (<>) === (++)
+    mconcat === fold === concat
+    
+    isNull  (single e)   === True
+    isNull (toHead x xs) === True
+    isNull (toLast xs x) === True
+    
+    reverse . reverse === id
+    listL === reverse . listR === listR . reverse
+    listR === reverse . listL === listL . reverse
+    
+    fromList === fromFoldable
+    fromFoldable === foldr toHead Z
+    
+    -- For 'Foldable' instances:
+    length (toHead x xs) === length xs + 1
+    length (toLast xs x) === length xs + 1
+    
+    length (replicate n e) === n
+    
+    isNull === length == 0
+    length === length . listL === length . listR
+    toList === listL === reverse . listR === listR . reverse
+    
+    o_foldr  === foldr
+    o_foldl  === foldl
+    o_foldr1 === foldr1
+    o_foldl1 === foldl1
+    
+    ofoldr f base xs === foldr (uncurry f) base (assocs xs)
+    filter p = fromList . foldr (\ x xs -> p x ? x : xs $ xs) []
+    select f = foldr (\ x es -> case f x of {Just e -> e : es; _ -> es}) []
+  @
 -}
-class (Nullable l, Forceable l) => Linear l e | l -> e
+class (Nullable l, Forceable l, Monoid l) => Linear l e | l -> e
   where
     {-# MINIMAL toHead, toLast, (take|sans), (drop|keep),
         (uncons'|(head,tail)|uncons), (unsnoc'|(init,last)|unsnoc) #-}
@@ -179,9 +233,11 @@ class (Nullable l, Forceable l) => Linear l e | l -> e
     
     -- | Prepends element to line, constructor for ':>' pattern.
     toHead :: e -> l -> l
+    toHead e es = single e ++ es
     
     -- | Appends element to line, constructor for ':<' pattern.
     toLast :: l -> e -> l
+    toLast es e = es ++ single e
     
     -- | Same as @'isNull' '?-' 'uncons'@
     uncons' :: l -> Maybe (e, l)
@@ -255,7 +311,7 @@ class (Nullable l, Forceable l) => Linear l e | l -> e
     
     -- | Concatenation of two lines.
     (++) :: l -> l -> l
-    (++) =  fromList ... on (++) listL
+    (++) =  (<>)
     
     {- |
       Returns the element of a sequence by offset, may be completely unsafe.
@@ -786,13 +842,6 @@ class (Nullable l, Forceable l) => Linear l e | l -> e
 
 --------------------------------------------------------------------------------
 
-{- |
-  'Z' is overloaded empty ('lzero') value constant. Pattern 'Z' corresponds to
-  all empty ('isNull') values.
--}
-pattern Z :: (Nullable e) => e
-pattern Z <- (isNull -> True) where Z = lzero
-
 -- | Pattern @(':>')@ is left-size view of line. Same as 'uncons' and 'toHead'.
 pattern  (:>)   :: (Linear l e) => e -> l -> l
 pattern x :> xs <- (uncons' -> Just (x, xs)) where (:>) = toHead
@@ -849,7 +898,6 @@ type Bordered'' l = forall i e . Bordered (l i e) i
 
 --------------------------------------------------------------------------------
 
-{-# COMPLETE Z,  (:)  #-}
 {-# COMPLETE [], (:>) #-}
 {-# COMPLETE [], (:<) #-}
 
