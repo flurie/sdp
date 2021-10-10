@@ -88,7 +88,6 @@ class (Nullable map) => Map map key e | map -> key, map -> e
       If @map@ doesn't allow gaps, then the missing elements should be filled
       with default values.
     -}
-    default insert' :: (Bordered map key) => key -> e -> map -> map
     insert' :: key -> e -> map -> map
     insert' k e es = toMap $ assocs es :< (k, e)
     
@@ -347,4 +346,5 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Map."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Map."
+
 

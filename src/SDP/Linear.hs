@@ -224,7 +224,11 @@ class (Index i, Estimate b) => Bordered b i | b -> i
     select f = foldr (\ x es -> case f x of {Just e -> e : es; _ -> es}) []
   @
 -}
+#if MIN_VERSION_base(4,11,0)
 class (Nullable l, Forceable l, Monoid l) => Linear l e | l -> e
+#else
+class (Nullable l, Forceable l, Semigroup l, Monoid l) => Linear l e | l -> e
+#endif
   where
     {-# MINIMAL toHead, toLast, (take|sans), (drop|keep),
         (uncons'|(head,tail)|uncons), (unsnoc'|(init,last)|unsnoc) #-}
@@ -1105,4 +1109,7 @@ ascending =  all sorted ... flip splits
 
 emptyEx :: String -> a
 emptyEx =  throw . PatternMatchFail . showString "in SDP.Linear."
+
+
+
 

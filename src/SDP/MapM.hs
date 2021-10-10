@@ -90,7 +90,6 @@ class (Monad m) => MapM m map key e | map -> m, map -> key, map -> e
     
     -- | Update elements by mapping with indices.
     updateM :: map -> (key -> e -> e) -> m map
-    default updateM :: (BorderedM m map key) => map -> (key -> e -> e) -> m map
     updateM es f = do
       ascs <- getAssocs es
       overwrite es [ (i, f i e) | (i, e) <- ascs ]
@@ -195,6 +194,7 @@ overEx =  throw . IndexOverflow . showString "in SDP.MapM."
 
 underEx :: String -> a
 underEx =  throw . IndexUnderflow . showString "in SDP.MapM."
+
 
 
 
