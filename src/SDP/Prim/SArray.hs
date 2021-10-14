@@ -807,7 +807,7 @@ instance Bordered (STArray# s e) Int
 
 --------------------------------------------------------------------------------
 
-{- BorderedM, LinearM and SplitM instances. -}
+{- BorderedM and LinearM instances. -}
 
 instance BorderedM (ST s) (STArray# s e) Int
   where
@@ -904,9 +904,7 @@ instance LinearM (ST s) (STArray# s e) e
     foldlM f base = \ arr@(STArray# n _ _) ->
       let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f
       in  go (n - 1)
-
-instance SplitM (ST s) (STArray# s e) e
-  where
+    
     takeM n es@(STArray# c o marr#)
       | n <= 0 = newNull
       | n >= c = return es
@@ -1054,7 +1052,7 @@ instance (MonadIO io) => NullableM io (MIOArray# io e)
 
 --------------------------------------------------------------------------------
 
-{- BorderedM, LinearM and SplitM instances. -}
+{- BorderedM and LinearM instances. -}
 
 instance (MonadIO io) => BorderedM io (MIOArray# io e) Int
   where
@@ -1109,9 +1107,7 @@ instance (MonadIO io) => LinearM io (MIOArray# io e) e
     foldlM f base arr =
       let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f
       in  go (sizeOf arr - 1)
-
-instance (MonadIO io) => SplitM io (MIOArray# io e) e
-  where
+    
     takeM n = pack . takeM n . unpack
     dropM n = pack . dropM n . unpack
     keepM n = pack . keepM n . unpack
@@ -1285,6 +1281,5 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
-
 
 

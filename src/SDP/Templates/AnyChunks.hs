@@ -1,5 +1,5 @@
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts, CPP #-}
-{-# LANGUAGE TypeFamilies, DeriveDataTypeable, DeriveGeneric #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts #-}
+{-# LANGUAGE TypeFamilies, DeriveDataTypeable, DeriveGeneric, CPP #-}
 {-# LANGUAGE Trustworthy, UndecidableInstances, BangPatterns #-}
 
 {- |
@@ -55,11 +55,11 @@ default ()
   'fromChunksM').
   
   * Efficiency of operations on @'AnyChunks' rep e@ are very sensitive in the
-  efficiency of 'Bordered', 'Linear' and 'Split' on @rep e@.
+  efficiency of 'Bordered' and 'Linear' on @rep e@.
   * @'AnyChunks' rep e@ is only defined for Int-indexed @rep e@.
   * 'Eq', 'Ord', 'Eq1' and 'Ord1' instances compare @'AnyChunks' rep e@ as
   streams of equal size chunks. To do this, the comparison @rep e@ must also be
-  lexicographic, also for @rep e@ must implement 'Bordered' and 'Split'.
+  lexicographic, also for @rep e@ must implement 'Bordered'.
   * 'Freeze' and 'Thaw' for @'AnyChunks' rep e@ are defined for all @rep e@ that
   already have 'Freeze' and 'Thaw' instances.
 -}
@@ -343,7 +343,7 @@ instance (Bordered1 rep Int e, Linear1 rep e) => Linear (AnyChunks rep e) e
 
 --------------------------------------------------------------------------------
 
-{- BorderedM, LinearM and SplitM instances. -}
+{- BorderedM and LinearM instances. -}
 
 instance (BorderedM1 m rep Int e) => BorderedM m (AnyChunks rep e) Int
   where
@@ -355,7 +355,7 @@ instance (BorderedM1 m rep Int e) => BorderedM m (AnyChunks rep e) Int
     getIndices es = do n <- getSizeOf es; return [0 .. n - 1]
     nowIndexIn es = \ i -> i < 0 ? return False $ do n <- getSizeOf es; return (i < n)
 
-instance (BorderedM1 m rep Int e, SplitM1 m rep e) => LinearM m (AnyChunks rep e) e
+instance (BorderedM1 m rep Int e, LinearM1 m rep e) => LinearM m (AnyChunks rep e) e
   where
     getHead = getHead . head . toChunks
     getLast = getLast . last . toChunks
@@ -391,7 +391,7 @@ instance (BorderedM1 m rep Int e, SplitM1 m rep e) => LinearM m (AnyChunks rep e
       where
         (d, n) = c `divMod` lim
     
-    copyTo src os trg ot c = when (c > 0) $ do -- TODO: rewrite without SplitM
+    copyTo src os trg ot c = when (c > 0) $ do
         when (os < 0 || ot < 0) $ underEx "copyTo"
         src' <- dropM os src
         trg' <- dropM ot trg
@@ -427,9 +427,7 @@ instance (BorderedM1 m rep Int e, SplitM1 m rep e) => LinearM m (AnyChunks rep e
     
     foldrM f base = foldr ((=<<) . flip (foldrM f)) (return base) . toChunks
     foldlM f base = foldl (flip $ (=<<) . flip (foldlM f)) (return base) . toChunks
-
-instance (BorderedM1 m rep Int e, SplitM1 m rep e) => SplitM m (AnyChunks rep e) e
-  where
+    
     takeM n (AnyChunks (e : es)) = n < 1 ? newNull $ do
       c <- getSizeOf e
       case n <=> c of
@@ -538,7 +536,7 @@ instance (Indexed1 rep Int e) => Indexed (AnyChunks rep e) Int e
 
 {- MapM, IndexedM and SortM instances. -}
 
-instance (SplitM1 m rep e, MapM1 m rep Int e, BorderedM1 m rep Int e) => MapM m (AnyChunks rep e) Int e
+instance (LinearM1 m rep e, MapM1 m rep Int e, BorderedM1 m rep Int e) => MapM m (AnyChunks rep e) Int e
   where
     newMap ascs = AnyChunks <$> sequence (fromRangeList (fsts ascs) `go` ascs)
       where
@@ -572,7 +570,7 @@ instance (SplitM1 m rep e, MapM1 m rep Int e, BorderedM1 m rep Int e) => MapM m 
     kfoldrM = ofoldrM
     kfoldlM = ofoldlM
 
-instance (SplitM1 m rep e, IndexedM1 m rep Int e) => IndexedM m (AnyChunks rep e) Int e
+instance (IndexedM1 m rep Int e) => IndexedM m (AnyChunks rep e) Int e
   where
     fromAssocs bnds ascs = AnyChunks <$> sequence (go bnds ascs)
       where
@@ -591,7 +589,7 @@ instance (SplitM1 m rep e, IndexedM1 m rep Int e) => IndexedM m (AnyChunks rep e
     fromIndexed' = newLinear  .  listL
     fromIndexedM = newLinear <=< getLeft
 
-instance (BorderedM1 m rep Int e, SortM1 m rep e, SplitM1 m rep e, LinearM1 m rep e) => SortM m (AnyChunks rep e) e
+instance (BorderedM1 m rep Int e, SortM1 m rep e, LinearM1 m rep e) => SortM m (AnyChunks rep e) e
   where
     sortMBy     = timSortBy
     sortedMBy f = go . toChunks

@@ -323,7 +323,7 @@ instance (Index i, Linear1 rep e, Bordered1 rep Int e) => Linear (AnyBorder rep 
 
 --------------------------------------------------------------------------------
 
-{- BorderedM, LinearM and SplitM instances. -}
+{- BorderedM and LinearM instances. -}
 
 instance (Index i, BorderedM1 m rep Int e) => BorderedM m (AnyBorder rep i e) i
   where
@@ -365,9 +365,7 @@ instance (Index i, LinearM1 m rep e, BorderedM1 m rep Int e) => LinearM m (AnyBo
     
     foldrM f e = foldrM f e . unpack
     foldlM f e = foldlM f e . unpack
-
-instance (Index i, BorderedM1 m rep Int e, SplitM1 m rep e) => SplitM m (AnyBorder rep i e) e
-  where
+    
     takeM n es@(AnyBorder l u rep)
         | n <= 0 = newNull
         | n >= c = return es
@@ -612,4 +610,6 @@ withBounds rep = uncurry AnyBorder (defaultBounds $ sizeOf rep) rep
 {-# INLINE withBounds' #-}
 withBounds' :: (Index i, BorderedM1 m rep Int e) => rep e -> m (AnyBorder rep i e)
 withBounds' rep = (\ n -> uncurry AnyBorder (defaultBounds n) rep) <$> getSizeOf rep
+
+
 

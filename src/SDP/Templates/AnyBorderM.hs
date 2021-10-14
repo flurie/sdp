@@ -4,7 +4,7 @@
 
 {- |
     Module      :  SDP.Templates.AnyBorder
-    Copyright   :  (c) Andrey Mulik 2020
+    Copyright   :  (c) Andrey Mulik 2020-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
@@ -69,7 +69,7 @@ instance (MonadVar m, NullableM m rep) => NullableM m (AnyBorderM m rep)
 
 --------------------------------------------------------------------------------
 
-{- BorderedM, LinearM and SplitM instances. -}
+{- BorderedM and LinearM instances. -}
 
 instance (MonadVar m, Index i, BorderedM m rep i) => BorderedM m (AnyBorderM m rep) i
   where
@@ -128,9 +128,7 @@ instance (MonadVar m, LinearM m rep e) => LinearM m (AnyBorderM m rep) e
       src' <- unpackM src
       trg' <- unpackM trg
       copyTo src' so trg' to n
-
-instance (MonadVar m, SplitM m rep e) => SplitM m (AnyBorderM m rep) e
-  where
+    
     takeM n = packM <=< takeM n <=< unpackM
     dropM n = packM <=< dropM n <=< unpackM
     keepM n = packM <=< keepM n <=< unpackM
@@ -206,5 +204,7 @@ unpackM =  get this . unpack
 
 packM :: (MonadVar m) => rep -> m (AnyBorderM m rep)
 packM =  fmap AnyBorderM . var
+
+
 
 

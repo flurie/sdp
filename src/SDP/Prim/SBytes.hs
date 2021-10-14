@@ -628,7 +628,7 @@ instance Bordered (STBytes# s e) Int
 
 --------------------------------------------------------------------------------
 
-{- BorderedM, LinearM and SplitM instances. -}
+{- BorderedM and LinearM instances. -}
 
 instance BorderedM (ST s) (STBytes# s e) Int
   where
@@ -714,9 +714,7 @@ instance (Unboxed e) => LinearM (ST s) (STBytes# s e) e
     foldlM f base = \ arr@(STBytes# n _ _) ->
       let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f
       in  go (n - 1)
-
-instance (Unboxed e) => SplitM (ST s) (STBytes# s e) e
-  where
+    
     takeM n es@(STBytes# c o marr#)
       | n <= 0 = newNull
       | n >= c = return es
@@ -868,7 +866,7 @@ instance Bordered (MIOBytes# io e) Int
 
 --------------------------------------------------------------------------------
 
-{- BorderedM, LinearM and SplitM instances. -}
+{- BorderedM and LinearM instances. -}
 
 instance (MonadIO io) => BorderedM io (MIOBytes# io e) Int
   where
@@ -924,9 +922,7 @@ instance (MonadIO io, Unboxed e) => LinearM io (MIOBytes# io e) e
     foldlM f base arr =
       let go i = -1 == i ? return base $ go (i - 1) >>=<< (arr !#> i) $ f
       in  go (sizeOf arr - 1)
-
-instance (MonadIO io, Unboxed e) => SplitM io (MIOBytes# io e) e
-  where
+    
     takeM n = pack . takeM n . unpack
     dropM n = pack . dropM n . unpack
     keepM n = pack . keepM n . unpack
@@ -1149,5 +1145,4 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Prim.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
-
 

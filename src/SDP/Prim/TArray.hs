@@ -74,7 +74,7 @@ instance Bordered (TArray# e) Int
 
 --------------------------------------------------------------------------------
 
-{- BorderedM, LinearM and SplitM instances. -}
+{- BorderedM and LinearM instances. -}
 
 instance BorderedM STM (TArray# e) Int
   where
@@ -123,9 +123,7 @@ instance LinearM STM (TArray# e) e
     
     foldlM f base = foldl (\ es -> ($ f) . (es >>=<<) . readTVar) (return base) . unpack
     foldrM f base = foldr (($ f) ... (>>=<<) . readTVar) (return base) . unpack
-
-instance SplitM STM (TArray# e) e
-  where
+    
     takeM n = return . TArray# . take n . unpack
     dropM n = return . TArray# . drop n . unpack
     keepM n = return . TArray# . keep n . unpack
@@ -212,4 +210,6 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Prim.TArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.TArray."
+
+
 
