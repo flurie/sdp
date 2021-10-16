@@ -400,6 +400,7 @@ instance Index Word64   where offset = offsetIntegral; defaultBounds = defaultBo
 instance Index CChar    where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
 instance Index CWchar   where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
 instance Index CSize    where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+
 instance Index CUChar   where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
 instance Index CUShort  where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
 instance Index CUInt    where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
@@ -570,6 +571,5 @@ checkBounds bnds i res = case inBounds bnds i of
 
 emptyEx :: String -> a
 emptyEx =  throw . EmptyRange . showString "in SDP.Index."
-
 
 

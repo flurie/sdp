@@ -69,8 +69,8 @@ instance Bordered (TArray# e) Int
     indices  (TArray# arr) = [0 .. upper arr]
     indexOf  (TArray# arr) = index (0, upper arr)
     offsetOf (TArray# arr) = offset (0, upper arr)
-    rebound  (TArray# arr) bnds = TArray# (rebound arr bnds)
     indexIn  (TArray# arr) = \ i -> i >= 0 && i < sizeOf arr
+    rebound  bnds (TArray# arr) = TArray# (rebound bnds arr)
 
 --------------------------------------------------------------------------------
 

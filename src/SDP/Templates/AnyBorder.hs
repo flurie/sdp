@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts, CPP #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies, DeriveDataTypeable, DeriveGeneric #-}
 {-# LANGUAGE Trustworthy, UndecidableInstances #-}
 
@@ -125,10 +125,7 @@ instance (Linear1 (AnyBorder rep i) e) => Default   (AnyBorder rep i e) where de
 
 instance (Linear1 (AnyBorder rep i) e) => Monoid (AnyBorder rep i e)
   where
--- For base >= 4.9 && < 4.11
-#if !MIN_VERSION_base(4,11,0)
     mappend = (<>)
-#endif
     mempty  = Z
 
 --------------------------------------------------------------------------------
@@ -249,7 +246,7 @@ instance (Index i) => Bordered (AnyBorder rep i e) i
     indexIn  (AnyBorder l u _) = inRange (l, u)
     offsetOf (AnyBorder l u _) = offset  (l, u)
     
-    rebound es@(AnyBorder _ _ rep) (l,u) = size (l,u) >. es ? es $ AnyBorder l u rep
+    rebound bnds es = size bnds >. es ? es $ uncurry AnyBorder bnds (unpack es)
 
 instance (Index i, Linear1 rep e, Bordered1 rep Int e) => Linear (AnyBorder rep i e) e
   where
@@ -610,6 +607,4 @@ withBounds rep = uncurry AnyBorder (defaultBounds $ sizeOf rep) rep
 {-# INLINE withBounds' #-}
 withBounds' :: (Index i, BorderedM1 m rep Int e) => rep e -> m (AnyBorder rep i e)
 withBounds' rep = (\ n -> uncurry AnyBorder (defaultBounds n) rep) <$> getSizeOf rep
-
-
 

@@ -23,15 +23,13 @@ module SDP.Indexed
   -- * Indexed
   Indexed (..), Indexed1, Indexed2, binaryContain,
   
-#if __GLASGOW_HASKELL__ >= 806
-  Indexed', Indexed'',
-#endif
-  
   -- * Freeze
   Freeze (..), Freeze1,
   
 #if __GLASGOW_HASKELL__ >= 806
-  Freeze'
+  -- * Rank 2 quantified constraints
+  -- | GHC 8.6.1+ only
+  Indexed', Indexed'', Freeze'
 #endif
 )
 where
@@ -114,28 +112,14 @@ type Indexed2 v i e = Indexed (v i e) i e
 type Freeze1 m v' v e = Freeze m (v' e) (v e)
 
 #if __GLASGOW_HASKELL__ >= 806
-
-{- |
-  'Indexed' contraint for @(Type -> Type)@-kind types.
-  
-  Only for GHC >= 8.6.1
--}
+-- | 'Indexed' contraint for @(Type -> Type)@-kind types.
 type Indexed' v i = forall e . Indexed (v e) i e
 
-{- |
-  'Indexed' contraint for @(Type -> Type -> Type)@-kind types.
-  
-  Only for GHC >= 8.6.1
--}
+-- | 'Indexed' contraint for @(Type -> Type -> Type)@-kind types.
 type Indexed'' v = forall i e . Indexed (v i e) i e
 
-{- |
-  'Freeze' contraint for @(Type -> Type)@-kind types.
-  
-  Only for GHC >= 8.6.1
--}
+-- | 'Freeze' contraint for @(Type -> Type)@-kind types.
 type Freeze' m v' v = forall e . Freeze m (v' e) (v e)
-
 #endif
 
 --------------------------------------------------------------------------------
@@ -151,20 +135,16 @@ instance Indexed [e] Int e
 binaryContain :: (Linear v e, Bordered v i) => Compare e -> e -> v -> Bool
 binaryContain _ _ Z  = False
 binaryContain f e es =
-  let
-    contain l u = not (l > u) && case f e (es !^ j) of
-        LT -> contain l (j - 1)
-        EQ -> True
-        GT -> contain (j + 1) u
-      where
-        j = u - l `div` 2 + l
+  let contain l u = not (l > u) && case f e (es !^ j) of
+          LT -> contain l (j - 1)
+          EQ -> True
+          GT -> contain (j + 1) u
+        where
+          j = u - l `div` 2 + l
   in  f e (head es) /= LT && f e (last es) /= GT && contain 0 (sizeOf es - 1)
 
 --------------------------------------------------------------------------------
 
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.Indexed."
-
-
-
 

@@ -24,15 +24,13 @@ module SDP.LinearM
   -- * BorderedM class
   BorderedM (..), BorderedM1, BorderedM2,
   
-#if __GLASGOW_HASKELL__ >= 806
-  BorderedM', BorderedM'',
-#endif
-  
   -- * LinearM class
   LinearM (..), LinearM1, LinearM2, pattern (:+=), pattern (:=+), pattern (:~=),
   
 #if __GLASGOW_HASKELL__ >= 806
-  LinearM', LinearM''
+  -- * Rank 2 quantified constraints
+  -- | GHC 8.6.1+ only
+  BorderedM', BorderedM'', LinearM', LinearM''
 #endif
 )
 where
@@ -456,35 +454,17 @@ type LinearM1 m l e = LinearM m (l e) e
 type LinearM2 m l i e = LinearM m (l i e) e
 
 #if __GLASGOW_HASKELL__ >= 806
-
-{- |
-  'BorderedM' contraint for @(Type -> Type)@-kind types.
-  
-  Only for GHC >= 8.6.1
--}
+-- | 'BorderedM' contraint for @(Type -> Type)@-kind types.
 type BorderedM' m l i = forall e . BorderedM m (l e) i
 
-{- |
-  'BorderedM' contraint for @(Type -> Type -> Type)@-kind types.
-  
-  Only for GHC >= 8.6.1
--}
+-- | 'BorderedM' contraint for @(Type -> Type -> Type)@-kind types.
 type BorderedM'' m l = forall i e . BorderedM m (l i e) i
 
-{- |
-  'LinearM' contraint for @(Type -> Type)@-kind types.
-  
-  Only for GHC >= 8.6.1
--}
+-- | 'LinearM' contraint for @(Type -> Type)@-kind types.
 type LinearM' m l = forall e . LinearM m (l e) e
 
-{- |
-  'LinearM' contraint for @(Type -> Type -> Type)@-kind types.
-  
-  Only for GHC >= 8.6.1
--}
+-- | 'LinearM' contraint for @(Type -> Type -> Type)@-kind types.
 type LinearM'' m l = forall i e . LinearM m (l i e) e
-
 #endif
 
 

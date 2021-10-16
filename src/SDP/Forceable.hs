@@ -21,9 +21,7 @@ module SDP.Forceable
   Forceable (..), Forceable1, Forceable2,
   
 #if __GLASGOW_HASKELL__ >= 806
-  
   Forceable', Forceable'',
-  
 #endif
 )
 where
@@ -65,21 +63,11 @@ type Forceable1 f e = Forceable (f e)
 type Forceable2 f i e = Forceable (f i e)
 
 #if __GLASGOW_HASKELL__ >= 806
-
-{- |
-  @since 0.3 'Forceable' contraint for @(Type -> Type@-kind types.
-  
-  Only for GHC >= 8.6.1
--}
+-- | @since 0.3 'Forceable' contraint for @(Type -> Type@-kind types.
 type Forceable' f = forall e . Forceable (f e)
 
-{- |
-  @since 0.3 'Forceable' contraint for @(Type -> Type -> Type)@-kind types.
-  
-  Only for GHC >= 8.6.1
--}
+-- | @since 0.3 'Forceable' contraint for @(Type -> Type -> Type)@-kind types.
 type Forceable'' f = forall i e . Forceable (f i e)
-
 #endif
 
 --------------------------------------------------------------------------------
@@ -89,7 +77,4 @@ type Forceable'' f = forall i e . Forceable (f i e)
   corrected by rebuilding it (rather the opposite), so @force = id@.
 -}
 instance Forceable [a]
-
-
-
 

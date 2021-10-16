@@ -20,6 +20,8 @@ module SDP.SortM
   SortM (..), SortM1, SortM2,
   
 #if __GLASGOW_HASKELL__ >= 806
+  -- * Rank 2 quantified constraints
+  -- | GHC 8.6.1+ only
   SortM', SortM''
 #endif
 )
@@ -78,23 +80,11 @@ type SortM1 m s e = SortM m (s e) e
 type SortM2 m s i e = SortM m (s i e)
 
 #if __GLASGOW_HASKELL__ >= 806
-
-{- |
-  'SortM' contraint for @(Type -> Type)@-kind types.
-  
-  Only for GHC >= 8.6.1
--}
+-- | 'SortM' contraint for @(Type -> Type)@-kind types.
 type SortM' m s = forall e . SortM m (s e) e
 
-{- |
-  'SortM' contraint for @(Type -> Type -> Type)@-kind types.
-  
-  Only for GHC >= 8.6.1
--}
+-- | 'SortM' contraint for @(Type -> Type -> Type)@-kind types.
 type SortM'' m s = forall i e . SortM m (s i e)
-
 #endif
-
-
 
 

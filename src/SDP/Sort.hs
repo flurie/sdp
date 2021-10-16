@@ -20,6 +20,8 @@ module SDP.Sort
   Sort (..), Sort1, Sort2,
   
 #if __GLASGOW_HASKELL__ >= 806
+  -- * Rank 2 quantified constraints
+  -- | GHC 8.6.1+ only
   Sort', Sort''
 #endif
 )
@@ -96,20 +98,13 @@ type Sort2 rep i e = Sort (rep i e)
 
 #if __GLASGOW_HASKELL__ >= 806
 
-{- |
-  'Sort' contraint for @(Type -> Type)@-kind types.
-  
-  Only for GHC >= 8.6.1
--}
+-- | 'Sort' contraint for @(Type -> Type)@-kind types.
 type Sort' rep = forall e . Sort (rep e)
 
-{- |
-  'Sort' contraint for @(Type -> Type -> Type)@-kind types.
-  
-  Only for GHC >= 8.6.1
--}
+-- | 'Sort' contraint for @(Type -> Type -> Type)@-kind types.
 type Sort'' rep = forall i e . Sort (rep i e)
 
 #endif
+
 
 

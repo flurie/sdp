@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts #-}
-{-# LANGUAGE TypeFamilies, DeriveDataTypeable, DeriveGeneric, CPP #-}
+{-# LANGUAGE TypeFamilies, DeriveDataTypeable, DeriveGeneric #-}
 {-# LANGUAGE Trustworthy, UndecidableInstances, BangPatterns #-}
 
 {- |
@@ -126,7 +126,7 @@ instance (Indexed1 rep Int e, Read e) => Read (AnyChunks rep e)
 
 --------------------------------------------------------------------------------
 
-{- Semigroup, Monoid and Default instances. -}
+{- Semigroup, Monoid, instances, Nullable, NullableM and Estimate instances. -}
 
 instance Semigroup (AnyChunks rep e)
   where
@@ -134,10 +134,6 @@ instance Semigroup (AnyChunks rep e)
 
 instance Monoid  (AnyChunks rep e) where mempty = AnyChunks []; mappend = (<>)
 instance Default (AnyChunks rep e) where def    = AnyChunks []
-
---------------------------------------------------------------------------------
-
-{- Nullable, NullableM and Estimate instances. -}
 
 instance Nullable (AnyChunks rep e)
   where
@@ -234,10 +230,10 @@ instance (Bordered1 rep Int e) => Bordered (AnyChunks rep e) Int
     upper  es = sizeOf es - 1
     bounds es = (0, sizeOf es - 1)
     
-    rebound es bnds = AnyChunks (size bnds `go` toChunks es)
+    rebound bnds es = AnyChunks (size bnds `go` toChunks es)
       where
         go c (x : xs) = let s = sizeOf x in case c <=> s of
-          LT -> [x `rebound` defaultBounds c]
+          LT -> [defaultBounds c `rebound` x]
           GT -> x : go (c - s) xs
           EQ -> [x]
         go _    []    = []
@@ -653,6 +649,7 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Templates.AnyChunks."
 
 lim :: Int
 lim =  1024
+
 
 
 

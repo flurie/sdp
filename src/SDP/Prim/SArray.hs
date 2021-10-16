@@ -1,5 +1,5 @@
 {-# LANGUAGE Trustworthy, MagicHash, UnboxedTuples, BangPatterns, TypeFamilies #-}
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, RoleAnnotations, CPP #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, RoleAnnotations #-}
 
 {- |
     Module      :  SDP.Prim.SArray
@@ -146,10 +146,7 @@ instance Default   (SArray# e) where def = Z
 
 instance Monoid (SArray# e)
   where
--- For base >= 4.9 && < 4.11
-#if !MIN_VERSION_base(4,11,0)
     mappend = (<>)
-#endif
     mempty  = Z
 
 --------------------------------------------------------------------------------
@@ -353,8 +350,6 @@ instance Bordered (SArray# e) Int
     indexOf  (SArray# c _ _) = index (0, c - 1)
     offsetOf (SArray# c _ _) = offset (0, c - 1)
     indexIn  (SArray# c _ _) = \ i -> i >= 0 && i < c
-    
-    rebound es bnds = size bnds `take` es
 
 instance Forceable (SArray# e)
   where
@@ -798,7 +793,7 @@ instance Bordered (STArray# s e) Int
     offsetOf (STArray# c _ _) = offset (0, c - 1)
     indexIn  (STArray# c _ _) = \ i -> i >= 0 && i < c
     
-    rebound es@(STArray# c o arr#) bnds
+    rebound bnds es@(STArray# c o arr#)
         | n < 0 = STArray# 0 0 arr#
         | n < c = STArray# n o arr#
         | True  = es
@@ -1043,7 +1038,7 @@ instance Bordered (MIOArray# io e) Int
     offsetOf (MIOArray# (STArray# c _ _)) = offset (0, c - 1)
     indexIn  (MIOArray# (STArray# c _ _)) = \ i -> i >= 0 && i < c
     
-    rebound  (MIOArray# es) bnds = MIOArray# (rebound es bnds)
+    rebound bnds (MIOArray# es) = MIOArray# (rebound bnds es)
 
 instance (MonadIO io) => NullableM io (MIOArray# io e)
   where

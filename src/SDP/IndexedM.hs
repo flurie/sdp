@@ -24,15 +24,13 @@ module SDP.IndexedM
   -- * IndexedM
   IndexedM (..), IndexedM1, IndexedM2,
   
-#if __GLASGOW_HASKELL__ >= 806
-  IndexedM', IndexedM'',
-#endif
-  
   -- * Thaw
   Thaw (..), Thaw1,
   
 #if __GLASGOW_HASKELL__ >= 806
-  Thaw'
+  -- * Rank 2 quantified constraints
+  -- | GHC 8.6.1+ only
+  IndexedM', IndexedM'', Thaw'
 #endif
 )
 where
@@ -128,28 +126,15 @@ type IndexedM2 m v i e = IndexedM m (v i e) i e
 type Thaw1 m v v' e = Thaw m (v e) (v' e)
 
 #if __GLASGOW_HASKELL__ >= 806
-
-{- |
-  'IndexedM' contraint for @(Type -> Type)@-kind types.
-  
-  Only for GHC >= 8.6.1
--}
+-- | 'IndexedM' contraint for @(Type -> Type)@-kind types.
 type IndexedM' m v i = forall e . IndexedM m (v e) i e
 
-{- |
-  'IndexedM' contraint for @(Type -> Type -> Type)@-kind types.
-  
-  Only for GHC >= 8.6.1
--}
+-- | 'IndexedM' contraint for @(Type -> Type -> Type)@-kind types.
 type IndexedM'' m v = forall i e . IndexedM m (v i e) i e
 
-{- |
-  'Thaw' contraint for @(Type -> Type)@-kind types.
-  
-  Only for GHC >= 8.6.1
--}
+-- | 'Thaw' contraint for @(Type -> Type)@-kind types.
 type Thaw' m v v' = forall e . Thaw m (v e) (v' e)
-
 #endif
+
 
 

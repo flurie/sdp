@@ -19,6 +19,7 @@
 module SDP.Linear
 (
   -- * Exports
+  module SDP.Forceable,
   module SDP.Nullable,
   module SDP.Index,
   module SDP.Sort,
@@ -27,15 +28,13 @@ module SDP.Linear
   -- * Bordered class
   Bordered (..), Bordered1, Bordered2,
   
-#if __GLASGOW_HASKELL__ >= 806
-  Bordered', Bordered'',
-#endif
-  
   -- * Linear class
   Linear (..), Linear1, Linear2, pattern (:>), pattern (:<),
   
 #if __GLASGOW_HASKELL__ >= 806
-  Linear', Linear'',
+  -- * Rank 2 quantified constraints
+  -- | GHC 8.6.1+ only
+  Bordered', Bordered'', Linear', Linear'',
 #endif
   
   -- * Related functions
@@ -85,7 +84,7 @@ infixl 9 !^
 -}
 class (Index i, Estimate b) => Bordered b i | b -> i
   where
-    {-# MINIMAL (bounds|(lower, upper)), rebound #-}
+    {-# MINIMAL (bounds|(lower, upper)) #-}
     
     {-# INLINE bounds #-}
     {- |
@@ -136,22 +135,26 @@ class (Index i, Estimate b) => Bordered b i | b -> i
     offsetOf =  offset . bounds
     
     {- |
-      @'rebound' es bnds@ returns (old) structure with bounds @bnds@, if
+      @'rebound' bnds es@ returns (old) structure with bounds @bnds@, if
       possible.
       
       * 'rebound' doesn't change the existing structure and shouldn't create a
-      new one
-      * 'rebound' don't selects elements from its subrange and keeps the
-      original element order, so @'bounds' es@ don't affect the 'rebound'
-      result
+      new one: 'rebound' result is just new view of existing structure ()
+      * 'rebound' doesn't select elements from its subrange and keeps the
+      original element order
       * if @'size' bnds > sizeOf es@, upper bound will be replaced by
       @'index' bnds ('sizeOf' es)@
-      * if the specified 'bounds' cannot be set, 'rebound' uses the
+      * if the specified 'bounds' cannot be set, 'rebound' set the
       @'defaultBounds' ('size' bnds)@ value.
+      * default definition of 'rebound' expect 'Linear' structure and shrinks it
+      to the size of its new bounds using 'take'.
+      
+      If you need new structure with new bounds, use 'force' after 'rebound',
+      also see 'SDP.Indexed.Indexed.fromIndexed' and 'SDP.Indexed.Indexed.imap'.
       
       @
-        sizeOf (rebound es bnds) === min (sizeOf es) (size bnds)
-        bounds (rebound es bnds) =/= bnds -- generally speaking
+        sizeOf (rebound bnds es) === sizeOf es `min` size bnds
+        bounds (rebound bnds es) =/= bnds -- generally speaking
       @
       
       > rebound [1 .. 10] (5, 8) :: [Int]
@@ -161,7 +164,9 @@ class (Index i, Estimate b) => Bordered b i | b -> i
       > rebound (fromList [1 .. 10]) (5, 8) :: Array Int Int
       array (5,8) [(5,1),(6,2),(7,3),(8,4)] -- bounds: (0, 9) => (5, 8)
     -}
-    rebound :: b -> (i, i) -> b
+    default rebound :: (Linear b e) => (i, i) -> b -> b
+    rebound :: (i, i) -> b -> b
+    rebound =  take . size
 
 --------------------------------------------------------------------------------
 
@@ -869,35 +874,17 @@ type Bordered1 l i e = Bordered (l e) i
 type Bordered2 l i e = Bordered (l i e) i
 
 #if __GLASGOW_HASKELL__ >= 806
-
-{- |
-  'Linear' contraint for @(Type -> Type)@-kind types.
-  
-  Only for GHC >= 8.6.1
--}
+-- | 'Linear' contraint for @(Type -> Type)@-kind types.
 type Linear' l = forall e . Linear (l e) e
 
-{- |
-  'Linear' contraint for @(Type -> Type -> Type)@-kind types.
-  
-  Only for GHC >= 8.6.1
--}
+-- | 'Linear' contraint for @(Type -> Type -> Type)@-kind types.
 type Linear'' l = forall i e . Linear (l i e) e
 
-{- |
-  'Bordered' contraint for @(Type -> Type)@-kind types.
-  
-  Only for GHC >= 8.6.1
--}
+-- | 'Bordered' contraint for @(Type -> Type)@-kind types.
 type Bordered' l i = forall e . Bordered (l e) i
 
-{- |
-  'Bordered' contraint for @(Type -> Type -> Type)@-kind types.
-  
-  Only for GHC >= 8.6.1
--}
+-- | 'Bordered' contraint for @(Type -> Type -> Type)@-kind types.
 type Bordered'' l = forall i e . Bordered (l i e) i
-
 #endif
 
 --------------------------------------------------------------------------------
@@ -907,11 +894,9 @@ type Bordered'' l = forall i e . Bordered (l i e) i
 
 instance Bordered [e] Int
   where
-    sizeOf = length
-    lower  = const 0
-    
-    rebound es = \ bnds -> size bnds `take` es
-    upper   es = length es - 1
+    sizeOf   = length
+    lower    = const 0
+    upper es = length es - 1
 
 instance Linear [e] e
   where
@@ -1029,9 +1014,9 @@ instance (Index i) => Bordered (i, i) i
     lower  = fst
     upper  = snd
     
+    rebound = const
     indices = range
     indexIn = inRange
-    rebound = const id
     
     sizeOf   = size
     indexOf  = index

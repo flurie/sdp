@@ -1,5 +1,5 @@
 {-# LANGUAGE Trustworthy, MagicHash, UnboxedTuples, BangPatterns, TypeFamilies #-}
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, RoleAnnotations, CPP #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, RoleAnnotations #-}
 
 {- |
     Module      :  SDP.Prim.SBytes
@@ -187,7 +187,7 @@ instance Bordered (SBytes# e) Int
     offsetOf (SBytes# c _ _) = offset (0, c - 1)
     indexIn  (SBytes# c _ _) = \ i -> i >= 0 && i < c
     
-    rebound es@(SBytes# c o bytes#) bnds
+    rebound bnds es@(SBytes# c o bytes#)
         | n < 0 = Z
         | n >= c = es
         | True = SBytes# n o bytes#
@@ -616,7 +616,7 @@ instance Estimate (STBytes# s e)
 
 instance Bordered (STBytes# s e) Int
   where
-    rebound es@(STBytes# c o bytes#) bnds
+    rebound bnds es@(STBytes# c o bytes#)
         | n < 0 = STBytes# 0 0 bytes#
         | n < c = STBytes# n o bytes#
         | True  = es
@@ -862,7 +862,7 @@ instance Bordered (MIOBytes# io e) Int
     offsetOf (MIOBytes# (STBytes# c _ _)) = offset (0, c - 1)
     indexIn  (MIOBytes# (STBytes# c _ _)) = \ i -> i >= 0 && i < c
     
-    rebound  (MIOBytes# es) bnds = MIOBytes# (rebound es bnds)
+    rebound bnds (MIOBytes# es) = MIOBytes# (rebound bnds es)
 
 --------------------------------------------------------------------------------
 
@@ -1145,4 +1145,6 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Prim.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
+
+
 

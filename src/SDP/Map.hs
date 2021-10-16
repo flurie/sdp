@@ -23,6 +23,8 @@ module SDP.Map
   Map (..), Map1, Map2,
   
 #if __GLASGOW_HASKELL__ >= 806
+  -- * Rank 2 quantified constraints
+  -- | GHC 8.6.1+ only
   Map', Map''
 #endif
 )
@@ -265,21 +267,11 @@ type Map1 map key e = Map (map e) key e
 type Map2 map key e = Map (map key e) key e
 
 #if __GLASGOW_HASKELL__ >= 806
-
-{- |
-  'Map' contraint for @(Type -> Type)@-kind types.
-  
-  Only for GHC >= 8.6.1
--}
+-- | 'Map' contraint for @(Type -> Type)@-kind types.
 type Map' map key = forall e . Map (map e) key e
 
-{- |
-  'Map' contraint for @(Type -> Type -> Type)@-kind types.
-  
-  Only for GHC >= 8.6.1
--}
+-- | 'Map' contraint for @(Type -> Type -> Type)@-kind types.
 type Map'' map = forall key e . Map (map key e) key e
-
 #endif
 
 --------------------------------------------------------------------------------
@@ -299,13 +291,10 @@ instance Map [e] Int e
     insert' k e es = k < 0 ? es $ go k es
       where
         go 0    xs    = isNull xs ? [e] $ e : tail xs
-        go i    []    = err : go (i - 1) []
+        go i    []    = undEx "insert'" : go (i - 1) []
         go i (x : xs) = x : go (i - 1) xs
-        
-        err = undEx "insert'"
     
-    (x : xs) .! n = n == 0 ? x $ xs .! (n - 1)
-    _        .! _ = error "in SDP.Map.(.!)"
+    es .! n = case es of {x : xs -> n == 0 ? x $ xs .! (n - 1); _ -> error "in SDP.Map.(.!)"}
     
     (!) [] _ = empEx "(!)"
     (!) es n = n >= 0 ? es !# n $ underEx "(!)"
@@ -346,5 +335,6 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Map."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Map."
+
 
 

@@ -20,15 +20,13 @@ module SDP.Set
   -- * SetWith
   SetWith (..), SetWith1, SetWith2,
   
-#if __GLASGOW_HASKELL__ >= 806
-  SetWith', SetWith'',
-#endif
-  
   -- * Set
   Set (..), Set1, Set2,
   
 #if __GLASGOW_HASKELL__ >= 806
-  Set', Set''
+  -- * Rank 2 quantified constraints
+  -- | GHC 8.6.1+ only
+  SetWith', SetWith'', Set', Set''
 #endif
 )
 where
@@ -276,35 +274,17 @@ type Set2 s i o = Set (s i o) o
 type SetWith2 s i o = SetWith (s i o) o
 
 #if __GLASGOW_HASKELL__ >= 806
-
-{- |
-  'Set' contraint for @(Type -> Type)@-kind types.
-  
-  Only for GHC >= 8.6.1
--}
+-- | 'Set' contraint for @(Type -> Type)@-kind types.
 type Set' s = forall o . Set (s o) o
 
-{- |
-  'SetWith' contraint for @(Type -> Type)@-kind types.
-  
-  Only for GHC >= 8.6.1
--}
+-- | 'SetWith' contraint for @(Type -> Type)@-kind types.
 type SetWith' s = forall o . SetWith (s o) o
 
-{- |
-  'Set' contraint for @(Type -> Type -> Type)@-kind types.
-  
-  Only for GHC >= 8.6.1
--}
+-- | 'Set' contraint for @(Type -> Type -> Type)@-kind types.
 type Set'' s = forall i o . Set (s i o) o
 
-{- |
-  'SetWith' contraint for @(Type -> Type -> Type)@-kind types.
-  
-  Only for GHC >= 8.6.1
--}
+-- | 'SetWith' contraint for @(Type -> Type -> Type)@-kind types.
 type SetWith'' s = forall i o . SetWith (s i o) o
-
 #endif
 
 --------------------------------------------------------------------------------
