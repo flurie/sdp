@@ -136,7 +136,7 @@ instance Semigroup (AnyChunks rep e)
   where
     AnyChunks xs <> AnyChunks ys = AnyChunks (xs ++ ys)
 
-instance Monoid  (AnyChunks rep e) where mempty = AnyChunks []
+instance Monoid  (AnyChunks rep e) where mempty = AnyChunks []; mappend = (<>)
 instance Default (AnyChunks rep e) where def    = AnyChunks []
 
 instance (Bordered1 rep Int e) => Estimate (AnyChunks rep e)

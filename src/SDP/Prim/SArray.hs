@@ -65,7 +65,6 @@ import Data.Default.Class
 import Data.Typeable
 import Data.Coerce
 import Data.String
-import Data.Proxy
 
 import Text.Read
 
@@ -147,7 +146,7 @@ instance Nullable (SArray# e)
     isNull = \ (SArray# c _ _) -> c == 0
 
 instance Semigroup (SArray# e) where (<>) = (++)
-instance Monoid    (SArray# e) where mempty = Z
+instance Monoid    (SArray# e) where mempty = Z; mappend = (<>)
 instance Default   (SArray# e) where def = Z
 
 instance Estimate (SArray# e)
@@ -1206,6 +1205,10 @@ before n@(I# n#) e es@(SArray# c@(I# c#) (I# o#) arr#)
 ascsBounds :: (Ord a) => [(a, b)] -> (a, a)
 ascsBounds =  \ ((x, _) : xs) -> foldr (\ (e, _) (mn, mx) -> (min mn e, max mx e)) (x, x) xs
 
+-- | In base-4.9 'asProxyTypeOf' has less general type @a -> Proxy a -> a@.
+asProxyTypeOf :: a -> proxy a -> a
+asProxyTypeOf =  const
+
 --------------------------------------------------------------------------------
 
 undEx :: String -> a
@@ -1222,4 +1225,6 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
+
+
 

@@ -385,8 +385,12 @@ instance Index CIntMax    where offset = offsetIntegral
 instance Index CPtrdiff   where offset = offsetIntegral
 instance Index CSigAtomic where offset = offsetIntegral
 
+#if MIN_VERSION_base(4,10,0)
+-- | @since base-4.10.0.0
+instance Index CBool where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
+#endif
+
 instance Index CSize      where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
-instance Index CBool      where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
 instance Index CUChar     where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
 instance Index CUShort    where offset = offsetIntegral; defaultBounds = defaultBoundsUnsign
 
@@ -555,6 +559,7 @@ checkBounds bnds i res = case inBounds bnds i of
 
 emptyEx :: String -> a
 emptyEx =  throw . EmptyRange . showString "in SDP.Index."
+
 
 
 

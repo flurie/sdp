@@ -1,5 +1,5 @@
 {-# OPTIONS_HADDOCK ignore-exports #-}
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE Safe, CPP #-}
 
 {- |
     Module      :  SDP.SafePrelude
@@ -42,6 +42,10 @@ module SDP.SafePrelude
   
   module Prelude,
   
+#if !MIN_VERSION_base(4,11,0)
+  Semigroup (..),
+#endif
+  
   -- * Combinators
   on, (?), (?+), (?-), (?^), (?:), (+?), (...), (<=<<), (>>=>), (>>=<<)
 )
@@ -66,6 +70,10 @@ import Prelude hiding
 
 import SDP.Comparing
 import SDP.Estimate
+
+#if !MIN_VERSION_base(4,11,0)
+import Data.Semigroup ( Semigroup (..) ) -- For base >= 4.9 && < 4.11
+#endif
 
 import Data.Functor.Classes
 import Data.Bifunctor
@@ -164,7 +172,4 @@ liftM6 g as bs cs ds es fs = do a <- as; b <- bs; c <- cs; d <- ds; e <- es; f <
 -- | 'stToMIO' is just @'liftIO' . 'stToIO'@.
 stToMIO :: (MonadIO io) => ST RealWorld e -> io e
 stToMIO =  liftIO . stToIO
-
-
-
 

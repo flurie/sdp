@@ -127,7 +127,7 @@ instance (Index i, Bordered (rep e) Int, Nullable (rep e)) => Nullable (AnyBorde
     lzero  = withBounds lzero
 
 instance (Linear1 (AnyBorder rep i) e) => Semigroup (AnyBorder rep i e) where (<>) = (++)
-instance (Linear1 (AnyBorder rep i) e) => Monoid    (AnyBorder rep i e) where mempty = Z
+instance (Linear1 (AnyBorder rep i) e) => Monoid    (AnyBorder rep i e) where mempty = Z; mappend = (<>)
 instance (Linear1 (AnyBorder rep i) e) => Default   (AnyBorder rep i e) where def = Z
 
 instance (Index i) => Estimate (AnyBorder rep i e)

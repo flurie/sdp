@@ -145,7 +145,7 @@ instance Nullable (SBytes# e)
     isNull es = case es of {(SBytes# 0 _ _) -> True; _ -> False}
 
 instance (Unboxed e) => Semigroup (SBytes# e) where (<>) = (++)
-instance (Unboxed e) => Monoid    (SBytes# e) where mempty = Z
+instance (Unboxed e) => Monoid    (SBytes# e) where mempty = Z; mappend = (<>)
 
 instance Default (SBytes# e)
   where
