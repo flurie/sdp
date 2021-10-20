@@ -457,6 +457,22 @@ class (Nullable l) => Linear l e | l -> e
     -- | 'o_foldl'' is just 'foldl'' in 'Linear' context.
     o_foldl' :: (b -> e -> b) -> b -> l -> b
     o_foldl' =  ofoldl' . const
+    
+    -- | @since 0.2.1 'o_foldr1' is just 'foldr1' in 'Linear' context.
+    o_foldr1 :: (e -> e -> e) -> l -> e
+    o_foldr1 f = \ (es :< e) -> o_foldr f e es
+    
+    -- | @since 0.2.1 'o_foldl1' is just 'foldl1' in 'Linear' context.
+    o_foldl1 :: (e -> e -> e) -> l -> e
+    o_foldl1 f = \ (e :> es) -> o_foldl f e es
+    
+    -- | @since 0.2.1 'o_foldr1'' is just 'foldr1'' in 'Linear' context.
+    o_foldr1' :: (e -> e -> e) -> l -> e
+    o_foldr1' f = \ (es :< e) -> o_foldr' f e es
+    
+    -- | @since 0.2.1 'o_foldl1'' is just 'foldl1'' in 'Linear' context.
+    o_foldl1' :: (e -> e -> e) -> l -> e
+    o_foldl1' f = \ (e :> es) -> o_foldl' f e es
 
 --------------------------------------------------------------------------------
 
@@ -979,7 +995,6 @@ inits es = es : inits (init es)
 -- | @ascending es ls@ checks if the @es@ subsequences of @ls@ sizes is ordered.
 ascending :: (Split s e, Sort s e, Ord e) => s -> [Int] -> Bool
 ascending =  all sorted ... flip splits
-
 
 
 
