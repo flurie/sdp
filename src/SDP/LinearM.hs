@@ -1,4 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, BangPatterns #-}
+{-# LANGUAGE FlexibleInstances, GADTs, ViewPatterns, PatternSynonyms #-}
 {-# LANGUAGE Safe, CPP, ConstraintKinds, DefaultSignatures #-}
 
 #if __GLASGOW_HASKELL__ >= 806
@@ -23,7 +24,7 @@ module SDP.LinearM
   BorderedM (..), BorderedM1, BorderedM2,
   
   -- * LinearM class
-  LinearM (..), LinearM1, LinearM2,
+  LinearM (..), LinearM1, LinearM2, pattern (:+=), pattern (:=+), pattern (:~=),
   
 #if __GLASGOW_HASKELL__ >= 806
   -- * Rank 2 quantified constraints
@@ -40,6 +41,9 @@ import Prelude ()
 import SDP.SafePrelude
 import SDP.Linear
 import SDP.Map
+
+import Data.Property hiding ( set )
+import Data.Typeable
 
 default ()
 
@@ -195,6 +199,10 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     {-# INLINE filled #-}
     filled :: Int -> e -> m l
     filled n = newLinearN n . replicate n
+    
+    -- | @since 0.2.1 @'removed' n es@ removes element with offset @n@ from @es@.
+    removed :: Int -> l -> m l
+    removed n es = newLinear . remove n =<< getLeft es
     
     {- |
       @since 0.2.1
@@ -376,6 +384,74 @@ class (LinearM m s e) => SplitM m s e
 
 --------------------------------------------------------------------------------
 
+{- fmr-0.2 append, prepend and delete fields. -}
+
+-- | 'FieldLinearM' is a service type used to prepend, append or remove element.
+data FieldLinearM l e m field record
+  where
+    Prepend :: (LinearM m l e, FieldGet field, FieldSet field)
+            => e -> field m record l -> FieldLinearM l e m field record
+    Append  :: (LinearM m l e, FieldGet field, FieldSet field)
+            => field m record l -> e -> FieldLinearM l e m field record
+    Delete  :: (LinearM m l e, FieldGet field, FieldSet field)
+            => Int -> field m record l -> FieldLinearM l e m field record
+  deriving ( Typeable )
+
+instance IsProp (FieldLinearM l e)
+  where
+    performProp record (Append  field e) = setRecord field record =<<
+                              flip append e =<< getRecord field record
+    
+    performProp record (Delete  n field) = setRecord field record =<<
+                              removed n =<< getRecord field record
+    
+    performProp record (Prepend e field) = setRecord field record =<<
+                              prepend e =<< getRecord field record
+
+{- |
+  @since 0.2.1
+  @(':+=')@ is @fmr@-compatible 'prepend' element pattern for 'LinearM' fields.
+-}
+pattern (:+=) ::
+  (
+    Typeable record, Typeable field, Typeable m, Typeable l, Typeable e,
+    LinearM m l e, FieldGet field, FieldSet field
+  ) => e -> field m record l -> Prop m field record
+pattern e :+= field <- (cast' -> Just (Prepend e field)) where (:+=) = Prop ... Prepend
+
+{- |
+  @since 0.2.1
+  @(':=+')@ is @fmr@-compatible 'append' element pattern for 'LinearM' fields.
+-}
+pattern (:=+) ::
+  (
+    Typeable record, Typeable field, Typeable m, Typeable l, Typeable e,
+    LinearM m l e, FieldGet field, FieldSet field
+  ) => field m record l -> e -> Prop m field record
+pattern field :=+ e <- (cast' -> Just (Append field e)) where (:=+) = Prop ... Append
+
+{- |
+  @since 0.2.1
+  @(':~=')@ is @fmr@-compatible delete element pattern for 'LinearM' fields, see
+  'removed'.
+-}
+pattern (:~=) ::
+  (
+    Typeable record, Typeable field, Typeable m, Typeable l, Typeable e,
+    LinearM m l e, FieldGet field, FieldSet field
+  ) => Int -> field m record l -> Prop m field record
+pattern n :~= field <- (cast' -> Just (Delete n field)) where (:~=) = Prop ... Delete
+
+-- | 'cast'' is just service function for 'Prop' data extraction.
+cast' ::
+  (
+    Typeable record, Typeable field, Typeable m, Typeable l, Typeable e,
+    LinearM m l e, FieldGet field, FieldSet field
+  ) => Prop m field record -> Maybe (FieldLinearM l e m field record)
+cast' =  cast
+
+--------------------------------------------------------------------------------
+
 -- | 'BorderedM' contraint for @(Type -> Type)@-kind types.
 type BorderedM1 m l i e = BorderedM m (l e) i
 
@@ -387,6 +463,9 @@ type LinearM1 m l e = LinearM m (l e) e
 
 -- | 'LinearM' contraint for @(Type -> Type -> Type)@-kind types.
 type LinearM2 m l i e = LinearM m (l i e) e
+
+-- | Kind @(Type -> Type)@ 'SplitM' structure.
+type SplitM1 m l e = SplitM m (l e) e
 
 #if __GLASGOW_HASKELL__ >= 806
 -- | 'BorderedM' contraint for @(Type -> Type)@-kind types.
@@ -401,15 +480,6 @@ type LinearM' m l = forall e . LinearM m (l e) e
 -- | 'LinearM' contraint for @(Type -> Type -> Type)@-kind types.
 type LinearM'' m l = forall i e . LinearM m (l i e) e
 #endif
-
-{- HINT:
-  SplitM will be merged with LinearM in sdp-0.3, so SplitM2, SplitM' and
-  SplitM'' isn't added.
--}
-
--- | Kind @(Type -> Type)@ 'SplitM' structure.
-type SplitM1 m l e = SplitM m (l e) e
-
 
 
 
