@@ -1,8 +1,9 @@
-{-# LANGUAGE CPP, Trustworthy, PatternSynonyms, ViewPatterns, MagicHash #-}
+{-# LANGUAGE PatternSynonyms, ViewPatterns, DefaultSignatures #-}
+{-# LANGUAGE Trustworthy, CPP, MagicHash #-}
 
 {- |
     Module      :  SDP.Nullable
-    Copyright   :  (c) Andrey Mulik 2020
+    Copyright   :  (c) Andrey Mulik 2020-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
@@ -12,7 +13,7 @@
 module SDP.Nullable
 (
   -- * Nullable
-  Nullable (..), pattern NULL
+  Nullable (..), pattern NULL, pattern Z
 )
 where
 
@@ -23,53 +24,92 @@ import GHC.Stable
 import GHC.Base
 import GHC.Exts
 
+import Control.Exception.SDP
+
 default ()
 
 --------------------------------------------------------------------------------
 
--- | 'Nullable' is class of types which value may be empty.
+{- |
+  'Nullable' is class of types which have empty values.
+  
+  Nullable instances must follow some rules:
+  
+  @
+    isNull Z === True
+    x == Z ==> isNull x == True
+    x == y === isNull x == isNull y
+    
+    -- For 'Foldable' instances
+    toList Z === []
+    fold   Z === mempty
+    isNull x === null x
+    isNull x === length x == 0
+    
+    sum      Z === 0
+    product  Z === 1
+    elem   x Z === False
+    foldr  f Z === foldl  f Z === id
+    foldr1 f Z === foldl1 f Z === undefined
+  @
+-}
 class Nullable e
   where
     -- | Empty value.
     lzero  :: e
+    lzero  =  mempty
+    default lzero :: (Monoid e) => e
     
     -- | Is value empty?
     isNull :: e -> Bool
+    isNull =  (== lzero)
+    default isNull :: (Eq e) => e -> Bool
 
 -- | Originally defined in @sdp-ctypes@ (now @sdp-foreign@), same as @Z@ now.
 pattern NULL :: (Nullable e) => e
 pattern NULL <- (isNull -> True) where NULL = lzero
 
+{- |
+  Other empty value pattern: @Z === NULL@.
+  
+  Defined in "SDP.Nullable" since @sdp-0.2.1@, earlier - in "SDP.Linear".
+-}
+pattern Z :: (Nullable e) => e
+pattern Z =  NULL
+
 --------------------------------------------------------------------------------
+
+{-# COMPLETE Z,    Just #-}
+{-# COMPLETE NULL, Just #-}
 
 instance Nullable (Maybe e)
   where
     isNull = \ mx -> case mx of {Nothing -> True; _ -> False}
     lzero  = Nothing
 
-instance Nullable [e]
-  where
-    isNull = null
-    lzero  = []
+{-# COMPLETE Z,    (:) #-}
+{-# COMPLETE NULL, (:) #-}
 
-instance Nullable (Ptr e)
-  where
-    isNull = (== nullPtr)
-    lzero  = nullPtr
+instance Nullable [e] where isNull = null
+
+instance Nullable (Ptr e) where lzero = nullPtr
 
 -- Stolen from @bytestring@ package.
 instance Nullable (ForeignPtr e)
   where
-#if __GLASGOW_HASKELL__ >= 811
+#if MIN_VERSION_base(4,15,0)
     lzero = ForeignPtr nullAddr# FinalPtr
 #else
-    lzero = ForeignPtr nullAddr# (error "nullForeignPtr in SDP.Nullable.lzero")
+    lzero =
+      let err = throw $ UnreachableException "in SDP.Nullable.lzero :: ForeignPtr e"
+      in  ForeignPtr nullAddr# err
 #endif
     
     isNull (ForeignPtr addr# _) = Ptr addr# == nullPtr
 
-instance Nullable (StablePtr e)
-  where
-    lzero  = StablePtr (unsafeCoerce# 0#)
-    isNull = (== lzero)
+instance Nullable (StablePtr e) where lzero = StablePtr (unsafeCoerce# 0#)
+
+-- | @since 0.2.1
+instance Nullable (FunPtr e) where lzero = nullFunPtr
+
 

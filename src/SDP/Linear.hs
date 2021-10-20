@@ -32,8 +32,7 @@ module SDP.Linear
   Split (..), Split1,
   
   -- * Patterns
-  -- $patternDoc
-  pattern (:>), pattern (:<), pattern Z,
+  pattern (:>), pattern (:<),
   
   -- * Related functions
   intercalate, tails, inits, ascending,
@@ -791,17 +790,6 @@ class (Linear s e) => Split s e | s -> e
 
 --------------------------------------------------------------------------------
 
-{- $patternDoc
-  "SDP.Linear" also provides three overloaded patterns: 'Z', (':>') and (':<').
--}
-
-{- |
-  'Z' is overloaded empty ('lzero') value constant. Pattern 'Z' corresponds to
-  all empty ('isNull') values.
--}
-pattern Z :: (Nullable e) => e
-pattern Z <- (isNull -> True) where Z = lzero
-
 -- | Pattern @(':>')@ is left-size view of line. Same as 'uncons' and 'toHead'.
 pattern  (:>)   :: (Linear l e) => e -> l -> l
 pattern x :> xs <- (uncons' -> Just (x, xs)) where (:>) = toHead
@@ -826,7 +814,6 @@ type Bordered2 l i e = Bordered (l i e) i
 
 --------------------------------------------------------------------------------
 
-{-# COMPLETE Z,  (:)  #-}
 {-# COMPLETE [], (:>) #-}
 {-# COMPLETE [], (:<) #-}
 
@@ -970,11 +957,9 @@ inits :: (Linear l e) => l -> [l]
 inits Z  = [Z]
 inits es = es : inits (init es)
 
-{- |
-  @ascending es lens@ checks if the subsequences of @es@ of lengths @lens@ is
-  sorted.
--}
+-- | @ascending es ls@ checks if the @es@ subsequences of @ls@ sizes is ordered.
 ascending :: (Split s e, Sort s e, Ord e) => s -> [Int] -> Bool
 ascending =  all sorted ... flip splits
+
 
 
