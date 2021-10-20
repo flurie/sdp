@@ -242,7 +242,7 @@ instance (Unboxed e) => Linear (SBytes# e) e
             s4# -> case unsafeFreezeByteArray# marr# s4# of
               (# s5#, res# #) -> (# s5#, SBytes# (c + 1) 0 res# #)
     
-    remove es@(SBytes# c@(I# c#) (I# o#) arr#) n@(I# n#) = n < 0 || n >= c ? es $
+    remove n@(I# n#) es@(SBytes# c@(I# c#) (I# o#) arr#) = n < 0 || n >= c ? es $
       runST $ ST $ \ s1# -> case pnewUnboxed es (c# -# 1#) s1# of
         (# s2#, marr# #) -> case pcopyUnboxed es arr# o# marr# 0# n# s2# of
           s3# -> case pcopyUnboxed es arr# (o# +# n# +# 1#) marr# n# (c# -# n# -# 1#) s3# of

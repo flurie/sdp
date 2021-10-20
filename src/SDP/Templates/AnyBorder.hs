@@ -266,8 +266,8 @@ instance (Index i, Linear1 rep e, Bordered1 rep Int e) => Linear (AnyBorder rep 
     intersperse e = withBounds . intersperse e . unpack
     
     filter  f = withBounds . filter f . unpack
+    remove  n = withBounds . remove n . unpack
     before es = withBounds ... before (unpack es)
-    remove es = withBounds  .  remove (unpack es)
     
     reverse (AnyBorder l u rep) = AnyBorder l u (reverse rep)
     force   (AnyBorder l u rep) = AnyBorder l u (force   rep)

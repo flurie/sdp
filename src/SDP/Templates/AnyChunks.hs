@@ -275,12 +275,12 @@ instance (Bordered1 rep Int e, Linear1 rep e) => Linear (AnyChunks rep e) e
           in  n < c ? before xs n e : xss $ xs : go (n - c) xss
         go _     []     = [single e]
     
-    remove es@(AnyChunks ess) i = i < 0 ? es $ AnyChunks (go i ess)
+    remove i es@(AnyChunks ess) = i < 0 ? es $ AnyChunks (go i ess)
       where
         go n (xs : xss)
             | c == 1 = xss -- singleton chunk
             | n >= c = xs : go (n - c) xss
-            |  True  = remove xs n : xss
+            |  True  = remove n xs : xss
           where
             c = sizeOf xs
         go _     []     = []

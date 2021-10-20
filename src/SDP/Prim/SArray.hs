@@ -398,7 +398,7 @@ instance Linear (SArray# e) e
             s4# -> case unsafeFreezeArray# marr# s4# of
               (# s5#, res# #) -> (# s5#, SArray# (c + 1) 0 res# #)
     
-    remove es@(SArray# c@(I# c#) (I# o#) arr#) n@(I# n#) = n < 0 || n >= c ? es $
+    remove n@(I# n#) es@(SArray# c@(I# c#) (I# o#) arr#) = n < 0 || n >= c ? es $
       runST $ ST $ \ s1# -> case newArray# (c# -# 1#) (unreachEx "remove") s1# of
         (# s2#, marr# #) -> case copyArray# arr# o# marr# 0# n# s2# of
           s3# -> case copyArray# arr# (o# +# n# +# 1#) marr# n# (c# -# n# -# 1#) s3# of

@@ -390,14 +390,14 @@ class (Nullable l) => Linear l e | l -> e
       
       @'remove' es i@ delete element with offset @i@ from @es@.
       
-      > remove [0 .. 5] (-1) == [0 .. 5]
-      > remove [0 .. 5]   0  == [1,2,3,4,5]
-      > remove [0 .. 5]   3  == [0,1,2,4,5]
-      > remove [0 .. 5]   5  == [0,1,2,3,4]
-      > remove [0 .. 5]   6  == [0 .. 5]
+      > remove (-1) [0 .. 5] == [0 .. 5]
+      > remove   6  [0 .. 5] == [0 .. 5]
+      > remove   0  [0 .. 5] == [1,2,3,4,5]
+      > remove   3  [0 .. 5] == [0,1,2,4,5]
+      > remove   5  [0 .. 5] == [0,1,2,3,4]
     -}
-    remove :: l -> Int -> l
-    remove es = fromList . remove (listL es)
+    remove :: Int -> l -> l
+    remove n = fromList . remove n . listL
     
     -- | Generalized 'subsequences'.
     subsequences :: l -> [l]
@@ -897,7 +897,7 @@ instance Linear [e] e
         go n (x : xs) = x : go (n - 1) xs
         go _    []    = [e]
     
-    remove es i = i < 0 ? es $ go i es
+    remove i es = i < 0 ? es $ go i es
       where
         go 0 (_ : xs) = xs
         go n (x : xs) = x : go (n - 1) xs
