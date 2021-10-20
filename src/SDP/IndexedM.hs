@@ -1,9 +1,13 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
-{-# LANGUAGE Safe, DefaultSignatures, ConstraintKinds #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, DefaultSignatures #-}
+{-# LANGUAGE Safe, CPP, ConstraintKinds #-}
+
+#if __GLASGOW_HASKELL__ >= 806
+{-# LANGUAGE QuantifiedConstraints, RankNTypes #-}
+#endif
 
 {- |
     Module      :  SDP.IndexedM
-    Copyright   :  (c) Andrey Mulik 2019
+    Copyright   :  (c) Andrey Mulik 2019-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
@@ -21,7 +25,13 @@ module SDP.IndexedM
   IndexedM (..), IndexedM1, IndexedM2,
   
   -- * Thaw
-  Thaw (..), Thaw1
+  Thaw (..), Thaw1, Thaw2,
+  
+#if __GLASGOW_HASKELL__ >= 806
+  -- * Rank 2 quantified constraints
+  -- | GHC 8.6.1+ only
+  IndexedM', IndexedM'', Thaw', Thaw''
+#endif
 )
 where
 
@@ -116,15 +126,30 @@ class (Monad m) => Thaw m v v' | v' -> m
     unsafeThaw :: v -> m v'
     unsafeThaw =  thaw
 
---------------------------------------------------------------------------------
-
--- | Kind @(* -> *)@ 'IndexedM'.
+-- | 'IndexedM' contraint for @(Type -> Type)@-kind types.
 type IndexedM1 m v i e = IndexedM m (v e) i e
 
--- | Kind @(* -> * -> *)@ 'IndexedM'.
+-- | 'IndexedM' contraint for @(Type -> Type -> Type)@-kind types.
 type IndexedM2 m v i e = IndexedM m (v i e) i e
 
--- | Kind @(* -> *)@ 'Thaw'.
+-- | 'Thaw' contraint for @(Type -> Type)@-kind types.
 type Thaw1 m v v' e = Thaw m (v e) (v' e)
+
+-- | 'Thaw' contraint for @(Type -> Type -> Type)@-kind types.
+type Thaw2 m v v' i e = Thaw m (v i e) (v' i e)
+
+#if __GLASGOW_HASKELL__ >= 806
+-- | 'IndexedM' contraint for @(Type -> Type)@-kind types.
+type IndexedM' m v i = forall e . IndexedM m (v e) i e
+
+-- | 'IndexedM' contraint for @(Type -> Type -> Type)@-kind types.
+type IndexedM'' m v = forall i e . IndexedM m (v i e) i e
+
+-- | 'Thaw' contraint for @(Type -> Type)@-kind types.
+type Thaw' m v v' = forall e . Thaw m (v e) (v' e)
+
+-- | 'Thaw' contraint for @(Type -> Type -> Type)@-kind types.
+type Thaw'' m v v' = forall i e . Thaw m (v i e) (v' i e)
+#endif
 
 

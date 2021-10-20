@@ -1,10 +1,14 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE TypeOperators, TypeFamilies, ConstraintKinds, DefaultSignatures #-}
-{-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE Trustworthy, CPP, TypeOperators, TypeFamilies, DefaultSignatures #-}
+{-# LANGUAGE ConstraintKinds #-}
+
+#if __GLASGOW_HASKELL__ >= 806
+{-# LANGUAGE QuantifiedConstraints, RankNTypes #-}
+#endif
 
 {- |
     Module      :  SDP.Set
-    Copyright   :  (c) Andrey Mulik 2019
+    Copyright   :  (c) Andrey Mulik 2019-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC Extensions)
@@ -14,10 +18,16 @@
 module SDP.Set
 (
   -- * SetWith
-  SetWith (..), SetWith1,
+  SetWith (..), SetWith1, SetWith2,
   
   -- * Set
-  Set (..), Set1
+  Set (..), Set1, Set2,
+  
+#if __GLASGOW_HASKELL__ >= 806
+  -- * Rank 2 quantified constraints
+  -- | GHC 8.6.1+ only
+  SetWith', SetWith'', Set', Set''
+#endif
 )
 where
 
@@ -260,11 +270,31 @@ class (Nullable s) => Set s o | s -> o
 
 --------------------------------------------------------------------------------
 
--- | Kind @(* -> *)@ 'Set'.
+-- | 'Set' contraint for @(Type -> Type)@-kind types.
 type Set1 s o = Set (s o) o
 
--- | Kind @(* -> *)@ 'SetWith'.
+-- | 'SetWith' contraint for @(Type -> Type)@-kind types.
 type SetWith1 s o = SetWith (s o) o
+
+-- | 'Set' contraint for @(Type -> Type -> Type)@-kind types.
+type Set2 s i o = Set (s i o) o
+
+-- | 'SetWith' contraint for @(Type -> Type -> Type)@-kind types.
+type SetWith2 s i o = SetWith (s i o) o
+
+#if __GLASGOW_HASKELL__ >= 806
+-- | 'Set' contraint for @(Type -> Type)@-kind types.
+type Set' s = forall o . Set (s o) o
+
+-- | 'SetWith' contraint for @(Type -> Type)@-kind types.
+type SetWith' s = forall o . SetWith (s o) o
+
+-- | 'Set' contraint for @(Type -> Type -> Type)@-kind types.
+type Set'' s = forall i o . Set (s i o) o
+
+-- | 'SetWith' contraint for @(Type -> Type -> Type)@-kind types.
+type SetWith'' s = forall i o . SetWith (s i o) o
+#endif
 
 --------------------------------------------------------------------------------
 

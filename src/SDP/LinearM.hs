@@ -1,5 +1,9 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, BangPatterns #-}
-{-# LANGUAGE Safe, ConstraintKinds, DefaultSignatures #-}
+{-# LANGUAGE Safe, CPP, ConstraintKinds, DefaultSignatures #-}
+
+#if __GLASGOW_HASKELL__ >= 806
+{-# LANGUAGE QuantifiedConstraints, RankNTypes #-}
+#endif
 
 {- |
     Module      :  SDP.LinearM
@@ -19,7 +23,13 @@ module SDP.LinearM
   BorderedM (..), BorderedM1, BorderedM2,
   
   -- * LinearM class
-  LinearM (..), LinearM1,
+  LinearM (..), LinearM1, LinearM2,
+  
+#if __GLASGOW_HASKELL__ >= 806
+  -- * Rank 2 quantified constraints
+  -- | GHC 8.6.1+ only
+  BorderedM', BorderedM'', LinearM', LinearM'',
+#endif
   
   -- * SplitM class
   SplitM (..), SplitM1
@@ -358,18 +368,38 @@ class (LinearM m s e) => SplitM m s e
 
 --------------------------------------------------------------------------------
 
--- | Kind @(* -> *)@ 'SplitM' structure.
-type SplitM1 m l e = SplitM m (l e) e
-
--- | Kind @(* -> *)@ 'LinearM' structure.
-type LinearM1 m l e = LinearM m (l e) e
-
--- | Kind @(* -> *)@ 'BorderedM' structure.
+-- | 'BorderedM' contraint for @(Type -> Type)@-kind types.
 type BorderedM1 m l i e = BorderedM m (l e) i
 
--- | Kind @(* -> * -> *)@ 'BorderedM' structure.
+-- | 'BorderedM' contraint for @(Type -> Type -> Type)@-kind types.
 type BorderedM2 m l i e = BorderedM m (l i e) i
 
+-- | 'LinearM' contraint for @(Type -> Type)@-kind types.
+type LinearM1 m l e = LinearM m (l e) e
 
+-- | 'LinearM' contraint for @(Type -> Type -> Type)@-kind types.
+type LinearM2 m l i e = LinearM m (l i e) e
+
+#if __GLASGOW_HASKELL__ >= 806
+-- | 'BorderedM' contraint for @(Type -> Type)@-kind types.
+type BorderedM' m l i = forall e . BorderedM m (l e) i
+
+-- | 'BorderedM' contraint for @(Type -> Type -> Type)@-kind types.
+type BorderedM'' m l = forall i e . BorderedM m (l i e) i
+
+-- | 'LinearM' contraint for @(Type -> Type)@-kind types.
+type LinearM' m l = forall e . LinearM m (l e) e
+
+-- | 'LinearM' contraint for @(Type -> Type -> Type)@-kind types.
+type LinearM'' m l = forall i e . LinearM m (l i e) e
+#endif
+
+{- HINT:
+  SplitM will be merged with LinearM in sdp-0.3, so SplitM2, SplitM' and
+  SplitM'' isn't added.
+-}
+
+-- | Kind @(Type -> Type)@ 'SplitM' structure.
+type SplitM1 m l e = SplitM m (l e) e
 
 

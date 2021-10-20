@@ -1,9 +1,13 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Safe, DefaultSignatures, ConstraintKinds #-}
+{-# LANGUAGE Safe, CPP, ConstraintKinds, DefaultSignatures #-}
+
+#if __GLASGOW_HASKELL__ >= 806
+{-# LANGUAGE QuantifiedConstraints, RankNTypes #-}
+#endif
 
 {- |
     Module      :  SDP.Indexed
-    Copyright   :  (c) Andrey Mulik 2019
+    Copyright   :  (c) Andrey Mulik 2019-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
@@ -20,7 +24,13 @@ module SDP.Indexed
   Indexed (..), Indexed1, Indexed2, binaryContain,
   
   -- * Freeze
-  Freeze (..), Freeze1
+  Freeze (..), Freeze1, Freeze2,
+  
+#if __GLASGOW_HASKELL__ >= 806
+  -- * Rank 2 quantified constraints
+  -- | GHC 8.6.1+ only
+  Indexed', Indexed'', Freeze', Freeze''
+#endif
 )
 where
 
@@ -105,14 +115,31 @@ class (Monad m) => Freeze m v' v | v' -> m
 
 --------------------------------------------------------------------------------
 
--- | Kind @(* -> *)@ 'Indexed' structure.
+-- | 'Indexed' contraint for @(Type -> Type)@-kind types.
 type Indexed1 v i e = Indexed (v e) i e
 
--- | Kind @(* -> * -> *)@ 'Indexed' structure.
+-- | 'Indexed' contraint for @(Type -> Type -> Type)@-kind types.
 type Indexed2 v i e = Indexed (v i e) i e
 
--- | Kind @(* -> *)@ 'Freeze'.
+-- | 'Freeze' contraint for @(Type -> Type)@-kind types.
 type Freeze1 m v' v e = Freeze m (v' e) (v e)
+
+-- | 'Freeze' contraint for @(Type -> Type -> Type)@-kind types.
+type Freeze2 m v' v i e = Freeze m (v' i e) (v i e)
+
+#if __GLASGOW_HASKELL__ >= 806
+-- | 'Indexed' contraint for @(Type -> Type)@-kind types.
+type Indexed' v i = forall e . Indexed (v e) i e
+
+-- | 'Indexed' contraint for @(Type -> Type -> Type)@-kind types.
+type Indexed'' v = forall i e . Indexed (v i e) i e
+
+-- | 'Freeze' contraint for @(Type -> Type)@-kind types.
+type Freeze' m v' v = forall e . Freeze m (v' e) (v e)
+
+-- | 'Freeze' contraint for @(Type -> Type -> Type)@-kind types.
+type Freeze'' m v' v = forall i e . Freeze m (v' i e) (v i e)
+#endif
 
 --------------------------------------------------------------------------------
 
@@ -136,8 +163,6 @@ binaryContain f e es =
       where
         j = u - l `div` 2 + l
   in  f e (head es) /= LT && f e (last es) /= GT && contain 0 (sizeOf es - 1)
-
---------------------------------------------------------------------------------
 
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.Indexed."

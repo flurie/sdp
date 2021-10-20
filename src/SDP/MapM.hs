@@ -1,9 +1,13 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Safe, DefaultSignatures, ConstraintKinds, BangPatterns #-}
+{-# LANGUAGE Safe, CPP, BangPatterns, ConstraintKinds, DefaultSignatures #-}
+
+#if __GLASGOW_HASKELL__ >= 806
+{-# LANGUAGE QuantifiedConstraints, RankNTypes #-}
+#endif
 
 {- |
     Module      :  SDP.MapM
-    Copyright   :  (c) Andrey Mulik 2020
+    Copyright   :  (c) Andrey Mulik 2020-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
@@ -13,7 +17,13 @@
 module SDP.MapM
 (
   -- * Mutable maps
-  MapM (..), MapM1, MapM2
+  MapM (..), MapM1, MapM2,
+  
+#if __GLASGOW_HASKELL__ >= 806
+  -- * Rank 2 quantified constraints
+  -- | GHC 8.6.1+ only
+  MapM', MapM''
+#endif
 )
 where
 
@@ -133,11 +143,19 @@ class (Monad m) => MapM m map key e | map -> m, map -> key, map -> e
 
 --------------------------------------------------------------------------------
 
--- | Rank @(* -> *)@ 'MapM'.
+-- | 'MapM' contraint for @(Type -> Type)@-kind types.
 type MapM1 m map key e = MapM m (map e) key e
 
--- | Rank @(* -> * -> *)@ 'MapM'.
+-- | 'MapM' contraint for @(Type -> Type -> Type)@-kind types.
 type MapM2 m map key e = MapM m (map key e) key e
+
+#if __GLASGOW_HASKELL__ >= 806
+-- | 'MapM' contraint for @(Type -> Type)@-kind types.
+type MapM' m map key = forall e . MapM m (map e) key e
+
+-- | 'MapM' contraint for @(Type -> Type -> Type)@-kind types.
+type MapM'' m map = forall key e . MapM m (map key e) key e
+#endif
 
 --------------------------------------------------------------------------------
 
@@ -152,4 +170,6 @@ overEx =  throw . IndexOverflow . showString "in SDP.MapM."
 
 underEx :: String -> a
 underEx =  throw . IndexUnderflow . showString "in SDP.MapM."
+
+
 

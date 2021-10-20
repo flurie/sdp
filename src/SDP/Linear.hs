@@ -1,6 +1,10 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
 {-# LANGUAGE PatternSynonyms, ViewPatterns, BangPatterns, DefaultSignatures #-}
-{-# LANGUAGE Trustworthy, TypeOperators, TypeFamilies, ConstraintKinds, CPP #-}
+{-# LANGUAGE Trustworthy, CPP, TypeFamilies, ConstraintKinds #-}
+
+#if __GLASGOW_HASKELL__ >= 806
+{-# LANGUAGE QuantifiedConstraints, RankNTypes #-}
+#endif
 
 {- |
     Module      :  SDP.Linear
@@ -24,20 +28,20 @@ module SDP.Linear
   Bordered (..), Bordered1, Bordered2,
   
   -- * Linear class
-  -- $linearDoc
-  Linear (..), Linear1,
+  Linear (..), Linear1, Linear2, pattern (:>), pattern (:<),
+  
+#if __GLASGOW_HASKELL__ >= 806
+  -- * Rank 2 quantified constraints
+  -- | GHC 8.6.1+ only
+  Bordered', Bordered'', Linear', Linear'',
+#endif
   
   -- * Split class
-  -- $splitDoc
   Split (..), Split1,
   
-  -- * Patterns
-  pattern (:>), pattern (:<),
-  
   -- * Related functions
-  intercalate, tails, inits, ascending,
-  
-  stripPrefix, stripSuffix, stripPrefix', stripSuffix'
+  stripPrefix, stripSuffix, stripPrefix', stripSuffix',
+  intercalate, tails, inits, ascending
 )
 where
 
@@ -798,19 +802,34 @@ pattern x :> xs <- (uncons' -> Just (x, xs)) where (:>) = toHead
 pattern   (:<)  :: (Linear l e) => l -> e -> l
 pattern xs :< x <- (unsnoc' -> Just (xs, x)) where (:<) = toLast
 
---------------------------------------------------------------------------------
-
--- | Kind @(* -> *)@ 'Linear' structure.
+-- | 'Linear' contraint for @(Type -> Type)@-kind types.
 type Linear1 l e = Linear (l e) e
 
--- | Kind @(* -> *)@ 'Split' structure.
-type Split1 s e = Split (s e) e
+-- | 'Linear' contraint for @(Type -> Type -> Type)@-kind types.
+type Linear2 l i e = Linear (l i e) e
 
--- | Kind @(* -> *)@ 'Bordered' structure.
+-- | 'Bordered' contraint for @(Type -> Type)@-kind types.
 type Bordered1 l i e = Bordered (l e) i
 
--- | Kind @(* -> * -> *)@ 'Bordered' structure.
+-- | 'Bordered' contraint for @(Type -> Type -> Type)@-kind types.
 type Bordered2 l i e = Bordered (l i e) i
+
+-- | Kind @(Type -> Type)@ 'Split' structure.
+type Split1 s e = Split (s e) e
+
+#if __GLASGOW_HASKELL__ >= 806
+-- | 'Linear' contraint for @(Type -> Type)@-kind types.
+type Linear' l = forall e . Linear (l e) e
+
+-- | 'Linear' contraint for @(Type -> Type -> Type)@-kind types.
+type Linear'' l = forall i e . Linear (l i e) e
+
+-- | 'Bordered' contraint for @(Type -> Type)@-kind types.
+type Bordered' l i = forall e . Bordered (l e) i
+
+-- | 'Bordered' contraint for @(Type -> Type -> Type)@-kind types.
+type Bordered'' l = forall i e . Bordered (l i e) i
+#endif
 
 --------------------------------------------------------------------------------
 
@@ -960,6 +979,7 @@ inits es = es : inits (init es)
 -- | @ascending es ls@ checks if the @es@ subsequences of @ls@ sizes is ordered.
 ascending :: (Split s e, Sort s e, Ord e) => s -> [Int] -> Bool
 ascending =  all sorted ... flip splits
+
 
 
 

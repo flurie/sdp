@@ -1,9 +1,13 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
-{-# LANGUAGE Safe, DefaultSignatures, ConstraintKinds, BangPatterns #-}
+{-# LANGUAGE Safe, CPP, BangPatterns, ConstraintKinds, DefaultSignatures #-}
+
+#if __GLASGOW_HASKELL__ >= 806
+{-# LANGUAGE QuantifiedConstraints, RankNTypes #-}
+#endif
 
 {- |
     Module      :  SDP.Map
-    Copyright   :  (c) Andrey Mulik 2019
+    Copyright   :  (c) Andrey Mulik 2019-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
@@ -16,7 +20,13 @@ module SDP.Map
   module SDP.Set,
   
   -- * Map
-  Map (..), Map1, Map2
+  Map (..), Map1, Map2,
+  
+#if __GLASGOW_HASKELL__ >= 806
+  -- * Rank 2 quantified constraints
+  -- | GHC 8.6.1+ only
+  Map', Map''
+#endif
 )
 where
 
@@ -80,7 +90,6 @@ class (Nullable map) => Map map key e | map -> key, map -> e
       If @map@ doesn't allow gaps, then the missing elements should be filled
       with default values.
     -}
-    default insert' :: (Bordered map key) => key -> e -> map -> map
     insert' :: key -> e -> map -> map
     insert' k e es = toMap $ assocs es :< (k, e)
     
@@ -239,11 +248,19 @@ class (Nullable map) => Map map key e | map -> key, map -> e
 
 --------------------------------------------------------------------------------
 
--- | Kind @(* -> *)@ 'Map' structure.
+-- | 'Map' contraint for @(Type -> Type)@-kind types.
 type Map1 map key e = Map (map e) key e
 
--- | Kind @(* -> * -> *)@ 'Map' structure.
+-- | 'Map' contraint for @(Type -> Type -> Type)@-kind types.
 type Map2 map key e = Map (map key e) key e
+
+#if __GLASGOW_HASKELL__ >= 806
+-- | 'Map' contraint for @(Type -> Type)@-kind types.
+type Map' map key = forall e . Map (map e) key e
+
+-- | 'Map' contraint for @(Type -> Type -> Type)@-kind types.
+type Map'' map = forall key e . Map (map key e) key e
+#endif
 
 --------------------------------------------------------------------------------
 
@@ -310,6 +327,4 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Map."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Map."
-
-
 

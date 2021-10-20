@@ -1,9 +1,13 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, ConstraintKinds #-}
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE Safe, CPP, MultiParamTypeClasses, FunctionalDependencies #-}
+{-# LANGUAGE ConstraintKinds #-}
+
+#if __GLASGOW_HASKELL__ >= 806
+{-# LANGUAGE QuantifiedConstraints, RankNTypes #-}
+#endif
 
 {- |
     Module      :  SDP.SortM
-    Copyright   :  (c) Andrey Mulik 2019
+    Copyright   :  (c) Andrey Mulik 2019-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
@@ -11,10 +15,19 @@
     "SDP.SortM" provides 'SortM' - class of sortable mutable structures.
 -}
 module SDP.SortM
-  (
-    -- * SortM
-    SortM (..), SortM1, sortM, sortMOn, sortedM, sortedMOn
-  )
+(
+  -- * SortM
+  SortM (..), SortM1, SortM2,
+  
+#if __GLASGOW_HASKELL__ >= 806
+  -- ** Rank 2 quantified constraints
+  -- | GHC 8.6.1+ only
+  SortM', SortM'',
+#endif
+  
+  -- * Helpers
+  sortM, sortMOn, sortedM, sortedMOn
+)
 where
 
 import Prelude ()
@@ -40,8 +53,19 @@ class SortM m s e | s -> m, s -> e
 
 --------------------------------------------------------------------------------
 
--- | Kind (* -> *) version of 'SortM'.
+-- | 'SortM' contraint for @(Type -> Type)@-kind types.
 type SortM1 m s e = SortM m (s e) e
+
+-- | 'SortM' contraint for @(Type -> Type -> Type)@-kind types.
+type SortM2 m s i e = SortM m (s i e)
+
+#if __GLASGOW_HASKELL__ >= 806
+-- | 'SortM' contraint for @(Type -> Type)@-kind types.
+type SortM' m s = forall e . SortM m (s e) e
+
+-- | 'SortM' contraint for @(Type -> Type -> Type)@-kind types.
+type SortM'' m s = forall i e . SortM m (s i e)
+#endif
 
 --------------------------------------------------------------------------------
 
@@ -60,6 +84,7 @@ sortM =  sortMBy compare
 -- | Sort by comparing the results of a key function applied to each element.
 sortMOn :: (SortM m s e, Ord o) => (e -> o) -> s -> m ()
 sortMOn =  sortMBy . comparing
+
 
 
 
