@@ -2,7 +2,7 @@
 
 {- |
     Module      :  SDP.SortM.Insertion
-    Copyright   :  (c) Andrey Mulik 2019
+    Copyright   :  (c) Andrey Mulik 2019-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
@@ -64,7 +64,7 @@ unsafeInsertionSort cmp es b s e = forM_ [s + 1 .. e] $ \ i -> do
         LT -> next' l (c - 1) c
         EQ -> return (c + 1)
   p <- next' b (i - 1) i
-  mapM_ (swapM es i) [p .. i - 1]
+  lshiftM es p i
 
 
 

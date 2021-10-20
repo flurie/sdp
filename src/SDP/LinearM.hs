@@ -3,7 +3,7 @@
 
 {- |
     Module      :  SDP.LinearM
-    Copyright   :  (c) Andrey Mulik 2019
+    Copyright   :  (c) Andrey Mulik 2019-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
@@ -187,6 +187,19 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     filled n = newLinearN n . replicate n
     
     {- |
+      @since 0.2.1
+      
+      @'lshiftM' es i j@ cyclically shifts the elements with offsets between @i@
+      and @j@ @(i < j)@ one position to the left (the @j@-th element is in the
+      @i@-th position, the @i@-th in the @(i+1)@th, etc.) If @i >= j@, does
+      nothing.
+    -}
+    lshiftM :: l -> Int -> Int -> m ()
+    lshiftM es i j =
+      let go k ej = when (k <= j) $ do ek <- es !#> k; writeM es k ej; go (k + 1) ek
+      in  when (i < j) $ go i =<< (es !#> j)
+    
+    {- |
       @copyTo source soff target toff count@ writes @count@ elements of @source@
       from @soff@ to @target@ starting with @toff@.
     -}
@@ -198,7 +211,8 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     
     -- | 'ofoldlM' is left monadic fold with offset.
     ofoldlM :: (Int -> r -> e -> m r) -> r -> l -> m r
-    ofoldlM f base es = foldl (flip $ uncurry ((=<<) ... flip . f)) (pure base) . assocs =<< getLeft es
+    ofoldlM f base es = foldl (flip $ uncurry ((=<<) ... flip . f)) (pure base)
+                      . assocs =<< getLeft es
     
     -- | 'ofoldrM'' is strict version of 'ofoldrM'.
     ofoldrM' :: (Int -> e -> r -> m r) -> r -> l -> m r
@@ -292,16 +306,18 @@ class (LinearM m s e) => SplitM m s e
       @n <- ns@. Changes in the source and results must be synchronous.
     -}
     splitsM :: (Foldable f) => f Int -> s -> m [s]
-    splitsM ns es = reverse <$> foldl (\ ds' n -> do ds <- ds'; (d, d') <- splitM n (head ds); pure (d' : d : ds)) (pure [es]) ns
+    splitsM ns es =
+      let f ds' n = do ds <- ds'; (d,d') <- splitM n (head ds); pure (d':d:ds)
+      in  reverse <$> foldl f (pure [es]) ns
     
     {- |
       @dividesM ns es@ returns the sequence of @es@ suffix references of length
       @n <- ns@. Changes in the source and results must be synchronous.
     -}
     dividesM :: (Foldable f) => f Int -> s -> m [s]
-    dividesM ns es = foldr (\ n ds' -> do ds <- ds'; (d, d') <- divideM n (head ds); pure (d' : d : ds)) (pure [es]) ns
-    
-    -- TODO: comboM :: (e -> e -> Bool) -> s -> m Int
+    dividesM ns es =
+      let f n ds' = do ds <- ds'; (d, d') <- divideM n (head ds); pure (d':d:ds)
+      in  foldr f (pure [es]) ns
     
     {- |
       @partsM n es@ returns the sequence of @es@ prefix references, splitted by
@@ -353,7 +369,6 @@ type BorderedM1 m l i e = BorderedM m (l e) i
 
 -- | Kind @(* -> * -> *)@ 'BorderedM' structure.
 type BorderedM2 m l i e = BorderedM m (l i e) i
-
 
 
 
