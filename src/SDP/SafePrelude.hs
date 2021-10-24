@@ -47,12 +47,15 @@ module SDP.SafePrelude
 #endif
   
   -- * Combinators
-  on, (?), (?+), (?-), (?^), (?:), (+?), (...), (<=<<), (>>=>), (>>=<<)
+  (.), id, on, (?), (?+), (?-), (?^), (?:), (+?), (...), (<=<<), (>>=>), (>>=<<)
 )
 where
 
 import Prelude hiding
   (
+    -- defined in Control.Category
+    (.), id,
+    
     -- defined in SDP.Zip and Data.List
     zip, zip3, zipWith, zipWith3,
     
@@ -76,11 +79,13 @@ import Data.Semigroup ( Semigroup (..) ) -- For base >= 4.9 && < 4.11
 #endif
 
 import Data.Functor.Classes
+
 import Data.Bifunctor
 import Data.Foldable hiding ( foldrM, foldlM, concat, concatMap )
 import Data.Function ( on )
 
 import Control.Applicative
+import Control.Category
 
 import Control.Monad.IO.Class
 import Control.Monad.ST
