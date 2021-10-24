@@ -2,7 +2,7 @@
 
 {- |
     Module      :  SDP.Zip
-    Copyright   :  (c) Andrey Mulik 2019
+    Copyright   :  (c) Andrey Mulik 2019-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
@@ -19,12 +19,12 @@ default ()
 
 --------------------------------------------------------------------------------
 
--- | Zip is generalization of ZipList applicative semantics (but without pure).
+-- | Zip is generalization of ZipList applicative semantics (but without 'pure').
 class (Functor z) => Zip z
   where
     {-# MINIMAL (zap | zipWith), all2, any2 #-}
     
-    -- | ZipList-like '<*>'
+    -- | ZipList-like @('<*>')@.
     zap :: z (a -> b) -> z a -> z b
     zap =  zipWith ($)
     

@@ -9,7 +9,7 @@ author:        Andrey Mulik
 maintainer:    work.a.mulik@gmail.com
 bug-reports:   https://github.com/andreymulik/sdp/issues
 
-copyright:     2019 Andrey Mulik
+copyright:     2019-2021 Andrey Mulik
 license-file:  LICENSE
 license:       BSD3
 
@@ -54,6 +54,7 @@ Library
     data-default-class >= 0.1 && < 0.2
   
   exposed-modules:
+    -- Commons
     SDP.SafePrelude
     SDP.Comparing
     SDP.Estimate
@@ -77,11 +78,12 @@ Library
     SDP.Shaped
     SDP.Linear
     SDP.MapM
+    SDP.ZipM
     SDP.Scan
     SDP.Sort
     SDP.Map
-    SDP.Set
     SDP.Zip
+    SDP.Set
     
     -- Templates
     SDP.Templates.AnyBorder
@@ -132,4 +134,7 @@ Library
     
     Text.Show.SDP
     Text.Read.SDP
+
+
+
 
