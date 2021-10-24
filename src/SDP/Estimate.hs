@@ -1,8 +1,12 @@
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE Safe, CPP, ConstraintKinds #-}
+
+#if __GLASGOW_HASKELL__ >= 806
+{-# LANGUAGE QuantifiedConstraints, RankNTypes #-}
+#endif
 
 {- |
     Module      :  SDP.Estimate
-    Copyright   :  (c) Andrey Mulik 2019
+    Copyright   :  (c) Andrey Mulik 2019-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
@@ -16,7 +20,8 @@ module SDP.Estimate
   module Data.Functor.Classes,
   
   -- * Estimate
-  Estimate (..), (<=.>), (<.), (>.), (<=.), (>=.), (==.), (/=.)
+  Estimate (..), Estimate1, Estimate2, Estimate', Estimate'',
+  (<=.>), (<.), (>.), (<=.), (>=.), (==.), (/=.)
 )
 where
 
@@ -43,16 +48,16 @@ class Estimate e
   where
     {-# MINIMAL (<.=>), (<==>) #-}
     
-    -- | Left-side structure length with number comparison.
+    -- | Compare structure length with given number.
     (<.=>) :: e -> Int -> Ordering
     
-    -- | Two structures by length comparison.
+    -- | Compare pair of structures by length.
     (<==>) :: Compare e
     
-    -- | Left-side structure length with number comparison.
+    -- | Compare structure length with given number.
     (.==), (./=), (.<=), (.>=), (.<), (.>) :: e -> Int -> Bool
     
-    -- | Two structures comparison by length.
+    -- | Compare pair of structures by length.
     (.<.), (.>.), (.<=.), (.>=.), (.==.), (./=.) :: e -> e -> Bool
     
     e .<  i = case e <.=> i of {LT -> True; _ -> False}
@@ -69,11 +74,11 @@ class Estimate e
     e1 .==. e2 = case e1 <==> e2 of {EQ -> True; _ -> False}
     e1 ./=. e2 = case e1 <==> e2 of {EQ -> False; _ -> True}
 
--- | Right-side number with structure length comparison.
+-- | Compare given number with structure length.
 (<=.>) :: (Estimate e) => Int -> e -> Ordering
 i <=.> e = case e <.=> i of {LT -> GT; EQ -> EQ; GT -> LT}
 
--- | Right-side number with structure length comparison.
+-- | Compare given number with structure length.
 (==.), (/=.), (<=.), (>=.), (<.), (>.) :: (Estimate e) => Int -> e -> Bool
 
 (==.) = flip (.==)
@@ -82,6 +87,20 @@ i <=.> e = case e <.=> i of {LT -> GT; EQ -> EQ; GT -> LT}
 (>=.) = flip (.<=)
 (<.)  = flip (.>)
 (>.)  = flip (.<)
+
+--------------------------------------------------------------------------------
+
+-- | @(Type -> Type)@ kind 'Estimate'.
+type Estimate1 rep e = Estimate (rep e)
+
+-- | @(Type -> Type -> Type)@ kind 'Estimate'.
+type Estimate2 rep i e = Estimate (rep i e)
+
+-- | 'Estimate' contraint for @(Type -> Type)@-kind types.
+type Estimate' rep = forall e . Estimate (rep e)
+
+-- | 'Estimate' contraint for @(Type -> Type -> Type)@-kind types.
+type Estimate'' rep = forall i e . Estimate (rep i e)
 
 --------------------------------------------------------------------------------
 
@@ -96,5 +115,6 @@ instance Estimate [a]
     es <.=> n =
       let go xs c | c == 0 = GT | null xs = 0 <=> c | True = tail xs `go` (c - 1)
       in  if n < 0 then LT else go es n
+
 
 

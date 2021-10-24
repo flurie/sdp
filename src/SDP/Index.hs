@@ -1,16 +1,16 @@
-{-# LANGUAGE Trustworthy, OverloadedLists, ConstraintKinds, TypeOperators #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies, UndecidableInstances, DefaultSignatures, CPP #-}
+{-# LANGUAGE Trustworthy, ConstraintKinds, TypeOperators #-}
 
 {- |
     Module      :  SDP.Index
-    Copyright   :  (c) Andrey Mulik 2019
+    Copyright   :  (c) Andrey Mulik 2019-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
   
-  The 'Index' class is a fork of 'Data.Ix.Ix' with a richer interface, more
-  convenient function names and generalized indexes.
+  The 'Index' class is an alternative to 'Data.Ix.Ix' with a richer interface,
+  generalized indexes and more convenient function names.
 -}
 module SDP.Index
 (
@@ -118,7 +118,7 @@ instance
     takeDim = takeDim . initDim
 
 -- | 'splitDim' returns pair of shape difference and subshape.
-splitDim :: (SubIndex i j) => i -> (i :|: j, j)
+splitDim :: (Sub i j) => i -> (i :|: j, j)
 splitDim i = let j = takeDim i in (dropDim i j, j)
 
 --------------------------------------------------------------------------------
@@ -164,8 +164,8 @@ class (Ord i, Shape i, Shape (DimLast i), Shape (DimInit i), Shape (GIndex i)) =
     -- | Returns the sizes of range dimensionwise.
     {-# INLINE sizes #-}
     sizes :: (i, i) -> [Int]
-    default sizes :: (Index (GIndex i)) => (i, i) -> [Int]
     sizes =  sizes . toGBounds
+    default sizes :: (Index (GIndex i)) => (i, i) -> [Int]
     
     -- | Returns the index belonging to the given range.
     {-# INLINE safeElem #-}
@@ -179,19 +179,19 @@ class (Ord i, Shape i, Shape (DimLast i), Shape (DimInit i), Shape (GIndex i)) =
     
     -- | Returns size of biggest range, that may be represented by this type.
     defLimit :: i -> Integer
-    default defLimit :: (Integral i, Bounded i) => i -> Integer
     defLimit i = toInteger (maxBound `asTypeOf` i) + 1
+    default defLimit :: (Integral i, Bounded i) => i -> Integer
     
     -- | Returns default range by size.
     {-# INLINE defaultBounds #-}
     defaultBounds :: Int -> (i, i)
-    defaultBounds n = (unsafeIndex 0, unsafeIndex $ max 0 n - 1)
+    defaultBounds n = both unsafeIndex (0, max 0 n - 1)
     
     -- | Returns index by offset in default range.
     {-# INLINE unsafeIndex #-}
     unsafeIndex :: Int -> i
-    default unsafeIndex :: (Enum i) => Int -> i
     unsafeIndex =  toEnum
+    default unsafeIndex :: (Enum i) => Int -> i
     
     {- Checkers -}
     
@@ -229,8 +229,8 @@ class (Ord i, Shape i, Shape (DimLast i), Shape (DimInit i), Shape (GIndex i)) =
         e = emptyEx "prev {default}"
     
     -- | Returns next index in range.
-    default next  :: (Enum i) => (i, i) -> i -> i
     next :: (i, i) -> i -> i
+    default next  :: (Enum i) => (i, i) -> i -> i
     next (l, u) i | isEmpty (l, u) = e | i >= u = u | i < l = l | True = succ i
       where
         e = emptyEx "next {default}"
@@ -246,14 +246,14 @@ class (Ord i, Shape i, Shape (DimLast i), Shape (DimInit i), Shape (GIndex i)) =
     index :: (i, i) -> Int -> i
     default index :: (Enum i) => (i, i) -> Int -> i
     index bnds@(l, _) n =
-      let res = toEnum $ n + fromEnum l
+      let res = toEnum (n + fromEnum l)
       in  checkBounds (0, size bnds - 1) n res "index {default}"
     
     -- | Returns the ordered list of indices in this range.
     {-# INLINE range #-}
     range :: (i, i) -> [i]
-    default range :: (Enum i) => (i, i) -> [i]
     range =  uncurry enumFromTo
+    default range :: (Enum i) => (i, i) -> [i]
     
     {- |
       @subshape bnds ij@ returns subshape of @bnds@.
@@ -266,7 +266,7 @@ class (Ord i, Shape i, Shape (DimLast i), Shape (DimInit i), Shape (GIndex i)) =
         (l', lj) = splitDim l
         (u', uj) = splitDim u
     
-    slice :: (Sub i j, ij ~ (i :|: j), Index j) => (i, i) -> ij -> ((ij, ij), (j, j))
+    slice :: (Sub i j, ij ~~ (i :|: j), Index j) => (i, i) -> ij -> ((ij, ij), (j, j))
     slice (l, u) ij = checkBounds (ls, us) ij ((ls, us), (lj, uj)) "slice {default}"
       where
         (ls, lj) = splitDim l
@@ -283,15 +283,15 @@ instance (Index i) => Estimate (i, i)
     (.<.)  = on (<)   size
     
     (<.=>) = (<=>) . size
-    (.>)   = (>)   . size
-    (.<)   = (<)   . size
     (.>=)  = (>=)  . size
     (.<=)  = (<=)  . size
+    (.>)   = (>)   . size
+    (.<)   = (<)   . size
 
 instance (Index i) => Nullable (i, i)
   where
-    isNull = isEmpty
     lzero  = defaultBounds 0
+    isNull = isEmpty
 
 --------------------------------------------------------------------------------
 
@@ -300,8 +300,7 @@ instance (Index i) => Nullable (i, i)
 instance Index E
   where
     unsafeIndex = const (emptyEx "unsafeIndex {E}")
-    
-    defLimit = const (-1)
+    defLimit    = const (-1)
     
     size  = const 0
     sizes = const []
@@ -309,14 +308,14 @@ instance Index E
     
     next   _ _ = E
     prev   _ _ = E
-    offset _ _ = emptyEx "offset {E}"
     index  _ _ = emptyEx "index {E}"
+    offset _ _ = emptyEx "offset {E}"
     
-    inBounds    _ _ = ER
-    inRange     _ _ = False
-    isEmpty       _ = True
-    isOverflow  _ _ = True
     isUnderflow _ _ = True
+    isOverflow  _ _ = True
+    isEmpty       _ = True
+    inRange     _ _ = False
+    inBounds    _ _ = ER
 
 instance Index ()
   where
@@ -408,27 +407,26 @@ instance (Index i) => Index (E :& i)
   where
     defLimit = (const . defLimit :: (Index i) => i -> (E :& i) -> Integer) undefined
     
-    size  = \ ([l], [u]) ->  size (l, u)
-    sizes = \ ([l], [u]) -> [size (l, u)]
-    range = \ ([l], [u]) -> [ [i] | i <- range (l, u) ]
+    size  (E:&l, E:&u) =  size (l, u)
+    sizes (E:&l, E:&u) = [size (l, u)]
+    range (E:&l, E:&u) = (E :&) <$> range (l, u)
     
-    next = \ ([l], [u]) [i] -> [next (l, u) i]
-    prev = \ ([l], [u]) [i] -> [prev (l, u) i]
+    next = \ (E:&l, E:&u) (E:&i) -> E :& next (l, u) i
+    prev = \ (E:&l, E:&u) (E:&i) -> E :& prev (l, u) i
     
-    inRange     = \ ([l], [u]) [i] -> inRange     (l, u) i
-    isOverflow  = \ ([l], [u]) [i] -> isOverflow  (l, u) i
-    isUnderflow = \ ([l], [u]) [i] -> isUnderflow (l, u) i
-    safeElem    = \ ([l], [u]) [i] -> [safeElem   (l, u) i]
+    inRange     = \ (E:&l, E:&u) (E:&i) -> inRange     (l, u) i
+    isOverflow  = \ (E:&l, E:&u) (E:&i) -> isOverflow  (l, u) i
+    isUnderflow = \ (E:&l, E:&u) (E:&i) -> isUnderflow (l, u) i
+    safeElem    = \ (E:&l, E:&u) (E:&i) -> E :& safeElem (l, u) i
     
-    isEmpty   = \ ([l], [u]) -> isEmpty (l, u)
-    ordBounds = \ ([l], [u]) -> let (l', u') = ordBounds (l, u) in ([l'], [u'])
+    isEmpty   (E:&l, E:&u) = isEmpty (l, u)
+    ordBounds (E:&l, E:&u) = let (l', u') = ordBounds (l, u) in (E:&l', E:&u')
     
-    offset = \ ([l], [u]) [i] -> offset (l, u) i
-    index  = \ ([l], [u])  n  -> [index (l, u) n]
+    offset = \ (E:&l, E:&u) (E:&i) -> offset (l, u) i
+    index  = \ (E:&l, E:&u) -> (E:&) . index (l, u)
     
     defaultBounds = both (E :&) . defaultBounds
-    
-    unsafeIndex   = \ n -> [unsafeIndex n]
+    unsafeIndex   = (E :&) . unsafeIndex
 
 -- [internal]: undecidable
 instance (Index i, Enum i, Bounded i, Index (i' :& i)) => Index (i' :& i :& i)
@@ -555,11 +553,8 @@ checkBounds bnds i res = case inBounds bnds i of
   UR -> throw . IndexUnderflow  . showString "in SDP.Index."
   IN -> const res
 
---------------------------------------------------------------------------------
-
 emptyEx :: String -> a
 emptyEx =  throw . EmptyRange . showString "in SDP.Index."
-
 
 
 

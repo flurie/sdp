@@ -1,6 +1,6 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, BangPatterns #-}
-{-# LANGUAGE FlexibleInstances, GADTs, ViewPatterns, PatternSynonyms #-}
-{-# LANGUAGE Safe, CPP, ConstraintKinds, DefaultSignatures #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances #-}
+{-# LANGUAGE Safe, CPP, BangPatterns, GADTs, ViewPatterns, PatternSynonyms #-}
+{-# LANGUAGE ConstraintKinds, DefaultSignatures #-}
 
 #if __GLASGOW_HASKELL__ >= 806
 {-# LANGUAGE QuantifiedConstraints, RankNTypes #-}

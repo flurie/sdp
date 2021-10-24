@@ -8,7 +8,7 @@
     "Control.Concurent.SDP.TArray" provides lazy boxed array of @stm@ 'TVar's.
 -}
 module Control.Concurent.SDP.TArray
-{-# DEPRECATED "This module is the result of a typo in the word \
+{-# WARNING "This module is the result of a typo in the word \
       \'concurrent' and will be removed in sdp-0.3" #-}
 (
   module Control.Concurrent.SDP.TArray

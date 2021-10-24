@@ -1,10 +1,9 @@
 {-# LANGUAGE TypeFamilies, TypeOperators, DefaultSignatures, ConstraintKinds #-}
-{-# LANGUAGE CPP, FlexibleInstances, UndecidableInstances, OverloadedLists #-}
-{-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE CPP, FlexibleInstances, UndecidableInstances, Trustworthy #-}
 
 {- |
     Module      :  SDP.Shape
-    Copyright   :  (c) Andrey Mulik 2020
+    Copyright   :  (c) Andrey Mulik 2020-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
@@ -87,13 +86,13 @@ class Shape i
     {-# INLINE fromGIndex #-}
     default fromGIndex :: (RANK1 i) => GIndex i -> i
     fromGIndex :: GIndex i -> i
-    fromGIndex =  \ [i] -> i
+    fromGIndex =  \ (E :& i) -> i
     
     -- | Create generalized index from index.
     {-# INLINE toGIndex #-}
     default toGIndex :: (RANK1 i) => i -> GIndex i
     toGIndex :: i -> GIndex i
-    toGIndex =  \ i -> [i]
+    toGIndex =  (E :&)
     
     -- | Count of dimensions in represented space (must be finite and constant).
     {-# INLINE rank #-}
@@ -251,120 +250,121 @@ instance (Shape i, Enum i, Bounded i, Shape (i' :& i)) => Shape (i' :& i :& i)
 instance (Shape i, Enum i, Bounded i) => Shape (Type i)\
 where\
 {\
-type DimInit (Type i) = Last i;\
 type DimLast (Type i) = i;\
+type DimInit (Type i) = Last i;\
 rank = const RANK;\
 initDim = fst . unconsDim;\
 lastDim = snd . unconsDim;
 
 SHAPE_INSTANCE(T2, I1, 2)
-fromGIndex = \ [a,b] -> (a,b);
-consDim    = \ [a] b -> (a,b);
-toGIndex       (a,b) =  [a,b];
-unconsDim      (a,b) =  ([a],b);
+fromGIndex = \ (E:&a:&b) -> (a,b);
+consDim    = \ (E:&a) b  -> (a,b);
+unconsDim  (a,b) = (E:&a,b);
+toGIndex   (a,b) = E:&a:&b;
 }
 
 SHAPE_INSTANCE(T3, T2, 3)
-fromGIndex = \ [a,b,c] -> (a,b,c);
-toGIndex       (a,b,c) =  [a,b,c];
-consDim        (a,b) c =  (a,b,c);
-unconsDim      (a,b,c) =  ((a,b),c);
+fromGIndex = \ (E:&a:&b:&c) -> (a,b,c);
+toGIndex   (a,b,c) = E:&a:&b:&c;
+unconsDim  (a,b,c) = ((a,b),c);
+consDim    (a,b) c = (a,b,c);
 }
 
 SHAPE_INSTANCE(T4, T3, 4)
-fromGIndex = \ [a,b,c,d] -> (a,b,c,d);
-toGIndex       (a,b,c,d) =  [a,b,c,d];
-consDim        (a,b,c) d =  (a,b,c,d);
-unconsDim      (a,b,c,d) =  ((a,b,c),d);
+fromGIndex = \ (E:&a:&b:&c:&d) -> (a,b,c,d);
+toGIndex   (a,b,c,d) = E:&a:&b:&c:&d;
+unconsDim  (a,b,c,d) = ((a,b,c),d);
+consDim    (a,b,c) d = (a,b,c,d);
 }
 
 SHAPE_INSTANCE(T5, T4, 5)
-fromGIndex = \ [a,b,c,d,e] -> (a,b,c,d,e);
-toGIndex       (a,b,c,d,e) =  [a,b,c,d,e];
-consDim        (a,b,c,d) e =  (a,b,c,d,e);
-unconsDim      (a,b,c,d,e) =  ((a,b,c,d),e);
+fromGIndex = \ (E:&a:&b:&c:&d:&e) -> (a,b,c,d,e);
+toGIndex   (a,b,c,d,e) = E:&a:&b:&c:&d:&e;
+unconsDim  (a,b,c,d,e) = ((a,b,c,d),e);
+consDim    (a,b,c,d) e = (a,b,c,d,e);
 }
 
 SHAPE_INSTANCE(T6, T5, 6)
-fromGIndex = \ [a,b,c,d,e,f] -> (a,b,c,d,e,f);
-toGIndex       (a,b,c,d,e,f) =  [a,b,c,d,e,f];
-consDim        (a,b,c,d,e) f =  (a,b,c,d,e,f);
-unconsDim      (a,b,c,d,e,f) =  ((a,b,c,d,e),f);
+fromGIndex = \ (E:&a:&b:&c:&d:&e:&f) -> (a,b,c,d,e,f);
+toGIndex   (a,b,c,d,e,f) = E:&a:&b:&c:&d:&e:&f;
+unconsDim  (a,b,c,d,e,f) = ((a,b,c,d,e),f);
+consDim    (a,b,c,d,e) f = (a,b,c,d,e,f);
 }
 
 SHAPE_INSTANCE(T7, T6, 7)
-fromGIndex = \ [a,b,c,d,e,f,g] -> (a,b,c,d,e,f,g);
-toGIndex       (a,b,c,d,e,f,g) =  [a,b,c,d,e,f,g];
-consDim        (a,b,c,d,e,f) g =  (a,b,c,d,e,f,g);
-unconsDim      (a,b,c,d,e,f,g) =  ((a,b,c,d,e,f),g);
+fromGIndex = \ (E:&a:&b:&c:&d:&e:&f:&g) -> (a,b,c,d,e,f,g);
+toGIndex   (a,b,c,d,e,f,g) = E:&a:&b:&c:&d:&e:&f:&g;
+unconsDim  (a,b,c,d,e,f,g) = ((a,b,c,d,e,f),g);
+consDim    (a,b,c,d,e,f) g = (a,b,c,d,e,f,g);
 }
 
 SHAPE_INSTANCE(T8, T7, 8)
-fromGIndex = \ [a,b,c,d,e,f,g,h] -> (a,b,c,d,e,f,g,h);
-toGIndex       (a,b,c,d,e,f,g,h) =  [a,b,c,d,e,f,g,h];
-consDim        (a,b,c,d,e,f,g) h =  (a,b,c,d,e,f,g,h);
-unconsDim      (a,b,c,d,e,f,g,h) =  ((a,b,c,d,e,f,g),h);
+fromGIndex = \ (E:&a:&b:&c:&d:&e:&f:&g:&h) -> (a,b,c,d,e,f,g,h);
+toGIndex   (a,b,c,d,e,f,g,h) = E:&a:&b:&c:&d:&e:&f:&g:&h;
+unconsDim  (a,b,c,d,e,f,g,h) = ((a,b,c,d,e,f,g),h);
+consDim    (a,b,c,d,e,f,g) h = (a,b,c,d,e,f,g,h);
 }
 
 SHAPE_INSTANCE(T9, T8, 9)
-fromGIndex = \ [a,b,c,d,e,f,g,h,i] -> (a,b,c,d,e,f,g,h,i);
-toGIndex       (a,b,c,d,e,f,g,h,i) =  [a,b,c,d,e,f,g,h,i];
-consDim        (a,b,c,d,e,f,g,h) i =  (a,b,c,d,e,f,g,h,i);
-unconsDim      (a,b,c,d,e,f,g,h,i) =  ((a,b,c,d,e,f,g,h),i);
+fromGIndex = \ (E:&a:&b:&c:&d:&e:&f:&g:&h:&i) -> (a,b,c,d,e,f,g,h,i);
+toGIndex   (a,b,c,d,e,f,g,h,i) = E:&a:&b:&c:&d:&e:&f:&g:&h:&i;
+unconsDim  (a,b,c,d,e,f,g,h,i) = ((a,b,c,d,e,f,g,h),i);
+consDim    (a,b,c,d,e,f,g,h) i = (a,b,c,d,e,f,g,h,i);
 }
 
 SHAPE_INSTANCE(T10, T9, 10)
-fromGIndex = \ [a,b,c,d,e,f,g,h,i,j] -> (a,b,c,d,e,f,g,h,i,j);
-toGIndex       (a,b,c,d,e,f,g,h,i,j) =  [a,b,c,d,e,f,g,h,i,j];
-consDim        (a,b,c,d,e,f,g,h,i) j =  (a,b,c,d,e,f,g,h,i,j);
-unconsDim      (a,b,c,d,e,f,g,h,i,j) =  ((a,b,c,d,e,f,g,h,i),j);
+fromGIndex = \ (E:&a:&b:&c:&d:&e:&f:&g:&h:&i:&j) -> (a,b,c,d,e,f,g,h,i,j);
+toGIndex   (a,b,c,d,e,f,g,h,i,j) = E:&a:&b:&c:&d:&e:&f:&g:&h:&i:&j;
+unconsDim  (a,b,c,d,e,f,g,h,i,j) = ((a,b,c,d,e,f,g,h,i),j);
+consDim    (a,b,c,d,e,f,g,h,i) j = (a,b,c,d,e,f,g,h,i,j);
 }
 
 SHAPE_INSTANCE(T11, T10, 11)
-fromGIndex = \ [a,b,c,d,e,f,g,h,i,j,k] -> (a,b,c,d,e,f,g,h,i,j,k);
-toGIndex       (a,b,c,d,e,f,g,h,i,j,k) =  [a,b,c,d,e,f,g,h,i,j,k];
-consDim        (a,b,c,d,e,f,g,h,i,j) k =  (a,b,c,d,e,f,g,h,i,j,k);
-unconsDim      (a,b,c,d,e,f,g,h,i,j,k) =  ((a,b,c,d,e,f,g,h,i,j),k);
+fromGIndex = \ (E:&a:&b:&c:&d:&e:&f:&g:&h:&i:&j:&k) -> (a,b,c,d,e,f,g,h,i,j,k);
+toGIndex   (a,b,c,d,e,f,g,h,i,j,k) = E:&a:&b:&c:&d:&e:&f:&g:&h:&i:&j:&k;
+unconsDim  (a,b,c,d,e,f,g,h,i,j,k) = ((a,b,c,d,e,f,g,h,i,j),k);
+consDim    (a,b,c,d,e,f,g,h,i,j) k = (a,b,c,d,e,f,g,h,i,j,k);
 }
 
 SHAPE_INSTANCE(T12, T11, 12)
-fromGIndex = \ [a,b,c,d,e,f,g,h,i,j,k,l] -> (a,b,c,d,e,f,g,h,i,j,k,l);
-toGIndex       (a,b,c,d,e,f,g,h,i,j,k,l) =  [a,b,c,d,e,f,g,h,i,j,k,l];
-consDim        (a,b,c,d,e,f,g,h,i,j,k) l =  (a,b,c,d,e,f,g,h,i,j,k,l);
-unconsDim      (a,b,c,d,e,f,g,h,i,j,k,l) =  ((a,b,c,d,e,f,g,h,i,j,k),l);
+fromGIndex = \ (E:&a:&b:&c:&d:&e:&f:&g:&h:&i:&j:&k:&l) -> (a,b,c,d,e,f,g,h,i,j,k,l);
+toGIndex   (a,b,c,d,e,f,g,h,i,j,k,l) = E:&a:&b:&c:&d:&e:&f:&g:&h:&i:&j:&k:&l;
+unconsDim  (a,b,c,d,e,f,g,h,i,j,k,l) = ((a,b,c,d,e,f,g,h,i,j,k),l);
+consDim    (a,b,c,d,e,f,g,h,i,j,k) l = (a,b,c,d,e,f,g,h,i,j,k,l);
 }
 
 SHAPE_INSTANCE(T13, T12, 13)
-fromGIndex = \ [a,b,c,d,e,f,g,h,i,j,k,l,m] -> (a,b,c,d,e,f,g,h,i,j,k,l,m);
-toGIndex       (a,b,c,d,e,f,g,h,i,j,k,l,m) =  [a,b,c,d,e,f,g,h,i,j,k,l,m];
-consDim        (a,b,c,d,e,f,g,h,i,j,k,l) m =  (a,b,c,d,e,f,g,h,i,j,k,l,m);
-unconsDim      (a,b,c,d,e,f,g,h,i,j,k,l,m) =  ((a,b,c,d,e,f,g,h,i,j,k,l),m);
+fromGIndex = \ (E:&a:&b:&c:&d:&e:&f:&g:&h:&i:&j:&k:&l:&m) -> (a,b,c,d,e,f,g,h,i,j,k,l,m);
+toGIndex   (a,b,c,d,e,f,g,h,i,j,k,l,m) = E:&a:&b:&c:&d:&e:&f:&g:&h:&i:&j:&k:&l:&m;
+unconsDim  (a,b,c,d,e,f,g,h,i,j,k,l,m) = ((a,b,c,d,e,f,g,h,i,j,k,l),m);
+consDim    (a,b,c,d,e,f,g,h,i,j,k,l) m = (a,b,c,d,e,f,g,h,i,j,k,l,m);
 }
 
 SHAPE_INSTANCE(T14, T13, 14)
-fromGIndex = \ [a,b,c,d,e,f,g,h,i,j,k,l,m,n] -> (a,b,c,d,e,f,g,h,i,j,k,l,m,n);
-toGIndex       (a,b,c,d,e,f,g,h,i,j,k,l,m,n) =  [a,b,c,d,e,f,g,h,i,j,k,l,m,n];
-consDim        (a,b,c,d,e,f,g,h,i,j,k,l,m) n =  (a,b,c,d,e,f,g,h,i,j,k,l,m,n);
-unconsDim      (a,b,c,d,e,f,g,h,i,j,k,l,m,n) =  ((a,b,c,d,e,f,g,h,i,j,k,l,m),n);
+fromGIndex = \ (E:&a:&b:&c:&d:&e:&f:&g:&h:&i:&j:&k:&l:&m:&n) -> (a,b,c,d,e,f,g,h,i,j,k,l,m,n);
+toGIndex   (a,b,c,d,e,f,g,h,i,j,k,l,m,n) = E:&a:&b:&c:&d:&e:&f:&g:&h:&i:&j:&k:&l:&m:&n;
+unconsDim  (a,b,c,d,e,f,g,h,i,j,k,l,m,n) = ((a,b,c,d,e,f,g,h,i,j,k,l,m),n);
+consDim    (a,b,c,d,e,f,g,h,i,j,k,l,m) n = (a,b,c,d,e,f,g,h,i,j,k,l,m,n);
 }
 
 SHAPE_INSTANCE(T15, T14, 15)
-fromGIndex = \ [a,b,c,d,e,f,g,h,i,j,k,l,m,n,o] -> (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o);
-toGIndex       (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o) =  [a,b,c,d,e,f,g,h,i,j,k,l,m,n,o];
-consDim        (a,b,c,d,e,f,g,h,i,j,k,l,m,n) o =  (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o);
-unconsDim      (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o) =  ((a,b,c,d,e,f,g,h,i,j,k,l,m,n),o);
+fromGIndex = \ (E:&a:&b:&c:&d:&e:&f:&g:&h:&i:&j:&k:&l:&m:&n:&o) -> (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o);
+toGIndex   (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o) = E:&a:&b:&c:&d:&e:&f:&g:&h:&i:&j:&k:&l:&m:&n:&o;
+unconsDim  (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o) = ((a,b,c,d,e,f,g,h,i,j,k,l,m,n),o);
+consDim    (a,b,c,d,e,f,g,h,i,j,k,l,m,n) o = (a,b,c,d,e,f,g,h,i,j,k,l,m,n,o);
 }
 #undef SHAPE_INSTANCE
 
 --------------------------------------------------------------------------------
 
 -- | Convert any index type bounds to generalized index bounds.
-{-# INLINE toGBounds #-}
 toGBounds :: (Shape i) => (i, i) -> (GIndex i, GIndex i)
 toGBounds =  both toGIndex
 
 -- | Convert generalized index bounds to any index type bounds.
-{-# INLINE fromGBounds #-}
 fromGBounds :: (Shape i) => (GIndex i, GIndex i) -> (i, i)
 fromGBounds =  both fromGIndex
+
+
+
 

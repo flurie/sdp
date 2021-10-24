@@ -45,6 +45,12 @@ default ()
 
 --------------------------------------------------------------------------------
 
+{-# WARNING updates' "deprecated in favor of 'update', will be removed in sdp-0.3" #-}
+{-# WARNING update'  "will be moved to SDP.Map.Map class in sdp-0.3" #-}
+{-# WARNING write'   "will be moved to SDP.Map.Map class in sdp-0.3" #-}
+
+--------------------------------------------------------------------------------
+
 -- | 'Indexed' is class of ordered associative arrays with static bounds.
 class (Linear v e, Bordered v i, Map v i e) => Indexed v i e | v -> i, v -> e
   where
@@ -74,6 +80,14 @@ class (Linear v e, Bordered v i, Map v i e) => Indexed v i e | v -> i, v -> e
     write' :: v -> i -> e -> v
     write' es = write es . offsetOf es
     
+    -- | Update element by given function.
+    update' :: v -> (e -> e) -> i -> v
+    update' es f i = write' es i . f $ es!i
+    
+    -- | Create new structure from old by mapping with index.
+    updates' :: v -> (i -> e -> e) -> v
+    updates' es f = bounds es `assoc` [ (i, f i e) | (i, e) <- assocs es ]
+    
     {- |
       @'accum' f es ies@ create a new structure from @es@ elements selectively
       updated by function @f@ and @ies@ associations list.
@@ -84,14 +98,6 @@ class (Linear v e, Bordered v i, Map v i e) => Indexed v i e | v -> i, v -> e
     -- | 'imap' creates new indexed structure from old with reshaping.
     imap :: (Map m j e) => (i, i) -> m -> (i -> j) -> v
     imap bnds es f = assoc bnds [ (i, es!f i) | i <- range bnds ]
-    
-    -- | Update element by given function.
-    update' :: v -> (e -> e) -> i -> v
-    update' es f i = write' es i . f $ es!i
-    
-    -- | Create new structure from old by mapping with index.
-    updates' :: v -> (i -> e -> e) -> v
-    updates' es f = bounds es `assoc` [ (i, f i e) | (i, e) <- assocs es ]
 
 --------------------------------------------------------------------------------
 
@@ -166,5 +172,4 @@ binaryContain f e es =
 
 undEx :: String -> a
 undEx =  throw . UndefinedValue . showString "in SDP.Indexed."
-
 

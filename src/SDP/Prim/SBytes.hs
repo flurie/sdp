@@ -50,12 +50,12 @@ import SDP.SortM.Tim
 import qualified GHC.Exts as E
 import GHC.Exts
   (
-    ByteArray#, MutableByteArray#, State#, Int#, (+#), (-#), (==#),
+    ByteArray#, MutableByteArray#, State#, Int#, (+#), (-#),
     newByteArray#, unsafeFreezeByteArray#, sameMutableByteArray#
   )
 
 import GHC.Types
-import GHC.ST ( ST (..), STRep )
+import GHC.ST ( ST (..) )
 
 import Data.Default.Class
 import Data.Typeable
@@ -85,7 +85,7 @@ default ()
 data SBytes# e = SBytes#
           {-# UNPACK #-} !Int -- ^ Element count (not a real size)
           {-# UNPACK #-} !Int -- ^ Offset (in elements)
-          !(ByteArray#)       -- ^ Real primitive byte array
+          !ByteArray#         -- ^ Real primitive byte array
   deriving ( Typeable )
 
 type role SBytes# representational
@@ -139,18 +139,13 @@ instance (Unboxed e) => E.IsList (SBytes# e)
 
 instance Nullable (SBytes# e)
   where
-    lzero = runST $ (done =<<) $ ST $ \ s1# -> case newByteArray# 0# s1# of
-      (# s2#, marr# #) -> (# s2#, STBytes# 0 0 marr# #)
-    
     isNull es = case es of {(SBytes# 0 _ _) -> True; _ -> False}
+    lzero     = def
 
 instance (Unboxed e) => Semigroup (SBytes# e) where (<>) = (++)
 instance (Unboxed e) => Monoid    (SBytes# e) where mempty = Z; mappend = (<>)
 
-instance Default (SBytes# e)
-  where
-    def = runST $ (done =<<) $ ST $ \ s1# -> case newByteArray# 0# s1# of
-      (# s2#, marr# #) -> (# s2#, STBytes# 0 0 marr# #)
+instance Default (SBytes# e) where def = SBytes# 0 0 (unwrap lzero#)
 
 instance Estimate (SBytes# e)
   where
@@ -195,7 +190,7 @@ instance (Unboxed e) => Linear (SBytes# e) e
     fromListN  n es = runST $ newLinearN  n es >>= done
     fromFoldable es = runST $ fromFoldableM es >>= done
     
-    single e = runST $ filled 1 e >>= done
+    single e = SBytes# 1 0 (single# e)
     
     xs@(SBytes# (I# n1#) (I# o1#) arr1#) ++ SBytes# (I# n2#) (I# o2#) arr2# =
       let n# = n1# +# n2# in runST $ ST $ \ s1# -> case pnewUnboxed xs n# s1# of
@@ -225,11 +220,11 @@ instance (Unboxed e) => Linear (SBytes# e) e
       marr@(STBytes# _ _ marr#) <- alloc n
       
       let
-        write# (SBytes# c@(I# c#) (I# o#) arr#) i@(I# i#) = ST $
+        writeBlock# (SBytes# c@(I# c#) (I# o#) arr#) i@(I# i#) = ST $
           \ s2# -> case pcopyUnboxed1 ess arr# o# marr# i# c# s2# of
             s3# -> (# s3#, i + c #)
       
-      foldl (flip $ (=<<) . write#) (return 0) ess >> done marr
+      foldl (flip $ (=<<) . writeBlock#) (return 0) ess >> done marr
     
     reverse es = runST $ fromIndexed' es >>= reversed >>= done
     
@@ -551,8 +546,7 @@ instance (Unboxed e) => Thaw (ST s) (SBytes# e) (STBytes# s e)
   where
     thaw es@(SBytes# c@(I# c#) (I# o#) arr#) = do
       marr@(STBytes# _ _ marr#) <- alloc c
-      ST $ \ s1# -> case pcopyUnboxed es arr# o# marr# 0# c# s1# of
-        s2# -> (# s2#, () #)
+      ST $ \ s1# -> (# pcopyUnboxed es arr# o# marr# 0# c# s1#, () #)
       return marr
 
 instance (Unboxed e) => Freeze (ST s) (STBytes# s e) (SBytes# e)
@@ -622,29 +616,18 @@ instance (Unboxed e) => LinearM (ST s) (STBytes# s e) e
     nowNull es = return (sizeOf es == 0)
     newLinear  = fromFoldableM
     
-    newLinearN c es = ST $ \ s1# -> case pnewUnboxed es n# s1# of
-        (# s2#, marr# #) ->
-          let
-            go y r = \ i# s3# -> case writeByteArray# marr# i# y s3# of
-              s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#
-          in done' n marr# (if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2#)
-      where
-        !n@(I# n#) = max 0 c
+    newLinearN c es = let !n@(I# n#) = max 0 c in ST $
+      \ s1# -> case newLinearN# n# es s1# of
+        (# s2#, marr# #) -> (# s2#, STBytes# n 0 marr# #)
     
-    fromFoldableM es = ST $ \ s1# -> case pnewUnboxed es n# s1# of
-        (# s2#, marr# #) ->
-          let
-            go y r = \ i# s3# -> case writeByteArray# marr# i# y s3# of
-              s4# -> if isTrue# (i# ==# n# -# 1#) then s4# else r (i# +# 1#) s4#
-          in done' n marr# (if n == 0 then s2# else foldr go (\ _ s# -> s#) es 0# s2#)
-      where
-        !n@(I# n#) = length es
+    fromFoldableM es = ST $ \ s1# -> case fromFoldableM# es s1# of
+      (# s2#, n, marr# #) -> (# s2#, STBytes# n 0 marr# #)
     
     getLeft  es@(STBytes# n _ _) = (es !#>) `mapM` [0 .. n - 1]
     getRight es@(STBytes# n _ _) = (es !#>) `mapM` [n - 1, n - 2 .. 0]
     
     {-# INLINE (!#>) #-}
-    (!#>) (STBytes# _ (I# o#) marr#) = \ (I# i#) -> ST $ marr# !># (o# +# i#)
+    STBytes# _ (I# o#) marr# !#> I# i# = ST $ marr# !># (o# +# i#)
     
     writeM = writeM'
     
@@ -1099,10 +1082,6 @@ done :: STBytes# s e -> ST s (SBytes# e)
 done (STBytes# n o marr#) = ST $ \ s1# -> case unsafeFreezeByteArray# marr# s1# of
   (# s2#, arr# #) -> (# s2#, SBytes# n o arr# #)
 
-{-# INLINE done' #-}
-done' :: Int -> MutableByteArray# s -> STRep s (STBytes# s e)
-done' n marr# = \ s1# -> (# s1#, STBytes# n 0 marr# #)
-
 -- | alloc creates filled by default value pseudo-primitive.
 alloc :: (Unboxed e) => Int -> ST s (STBytes# s e)
 alloc c@(I# c#) =
@@ -1113,8 +1092,7 @@ alloc c@(I# c#) =
 cloneSTBytes# :: (Unboxed e) => STBytes# s e -> ST s (STBytes# s e)
 cloneSTBytes# es@(STBytes# c@(I# c#) (I# o#) marr#) = do
   copy@(STBytes# _ _ copy#) <- alloc c
-  ST $ \ s1# -> case pcopyUnboxedM es marr# o# copy# 0# c# s1# of
-    s2# -> (# s2#, () #)
+  ST $ \ s1# -> (# pcopyUnboxedM es marr# o# copy# 0# c# s1#, () #)
   return copy
 
 {-# INLINE nubSorted #-}
@@ -1137,4 +1115,6 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Prim.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
+
+
 

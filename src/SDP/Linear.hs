@@ -58,8 +58,7 @@ import Control.Exception.SDP
 
 default ()
 
-infix 8 `filter`, `except`
-
+infix  8 `filter`, `except`
 infixr 5 :>, ++
 infixl 5 :<
 infixl 9 !^
@@ -143,39 +142,20 @@ instance Bordered [e] Int
 
 --------------------------------------------------------------------------------
 
-{- $linearDoc
-  Linear is a class for linear (list-like) data structures which supports
-  
-  * creation: 'single', 'replicate', 'fromFoldable', 'fromList', 'fromListN'
-  * deconstruction: 'head', 'tail', 'init', 'last', 'uncons', 'unsnoc'
-  * construction, concatenation: 'toHead', 'toLast', '++', 'concat', 'concatMap'
-  * left- and right-side view: 'listL', 'listR'
-  * filtering, separation and selection: 'filter', 'except', 'partition',
-  'partitions', 'select', 'select'', 'extract', 'extract'', 'selects' and
-  'selects''
-  
-  Select and extract are needed to combine filtering and mapping, simplifying
-  lambdas and case-expressions in complex cases.
-  
-  > select' (p ?+ f) == fmap f . filter p
-  > select' (p ?- f) == fmap f . except p
-  
-  > fmap (\ (OneOfCons x y z) -> x + y * z) . filter (\ es -> case es of {(OneOfCons _ _ _) -> True; _ -> False})
-  
-  is just
-  
-  > select (\ es -> case es of {(OneOfCons x y z) -> Just (x + y * z); _ -> Nothing})
-  
-  The code is greatly simplified if there are more than one such constructor or
-  any additional conditions.
--}
-
 {-# RULES
   "select/Just"  select  Just = listL;
   "select'/Just" select' Just = id;
 #-}
 
--- | Class of list-like data structures.
+{- |
+  Class of list-like data structures, which
+  
+  * can be converted to and from list
+  * can be created from singleton or 'Foldable' stream
+  * support filter operations, separation, concatenation and selection
+  * It can be represented as 'head', 'tail', 'init' and 'last' elements and
+  constructed from 'head' and 'tail' or 'init' and 'last'.
+-}
 class (Nullable l) => Linear l e | l -> e
   where
     {-# MINIMAL (listL|listR), (fromList|fromFoldable), (head,tail|uncons), (init,last|unsnoc) #-}
@@ -458,39 +438,39 @@ class (Nullable l) => Linear l e | l -> e
     o_foldl' :: (b -> e -> b) -> b -> l -> b
     o_foldl' =  ofoldl' . const
     
-    -- | @since 0.2.1 'o_foldr1' is just 'foldr1' in 'Linear' context.
+    {- |
+      @since 0.2.1
+      
+      'o_foldr1' is just 'Data.Foldable.foldr1' in 'Linear' context.
+    -}
     o_foldr1 :: (e -> e -> e) -> l -> e
     o_foldr1 f = \ (es :< e) -> o_foldr f e es
     
-    -- | @since 0.2.1 'o_foldl1' is just 'foldl1' in 'Linear' context.
+    {- |
+      @since 0.2.1
+      
+      'o_foldl1' is just 'Data.Foldable.foldl1' in 'Linear' context.
+    -}
     o_foldl1 :: (e -> e -> e) -> l -> e
     o_foldl1 f = \ (e :> es) -> o_foldl f e es
     
-    -- | @since 0.2.1 'o_foldr1'' is just 'foldr1'' in 'Linear' context.
+    {- |
+      @since 0.2.1
+      
+      'o_foldr1'' is just strict 'Data.Foldable.foldr1' in 'Linear' context.
+    -}
     o_foldr1' :: (e -> e -> e) -> l -> e
     o_foldr1' f = \ (es :< e) -> o_foldr' f e es
     
-    -- | @since 0.2.1 'o_foldl1'' is just 'foldl1'' in 'Linear' context.
+    {- |
+      @since 0.2.1
+      
+      'o_foldl1'' is just 'Data.Foldable.foldl1'' in 'Linear' context.
+    -}
     o_foldl1' :: (e -> e -> e) -> l -> e
     o_foldl1' f = \ (e :> es) -> o_foldl' f e es
 
 --------------------------------------------------------------------------------
-
-{- $splitDoc
-  Split is class of structures that may be splitted by
-  
-  * length: 'take', 'drop', 'split', 'splits', 'keep', 'sans', 'divide',
-  'divides', 'parts', 'chunks'
-  * content: 'splitBy', 'divideBy', 'splitsBy', 'splitsOn'
-  * predicate: 'takeWhile', 'dropWhile', 'spanl', 'breakl' (left to right),
-  'takeEnd', 'dropEnd', 'spanr', 'breakr' (right to left)
-  * selector: 'selectWhile', 'selectEnd', 'extractWhile', 'extractEnd',
-  'selectWhile'', 'selectEnd'', 'extractWhile'', 'extractEnd'', 'replaceBy',
-  'removeAll', 'each', 'eachFrom'.
-  
-  Also Split provides some usefil predicates: 'isPrefixOf', 'isInfixOf',
-  'isSuffixOf', 'prefix', 'suffix', 'infixes', 'combo'.
--}
 
 -- | Split - class of splittable data structures.
 class (Linear s e) => Split s e | s -> e
@@ -662,20 +642,24 @@ class (Linear s e) => Split s e | s -> e
     
     {- |
       @justifyL n e es@ appends @e@ elements if the @es@ is shorter than @n@,
+      @justifyL n e es@ prepends @(n - sizeOf es)@ elements @e@ to @es@ from the
       takes @n@ elements if longer.
+      left side if @(sizeOf es < n)@. Otherwise returns the first @n@ elements
+      of @es@, like @'take' n es@ do.
     -}
     justifyL :: Int -> e -> s -> s
     justifyL n e = take n . (++ replicate n e)
     
     {- |
-      @justifyR n e es@ prepends @e@ elements if the @es@ is shorter than @n@,
-      takes @n@ elements if longer.
+      @justifyR n e es@ appends @(n - sizeOf es)@ elements @e@ to @es@ from the
+      right side if @(sizeOf es < n)@. Otherwise returns the first @n@ elements
+      of @es@, like @'keep' n es@ do.
     -}
     justifyR :: Int -> e -> s -> s
     justifyR n e = keep n . (replicate n e ++)
     
     {- |
-      @each n es@ returns each nth element of structure.
+      @each n es@ returns each @n@-th element of structure.
       If @n == 1@, returns @es@.
       If @n < 1@, returns 'Z'.
     -}
@@ -693,15 +677,15 @@ class (Linear s e) => Split s e | s -> e
     eachFrom :: Int -> Int -> s -> s
     eachFrom o n = each n . drop o
     
-    -- | isPrefixOf checks whether the first line is the beginning of the second
+    -- | @sub `'isPrefixOf'` es@ checks if @sub@ is beginning of @es@.
     isPrefixOf :: (Eq e) => s -> s -> Bool
     isPrefixOf (x :> xs) (y :> ys) = x == y && xs `isPrefixOf` ys
-    isPrefixOf xs _ = isNull xs
+    isPrefixOf xs               ys = isNull xs && isNull ys
     
-    -- | isSuffixOf checks whether the first line is the ending of the second
+    -- | @sub `'isSuffixOf'` es@ checks if @sub@ is ending of @es@.
     isSuffixOf :: (Eq e) => s -> s -> Bool
     isSuffixOf (xs :< x) (ys :< y) = x == y && xs `isSuffixOf` ys
-    isSuffixOf xs _ = isNull xs
+    isSuffixOf xs               ys = isNull xs && isNull ys
     
     -- | isInfixOf checks whether the first line is the substring of the second
     isInfixOf  :: (Eq e) => s -> s -> Bool
@@ -992,9 +976,10 @@ inits :: (Linear l e) => l -> [l]
 inits Z  = [Z]
 inits es = es : inits (init es)
 
--- | @ascending es ls@ checks if the @es@ subsequences of @ls@ sizes is ordered.
+{- |
+  @ascending es lengths@ checks if the subsequences of @es@ of lengths @lengths@
+  is sorted.
+-}
 ascending :: (Split s e, Sort s e, Ord e) => s -> [Int] -> Bool
 ascending =  all sorted ... flip splits
-
-
 

@@ -1330,11 +1330,11 @@ single# e = unwrap $ runST $ ST $ \ s1# -> case newUnboxed' e 1# s1# of
   (# s2#, marr# #) -> case unsafeFreezeByteArray# marr# s2# of
     (# s3#, arr# #) -> (# s3#, Wrap arr# #)
 
--- | @since 0.2.1 Create new immutable byte array from list of unpackable elements.
+-- | @since 0.2.1 Create immutable 'Unboxed' array from given list.
 fromList# :: (Unboxed e) => [e] -> ByteArray#
 fromList# es = let !(I# n#) = length es in fromListN# n# es
 
--- | @since 0.2.1 Create new mutable byte array from stream of unpackable elements.
+-- | @since 0.2.1 Create immutable 'Unboxed' array from 'Foldable' stream.
 fromFoldable# :: (Foldable f, Unboxed e) => f e -> (# Int, ByteArray# #)
 fromFoldable# es = unpack' $ runST $ ST $ \ s1# -> case fromFoldableM# es s1# of
     (# s2#, n, marr# #) -> case unsafeFreezeByteArray# marr# s2# of
@@ -1342,24 +1342,18 @@ fromFoldable# es = unpack' $ runST $ ST $ \ s1# -> case fromFoldableM# es s1# of
   where
     unpack' (i, Wrap arr#) = (# i, arr# #)
 
-{- |
-  @since 0.2.1
-  Create new known-size immutable byte array from list of unpackable elements.
--}
+-- | @since 0.2.1 Create immutable 'Unboxed' array from known size list.
 fromListN# :: (Unboxed e) => Int# -> [e] -> ByteArray#
 fromListN# n# es = unwrap $ runST $ ST $ \ s1# -> case newLinearN# n# es s1# of
   (# s2#, marr# #) -> case unsafeFreezeByteArray# marr# s2# of
     (# s3#, arr# #) -> (# s3#, Wrap arr# #)
 
--- | @since 0.2.1 Create new mutable byte array from list of unpackable elements.
+-- | @since 0.2.1 Create mutable 'Unboxed' array from given list.
 newLinear# :: (Unboxed e) => [e] -> State# s ->
   (# State# s, MutableByteArray# s #)
 newLinear# es = let !(I# n#) = length es in newLinearN# n# es
 
-{- |
-  @since 0.2.1
-  Create new known-size mutable byte array from list of unpackable elements.
--}
+-- | @since 0.2.1 Create mutable 'Unboxed' array from known size list.
 newLinearN# :: (Unboxed e) => Int# -> [e] -> State# s ->
   (# State# s, MutableByteArray# s #)
 newLinearN# c# es = \ s1# -> case pnewUnboxed es n# s1# of
@@ -1372,7 +1366,7 @@ newLinearN# c# es = \ s1# -> case pnewUnboxed es n# s1# of
   where
     !n@(I# n#) = max 0 (I# c#)
 
--- | @since 0.2.1 Create new mutable byte array from stream of unpackable elements.
+-- | @since 0.2.1 Create mutable 'Unboxed' array from 'Foldable' stream.
 fromFoldableM# :: (Foldable f, Unboxed e) => f e -> State# s ->
   (# State# s, Int, MutableByteArray# s #)
 fromFoldableM# es = \ s1# -> case pnewUnboxed es n# s1# of
@@ -1385,11 +1379,7 @@ fromFoldableM# es = \ s1# -> case pnewUnboxed es n# s1# of
   where
     !n@(I# n#) = length es
 
-{- |
-  @since 0.2.1
-  
-  Concatenation of two byte arrays representing 'Unboxed' structures.
--}
+-- | @since 0.2.1 Concatenation of two 'Unboxed' arrays.
 concat# :: (Unboxed e) => e ->
   ByteArray# -> Int# -> Int# -> ByteArray# -> Int# -> Int# -> State# s ->
   (# State# s, Int#, MutableByteArray# s #)

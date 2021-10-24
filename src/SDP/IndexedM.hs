@@ -47,6 +47,11 @@ default ()
 
 --------------------------------------------------------------------------------
 
+{-# WARNING updateM' "will be moved to SDP.MapM.MapM class in sdp-0.3" #-}
+{-# WARNING writeM'  "will be moved to SDP.MapM.MapM class in sdp-0.3" #-}
+
+--------------------------------------------------------------------------------
+
 -- | Class for work with mutable indexed structures.
 class (LinearM m v e, BorderedM m v i, MapM m v i e) => IndexedM m v i e
   where

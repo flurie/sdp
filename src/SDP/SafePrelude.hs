@@ -3,7 +3,7 @@
 
 {- |
     Module      :  SDP.SafePrelude
-    Copyright   :  (c) Andrey Mulik 2019
+    Copyright   :  (c) Andrey Mulik 2019-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
@@ -84,7 +84,7 @@ import Control.Applicative
 
 import Control.Monad.IO.Class
 import Control.Monad.ST
-import Control.Monad
+import Control.Monad hiding ( zipWithM )
 
 infixl 8 ?+, ?-
 infixr 1 ?,  ?^ -- Lowest priority, compatible with infixr 0 $
@@ -121,8 +121,8 @@ default ()
 -- | Short version of 'Data.Maybe.fromMaybe'.
 {-# INLINE (+?) #-}
 (+?) :: a -> Maybe a -> a
-_ +?  Just x = x
-x +? Nothing = x
+_ +? Just x = x
+x +?      _ = x
 
 -- | @(...) = (.) . (.)@.
 {-# INLINE (...) #-}

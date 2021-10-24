@@ -9,7 +9,7 @@
     @stm@ 'TVar's.
 -}
 module Control.Concurent.SDP.TUnlist
-{-# DEPRECATED "This module is the result of a typo in the word \
+{-# WARNING "This module is the result of a typo in the word \
       \'concurrent' and will be removed in sdp-0.3" #-}
 (
   module Control.Concurrent.SDP.TUnlist

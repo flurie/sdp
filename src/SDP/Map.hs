@@ -184,7 +184,7 @@ class (Nullable map) => Map map key e | map -> key, map -> e
           EQ -> (i, f x y) : go xs ys
         go _ _ = []
     
-    -- | Update function, by default uses ('!') and may throw 'IndexException'.
+    -- | Update function, by default uses ('//').
     update :: map -> (key -> e -> e) -> map
     update es f = es // [ (i, f i e) | (i, e) <- assocs es ]
     

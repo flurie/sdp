@@ -152,10 +152,10 @@ instance Default   (SArray# e) where def = Z
 instance Estimate (SArray# e)
   where
     (<==>) = on (<=>) sizeOf
-    (.<=.) = on  (<=) sizeOf
-    (.>=.) = on  (>=) sizeOf
-    (.>.)  = on  (>)  sizeOf
-    (.<.)  = on  (<)  sizeOf
+    (.<=.) = on (<=)  sizeOf
+    (.>=.) = on (>=)  sizeOf
+    (.>.)  = on (>)   sizeOf
+    (.<.)  = on (<)   sizeOf
     
     (<.=>) = (<=>) . sizeOf
     (.>=)  = (>=)  . sizeOf
@@ -179,70 +179,70 @@ instance Functor SArray#
 
 instance Zip SArray#
   where
-    all2 f as bs = go (minimum [sizeOf as, sizeOf bs])
+    all2 f as bs = go (sizeOf as <?=> bs)
       where
         apply i = f (as!^i) (bs!^i)
         
         go 0 = True
         go i = let i' = i - 1 in apply i' && go i'
     
-    all3 f as bs cs = go (minimum [sizeOf as, sizeOf bs, sizeOf cs])
+    all3 f as bs cs = go (sizeOf as <?=> bs <?=> cs)
       where
         apply i = f (as!^i) (bs!^i) (cs!^i)
         
         go 0 = True
         go i = let i' = i - 1 in apply i' && go i'
     
-    all4 f as bs cs ds = go (minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds])
+    all4 f as bs cs ds = go (sizeOf as <?=> bs <?=> cs <?=> ds)
       where
         apply i = f (as!^i) (bs!^i) (cs!^i) (ds!^i)
-        
+
         go 0 = True
         go i = let i' = i - 1 in apply i' && go i'
     
-    all5 f as bs cs ds es = go (minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds, sizeOf es])
+    all5 f as bs cs ds es = go (sizeOf as <?=> bs <?=> cs <?=> ds <?=> es)
       where
         apply i = f (as!^i) (bs!^i) (cs!^i) (ds!^i) (es!^i)
         
         go 0 = True
         go i = let i' = i - 1 in apply i' && go i'
     
-    all6 f as bs cs ds es fs = go (minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds, sizeOf es, sizeOf fs])
+    all6 f as bs cs ds es fs = go (sizeOf as <?=> bs <?=> cs <?=> ds <?=> es <?=> fs)
       where
         apply i = f (as!^i) (bs!^i) (cs!^i) (ds!^i) (es!^i) (fs!^i)
         
         go 0 = True
         go i = let i' = i - 1 in apply i' && go i'
     
-    any2 f as bs = go (minimum [sizeOf as, sizeOf bs])
+    any2 f as bs = go (sizeOf as <?=> bs)
       where
         apply i = f (as!^i) (bs!^i)
         
         go 0 = False
         go i = let i' = i - 1 in apply i' || go i'
     
-    any3 f as bs cs = go (minimum [sizeOf as, sizeOf bs, sizeOf cs])
+    any3 f as bs cs = go (sizeOf as <?=> bs <?=> cs)
       where
         apply i = f (as!^i) (bs!^i) (cs!^i)
         
         go 0 = False
         go i = let i' = i - 1 in apply i' || go i'
     
-    any4 f as bs cs ds = go (minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds])
+    any4 f as bs cs ds = go (sizeOf as <?=> bs <?=> cs <?=> ds)
       where
         apply i = f (as!^i) (bs!^i) (cs!^i) (ds!^i)
         
         go 0 = False
         go i = let i' = i - 1 in apply i' || go i'
     
-    any5 f as bs cs ds es = go (minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds, sizeOf es])
+    any5 f as bs cs ds es = go (sizeOf as <?=> bs <?=> cs <?=> ds <?=> es)
       where
         apply i = f (as!^i) (bs!^i) (cs!^i) (ds!^i) (es!^i)
         
         go 0 = False
         go i = let i' = i - 1 in apply i' || go i'
     
-    any6 f as bs cs ds es fs = go (minimum [sizeOf as, sizeOf bs, sizeOf cs, sizeOf ds, sizeOf es, sizeOf fs])
+    any6 f as bs cs ds es fs = go (sizeOf as <?=> bs <?=> cs <?=> ds <?=> es <?=> fs)
       where
         apply i = f (as!^i) (bs!^i) (cs!^i) (ds!^i) (es!^i) (fs!^i)
         
@@ -277,7 +277,17 @@ instance Zip SArray#
 instance Applicative SArray#
   where
     pure = single
-    fs <*> es = concatMap (<$> es) fs
+    
+    fs@(SArray# fn _ _) <*> es@(SArray# en _ _) = runST $ do
+      xs <- filled (fn * en) $ unreachEx "in SDP.Prim.SArray.(<*>) :: SArray# e"
+      
+      let
+        go (-1)  _  _ = return ()
+        go   i (-1) k = go (i - 1) (en - 1) k
+        go   i   j  k = writeM xs k (fs!^i $ es!^j) >> go i (j - 1) (k - 1)
+      
+      go (fn - 1) (en - 1) (upper xs)
+      done xs
 
 --------------------------------------------------------------------------------
 
@@ -314,7 +324,7 @@ instance Foldable SArray#
 
 instance Traversable SArray#
   where
-    traverse f = fmap fromList . foldr (liftA2 (:) . f) (pure [])
+    traverse f es = fromListN (sizeOf es) <$> foldr (liftA2 (:) . f) (pure Z) es
 
 --------------------------------------------------------------------------------
 
@@ -382,11 +392,10 @@ instance Linear (SArray# e) e
       marr@(STArray# _ _ marr#) <- filled n (unreachEx "concat")
       
       let
-        write# (SArray# c@(I# c#) (I# o#) arr#) i@(I# i#) = ST $
-          \ s2# -> case copyArray# arr# o# marr# i# c# s2# of
-            s3# -> (# s3#, i + c #)
+        writeBlock# (SArray# (I# c#) (I# o#) arr#) (I# i#) = ST $
+          \ s1# -> (# copyArray# arr# o# marr# i# c# s1#, I# (i# +# c#) #)
       
-      void $ foldl (\ b a -> write# a =<< b) (return 0) ess
+      void $ foldl (\ b a -> writeBlock# a =<< b) (return 0) ess
       done marr
     
     before es@(SArray# c@(I# c#) (I# o#) arr#) n@(I# n#) e
@@ -690,8 +699,7 @@ instance Indexed (SArray# e) Int e
     fromIndexed es = runST $ do
       let n = sizeOf es
       copy <- filled n (unreachEx "fromIndexed")
-      forM_ [0 .. n - 1] $ \ i -> writeM copy i (es !^ i)
-      done copy
+      updateM copy (\ i _ -> es!^i) >>= done
 
 --------------------------------------------------------------------------------
 
@@ -810,15 +818,15 @@ instance LinearM (ST s) (STArray# s e) e
     
     writeM = writeM'
     
-    copied es@(STArray# n _ _) = do
-      copy <- filled n $ unreachEx "copied"
-      forM_ [0 .. n - 1] $ \ i -> es !#> i >>= writeM copy i
-      return copy
+    copied (STArray# n@(I# n#) (I# o#) marr#) = ST $
+      \ s1# -> case cloneMutableArray# marr# o# n# s1# of
+        (# s2#, copy# #) -> (# s2#, STArray# n 0 copy# #)
     
-    copied' es l n = do
-      copy <- n `filled` unreachEx "copied'"
-      forM_ [0 .. n - 1] $ \ i -> es !#> (l + i) >>= writeM copy i
-      return copy
+    copied' (STArray# c (I# o#) marr#) l@(I# l#) n@(I# n#)
+      | l >= 0 && n >= 0 && c >= l + n = ST $
+        \ s1# -> case cloneMutableArray# marr# (o# +# l#) n# s1# of
+          (# s2#, copy# #) -> (# s2#, STArray# n 0 copy# #)
+      | True = unreachEx "copied'"
     
     reversed es =
       let go i j = when (i < j) $ go (i + 1) (j - 1) >> swapM es i j
@@ -1214,6 +1222,9 @@ ascsBounds =  \ ((x, _) : xs) -> foldr (\ (e, _) (mn, mx) -> (min mn e, max mx e
 asProxyTypeOf :: a -> proxy a -> a
 asProxyTypeOf =  const
 
+(<?=>) :: (Bordered b i) => Int -> b -> Int
+(<?=>) =  (. sizeOf) . min
+
 --------------------------------------------------------------------------------
 
 undEx :: String -> a
@@ -1230,6 +1241,5 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
-
 
 

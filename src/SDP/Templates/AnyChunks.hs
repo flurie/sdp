@@ -588,7 +588,7 @@ instance (BorderedM1 m rep Int e, SortM1 m rep e, SplitM1 m rep e, LinearM1 m re
 
 --------------------------------------------------------------------------------
 
--- | Creates new local immutable structure and thaw it as fast, as possible.
+-- | Creates new local immutable structure and thaw it unsafely.
 instance {-# OVERLAPPABLE #-} (Linear1 imm e, Thaw1 m imm mut e) => Thaw m (AnyChunks imm e) (mut e)
   where
     -- @concat [e]@ may return e
