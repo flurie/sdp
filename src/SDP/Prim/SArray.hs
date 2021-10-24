@@ -384,7 +384,7 @@ instance Linear (SArray# e) e
       writeM es' n e
       done es'
     
-    reverse es = runST $ fromIndexed' es >>= reversed >>= done
+    reverse es = runST $ do es' <- fromIndexed' es; reversed' es'; done es'
     
     -- [internal]: always return new array, even if only one is nonempty
     concat ess = runST $ do
@@ -828,9 +828,10 @@ instance LinearM (ST s) (STArray# s e) e
           (# s2#, copy# #) -> (# s2#, STArray# n 0 copy# #)
       | True = unreachEx "copied'"
     
-    reversed es =
+    reversed  es = do es' <- copied es; reversed' es'; return es'
+    reversed' es =
       let go i j = when (i < j) $ go (i + 1) (j - 1) >> swapM es i j
-      in  go 0 (sizeOf es - 1) >> return es
+      in  go 0 (sizeOf es - 1)
     
     filled n e = let !n'@(I# n#) = max 0 n in ST $
       \ s1# -> case newArray# n# e s1# of
@@ -1041,10 +1042,11 @@ instance (MonadIO io) => LinearM io (MIOArray# io e) e
     writeM = writeM'
     (!#>)  = stToMIO ... (!#>) . unpack
     
-    copied   = pack . copied . unpack
-    reversed = pack . reversed . unpack
-    getLeft  = stToMIO . getLeft  . unpack
-    getRight = stToMIO . getRight . unpack
+    copied    = pack . copied . unpack
+    reversed  = pack . reversed . unpack
+    getLeft   = stToMIO . getLeft  . unpack
+    getRight  = stToMIO . getRight . unpack
+    reversed' = stToMIO . reversed' . unpack
     
     copied' es = pack ... copied' (unpack es)
     
@@ -1218,7 +1220,6 @@ nubSorted f es = fromList $ foldr fun [last es] ((es !^) <$> [0 .. sizeOf es - 2
 ascsBounds :: (Ord a) => [(a, b)] -> (a, a)
 ascsBounds =  \ ((x, _) : xs) -> foldr (\ (e, _) (mn, mx) -> (min mn e, max mx e)) (x, x) xs
 
--- | In base-4.9 'asProxyTypeOf' has less general type @a -> Proxy a -> a@.
 asProxyTypeOf :: a -> proxy a -> a
 asProxyTypeOf =  const
 
@@ -1241,5 +1242,4 @@ pfailEx =  throw . PatternMatchFail . showString "in SDP.Prim.SArray."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SArray."
-
 

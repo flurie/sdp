@@ -226,7 +226,7 @@ instance (Unboxed e) => Linear (SBytes# e) e
       
       foldl (flip $ (=<<) . writeBlock#) (return 0) ess >> done marr
     
-    reverse es = runST $ fromIndexed' es >>= reversed >>= done
+    reverse es = runST $ do es' <- fromIndexed' es; reversed' es'; done es'
     
     before es@(SBytes# c@(I# c#) (I# o#) arr#) n@(I# n#) e
       | n >= c = es :< e
@@ -641,9 +641,11 @@ instance (Unboxed e) => LinearM (ST s) (STBytes# s e) e
       forM_ [0 .. n - 1] $ \ i -> es !#> (l + i) >>= writeM copy i
       return copy
     
-    reversed es@(STBytes# n _ _) =
+    reversed es = do es' <- copied es; reversed' es'; return es'
+    
+    reversed' es@(STBytes# n _ _) =
       let go i j = when (i < j) $ go (i + 1) (j - 1) >> swapM es i j
-      in  go 0 (n - 1) >> return es
+      in  go 0 (n - 1)
     
     filled n e = ST $ \ s1# -> case newUnboxed' e n# s1# of
         (# s2#, marr# #) -> (# s2#, STBytes# n' 0 marr# #)
@@ -860,8 +862,8 @@ instance (MonadIO io, Unboxed e) => LinearM io (MIOBytes# io e) e
     writeM es = stToMIO ... writeM (unpack es)
     
     copied   = pack  . copied   . unpack
-    getLeft  = stToMIO . getLeft  . unpack
     reversed = pack  . reversed . unpack
+    getLeft  = stToMIO . getLeft  . unpack
     getRight = stToMIO . getRight . unpack
     
     copied' es = pack ... copied' (unpack es)
@@ -1115,6 +1117,4 @@ underEx =  throw . IndexUnderflow . showString "in SDP.Prim.SBytes."
 
 unreachEx :: String -> a
 unreachEx =  throw . UnreachableException . showString "in SDP.Prim.SBytes."
-
-
 

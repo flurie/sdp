@@ -186,10 +186,18 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     copied' :: l -> Int -> Int -> m l
     copied' es l n = getLeft es >>= newLinearN n . drop l
     
-    -- | Monadic 'reverse'.
+    -- | Monadic 'reverse', returns new structure.
     {-# INLINE reversed #-}
     reversed :: l -> m l
     reversed =  newLinear <=< getRight
+
+    {- |
+      @since 0.2.1
+      
+      Monadic in-place 'reverse', reverse elements of given structure.
+    -}
+    reversed' :: l -> m ()
+    reversed' es = mapM_ (uncurry $ writeM es) . assocs =<< getRight es
     
     -- | Monadic 'concat'.
     merged :: (Foldable f) => f l -> m l
@@ -468,6 +476,7 @@ type LinearM2 m l i e = LinearM m (l i e) e
 type SplitM1 m l e = SplitM m (l e) e
 
 #if __GLASGOW_HASKELL__ >= 806
+
 -- | 'BorderedM' contraint for @(Type -> Type)@-kind types.
 type BorderedM' m l i = forall e . BorderedM m (l e) i
 
@@ -479,6 +488,7 @@ type LinearM' m l = forall e . LinearM m (l e) e
 
 -- | 'LinearM' contraint for @(Type -> Type -> Type)@-kind types.
 type LinearM'' m l = forall i e . LinearM m (l i e) e
+
 #endif
 
 
