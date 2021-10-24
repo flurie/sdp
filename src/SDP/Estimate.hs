@@ -20,7 +20,10 @@ module SDP.Estimate
   module Data.Functor.Classes,
   
   -- * Estimate
-  Estimate (..), Estimate1, Estimate2, Estimate', Estimate'',
+  Estimate (..), Estimate1, Estimate2,
+#if __GLASGOW_HASKELL__ >= 806
+  Estimate', Estimate'',
+#endif
   (<=.>), (<.), (>.), (<=.), (>=.), (==.), (/=.)
 )
 where
@@ -96,11 +99,13 @@ type Estimate1 rep e = Estimate (rep e)
 -- | @(Type -> Type -> Type)@ kind 'Estimate'.
 type Estimate2 rep i e = Estimate (rep i e)
 
+#if __GLASGOW_HASKELL__ >= 806
 -- | 'Estimate' contraint for @(Type -> Type)@-kind types.
 type Estimate' rep = forall e . Estimate (rep e)
 
 -- | 'Estimate' contraint for @(Type -> Type -> Type)@-kind types.
 type Estimate'' rep = forall i e . Estimate (rep i e)
+#endif
 
 --------------------------------------------------------------------------------
 

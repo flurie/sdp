@@ -83,7 +83,6 @@ simplify the search for extensions, I also recommend the following rules:
 of `sdp` with which it's compatible.
 * Extensions should be called `sdp-%extensionname%` (e.g. `sdp-quickcheck`).
 * Wrappers should be called `sdp4%libraryname%` (e.g., `sdp4text`).
-`AnyChunks`-like structure and instances for.
 
 ## Using the SDP category
 
