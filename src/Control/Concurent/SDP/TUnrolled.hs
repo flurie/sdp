@@ -1,5 +1,3 @@
-{-# LANGUAGE Safe #-}
-
 {- |
     Module      :  Control.Concurent.SDP.TUnrolled
     Copyright   :  (c) Andrey Mulik 2020
@@ -11,20 +9,12 @@
     of @stm@ 'TVar's.
 -}
 module Control.Concurent.SDP.TUnrolled
+{-# DEPRECATED "This module is the result of a typo in the word \
+      \'concurrent' and will be removed in sdp-0.3" #-}
 (
-  -- * TUnrolled
-  TUnrolled, STM, TVar
+  module Control.Concurrent.SDP.TUnrolled
 )
 where
 
-import Control.Concurent.SDP.TUnlist
-import SDP.Templates.AnyBorder
-
-default ()
-
---------------------------------------------------------------------------------
-
--- | Lazy boxed unrolled libked list.
-type TUnrolled = AnyBorder TUnlist
-
+import Control.Concurrent.SDP.TUnrolled
 

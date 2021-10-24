@@ -115,6 +115,11 @@ Library
     SDP.ByteList.IOUblist
     
     -- STM arrays
+    Control.Concurrent.SDP.TArray
+    Control.Concurrent.SDP.TUnlist
+    Control.Concurrent.SDP.TUnrolled
+    
+    -- Deprecated
     Control.Concurent.SDP.TArray
     Control.Concurent.SDP.TUnlist
     Control.Concurent.SDP.TUnrolled

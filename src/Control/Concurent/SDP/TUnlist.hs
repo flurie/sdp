@@ -1,5 +1,3 @@
-{-# LANGUAGE Safe, MagicHash #-}
-
 {- |
     Module      :  Control.Concurent.SDP.TUnlist
     Copyright   :  (c) Andrey Mulik 2020
@@ -11,20 +9,12 @@
     @stm@ 'TVar's.
 -}
 module Control.Concurent.SDP.TUnlist
+{-# DEPRECATED "This module is the result of a typo in the word \
+      \'concurrent' and will be removed in sdp-0.3" #-}
 (
-  -- * TUnlist
-  TUnlist, STM, TVar
+  module Control.Concurrent.SDP.TUnlist
 )
 where
 
-import SDP.Templates.AnyChunks
-import SDP.Prim.TArray
-
-default ()
-
---------------------------------------------------------------------------------
-
--- | Lazy boxed unrolled linked list.
-type TUnlist = AnyChunks TArray#
-
+import Control.Concurrent.SDP.TUnlist
 
