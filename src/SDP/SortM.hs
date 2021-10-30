@@ -60,10 +60,10 @@ type SortM1 m s e = SortM m (s e) e
 type SortM2 m s i e = SortM m (s i e)
 
 #if __GLASGOW_HASKELL__ >= 806
--- | 'SortM' contraint for @(Type -> Type)@-kind types.
+-- | 'SortM' quantified contraint for @(Type -> Type)@-kind types.
 type SortM' m s = forall e . SortM m (s e) e
 
--- | 'SortM' contraint for @(Type -> Type -> Type)@-kind types.
+-- | 'SortM' quantified contraint for @(Type -> Type -> Type)@-kind types.
 type SortM'' m s = forall i e . SortM m (s i e)
 #endif
 

@@ -7,8 +7,8 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
     
-    "SDP.Unrolled.IO" provides 'IOUnrolled' - mutable lazy boxed unrolled linked
-    list type.
+    "SDP.Unrolled.IO" provides 'IOUnrolled' - mutable lazy boxed bordered
+    unrolled linked list type.
 -}
 module SDP.Unrolled.IO
 (

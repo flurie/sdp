@@ -1,6 +1,6 @@
 {- |
     Module      :  Control.Concurent.SDP.TUnlist
-    Copyright   :  (c) Andrey Mulik 2020
+    Copyright   :  (c) Andrey Mulik 2020-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
@@ -10,7 +10,7 @@
 -}
 module Control.Concurent.SDP.TUnlist
 {-# WARNING "This module is the result of a typo in the word \
-      \'concurrent' and will be removed in sdp-0.3" #-}
+      \@concurrent@ and will be removed in sdp-0.3" #-}
 (
   module Control.Concurrent.SDP.TUnlist
 )

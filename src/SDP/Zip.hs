@@ -7,7 +7,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
     
-    "SDP.Zip" provides 'Zip' - class of 'Control.Applicative.ZipList"-like
+    "SDP.Zip" provides 'Zip' - class of "Control.Applicative.ZipList"-like
     structures.
 -}
 module SDP.Zip ( Zip (..) ) where

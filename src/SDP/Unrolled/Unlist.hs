@@ -7,7 +7,8 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
     
-    "SDP.Unrolled.Unlist" provides 'Unlist' - lazy boxed unrolled linked list.
+    "SDP.Unrolled.Unlist" provides 'Unlist' - immutable lazy boxed unrolled
+    linked list.
 -}
 module SDP.Unrolled.Unlist
 (
@@ -90,8 +91,7 @@ instance Zip Unlist
 instance Sort (Unlist e) e
   where
     sortBy cmp es = runST $ do es' <- thaw es; timSortBy cmp es'; done es'
-    
-    sortedBy f = go . toChunks
+    sortedBy    f = go . toChunks
       where
         go (x1 : x2 : xs) = sortedBy f x1 && last x1 `f` head x2 && go (x2 : xs)
         go      [x1]      = sortedBy f x1

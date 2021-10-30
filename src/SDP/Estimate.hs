@@ -21,9 +21,14 @@ module SDP.Estimate
   
   -- * Estimate
   Estimate (..), Estimate1, Estimate2,
+  
 #if __GLASGOW_HASKELL__ >= 806
+  -- ** Rank 2 quantified constraints
+  -- | GHC 8.6.1+ only
   Estimate', Estimate'',
 #endif
+  
+  -- ** Right-side Estimate functions.
   (<=.>), (<.), (>.), (<=.), (>=.), (==.), (/=.)
 )
 where
@@ -100,10 +105,10 @@ type Estimate1 rep e = Estimate (rep e)
 type Estimate2 rep i e = Estimate (rep i e)
 
 #if __GLASGOW_HASKELL__ >= 806
--- | 'Estimate' contraint for @(Type -> Type)@-kind types.
+-- | 'Estimate' quantified contraint for @(Type -> Type)@-kind types.
 type Estimate' rep = forall e . Estimate (rep e)
 
--- | 'Estimate' contraint for @(Type -> Type -> Type)@-kind types.
+-- | 'Estimate' quantified contraint for @(Type -> Type -> Type)@-kind types.
 type Estimate'' rep = forall i e . Estimate (rep i e)
 #endif
 

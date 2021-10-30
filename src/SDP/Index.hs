@@ -14,10 +14,11 @@
 -}
 module SDP.Index
 (
-  -- * Shapes
+  -- * Exports
   module SDP.Nullable,
   module SDP.Shape,
   
+  -- * Shapes
   (:|:), SubIndex, takeDim, dropDim, joinDim, splitDim,
   
   -- * Indices
@@ -555,6 +556,5 @@ checkBounds bnds i res = case inBounds bnds i of
 
 emptyEx :: String -> a
 emptyEx =  throw . EmptyRange . showString "in SDP.Index."
-
 
 

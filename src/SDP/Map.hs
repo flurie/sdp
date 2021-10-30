@@ -23,7 +23,7 @@ module SDP.Map
   Map (..), Map1, Map2,
   
 #if __GLASGOW_HASKELL__ >= 806
-  -- * Rank 2 quantified constraints
+  -- ** Rank 2 quantified constraints
   -- | GHC 8.6.1+ only
   Map', Map''
 #endif
@@ -46,13 +46,13 @@ infixl 9 .!, !, !?
 --------------------------------------------------------------------------------
 
 {- |
-  'Map' is a class of dictionaries, simple associative arrays with an arbitrary
-  (implementation-dependent) key.
+  @since 0.2
   
-  In the current implementation, 'Map' (since @sdp-0.2@) is a superclass of
-  'SDP.Indexed.Indexed'. 'Map' provides a set of operations on associative
-  arrays that aren't specific to 'Linear' data structures and aren't limited by
-  the 'Bordered' context (doesn't restrict key type).
+  'Map' is a class of dictionaries (associative arrays).
+  
+  'Map' provides a set of operations on associative arrays that aren't specific
+  to 'Linear' data structures and aren't limited by the 'Bordered' context
+  (doesn't restrict key type).
 -}
 class (Nullable map) => Map map key e | map -> key, map -> e
   where

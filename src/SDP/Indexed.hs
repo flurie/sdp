@@ -27,7 +27,7 @@ module SDP.Indexed
   Freeze (..), Freeze1, Freeze2,
   
 #if __GLASGOW_HASKELL__ >= 806
-  -- * Rank 2 quantified constraints
+  -- ** Rank 2 quantified constraints
   -- | GHC 8.6.1+ only
   Indexed', Indexed'', Freeze', Freeze''
 #endif

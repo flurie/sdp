@@ -203,7 +203,7 @@ instance Shape CUIntMax
 instance Shape CSize
 
 #if MIN_VERSION_base(4,10,0)
--- | @since base-4.10.0.0
+-- | since @base-4.10.0.0@
 instance Shape CBool
 #endif
 

@@ -7,8 +7,8 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
     
-    "SDP.ByteList.IO" provides 'IOByteList' - mutable strict unboxed unrolled
-    linked list type.
+    "SDP.ByteList.IO" provides 'IOByteList' - mutable strict unboxed bordered
+    unrolled linked list type.
 -}
 module SDP.ByteList.IO
 (

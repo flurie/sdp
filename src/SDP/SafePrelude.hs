@@ -12,17 +12,15 @@
     those overridden in this library and its extensions (e.g. @sdp-io@).
     
     In addition, this module re-exports the most common definitions from other
-    @base@ and @sdp@ modules ("Control.Applicative", "Data.Bufunctor",
+    @base@ and @sdp@ modules ("Control.Applicative", "Data.Bifunctor",
     "SDP.Estimate", etc.) and some useful combinators that were used in this
     library and may be useful to its users.
     
     Import "Prelude" without conflicting functions, may require additional
     imports for functions overridden in other modules:
     
-    @
-      import Prelude ()
-      import SDP.SafePrelude
-    @
+    > import Prelude ()
+    > import SDP.SafePrelude
 -}
 module SDP.SafePrelude
 (
@@ -177,4 +175,6 @@ liftM6 g as bs cs ds es fs = do a <- as; b <- bs; c <- cs; d <- ds; e <- es; f <
 -- | 'stToMIO' is just @'liftIO' . 'stToIO'@.
 stToMIO :: (MonadIO io) => ST RealWorld e -> io e
 stToMIO =  liftIO . stToIO
+
+
 

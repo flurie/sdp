@@ -6,7 +6,7 @@
     Copyright   :  (c) Andrey Mulik 2019-2021
     License     :  BSD-style
     Maintainer  :  work.a.mulik@gmail.com
-    Portability :  non-portable (a lot of GHC extensions)
+    Portability :  non-portable (GHC extensions)
     
     "SDP.Finite" provide generalized finite-dimensional index type (':&') based
     on @repa@ @(:.)@.

@@ -7,7 +7,7 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  non-portable (GHC extensions)
     
-    "SDP.Bytes.ST" provides 'STBytes' - mutable lazy boxed array type.
+    "SDP.Bytes.ST" provides 'STBytes' - mutable strict unboxed array type.
 -}
 module SDP.Bytes.ST
 (

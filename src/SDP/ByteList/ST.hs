@@ -7,8 +7,8 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
     
-    "SDP.ByteList.ST" provides 'STByteList' - mutable unboxed strict unrolled
-    linked list.
+    "SDP.ByteList.ST" provides 'STByteList' - mutable unboxed strict bordered
+    unrolled linked list.
 -}
 module SDP.ByteList.ST
 (

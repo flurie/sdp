@@ -20,7 +20,7 @@ module SDP.Nullable
   Nullable (..), Nullable1, Nullable2,
   
 #if __GLASGOW_HASKELL__ >= 806
-  -- * Rank 2 quantified constraints
+  -- ** Rank 2 quantified constraints
   -- | GHC 8.6.1+ only
   Nullable', Nullable'',
 #endif
@@ -94,17 +94,29 @@ pattern Z =  NULL
 
 --------------------------------------------------------------------------------
 
--- | @since 0.2.1 'Nullable' contraint for @(Type -> Type)@-kind types.
+{- |
+  @since 0.2.1
+  'Nullable' contraint for @(Type -> Type)@-kind types.
+-}
 type Nullable1 rep e = Nullable (rep e)
 
--- | @since 0.3 'Nullable' contraint for @(Type -> Type -> Type)@-kind types.
+{- |
+  @since 0.2.1
+  'Nullable' contraint for @(Type -> Type -> Type)@-kind types.
+-}
 type Nullable2 rep i e = Nullable (rep i e)
 
 #if __GLASGOW_HASKELL__ >= 806
--- | @since 0.3 'Nullable' contraint for @(Type -> Type)@-kind types.
+{- |
+  @since 0.2.1
+  'Nullable' contraint for @(Type -> Type)@-kind types.
+-}
 type Nullable' rep = forall e . Nullable (rep e)
 
--- | @since 0.3 'Nullable' contraint for @(Type -> Type -> Type)@-kind types.
+{- |
+  @since 0.2.1
+  'Nullable' contraint for @(Type -> Type -> Type)@-kind types.
+-}
 type Nullable'' rep = forall i e . Nullable (rep i e)
 #endif
 
@@ -142,4 +154,7 @@ instance Nullable (StablePtr e) where lzero = StablePtr (unsafeCoerce# 0#)
 
 -- | @since 0.2.1
 instance Nullable (FunPtr e) where lzero = nullFunPtr
+
+
+
 

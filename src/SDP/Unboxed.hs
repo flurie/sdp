@@ -207,26 +207,41 @@ fromProxy =  const undefined
 psizeof# :: (Unboxed e) => proxy e -> Int# -> Int#
 psizeof# =  sizeof# . fromProxy
 
--- | @since 0.2 'psizeof' is proxy version of 'sizeof'.
+{- |
+  @since 0.2
+  'psizeof' is proxy version of 'sizeof'.
+-}
 psizeof :: (Unboxed e) => proxy e -> Int -> Int
 psizeof =  sizeof . fromProxy
 
--- | @since 0.2 @(Type -> Type)@ kind proxy version of 'newUnboxed'.
+{- |
+  @since 0.2
+  Kind @(Type -> Type)@ proxy version of 'newUnboxed'.
+-}
 pnewUnboxed :: (Unboxed e) => proxy e -> Int# ->
   State# s -> (# State# s, MutableByteArray# s #)
 pnewUnboxed =  newUnboxed . fromProxy
 
--- | @since 0.2 @(Type -> Type)@ kind proxy version if 'copyUnboxed#'.
+{- |
+  @since 0.2
+  Kind @(Type -> Type)@ proxy version if 'copyUnboxed#'.
+-}
 pcopyUnboxed :: (Unboxed e) => proxy e -> ByteArray# -> Int# ->
   MutableByteArray# s -> Int# -> Int# -> State# s -> State# s
 pcopyUnboxed =  copyUnboxed# . fromProxy
 
--- | @since 0.2 @(Type -> Type)@ kind proxy version if 'copyUnboxedM#'.
+{- |
+  @since 0.2
+  Kind @(Type -> Type)@ proxy version if 'copyUnboxedM#'.
+-}
 pcopyUnboxedM :: (Unboxed e) => proxy e -> MutableByteArray# s -> Int# ->
   MutableByteArray# s -> Int# -> Int# -> State# s -> State# s
 pcopyUnboxedM =  copyUnboxedM# . fromProxy
 
--- | @since 0.2 @(Type -> Type)@ kind proxy version of 'cloneUnboxed#'.
+{- |
+  @since 0.2
+  Kind @(Type -> Type)@ proxy version of 'cloneUnboxed#'.
+-}
 cloneUnboxed1# :: (Unboxed e) => proxy e -> ByteArray# -> Int# -> Int# -> ByteArray#
 cloneUnboxed1# =  cloneUnboxed# . fromProxy
 
@@ -238,17 +253,26 @@ cloneUnboxed1# =  cloneUnboxed# . fromProxy
 pcloneUnboxed :: (Unboxed e) => proxy e -> ByteArray# -> Int# -> Int# -> ByteArray#
 pcloneUnboxed =  cloneUnboxed1#
 
--- | @since 0.2.1 @(Type -> Type)@ kind proxy version of 'cloneUnboxed#'.
+{- |
+  @since 0.2.1
+  Kind @(Type -> Type)@ proxy version of 'cloneUnboxed#'.
+-}
 pcloneUnboxedM :: (Unboxed e) => proxy e -> MutableByteArray# s -> Int# -> Int# ->
   State# s -> (# State# s, MutableByteArray# s #)
 pcloneUnboxedM =  cloneUnboxedM# . fromProxy
 
--- | @since 0.2.1 @(Type -> Type)@ kind proxy version of 'thawUnboxed#'.
+{- |
+  @since 0.2.1
+  Kind @(Type -> Type)@ proxy version of 'thawUnboxed#'.
+-}
 pthawUnboxed :: (Unboxed e) => proxy e -> ByteArray# -> Int# ->
   State# s -> (# State# s, MutableByteArray# s #)
 pthawUnboxed =  thawUnboxed# . fromProxy
 
--- | @since 0.2.1 @(Type -> Type)@ kind proxy version of 'pfreezeUnboxed'.
+{- |
+  @since 0.2.1
+  Kind @(Type -> Type)@ proxy version of 'pfreezeUnboxed'.
+-}
 pfreezeUnboxed :: (Unboxed e) => proxy e -> MutableByteArray# s -> Int# ->
   State# s -> (# State# s, ByteArray# #)
 pfreezeUnboxed =  freezeUnboxed# . fromProxy
@@ -261,26 +285,41 @@ pfreezeUnboxed =  freezeUnboxed# . fromProxy
 fromProxy1 :: m (proxy e) -> e
 fromProxy1 =  const undefined
 
--- | @since 0.2 @(Type -> Type -> Type)@ kind proxy version of 'newUnboxed'.
+{- |
+  @since 0.2
+  Kind @(Type -> Type -> Type)@ proxy version of 'newUnboxed'.
+-}
 pnewUnboxed1 :: (Unboxed e) => p (proxy e) -> Int# ->
   State# s -> (# State# s, MutableByteArray# s #)
 pnewUnboxed1 =  newUnboxed . fromProxy1
 
--- | @since 0.2 @(Type -> Type -> Type)@ kind proxy version of 'copyUnboxed#'.
+{- |
+  @since 0.2
+  Kind @(Type -> Type -> Type)@ proxy version of 'copyUnboxed#'.
+-}
 pcopyUnboxed1 :: (Unboxed e) => p (proxy e) -> ByteArray# -> Int# ->
   MutableByteArray# s -> Int# -> Int# -> State# s -> State# s
 pcopyUnboxed1 =  copyUnboxed# . fromProxy1
 
--- | @since 0.2.1 @(Type -> Type -> Type)@ kind proxy version of 'copyUnboxedM#'.
+{- |
+  @since 0.2.1
+  Kind @(Type -> Type -> Type)@ proxy version of 'copyUnboxedM#'.
+-}
 pcopyUnboxedM1 :: (Unboxed e) => p (proxy e) -> MutableByteArray# s -> Int# ->
   MutableByteArray# s -> Int# -> Int# -> State# s -> State# s
 pcopyUnboxedM1 =  copyUnboxedM# . fromProxy1
 
--- | @since 0.2.1 @(Type -> Type -> Type)@ kind proxy version of 'cloneUnboxed#'.
+{- |
+  @since 0.2.1
+  Kind @(Type -> Type -> Type)@ proxy version of 'cloneUnboxed#'.
+-}
 pcloneUnboxed1 :: (Unboxed e) => p (proxy e) -> ByteArray# -> Int# -> Int# -> ByteArray#
 pcloneUnboxed1 =  cloneUnboxed# . fromProxy1
 
--- | @since 0.2.1 @(Type -> Type -> Type)@ kind proxy version of 'cloneUnboxed#'.
+{- |
+  @since 0.2.1
+  Kind @(Type -> Type -> Type)@ proxy version of 'cloneUnboxed#'.
+-}
 pcloneUnboxedM1 :: (Unboxed e) => p (proxy e) -> MutableByteArray# s -> Int# -> Int# ->
   State# s -> (# State# s, MutableByteArray# s #)
 pcloneUnboxedM1 =  cloneUnboxedM# . fromProxy1
@@ -1318,23 +1357,35 @@ instance (Unboxed e) => Unboxed (T15 e)
 -- | 'ByteArray#' wrapper.
 data Wrap = Wrap {unwrap :: ByteArray#}
 
--- | Wrapped empty 'ByteArray#'.
+{- |
+  @since 0.2.1
+  Wrapped empty 'ByteArray#'.
+-}
 lzero# :: Wrap
 lzero# =  runST $ ST $ \ s1# -> case newByteArray# 0# s1# of
   (# s2#, marr# #) -> case unsafeFreezeByteArray# marr# s2# of
     (# s3#, arr# #) -> (# s3#, Wrap arr# #)
 
--- | 'ByteArray#' singleton.
+{- |
+  @since 0.2.1
+  'ByteArray#' singleton.
+-}
 single# :: (Unboxed e) => e -> ByteArray#
 single# e = unwrap $ runST $ ST $ \ s1# -> case newUnboxed' e 1# s1# of
   (# s2#, marr# #) -> case unsafeFreezeByteArray# marr# s2# of
     (# s3#, arr# #) -> (# s3#, Wrap arr# #)
 
--- | @since 0.2.1 Create immutable 'Unboxed' array from given list.
+{- |
+  @since 0.2.1
+  Create immutable 'Unboxed' array from given list.
+-}
 fromList# :: (Unboxed e) => [e] -> ByteArray#
 fromList# es = let !(I# n#) = length es in fromListN# n# es
 
--- | @since 0.2.1 Create immutable 'Unboxed' array from 'Foldable' stream.
+{- |
+  @since 0.2.1
+  Create immutable 'Unboxed' array from 'Foldable' stream.
+-}
 fromFoldable# :: (Foldable f, Unboxed e) => f e -> (# Int, ByteArray# #)
 fromFoldable# es = unpack' $ runST $ ST $ \ s1# -> case fromFoldableM# es s1# of
     (# s2#, n, marr# #) -> case unsafeFreezeByteArray# marr# s2# of
@@ -1342,18 +1393,27 @@ fromFoldable# es = unpack' $ runST $ ST $ \ s1# -> case fromFoldableM# es s1# of
   where
     unpack' (i, Wrap arr#) = (# i, arr# #)
 
--- | @since 0.2.1 Create immutable 'Unboxed' array from known size list.
+{- |
+  @since 0.2.1
+  Create immutable 'Unboxed' array from known size list.
+-}
 fromListN# :: (Unboxed e) => Int# -> [e] -> ByteArray#
 fromListN# n# es = unwrap $ runST $ ST $ \ s1# -> case newLinearN# n# es s1# of
   (# s2#, marr# #) -> case unsafeFreezeByteArray# marr# s2# of
     (# s3#, arr# #) -> (# s3#, Wrap arr# #)
 
--- | @since 0.2.1 Create mutable 'Unboxed' array from given list.
+{- |
+  @since 0.2.1
+  Create mutable 'Unboxed' array from given list.
+-}
 newLinear# :: (Unboxed e) => [e] -> State# s ->
   (# State# s, MutableByteArray# s #)
 newLinear# es = let !(I# n#) = length es in newLinearN# n# es
 
--- | @since 0.2.1 Create mutable 'Unboxed' array from known size list.
+{- |
+  @since 0.2.1
+  Create mutable 'Unboxed' array from known size list.
+-}
 newLinearN# :: (Unboxed e) => Int# -> [e] -> State# s ->
   (# State# s, MutableByteArray# s #)
 newLinearN# c# es = \ s1# -> case pnewUnboxed es n# s1# of
@@ -1366,7 +1426,10 @@ newLinearN# c# es = \ s1# -> case pnewUnboxed es n# s1# of
   where
     !n@(I# n#) = max 0 (I# c#)
 
--- | @since 0.2.1 Create mutable 'Unboxed' array from 'Foldable' stream.
+{- |
+  @since 0.2.1
+  Create mutable 'Unboxed' array from 'Foldable' stream.
+-}
 fromFoldableM# :: (Foldable f, Unboxed e) => f e -> State# s ->
   (# State# s, Int, MutableByteArray# s #)
 fromFoldableM# es = \ s1# -> case pnewUnboxed es n# s1# of
@@ -1379,9 +1442,13 @@ fromFoldableM# es = \ s1# -> case pnewUnboxed es n# s1# of
   where
     !n@(I# n#) = length es
 
--- | @since 0.2.1 Concatenation of two 'Unboxed' arrays.
+{- |
+  @since 0.2.1
+  Concatenation of two 'Unboxed' arrays.
+-}
 concat# :: (Unboxed e) => e ->
-  ByteArray# -> Int# -> Int# -> ByteArray# -> Int# -> Int# -> State# s ->
+  ByteArray# -> Int# -> Int# ->
+  ByteArray# -> Int# -> Int# -> State# s ->
   (# State# s, Int#, MutableByteArray# s #)
 concat# e arr1# n1# o1# arr2# n2# o2# = \ s1# -> case newUnboxed e n# s1# of
     (# s2#, marr# #) -> case copyUnboxed# e arr1# o1# marr# 0# n1# s2# of
@@ -1394,7 +1461,7 @@ concat# e arr1# n1# o1# arr2# n2# o2# = \ s1# -> case newUnboxed e n# s1# of
 pconcat :: (Unboxed e) => proxy e ->
   ByteArray# -> Int# -> Int# -> ByteArray# -> Int# -> Int# ->
   State# s -> (# State# s, Int#, MutableByteArray# s #)
-pconcat proxy = concat# (fromProxy proxy)
+pconcat = concat# . fromProxy
 
 --------------------------------------------------------------------------------
 
@@ -1412,7 +1479,7 @@ bool_bit n# = case (SIZEOF_HSWORD * 8 - 1) of
 
 {-# INLINE bool_not_bit #-}
 bool_not_bit :: Int# -> Word#
-bool_not_bit n# = case maxBound of !(W# mb#) -> bool_bit n# `xor#` mb#
+bool_not_bit n# = case maxBound of W# mb# -> bool_bit n# `xor#` mb#
 
 {-# INLINE bool_index #-}
 bool_index :: Int# -> Int#
@@ -1424,7 +1491,5 @@ bool_index =  (`uncheckedIShiftRA#` 6#)
 
 consSizeof :: (a -> b) -> b -> a
 consSizeof =  \ _ _ -> undefined
-
-
 
 

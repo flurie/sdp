@@ -70,10 +70,10 @@ type Sort1 rep e = Sort (rep e)
 type Sort2 rep i e = Sort (rep i e)
 
 #if __GLASGOW_HASKELL__ >= 806
--- | 'Sort' contraint for @(Type -> Type)@-kind types.
+-- | 'Sort' quantified contraint for @(Type -> Type)@-kind types.
 type Sort' rep = forall e . Sort (rep e)
 
--- | 'Sort' contraint for @(Type -> Type -> Type)@-kind types.
+-- | 'Sort' quantified contraint for @(Type -> Type -> Type)@-kind types.
 type Sort'' rep = forall i e . Sort (rep i e)
 #endif
 

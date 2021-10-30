@@ -24,7 +24,7 @@ module SDP.Set
   Set (..), Set1, Set2,
   
 #if __GLASGOW_HASKELL__ >= 806
-  -- * Rank 2 quantified constraints
+  -- ** Rank 2 quantified constraints
   -- | GHC 8.6.1+ only
   SetWith', SetWith'', Set', Set''
 #endif
@@ -54,9 +54,9 @@ default ()
   simplicity, openness and a lot of non-set functions without extra conversions,
   then you are at the right place.
   
-  Note that function of type @Compare o@ must follow total order laws
-  (antisymmetry, transitivity and connexity). If you use the wrong comparator,
-  the result may become implementation-dependent.
+  Note that function of type @Compare o@ must follow basic order laws
+  (comparability, transitivity, reflexivity and antisymmetry). With wrong
+  comparator, the result may become implementation-dependent.
 -}
 class (Nullable s) => SetWith s o | s -> o
   where
@@ -283,16 +283,16 @@ type Set2 s i o = Set (s i o) o
 type SetWith2 s i o = SetWith (s i o) o
 
 #if __GLASGOW_HASKELL__ >= 806
--- | 'Set' contraint for @(Type -> Type)@-kind types.
+-- | 'Set' quantified contraint for @(Type -> Type)@-kind types.
 type Set' s = forall o . Set (s o) o
 
--- | 'SetWith' contraint for @(Type -> Type)@-kind types.
+-- | 'SetWith' quantified contraint for @(Type -> Type)@-kind types.
 type SetWith' s = forall o . SetWith (s o) o
 
--- | 'Set' contraint for @(Type -> Type -> Type)@-kind types.
+-- | 'Set' quantified contraint for @(Type -> Type -> Type)@-kind types.
 type Set'' s = forall i o . Set (s i o) o
 
--- | 'SetWith' contraint for @(Type -> Type -> Type)@-kind types.
+-- | 'SetWith' quantified contraint for @(Type -> Type -> Type)@-kind types.
 type SetWith'' s = forall i o . SetWith (s i o) o
 #endif
 

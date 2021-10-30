@@ -28,7 +28,7 @@ module SDP.IndexedM
   Thaw (..), Thaw1, Thaw2,
   
 #if __GLASGOW_HASKELL__ >= 806
-  -- * Rank 2 quantified constraints
+  -- ** Rank 2 quantified constraints
   -- | GHC 8.6.1+ only
   IndexedM', IndexedM'', Thaw', Thaw''
 #endif

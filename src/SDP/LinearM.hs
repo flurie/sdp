@@ -27,12 +27,12 @@ module SDP.LinearM
   LinearM (..), LinearM1, LinearM2, pattern (:+=), pattern (:=+), pattern (:~=),
   
 #if __GLASGOW_HASKELL__ >= 806
-  -- * Rank 2 quantified constraints
+  -- ** Rank 2 quantified constraints
   -- | GHC 8.6.1+ only
   BorderedM', BorderedM'', LinearM', LinearM'',
 #endif
   
-  -- * SplitM class
+  -- ** SplitM class
   SplitM (..), SplitM1
 )
 where
@@ -208,7 +208,10 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     filled :: Int -> e -> m l
     filled n = newLinearN n . replicate n
     
-    -- | @since 0.2.1 @'removed' n es@ removes element with offset @n@ from @es@.
+    {- |
+      @since 0.2.1
+      @'removed' n es@ removes element with offset @n@ from @es@.
+    -}
     removed :: Int -> l -> m l
     removed n es = newLinear . remove n =<< getLeft es
     
@@ -264,11 +267,17 @@ class (Monad m) => LinearM m l e | l -> m, l -> e
     foldlM' :: (r -> e -> m r) -> r -> l -> m r
     foldlM' f = foldlM (\ !r e -> f r e)
     
-    -- | @since 0.2.1 'foldrM1' is 'foldrM' version with 'last' element as base.
+    {- |
+      @since 0.2.1
+      'foldrM1' is 'foldrM' version with 'last' element as base.
+    -}
     foldrM1 :: (e -> e -> m e) -> l -> m e
     foldrM1 f = getLeft >=> \ (es :< e) -> foldr ((=<<) . f) (pure e) es
     
-    -- | @since 0.2.1 'foldlM1' is 'foldlM' version with 'head' element as base.
+    {- |
+      @since 0.2.1
+      'foldlM1' is 'foldlM' version with 'head' element as base.
+    -}
     foldlM1 :: (e -> e -> m e) -> l -> m e
     foldlM1 f = getLeft >=> \ (e :> es) -> foldl (flip $ (=<<) . flip f) (pure e) es
     
@@ -476,7 +485,6 @@ type LinearM2 m l i e = LinearM m (l i e) e
 type SplitM1 m l e = SplitM m (l e) e
 
 #if __GLASGOW_HASKELL__ >= 806
-
 -- | 'BorderedM' contraint for @(Type -> Type)@-kind types.
 type BorderedM' m l i = forall e . BorderedM m (l e) i
 
@@ -488,8 +496,5 @@ type LinearM' m l = forall e . LinearM m (l e) e
 
 -- | 'LinearM' contraint for @(Type -> Type -> Type)@-kind types.
 type LinearM'' m l = forall i e . LinearM m (l i e) e
-
 #endif
-
-
 

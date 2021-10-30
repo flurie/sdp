@@ -7,8 +7,8 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
     
-    "SDP.Unrolled.ST" provides 'STUnrolled' - mutable boxed lazy unrolled linked
-    list.
+    "SDP.Unrolled.ST" provides 'STUnrolled' - mutable boxed lazy bordered
+    unrolled linked list.
 -}
 module SDP.Unrolled.ST
 (

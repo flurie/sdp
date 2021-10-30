@@ -7,7 +7,8 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
     
-    "SDP.Unrolled" provides 'Unrolled' - lazy boxed unrolled linked list.
+    "SDP.Unrolled" provides 'Unrolled' - immutable lazy boxed bordered unrolled
+    linked list.
 -}
 module SDP.Unrolled
 (
@@ -39,7 +40,6 @@ default ()
 
 -- | 'Unrolled' is bordered unrolled linked list.
 type Unrolled = AnyBorder Unlist
-
 
 
 

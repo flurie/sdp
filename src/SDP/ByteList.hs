@@ -7,7 +7,8 @@
     Maintainer  :  work.a.mulik@gmail.com
     Portability :  portable
     
-    "SDP.ByteList" provides 'ByteList' - strict unboxed unrolled linked list.
+    "SDP.ByteList" provides 'ByteList' - immutable strict bordered unboxed
+    unrolled linked list.
 -}
 module SDP.ByteList
 (
@@ -41,5 +42,4 @@ default ()
 
 -- | 'ByteList' is bordered strict unboxed unrolled linked list.
 type ByteList = AnyBorder Ublist
-
 
