@@ -224,17 +224,13 @@ class (Ord i, Shape i, Shape (DimLast i), Shape (DimInit i), Shape (GIndex i)) =
     
     -- | Returns previous index in 'range'.
     prev :: (i, i) -> i -> i
-    default prev  :: (Enum i) => (i, i) -> i -> i
-    prev (l, u) i | isEmpty (l, u) = e | i <= l = l | i > u = u | True = pred i
-      where
-        e = emptyEx "prev {default}"
+    default prev :: (Enum i) => (i, i) -> i -> i
+    prev (l, u) i | isEmpty (l, u) = emptyEx "prev {default}" | i <= l = l | i > u = u | True = pred i
     
     -- | Returns next index in range.
     next :: (i, i) -> i -> i
-    default next  :: (Enum i) => (i, i) -> i -> i
-    next (l, u) i | isEmpty (l, u) = e | i >= u = u | i < l = l | True = succ i
-      where
-        e = emptyEx "next {default}"
+    default next :: (Enum i) => (i, i) -> i -> i
+    next (l, u) i | isEmpty (l, u) = emptyEx "next {default}" | i >= u = u | i < l = l | True = succ i
     
     -- | Returns 'offset' (indent) of 'index' in 'range'.
     {-# INLINE offset #-}
@@ -284,8 +280,8 @@ instance (Index i) => Estimate (i, i)
     (.<.)  = on (<)   size
     
     (<.=>) = (<=>) . size
-    (.>=)  = (>=)  . size
     (.<=)  = (<=)  . size
+    (.>=)  = (>=)  . size
     (.>)   = (>)   . size
     (.<)   = (<)   . size
 
